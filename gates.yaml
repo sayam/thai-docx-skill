@@ -32,3 +32,13 @@ gates:
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_check.py]}
     proved_by: docs/evidence/2026-09-15-checker-red-evidence.md
+  - id: markdown-dialect-proven
+    title: The parser accepts exactly the Markdown ADR 0010 names — each construct on a fixture — and stops with a line number on anything outside it
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_markdown.py]}
+  - id: build-faithful-and-byte-stable
+    title: The build refuses to write a package that fails its own checker or differs from the Markdown by one character (ADR 0005), and the same input gives the same bytes on every run (ADR 0008)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_build.py]}

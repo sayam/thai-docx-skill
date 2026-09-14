@@ -99,6 +99,20 @@ def test_cause_4_rsid_attributes_do_not_hide_a_split(tmp_path):
     assert codes(check(written(tmp_path, parts))) == {"4"}
 
 
+def test_cause_4_runs_around_a_hyperlink_are_not_adjacent(tmp_path):
+    link = '<w:hyperlink r:id="rId9">' + run("ลิงก์") + "</w:hyperlink>"
+    parts = replaced(good(), "word/document.xml", run("รายการ"), run("ก่อน ") + link + run(" หลัง"))
+    assert "4" not in codes(check(written(tmp_path, parts)))
+
+
+def test_font_warning_only_where_a_run_holds_thai(tmp_path):
+    symbol = '<w:rFonts w:ascii="Segoe UI Symbol" w:hAnsi="Segoe UI Symbol" w:cs="Segoe UI Symbol"/>' + RUN_PROPS
+    parts = replaced(good(), "word/document.xml", run("รายการ"), run("☐ ", symbol) + run("รายการ"))
+    assert check(written(tmp_path, parts)).warnings == []
+    parts = replaced(good(), "word/document.xml", run("รายการ"), run("☐ รายการ", symbol))
+    assert [x["code"] for x in check(written(tmp_path, parts)).warnings] == ["font"]
+
+
 def test_cause_5_latin_font_without_cs_font(tmp_path):
     parts = replaced(good(), "word/styles.xml", ' w:cs="TH Sarabun New"', "")
     assert codes(check(written(tmp_path, parts))) == {"5"}

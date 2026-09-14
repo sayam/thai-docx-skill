@@ -15,17 +15,16 @@ import sys
 if __package__ in (None, ""):
     # `python3 scripts/thai_docx …` runs this file as a script, not a package.
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
-    from thai_docx import check
+    from thai_docx import build, check
 else:
-    from . import check
+    from . import build, check
 
 
 def main(argv: list[str]) -> int:
     if argv and argv[0] == "check":
         return check.main(argv[1:])
     if argv and argv[0] == "build":
-        print(json.dumps({"ok": False, "error": "build is not implemented yet"}))
-        return 2
+        return build.main(argv[1:])
     print(json.dumps({"ok": False, "error": "usage: thai_docx check FILE.docx | build IN.md OUT.docx"}))
     return 2
 

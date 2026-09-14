@@ -37,6 +37,7 @@ from .ooxml import (
     RPR_ORDER,
     SETTINGS_ORDER,
     THAI_FONTS,
+    is_thai,
     local,
     w,
 )
@@ -59,7 +60,9 @@ class Report:
         self.findings.append({"code": code, "part": part, "message": message, **where})
 
     def warn(self, code: str, part: str, message: str, **where) -> None:
-        self.warnings.append({"code": code, "part": part, "message": message, **where})
+        entry = {"code": code, "part": part, "message": message, **where}
+        if entry not in self.warnings:  # one font named by three styles is one warning
+            self.warnings.append(entry)
 
     @property
     def ok(self) -> bool:
@@ -75,7 +78,7 @@ class Report:
         }
 
 
-def _read_parts(path: pathlib.Path, report: Report) -> dict[str, bytes] | None:
+def _read_parts(path, report: Report) -> dict[str, bytes] | None:
     try:
         zf = zipfile.ZipFile(path)
     except (zipfile.BadZipFile, OSError) as exc:
@@ -138,14 +141,16 @@ def _check_order(el: ET.Element, order: list[str], part: str, report: Report, wh
         last_rank, last_name = rank[name], name
 
 
-def _check_rpr_twins(rpr: ET.Element, part: str, report: Report, what: str) -> None:
+def _check_rpr_twins(rpr: ET.Element, part: str, report: Report, what: str, thai: bool = True) -> None:
+    """`thai` says whether the text this rPr formats holds Thai; the font warning
+    is only worth raising then — a ☐ in Segoe UI Symbol needs no Thai glyphs."""
     fonts = rpr.find(w("rFonts"))
     if fonts is not None:
         latin = any(fonts.get(w(a)) for a in ("ascii", "hAnsi", "asciiTheme", "hAnsiTheme"))
         cs = fonts.get(w("cs")) or fonts.get(w("cstheme"))
         if latin and not cs:
             report.find("5", part, f"in {what}, w:rFonts names a Latin font but no w:cs font")
-        elif cs and not fonts.get(w("cstheme")) and cs.casefold() not in THAI_FONTS:
+        elif thai and cs and not fonts.get(w("cstheme")) and cs.casefold() not in THAI_FONTS:
             report.warn("font", part, f"in {what}, complex-script font {cs!r} is not known to carry Thai glyphs")
     for latin, twin in (("sz", "szCs"), ("b", "bCs"), ("i", "iCs")):
         if rpr.find(w(latin)) is not None and rpr.find(w(twin)) is None:
@@ -166,18 +171,23 @@ def _check_settings(root: ET.Element, report: Report) -> None:
 
 def _check_text_part(name: str, root: ET.Element, report: Report) -> None:
     for parent in root.iter():
-        runs = [c for c in parent if c.tag == w("r")]
-        if not runs:
+        if not any(c.tag == w("r") for c in parent):
             continue
         previous: tuple | None = None
         prev_has_text = False
-        for run in runs:
+        for run in parent:
+            if run.tag != w("r"):
+                # a hyperlink, bookmark or field between two runs keeps them apart:
+                # only runs with nothing between them can split a word
+                previous, prev_has_text = None, False
+                continue
             rpr = run.find(w("rPr"))
             texts = run.findall(w("t"))
             has_text = bool(texts)
             if rpr is not None:
                 _check_order(rpr, RPR_ORDER, name, report, "a run's w:rPr")
-                _check_rpr_twins(rpr, name, report, "a run")
+                thai = any(is_thai(ch) for t in texts for ch in (t.text or ""))
+                _check_rpr_twins(rpr, name, report, "a run", thai)
             if has_text:
                 report.counts["runs"] = report.counts.get("runs", 0) + 1
                 if rpr is None or rpr.find(w("cs")) is None:
@@ -228,9 +238,10 @@ def _check_numbering(name: str, root: ET.Element, report: Report) -> None:
             _check_order(rpr, RPR_ORDER, name, report, "a numbering level's w:rPr")
 
 
-def check(path: str | pathlib.Path) -> Report:
-    report = Report(str(path))
-    parts = _read_parts(pathlib.Path(path), report)
+def check(path) -> Report:
+    """`path` is a file path, or a file-like object with the package's bytes."""
+    report = Report(str(path) if isinstance(path, (str, pathlib.Path)) else "<bytes>")
+    parts = _read_parts(pathlib.Path(path) if isinstance(path, (str, pathlib.Path)) else path, report)
     if parts is None:
         return report
     trees = _parse(parts, report)
