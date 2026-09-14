@@ -1,0 +1,490 @@
+"""gate: logic-knows-no-http — the service layer imports nothing from the request side.
+
+Walks the AST of every file under `services_path`. Importing a request-side symbol
+from the framework, or importing a user-session module, means the logic knows about
+HTTP. (`current_app` is allowed — it is bound to the application, not to a request.)
+
+The symbol arrives by more roads than `from flask import request`: `import flask`
+and then `flask.request.args`, `from flask import *`, `from flask.globals import
+request`, and werkzeug's own request side (`werkzeug.wrappers`, `.local`,
+`.exceptions`, `.routing` — not `werkzeug.security`, which a service may use to
+hash a password). Each road was open (self-audit, 2026-08-31, all four exited 0).
+Two more were open until round 31 (2026-09-07): `import flask.globals as fg` and
+then `fg.request`, and `import flask.globals` — which binds `flask`, not the
+dotted name — and then `flask.request`. Four more were closed the same day:
+`from flask import globals [as g]` and then `g.request`; the module fetched at
+run time by `importlib.import_module("flask")` or `__import__("flask")`, used on
+the spot or bound to a name; and the attribute spelled as a string,
+`getattr(flask, "request")`. A module name computed at run time, and a symbol
+re-exported by a module of the project's own, are **not** read: neither is in
+this file, and a rule the tool cannot check must not look like one it checked.
+
+exit 0 = clean or no such directory (N/A) · 1 = findings · 2 = called wrongly
+
+Role: decider — it answers pass or fail with an exit code, and it ships as a
+standalone file; its evidence is a planted violation and a clean tree in
+`tests/test_checks_behaviour.py`.
+"""
+
+from __future__ import annotations
+
+import ast
+import json
+import os
+import pathlib
+import sys
+
+# Characters a finding line may not carry, and what is printed instead. The C0 controls
+# and DEL break the line grammar or the terminal; the C1 range does the same through a
+# terminal that reads 8-bit escapes; the bidi and zero-width formats reorder or hide what
+# a reader is looking at. Anything else — every language's letters — is left alone.
+
+# What this scanner reads, in one sentence — the catalogue's `reads:` for its rule is
+# held equal to this, `--rules` prints it, and every NA below is built from it. A Go
+# project read `nothing to check yet` about files it would never have (self-audit
+# round 22, 2026-09-04): an NA says what the rule reads, and "yet" is not a word in it.
+READS = (
+    "Python modules under app/services (scaffold.json services_path) — their imports, for "
+    "request-side symbols"
+)
+_ESCAPED = {
+    **{c: f"\\x{c:02x}" for c in (*range(0x20), 0x7F)},
+    **{
+        c: f"\\u{c:04x}"
+        for c in (
+            *range(0x80, 0xA0),
+            *range(0x200B, 0x2010),
+            *range(0x202A, 0x202F),
+            *range(0x2066, 0x206A),
+            0xFEFF,
+        )
+    },
+}
+
+
+def _shown(text: str | pathlib.Path) -> str:
+    """Text that can always be printed, and is always **one line**.
+
+    Two properties, and the second was learnt after the first. A file name here is bytes,
+    not characters: one that is not UTF-8 arrives from the directory listing carrying
+    surrogates, and printing it raised `UnicodeEncodeError` — a traceback and exit 1, the
+    code that means *findings*, from a scanner that had a verdict to give (self-audit
+    round 15, 2026-09-01). That is the `backslashreplace` below.
+
+    The name then stood for "safe to print", which it was not. A file name on Linux may
+    carry a newline, and this scanner's caller reads one line as one finding: a file named
+    `wipe\ndelete-means-soft-delete: forged\nx.py` turned one finding into two in the
+    report, one SARIF result into three, and put a line no scanner wrote into an agent's
+    context. An ANSI escape in a name (`\x1b[2K\x1b[A`) erased the finding printed above
+    it (self-audit round 21, 2026-09-03). So a control character, a C1 byte, a bidi
+    override and a zero-width format are shown escaped as well, and what is printed is one
+    line whatever it was made of.
+
+    This function is **copied into all nine scanners and the doctor on purpose** — each is
+    shipped alone into a project that has installed nothing — and the copies are held
+    byte-identical by `tests/test_checks_are_standalone.py`.
+    """
+    return os.fsencode(str(text)).decode("utf-8", "backslashreplace").translate(_ESCAPED)
+
+
+FORBIDDEN_FLASK_SYMBOLS = {
+    "request",
+    "session",
+    "g",
+    "flash",
+    "abort",
+    "redirect",
+    "render_template",
+    "url_for",
+    "jsonify",
+    "make_response",
+}
+FORBIDDEN_MODULES = {
+    "flask_login",
+    "werkzeug.wrappers",
+    "werkzeug.local",
+    "werkzeug.exceptions",
+    "werkzeug.routing",
+}
+
+
+class _UnreadableError(Exception):
+    """Bytes nobody can decode, or a tree nobody can walk. No verdict — never a clean one."""
+
+
+# A `.pyw` is a Python module; the suffix only tells Windows to run it without a console.
+# The walk kept `.py` alone, so a module named that way was not read at all — and where one
+# was the only module present the answer was `NA: no Python under …`, a scanner reporting
+# that a tree it could not see holds nothing (round 31, 2026-09-07). `.pyi` is deliberately
+# not here: a stub declares names and runs none of them.
+PYTHON_SUFFIXES = frozenset({".py", ".pyw"})
+
+
+def _walk(top: pathlib.Path) -> list[pathlib.Path]:
+    """Every file under `top`, sorted — or `_UnreadableError` naming what stopped the walk.
+
+    `rglob` **throws away the `OSError`s it meets on the way**: a directory this scanner
+    may not open, and any path past the system's length limit, are simply absent from the
+    result, with nothing raised and nothing printed — and the silence lands on the *pass*
+    side. Measured on one tree, changing nothing but a permission bit: readable, the
+    scanner printed the violation inside it and exited 1; with `chmod 000` on that one
+    directory it printed **nothing** and exited 0. A tree whose only source file sat 5,147
+    characters deep answered `NA: nothing to check yet` while `find` saw the file
+    (self-audit round 19, 2026-09-02). Both are the sentence the manifest forbids — "A rule
+    the tool cannot check must not look like a rule it checked" — so a walk that could not
+    see the whole tree has no verdict to give.
+    """
+    trouble: list[OSError] = []
+    found: list[pathlib.Path] = []
+    for parent, _directories, names in os.walk(top, onerror=trouble.append):
+        found += [pathlib.Path(parent) / name for name in names]
+    # A `top` that is not there is nothing to walk, which the caller reports as N/A — the
+    # answer it gave before. "Not there" and "there and closed to me" are different things.
+    blocked = [problem for problem in trouble if not isinstance(problem, FileNotFoundError)]
+    if blocked:
+        raise _UnreadableError(
+            "; ".join(f"{_shown(bad.filename)}: {bad.strerror}" for bad in blocked)
+        )
+    return sorted(found)
+
+
+def _forbidden_module(name: str) -> str | None:
+    """The forbidden module `name` is or sits under, if any."""
+    return next((m for m in FORBIDDEN_MODULES if name == m or name.startswith(m + ".")), None)
+
+
+# `importlib.import_module("flask")` and `__import__("flask")` fetch the module the import
+# statement would have, and neither is an `ast.Import`, so the alias reader never saw them —
+# `importlib.import_module("flask").request.args` exited 0 (round 31, 2026-09-07). Only a
+# **constant** module name is read: a name computed at run time is not in the tree, and a
+# rule that guessed at it would be a rule the tool cannot check.
+DYNAMIC_IMPORT = ("import_module", "__import__")
+
+
+def _is_flask_module(name: str | None) -> bool:
+    """`flask` itself, or a module under it — never `flaskish`, which only starts the same."""
+    return bool(name) and (name == "flask" or str(name).startswith("flask."))
+
+
+def _imports_flask_dynamically(node: ast.AST) -> bool:
+    """`importlib.import_module("flask…")` or `__import__("flask…")`, with a literal name."""
+    if not isinstance(node, ast.Call) or not node.args:
+        return False
+    called = node.func.attr if isinstance(node.func, ast.Attribute) else None
+    if called is None and isinstance(node.func, ast.Name):
+        called = node.func.id
+    first = node.args[0]
+    return (
+        called in DYNAMIC_IMPORT
+        and isinstance(first, ast.Constant)
+        and isinstance(first.value, str)
+        and _is_flask_module(first.value)
+    )
+
+
+def _bound_by_import(node: ast.AST) -> set[str]:
+    """The names one import statement binds, when it is an import of flask."""
+    if isinstance(node, ast.Import):
+        return {
+            alias.asname or alias.name.split(".")[0]
+            for alias in node.names
+            if _is_flask_module(alias.name)
+        }
+    if isinstance(node, ast.ImportFrom) and _is_flask_module(node.module):
+        # `from flask import globals [as g]` binds a **submodule**, and the request-side
+        # globals live under it — `g.request` was unread. A request-side symbol imported by
+        # name is reported at the import itself and needs no alias.
+        return {
+            alias.asname or alias.name
+            for alias in node.names
+            if alias.name not in FORBIDDEN_FLASK_SYMBOLS and alias.name != "*"
+        }
+    if isinstance(node, ast.Assign) and _imports_flask_dynamically(node.value):
+        return {target.id for target in node.targets if isinstance(target, ast.Name)}
+    return set()
+
+
+def _flask_aliases(tree: ast.AST) -> set[str]:
+    """The names an `import flask…` statement binds in this file.
+
+    Two roads past this were open (round 31, 2026-09-07). `import flask.globals as fg`
+    binds `fg`, and the request-side globals live under exactly that submodule, so
+    `fg.request` reached a service with the gate green — matching `flask` alone read
+    neither. And `import flask.globals` with **no** `as` binds the *top package*, `flask`,
+    never the dotted name, so recording `alias.name` missed `flask.request` on the line
+    after it. What a statement binds is the alias where there is one and the first segment
+    where there is not, which is what Python does.
+    """
+    bound: set[str] = set()
+    for node in ast.walk(tree):
+        bound |= _bound_by_import(node)
+    return bound
+
+
+def _reached_by_getattr(node: ast.Call, aliases: set[str]) -> str | None:
+    """The request-side symbol a `getattr(flask, "request")` reaches, or nothing.
+
+    The attribute road reads `flask.request` as an `ast.Attribute`; spelled as a string it is
+    a `Call` and was unread (round 31, 2026-09-07). Only a literal second argument is read.
+    """
+    if not (isinstance(node.func, ast.Name) and node.func.id == "getattr"):
+        return None
+    if len(node.args) < 2:
+        return None
+    holder, named = node.args[0], node.args[1]
+    reaches_flask = (
+        isinstance(holder, ast.Name) and holder.id in aliases
+    ) or _imports_flask_dynamically(holder)
+    if not reaches_flask or not isinstance(named, ast.Constant):
+        return None
+    return named.value if named.value in FORBIDDEN_FLASK_SYMBOLS else None
+
+
+def _import_findings(node: ast.AST, at: str) -> list[str]:
+    """The request side arriving by an import statement — a symbol by name, or a module."""
+    found: list[str] = []
+    if isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] == "flask":
+        names = {a.name for a in node.names}
+        bad = sorted(names & FORBIDDEN_FLASK_SYMBOLS) + (["*"] if "*" in names else [])
+        if bad:
+            found.append(f"{at} from {node.module} import {', '.join(bad)}")
+    if isinstance(node, ast.Import | ast.ImportFrom):
+        modules = (
+            [a.name for a in node.names] if isinstance(node, ast.Import) else [node.module or ""]
+        )
+        bad = sorted({m for n in modules if (m := _forbidden_module(n))})
+        if bad:
+            found.append(f"{at} import {', '.join(bad)}")
+    return found
+
+
+def _reach_findings(node: ast.AST, aliases: set[str], at: str) -> list[str]:
+    """The request side reached through a bound name, a run-time import, or a string attribute."""
+    if isinstance(node, ast.Attribute) and node.attr in FORBIDDEN_FLASK_SYMBOLS:
+        if isinstance(node.value, ast.Name) and node.value.id in aliases:
+            return [f"{at} {node.value.id}.{node.attr}"]
+        # The module fetched and used on the spot, with no name bound to it at all.
+        if _imports_flask_dynamically(node.value):
+            return [f"{at} an import of flask at run time, then .{node.attr}"]
+    # `getattr(flask, "request")` — the attribute spelled as a string.
+    if isinstance(node, ast.Call) and (reached := _reached_by_getattr(node, aliases)):
+        return [f"{at} getattr(..., {reached!r})"]
+    return []
+
+
+def _findings_in(tree: ast.AST, where: str) -> list[str]:
+    """Every road a request-side symbol takes into one file.
+
+    One road per helper: the statement that imports it, and the expression that reaches it.
+    Round 31 (2026-09-07) added three roads to this loop and put it over the complexity
+    ceiling the repository holds itself to, which is the ceiling doing its job.
+    """
+    found: list[str] = []
+    aliases = _flask_aliases(tree)
+    for node in ast.walk(tree):
+        at = f"{where}:{getattr(node, 'lineno', 0)}"
+        found += _import_findings(node, at)
+        found += _reach_findings(node, aliases, at)
+    return found
+
+
+OUTSIDE = (
+    "scaffold.json names {key} {path}, which leads outside the project — a checker "
+    "pointed out of the tree judges files this project does not own"
+)
+
+
+def _inside(root: pathlib.Path, path: pathlib.Path) -> bool:
+    """Is `path` still inside the tree this scanner was pointed at?
+
+    The installer was taught this in an earlier round — fourteen files landed outside the
+    destination through a `tools` symlink — and the readers were never asked the same
+    question. A `scaffold.json` path starting with `/` or climbing with `..` walked out of
+    the project, judged files it does not own, and printed them under a path no reviewer
+    can open; an absolute one also made `relative_to` raise, so the misconfiguration
+    answered with a traceback (self-audit round 13, 2026-09-01).
+    """
+    return path.resolve().is_relative_to(root.resolve())
+
+
+MISCONFIGURED = (
+    "scaffold.json names {key} {path}, which is not there — a configured path that "
+    "is missing is a broken configuration, not nothing to check"
+)
+
+
+MISSHAPEN = (
+    "scaffold.json gives {key} {value}, which is not {want} — a configured value of the "
+    "wrong shape is a broken configuration, not a value"
+)
+
+
+def _configured_path(config: dict[str, object], key: str, default: str) -> tuple[str | None, str]:
+    """The path configured under `key`, or `None` and the finding saying it is not a path.
+
+    `scaffold.json.default` ships the shape of every key it declares and nothing held a
+    project to it. A path written as a list, a number or `null` reached `root / value`
+    and left a raw `TypeError` and exit 1 — the code that means *findings* — out of a
+    scanner that had judged nothing (self-audit round 17, 2026-09-01).
+    """
+    value = config.get(key, default)
+    if isinstance(value, str):
+        return value, ""
+    return None, MISSHAPEN.format(key=key, value=json.dumps(value)[:40], want="a string")
+
+
+def _services_dir(root: pathlib.Path) -> tuple[pathlib.Path | None, int]:
+    """Where to look, or why there is nothing to look at — with the exit code for that."""
+    config_path = root / "scaffold.json"
+    # A project that has not configured the bundle is not a misuse — the paths
+    # below fall back to their defaults, and a default that is not there reports
+    # NA. A path the project *named* and does not have is the opposite case: a
+    # broken configuration, reported as a finding — an outside audit on
+    # 2026-08-29 planted a `scaffold.json` pointing at a Dockerfile that did not
+    # exist beside a dirty one that did, and the answer was "nothing to check".
+    config = _config(config_path)
+    named, wrong = _configured_path(config, "services_path", "app/services")
+    if named is None:
+        print(f"logic-knows-no-http: {wrong}")
+        return None, 1
+    services = root / named
+    if not _inside(root, services):
+        print("logic-knows-no-http: " + OUTSIDE.format(key="services_path", path=named))
+        return None, 1
+    if services.is_dir():
+        return services, 0
+    if "services_path" in config:
+        print(
+            "logic-knows-no-http: "
+            + MISCONFIGURED.format(key="services_path", path=services.relative_to(root))
+        )
+        return None, 1
+    print(f"NA: no {services.relative_to(root)} — this rule reads {READS}")
+    return None, 0
+
+
+# **A ceiling on what one file may be.** Nothing here declared one, and the memory this
+# scanner uses is a multiple of the largest file it is handed: measured on one 16 MB Python
+# file, `ast.parse` took 7.4s and **1,457 MB** — ×90 — with `ast.walk` over its three
+# million nodes on top (self-audit round 19, 2026-09-02). A standard runner has 7 GB, so one
+# generated file of about 100 MB ends the job by being killed, which CI reports as *the gate
+# failed* — blaming the project for a file the tool could not hold. A file above the ceiling
+# is named and gets no verdict, on the route this scanner already has for a file it cannot
+# parse; it is read up to the ceiling and no further.
+MAX_FILE_CHARS = 8 * 1024 * 1024
+
+
+def _source(path: pathlib.Path) -> str:
+    """The file's text, or `ValueError` when it is larger than this scanner reads whole."""
+    with path.open(encoding="utf-8") as handle:
+        text = handle.read(MAX_FILE_CHARS + 1)
+    if len(text) > MAX_FILE_CHARS:
+        message = f"larger than the {MAX_FILE_CHARS // 1024 // 1024} MiB this scanner reads whole"
+        raise ValueError(message)
+    return text
+
+
+def _config_text(path: pathlib.Path) -> str:
+    """`scaffold.json`'s text, or the third answer. Every scanner routes the files it
+    judges around undecodable bytes; the configuration beside them was still read bare
+    and died of a traceback (self-audit round 3, 2026-09-01)."""
+    try:
+        return path.read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError) as problem:
+        print(f"cannot read the tree: {_shown(path)}: {problem}", file=sys.stderr)
+        raise SystemExit(2) from problem
+
+
+def _config(path: pathlib.Path) -> dict[str, object]:
+    """The project's `scaffold.json`, or the third answer saying why it is not one.
+
+    Round 3 wrapped the *read* of this file and stopped one line short of the parse, so a
+    configuration that is malformed, empty, or saved with a byte-order mark — and one that
+    parses to a list, a string or `null` rather than an object — was still a raw traceback
+    and exit 1, the code that means *findings*, out of a scanner that had judged nothing
+    (self-audit round 17, 2026-09-01). A file nobody can read as a configuration is the
+    same answer as one nobody can decode: no verdict, said plainly.
+    """
+    if not path.is_file():
+        return {}
+    try:
+        config = json.loads(_config_text(path))
+    except json.JSONDecodeError as problem:
+        print(
+            f"cannot read the tree: {_shown(path)}: not JSON — "
+            f"{problem.msg}, line {problem.lineno}",
+            file=sys.stderr,
+        )
+        raise SystemExit(2) from problem
+    if not isinstance(config, dict):
+        print(
+            f"cannot read the tree: {_shown(path)}: not an object — a configuration "
+            f"names keys, and this one holds {json.dumps(config)[:40]}",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
+    return config
+
+
+def _judge(root: pathlib.Path) -> int:
+    if not root.is_dir():
+        # NA means "this project has nothing of that kind"; a root that is not
+        # there has no project to say it about, and answering the second with
+        # the first is a green over nothing (self-audit round 2, 2026-08-31).
+        print(f"cannot read the tree: {_shown(root)} is not a directory", file=sys.stderr)
+        return 2
+    services, code = _services_dir(root)
+    if services is None:
+        return code
+
+    readable = [path for path in _walk(services) if path.suffix in PYTHON_SUFFIXES]
+    # A directory that is there and holds nothing this scanner reads is not a clean
+    # project — it is one this scanner cannot see, which the manifest's own words
+    # forbid reporting as checked: "A rule the tool cannot check must not look like
+    # a rule it checked." A Go project came back `[ pass]` (round 8, 2026-09-01).
+    if not readable:
+        print(
+            f"NA: no Python under {services.relative_to(root)} — this rule reads {READS};"
+            " a service layer in another language is not read"
+        )
+        return 0
+
+    findings: list[str] = []
+    for path in readable:
+        try:
+            tree = ast.parse(_source(path), filename=str(path))
+        except (SyntaxError, ValueError, OSError) as error:
+            # A file Python cannot parse is not a verdict either way — said plainly,
+            # exit 2, the way every other unreadable input is refused (self-audit,
+            # 2026-08-31: a traceback and exit 1, which reads as "findings").
+            # `OSError` joined them in round 19 (2026-09-02): the two AST readers are the
+            # only scanners that call `read_text` without the `_text` guard round 5 gave
+            # the others, and a symlink pointing nowhere — which the walk lists, because
+            # the name is there — was a raw `FileNotFoundError` and exit 1 out of a
+            # scanner that had judged nothing.
+            print(
+                f"logic-knows-no-http: cannot read {_shown(path.relative_to(root))} — {error}",
+                file=sys.stderr,
+            )
+            return 2
+        findings += _findings_in(tree, _shown(path.relative_to(root)))
+
+    for finding in findings:
+        print(f"logic-knows-no-http: {_shown(finding)}")
+    return 1 if findings else 0
+
+
+def main(root: pathlib.Path) -> int:
+    """The verdict, or the third answer when the tree cannot be read."""
+    try:
+        return _judge(root)
+    except _UnreadableError as problem:
+        print(f"cannot read the tree: {problem}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("usage: scan_service_layer.py <root>", file=sys.stderr)
+        sys.exit(2)
+    sys.exit(main(pathlib.Path(sys.argv[1]).resolve()))

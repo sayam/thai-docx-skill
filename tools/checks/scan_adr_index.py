@@ -1,0 +1,452 @@
+"""gate: adr-index-complete — the ADR index covers every record, numbered without repeats or gaps,
+and supersessions are recorded in both directions.
+
+A stale index is worse than no index: the reader believes they are seeing all of
+it while the most recent decisions are missing. In the reference implementation
+the index once trailed by seven records, from the phase that decided the largest
+things in the project.
+
+The title's last clause had no code behind it: a record saying `Supersedes: 0001`
+while 0001 said nothing was clean (self-audit, 2026-08-31). A supersession is read
+from both records — `Supersedes:` on the new one, `Superseded by:` on the old — and
+each side has to name the other. An index link may carry a title in its text
+(`[0001: Use X](…)`) or sit in a table row (`| 0001 | [Use X](…) |`); both were
+"missing from the index", and a record named in capitals was not a record at all.
+
+exit 0 = clean or N/A · 1 = findings · 2 = called wrongly
+
+Role: decider — it answers pass or fail with an exit code, and it ships as a
+standalone file; its evidence is a planted violation and a clean tree in
+`tests/test_checks_behaviour.py`.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import pathlib
+import re
+import sys
+
+# Characters a finding line may not carry, and what is printed instead. The C0 controls
+# and DEL break the line grammar or the terminal; the C1 range does the same through a
+# terminal that reads 8-bit escapes; the bidi and zero-width formats reorder or hide what
+# a reader is looking at. Anything else — every language's letters — is left alone.
+
+# What this scanner reads, in one sentence — the catalogue's `reads:` for its rule is
+# held equal to this, `--rules` prints it, and every NA below is built from it. A Go
+# project read `nothing to check yet` about files it would never have (self-audit
+# round 22, 2026-09-04): an NA says what the rule reads, and "yet" is not a word in it.
+READS = "the .md records and the README.md index under docs/adr (scaffold.json adr_path)"
+_ESCAPED = {
+    **{c: f"\\x{c:02x}" for c in (*range(0x20), 0x7F)},
+    **{
+        c: f"\\u{c:04x}"
+        for c in (
+            *range(0x80, 0xA0),
+            *range(0x200B, 0x2010),
+            *range(0x202A, 0x202F),
+            *range(0x2066, 0x206A),
+            0xFEFF,
+        )
+    },
+}
+
+
+def _shown(text: str | pathlib.Path) -> str:
+    """Text that can always be printed, and is always **one line**.
+
+    Two properties, and the second was learnt after the first. A file name here is bytes,
+    not characters: one that is not UTF-8 arrives from the directory listing carrying
+    surrogates, and printing it raised `UnicodeEncodeError` — a traceback and exit 1, the
+    code that means *findings*, from a scanner that had a verdict to give (self-audit
+    round 15, 2026-09-01). That is the `backslashreplace` below.
+
+    The name then stood for "safe to print", which it was not. A file name on Linux may
+    carry a newline, and this scanner's caller reads one line as one finding: a file named
+    `wipe\ndelete-means-soft-delete: forged\nx.py` turned one finding into two in the
+    report, one SARIF result into three, and put a line no scanner wrote into an agent's
+    context. An ANSI escape in a name (`\x1b[2K\x1b[A`) erased the finding printed above
+    it (self-audit round 21, 2026-09-03). So a control character, a C1 byte, a bidi
+    override and a zero-width format are shown escaped as well, and what is printed is one
+    line whatever it was made of.
+
+    This function is **copied into all nine scanners and the doctor on purpose** — each is
+    shipped alone into a project that has installed nothing — and the copies are held
+    byte-identical by `tests/test_checks_are_standalone.py`.
+    """
+    return os.fsencode(str(text)).decode("utf-8", "backslashreplace").translate(_ESCAPED)
+
+
+class _UnreadableError(Exception):
+    """Bytes nobody can decode, or a tree nobody can walk. No verdict — never a clean one."""
+
+
+# **A ceiling on what one file may be.** Nothing here declared one, and the memory a
+# scanner uses is a multiple of the largest file it is handed: measured on one 16 MB Python
+# file, `list(tokenize.generate_tokens(...))` took 8.7s and **1,010 MB** (2.7 million
+# tokens) and `ast.parse` of the same file **1,457 MB** — ×64 and ×90 (self-audit round 19,
+# 2026-09-02). A standard runner has 7 GB, so one generated file of about 100 MB ends the
+# job by being killed, which CI reports as *the gate failed* — blaming the project for a
+# file the tool could not hold. A file above the ceiling is named and gets no verdict, the
+# same answer as one nobody can decode; it is read up to the ceiling and no further, so the
+# refusal costs the ceiling and never the file.
+MAX_FILE_CHARS = 8 * 1024 * 1024
+
+
+def _text(path: pathlib.Path) -> str:
+    """The file's text, or `_UnreadableError` naming it.
+
+    A file that is not UTF-8 made every scanner but the two AST readers die of a raw
+    `UnicodeDecodeError` and exit 1 — the code that means findings (self-audit round 3,
+    2026-09-01). A byte sequence nobody can decode is the third answer, not a verdict.
+
+    A file **larger than the ceiling** is the same answer for the same reason: it is read up
+    to `MAX_FILE_CHARS` and no further, so the refusal costs the ceiling and never the file.
+    """
+    try:
+        with path.open(encoding="utf-8") as handle:
+            text = handle.read(MAX_FILE_CHARS + 1)
+    except (UnicodeDecodeError, OSError) as problem:
+        # `OSError` too: a file the scanner is not allowed to read, or that turned into
+        # a directory between the glob and the read, was still a raw traceback after the
+        # decode guard landed — the guard was written for the exception in hand rather
+        # than for the question (self-audit round 5, 2026-09-01).
+        message = f"{_shown(path)}: {problem}"
+        raise _UnreadableError(message) from problem
+    if len(text) > MAX_FILE_CHARS:
+        message = (
+            f"{_shown(path)}: larger than the {MAX_FILE_CHARS // 1024 // 1024} MiB this"
+            " scanner reads whole"
+        )
+        raise _UnreadableError(message)
+    return text
+
+
+def _walk(top: pathlib.Path) -> list[pathlib.Path]:
+    """Every file under `top`, sorted — or `_UnreadableError` naming what stopped the walk.
+
+    `rglob` **throws away the `OSError`s it meets on the way**: a directory this scanner
+    may not open, and any path past the system's length limit, are simply absent from the
+    result, with nothing raised and nothing printed — and the silence lands on the *pass*
+    side. Measured on one tree, changing nothing but a permission bit: readable, the
+    scanner printed the violation inside it and exited 1; with `chmod 000` on that one
+    directory it printed **nothing** and exited 0. A tree whose only source file sat 5,147
+    characters deep answered `NA: nothing to check yet` while `find` saw the file
+    (self-audit round 19, 2026-09-02). Both are the sentence the manifest forbids — "A rule
+    the tool cannot check must not look like a rule it checked" — so a walk that could not
+    see the whole tree has no verdict to give.
+
+    The records live directly under `adr_path`, so this copy reads one directory and does
+    not descend — the same set the `glob` it replaces returned.
+    """
+    trouble: list[OSError] = []
+    found: list[pathlib.Path] = []
+    for parent, directories, names in os.walk(top, onerror=trouble.append):
+        directories[:] = []
+        found += [pathlib.Path(parent) / name for name in names]
+    # A `top` that is not there is nothing to walk, which the caller reports as N/A — the
+    # answer it gave before. "Not there" and "there and closed to me" are different things.
+    blocked = [problem for problem in trouble if not isinstance(problem, FileNotFoundError)]
+    if blocked:
+        raise _UnreadableError(
+            "; ".join(f"{_shown(bad.filename)}: {bad.strerror}" for bad in blocked)
+        )
+    return sorted(found)
+
+
+def _config(path: pathlib.Path) -> dict[str, object]:
+    """The project's `scaffold.json`, or the third answer saying why it is not one.
+
+    Round 3 wrapped the *read* of this file and stopped one line short of the parse, so a
+    configuration that is malformed, empty, or saved with a byte-order mark — and one that
+    parses to a list, a string or `null` rather than an object — was still a raw traceback
+    and exit 1, the code that means *findings*, out of a scanner that had judged nothing
+    (self-audit round 17, 2026-09-01). A file nobody can read as a configuration is the
+    same answer as one nobody can decode: no verdict, said plainly.
+    """
+    if not path.is_file():
+        return {}
+    try:
+        config = json.loads(_text(path))
+    except json.JSONDecodeError as problem:
+        raise _UnreadableError(
+            f"{_shown(path)}: not JSON — {problem.msg}, line {problem.lineno}"
+        ) from problem
+    if not isinstance(config, dict):
+        raise _UnreadableError(
+            f"{_shown(path)}: not an object — a configuration names keys, "
+            f"and this one holds {json.dumps(config)[:40]}"
+        )
+    return config
+
+
+FILENAME = re.compile(r"^(\d{4})-[a-z0-9-]+\.md$", re.IGNORECASE)
+# The record names this scanner prints all came through that pattern, so they are
+# ASCII by construction: unlike its siblings, this one never renders a name it read
+# off the disk unfiltered, and only the root it was handed needs `_shown`
+# (self-audit round 15, 2026-09-01).
+# `[0001](file)`, `[0001: Use X](file)`, or a table row `| 0001 | [Use X](file) |`.
+INDEX_LINK = re.compile(r"\[(\d{4})(?:[^\]]*)\]\(([^)]+)\)")
+INDEX_ROW = re.compile(r"^[ \t]*\|[ \t]*(\d{4})[ \t]*\|[^\n]*?\[[^\]]*\]\(([^)]+)\)", re.MULTILINE)
+# The field may open the line behind a **list marker** or a **table pipe**: a metadata bullet
+# list is how several ADR templates are written (MADR among them), and `- Supersedes: 0001`
+# read as nothing, so a one-directional supersession written that way passed the gate
+# (measured 2026-09-07, round 31). This reads no English — it is the same field with a
+# marker in front — which is what makes it a different change from the prose case the
+# `DECISIONS.md` row `a-supersession-is-a-field-not-a-sentence` records and keeps refusing.
+# A numbered list (`1. Supersedes: 0001`) is deliberately not here: `1.` before a field is
+# a numbered *record*, and reading it would make the ordinal look like the number.
+FIELD_LEAD = r"^[ \t]*(?:[-*+][ \t]+|\|[ \t]*)?"
+# `:` or a second table pipe separates the label from the number.
+FIELD_SEPARATOR = r"[ \t]*[:|]?[ \t]*\**[ \t]*(?:ADR[- ]?)?"
+SUPERSEDES = re.compile(
+    FIELD_LEAD + r"\**supersedes\**" + FIELD_SEPARATOR + r"(\d{4})",
+    re.IGNORECASE | re.MULTILINE,
+)
+SUPERSEDED_BY = re.compile(
+    FIELD_LEAD + r"\**superseded[- ]by\**" + FIELD_SEPARATOR + r"(\d{4})",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+# A fenced block shows a reader what an entry *looks like*; an HTML comment is an entry
+# somebody took out. The index was read with `findall` over the raw text, so both counted as
+# listings and a record missing from the real index was reported as present — a stale index,
+# green (round 31, 2026-09-07). Both are blanked before the read, newlines kept, so every
+# line number and every `^` anchor still means what it meant. Indented code blocks are
+# **not** blanked: four spaces in front of `- [0002](…)` is how a nested list is written,
+# and blanking those would lose real entries.
+#
+# The **records** are read the same way. The blanking was written for the index and applied
+# to one of this module's two readers: a `Supersedes:` field inside a fenced example in a
+# record — which is how a template documents the field — was read as a supersession and
+# reported as one-directional (measured 2026-09-08, context-rot audit round 2).
+FENCE = re.compile(r"^[ \t]*(?:```|~~~)")
+HTML_COMMENT = re.compile(r"<!--.*?(?:-->|\Z)", re.DOTALL)
+
+
+def _blanked(text: str) -> str:
+    """`text` with every character but the newlines replaced by a space."""
+    return re.sub(r"[^\n]", " ", text)
+
+
+def _entries_only(text: str) -> str:
+    """The text — an index or a record — with HTML comments and fenced blocks blanked out.
+
+    Comments go first, then fences. A fence marker on its own line inside a multi-line
+    comment is a commented-out example, and read fences-first it opened a fence that never
+    closed and blanked every entry below it (round 2 of the context-rot audit, 2026-09-08,
+    the other order's cost measured the same day). The order costs the exotic case instead:
+    an **unclosed** `<!--` inside a fence blanks to the end of the file. Either way the
+    failure is a record reported *missing* — red, never a green over an entry that was not
+    read. The fence is tracked by line, opening and closing on its own marker, so an
+    unclosed fence blanks the rest of the file — which is what a renderer does with it too.
+    """
+    uncommented = HTML_COMMENT.sub(lambda block: _blanked(block.group()), text)
+    kept: list[str] = []
+    fence: str | None = None
+    for line in uncommented.splitlines(keepends=True):
+        marker = found.group().strip() if (found := FENCE.match(line)) else None
+        if fence is None and marker is None:
+            kept.append(line)
+            continue
+        if fence is None:
+            fence = marker
+        elif marker is not None and marker[0] == fence[0]:
+            fence = None
+        kept.append(_blanked(line))
+    return "".join(kept)
+
+
+def _supersession_findings(adr_dir: pathlib.Path, on_disk: dict[str, str]) -> list[str]:
+    """Every `Supersedes:` names a record that says `Superseded by:` back, and the reverse."""
+    supersedes: dict[str, set[str]] = {}
+    superseded_by: dict[str, set[str]] = {}
+    for number, name in on_disk.items():
+        # The ceiling `_text` carries, without its strict decoding: a record with a stray
+        # byte still has its `Supersedes:` lines read (which is why `errors="replace"` is
+        # here), but a record larger than this scanner reads whole is refused rather than
+        # read in part — a graph built from half a file is a graph nobody checked.
+        with (adr_dir / name).open(encoding="utf-8", errors="replace") as handle:
+            text = handle.read(MAX_FILE_CHARS + 1)
+        if len(text) > MAX_FILE_CHARS:
+            message = (
+                f"{name}: larger than the {MAX_FILE_CHARS // 1024 // 1024} MiB this"
+                " scanner reads whole"
+            )
+            raise _UnreadableError(message)
+        fields = _entries_only(text)
+        supersedes[number] = set(SUPERSEDES.findall(fields))
+        superseded_by[number] = set(SUPERSEDED_BY.findall(fields))
+    forward = [
+        f"{new} supersedes {old}, but {old} does not say it is superseded by {new}"
+        for new, olds in sorted(supersedes.items())
+        for old in sorted(olds)
+        if new not in superseded_by.get(old, set())
+    ]
+    backward = [
+        f"{old} is superseded by {new}, but {new} does not say it supersedes {old}"
+        for old, news in sorted(superseded_by.items())
+        for new in sorted(news)
+        if old not in supersedes.get(new, set())
+    ]
+    return forward + backward
+
+
+OUTSIDE = (
+    "scaffold.json names {key} {path}, which leads outside the project — a checker "
+    "pointed out of the tree judges files this project does not own"
+)
+
+
+def _inside(root: pathlib.Path, path: pathlib.Path) -> bool:
+    """Is `path` still inside the tree this scanner was pointed at?
+
+    The installer was taught this in an earlier round — fourteen files landed outside the
+    destination through a `tools` symlink — and the readers were never asked the same
+    question. A `scaffold.json` path starting with `/` or climbing with `..` walked out of
+    the project, judged files it does not own, and printed them under a path no reviewer
+    can open; an absolute one also made `relative_to` raise, so the misconfiguration
+    answered with a traceback (self-audit round 13, 2026-09-01).
+    """
+    return path.resolve().is_relative_to(root.resolve())
+
+
+MISCONFIGURED = (
+    "scaffold.json names {key} {path}, which is not there — a configured path that "
+    "is missing is a broken configuration, not nothing to check"
+)
+
+
+MISSHAPEN = (
+    "scaffold.json gives {key} {value}, which is not {want} — a configured value of the "
+    "wrong shape is a broken configuration, not a value"
+)
+
+
+def _configured_path(config: dict[str, object], key: str, default: str) -> tuple[str | None, str]:
+    """The path configured under `key`, or `None` and the finding saying it is not a path.
+
+    `scaffold.json.default` ships the shape of every key it declares and nothing held a
+    project to it. A path written as a list, a number or `null` reached `root / value`
+    and left a raw `TypeError` and exit 1 — the code that means *findings* — out of a
+    scanner that had judged nothing (self-audit round 17, 2026-09-01).
+    """
+    value = config.get(key, default)
+    if isinstance(value, str):
+        return value, ""
+    return None, MISSHAPEN.format(key=key, value=json.dumps(value)[:40], want="a string")
+
+
+def _records(adr_dir: pathlib.Path, root: pathlib.Path) -> dict[str, list[str]] | None:
+    """The ADR records by number, or `None` when there is nothing of the kind to read.
+
+    A directory that is there and holds no record is not a clean index — it is one this
+    scanner cannot see, which the manifest's own words forbid reporting as checked:
+    "A rule the tool cannot check must not look like a rule it checked." A Go project
+    came back `[ pass]` from the doctor (self-audit round 8, 2026-09-01).
+    """
+    records = [path for path in _walk(adr_dir) if path.suffix == ".md"]
+    if not records:
+        print(f"NA: no record under {adr_dir.relative_to(root)} — this rule reads {READS}")
+        return None
+    by_number: dict[str, list[str]] = {}
+    for record in records:
+        if match := FILENAME.match(record.name):
+            by_number.setdefault(match.group(1), []).append(record.name)
+    return by_number
+
+
+def _adr_dir(root: pathlib.Path) -> tuple[pathlib.Path | None, int]:
+    """Where to look, or why there is nothing to look at — with the exit code for that."""
+    config_path = root / "scaffold.json"
+    # A project that has not configured the bundle is not a misuse — the paths
+    # below fall back to their defaults, and a default that is not there reports
+    # NA. A path the project *named* and does not have is the opposite case: a
+    # broken configuration, reported as a finding — an outside audit on
+    # 2026-08-29 planted a `scaffold.json` pointing at a Dockerfile that did not
+    # exist beside a dirty one that did, and the answer was "nothing to check".
+    config = _config(config_path)
+    named, wrong = _configured_path(config, "adr_path", "docs/adr")
+    if named is None:
+        print(f"adr-index-complete: {wrong}")
+        return None, 1
+    adr_dir = root / named
+    if not _inside(root, adr_dir):
+        print("adr-index-complete: " + OUTSIDE.format(key="adr_path", path=named))
+        return None, 1
+    if adr_dir.is_dir():
+        return adr_dir, 0
+    if "adr_path" in config:
+        print(
+            "adr-index-complete: "
+            + MISCONFIGURED.format(key="adr_path", path=adr_dir.relative_to(root))
+        )
+        return None, 1
+    print(f"NA: no {adr_dir.relative_to(root)} — this rule reads {READS}")
+    return None, 0
+
+
+def _judge(root: pathlib.Path) -> int:
+    if not root.is_dir():
+        # NA means "this project has nothing of that kind"; a root that is not
+        # there has no project to say it about, and answering the second with
+        # the first is a green over nothing (self-audit round 2, 2026-08-31).
+        print(f"cannot read the tree: {_shown(root)} is not a directory", file=sys.stderr)
+        return 2
+    adr_dir, code = _adr_dir(root)
+    if adr_dir is None:
+        return code
+
+    by_number = _records(adr_dir, root)
+    if by_number is None:
+        return 0
+
+    on_disk = {number: names[0] for number, names in by_number.items()}
+    index = adr_dir / "README.md"
+    listed: dict[str, str] = {}
+    if index.is_file():
+        text = _entries_only(_text(index))
+        listed = dict(INDEX_LINK.findall(text)) | dict(INDEX_ROW.findall(text))
+
+    findings: list[str] = []
+    # Two records with one number: a dict keyed by number kept one and lost the
+    # other silently (outside audit, 2026-08-30) — the rule says without repeats.
+    findings += [
+        f"number used twice: {', '.join(names)}" for names in by_number.values() if len(names) > 1
+    ]
+    if on_disk and not index.is_file():
+        findings.append("records exist but there is no README.md index")
+    findings += [
+        f"missing from the index: {on_disk[n]}" for n in sorted(on_disk.keys() - listed.keys())
+    ]
+    findings += [
+        f"index points at a file that is gone: {listed[n]}"
+        for n in sorted(listed.keys() - on_disk.keys())
+    ]
+
+    numbers = sorted(int(n) for n in on_disk)
+    if numbers and numbers != list(range(numbers[0], numbers[0] + len(numbers))):
+        findings.append(f"gap in the numbering: {numbers}")
+    findings += _supersession_findings(adr_dir, on_disk)
+
+    for finding in findings:
+        print(f"adr-index-complete: {_shown(finding)}")
+    return 1 if findings else 0
+
+
+def main(root: pathlib.Path) -> int:
+    """The verdict, or the third answer when a file cannot be decoded."""
+    try:
+        return _judge(root)
+    except _UnreadableError as problem:
+        print(f"cannot read the tree: {problem}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("usage: scan_adr_index.py <root>", file=sys.stderr)
+        sys.exit(2)
+    sys.exit(main(pathlib.Path(sys.argv[1]).resolve()))

@@ -1,0 +1,32 @@
+# This project's gate registry. vgproj wrote it for a repository that is not
+# code, and the installer keeps it from here: it holds your decisions now.
+#
+# The bundle's doctor still runs every scan it carries; the ones about
+# templates, services, entrypoints and Dockerfiles answer NA on a tree that
+# has none. This index names only what a prose repository can actually keep —
+# the decision index above all. Add a row when the tree grows something a scan
+# reads (a Dockerfile, a script), and `gates-registry-total` holds the index to
+# the workflows in both directions.
+
+version: 1
+gates:
+  - id: adr-index-complete
+    title: The ADR index covers every record, numbered without repeats or gaps · and supersessions are recorded in both directions
+    kind: job
+    severity: blocking
+    enforced_by: {job: scans}
+  - id: gates-registry-total
+    title: The gate index matches reality in both directions, and every test file is accounted for
+    kind: job
+    severity: blocking
+    enforced_by: {job: scans}
+  - id: actions-sha-pinned
+    title: Every action is pinned to a commit SHA with the version in a comment
+    kind: job
+    severity: blocking
+    enforced_by: {job: scans}
+  - id: ci-tools-hash-pinned
+    title: Tools CI installs for itself are pinned by hash, on both the Python and the Node side
+    kind: job
+    severity: blocking
+    enforced_by: {job: scans}

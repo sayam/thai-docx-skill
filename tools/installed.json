@@ -1,0 +1,20 @@
+{
+  "files": {
+    "tools/check_issue_handoff.py": "1d3345a488fef2b15c006738393c798a5f4e21d177e23966be5cca8147d5e9fc",
+    "tools/checks/scan_adr_index.py": "8529b68b0261fa8e8420a781397aef2d458c18b6b64da499e657a48e3b0a24f4",
+    "tools/checks/scan_dockerfile_digest.py": "99260ff937e933c9b68d6d1c400b499f8dd83acf62293034fbe7b5a6d18f458e",
+    "tools/checks/scan_entrypoint_debug.py": "bcf677ed080cadfda5918101314c52cf4693092f42c3ac46758b1f384c546f70",
+    "tools/checks/scan_gates_registry.py": "5ec781da6c4cd545c89382ae34d9e6d147b31e4cfcfab28f17170e842e71b259",
+    "tools/checks/scan_install_pinning.py": "f17bfbc43d5a4df41ffe4f4f53120b6a46b52fc1f89e8aec23d08f947921c7db",
+    "tools/checks/scan_service_layer.py": "ce5897e2d36029b7535fac9289aff6567a98b5c719d3236d1eaba407b9dd07fc",
+    "tools/checks/scan_templates_inline.py": "35f395915f6a2300b2c8b9cc03c1cb675c77a5e2453bd52adb4bf48e19c63445",
+    "tools/checks/scan_workflow_pinning.py": "f10fa0d8a578a4a5525f1d1bd40baff3163c9a7917c961a1326ecac7162453c4",
+    "tools/checks/scan_write_discipline.py": "93c6fc004f5f9e454efddbf2a247f76498425f33ffe60d3bc11026ccc9f5134d",
+    "tools/gates_doctor.py": "f8da5fc6476014fb09ed137a4f88744cee4bb90ff764554f0f32b64021834bf0",
+    "tools/lint_commits.py": "97ce475568f26b13e63ca6d045dfe789f68a7d66a20d06c74da8471632d29602",
+    "tools/overlay.json": "321d849fa0ad7229de29be5b468dca2377235fe05292c8bfb79ec48363f6a8f7",
+    "tools/preflight.py": "159450e9f3b6a33ace2a8c6bde499b52431259cf440ab79133ac66b80b6cd44c"
+  },
+  "finished": true,
+  "version": "0.10.0"
+}

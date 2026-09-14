@@ -1,0 +1,1528 @@
+"""Report where a project stands against a bundle of gates.
+
+**This file is shipped, so it is standalone on purpose**: stdlib only, no import
+from the package around it. `install.py` copies it into a project's `tools/`
+directory, where it runs under a bare `python3` before that project has installed
+its first dependency. That constraint is why the manifest is JSON rather than
+YAML, and why the few lines of manifest reading here are not shared with
+`verifiable_gates.manifest` — the duplication is small and the property is not.
+
+    python3 gates_doctor.py [root | --root DIR] [--manifest path]
+                            [--installed | --rules | --working] [--sarif FILE]
+
+The project can be named either way. Every other tool in this bundle takes
+`--root`, and an operator who reaches for the same spelling here should be
+answered, not shown a usage error. Naming it twice is a misuse (exit 2): two
+roots that differ would leave the report silently about one of them.
+
+**Four modes that measure different things, and the difference is the point:**
+
+- `--installed` asks whether the bundle *arrived and can run*: the config exists,
+  every scan script compiles. That is a claim about the installation, not about
+  the project's code. An install that stopped partway says so, and so does one
+  still under way, rather than reporting the files that did land as files
+  somebody edited — and an install that begins while the doctor is reading is
+  said too, since the record is read again after the files. A file this doctor
+  **cannot read** is a third sentence, apart from *gone* and *changed*: it is red,
+  because a scan nobody can read does not run, and it is not an accusation.
+- `--rules` asks what this bundle *decides*, and judges nothing: every `scan`
+  gate in the installed manifest, with where the rule came from and which
+  scanner reads it, for the instruction file a project keeps for its agents to
+  point at. It is read at run time, so an upgrade cannot leave an agent on
+  yesterday's rule — and it is read **only off a bundle that is still the one
+  the installer wrote**. The manifest lives inside the project it holds to
+  account, so an edited `title` put *this rule was retired — do not report it*
+  in front of an agent, in the tool's own voice, with nothing said and exit 0,
+  while `--installed` beside it saw the edit at once (self-audit round 21,
+  2026-09-03). A bundle whose record does not hold, or that has no record at
+  all, prints no rules: exit 2 with what `--installed` would have said. A rule
+  nobody can vouch for is not a rule an agent should be handed.
+- `--working` asks what practices the bundle carries and whether this tree has turned
+  them on. It judges nothing and never fails: the working is how a project's own work
+  is done, and a doctor grading that would be a rule the tool cannot check dressed as
+  one it did. Enabled means one thing — `.local/LESSONS.md` exists — because a second
+  place saying so would be a register nobody holds.
+- Without any of them it **runs the scans** and exits 1 if any found something — and
+  exits 2, *no verdict*, when the installed record does not vouch for the bundle that
+  ran them: an edited or missing scanner, a record that cannot be read, or none at all.
+  That check has run on every plain run since round 4 and reached only a parenthesis
+  under other gates' findings, so a scanner replaced with `sys.exit(0)` on a tree whose
+  only violation was the one it reads was `[ pass]` at exit 0, with the edit said
+  nowhere (2026-09-08, measured against the v0.9.0 wheel). It is said first, above the
+  gate lines, and last, and the scans still run: the findings are the scanners' words.
+
+Asking two of them at once is a misuse (exit 2), for the same reason two roots
+are: they are different questions, and one report cannot answer both.
+
+Gates of kind `suite` are counted and reported as waiting on the project's own
+tests. They are never folded into the pass count, because a rule this bundle
+cannot decide must not look like one it decided. `NA` is reported separately from
+`pass` for the same reason: a scan with nothing to look at has not agreed with you.
+
+A scan that exits without a verdict — a `scaffold.json` it cannot read as a
+configuration, exit 2 — is `[error]`, not `[found]`: its stderr is passed through and it is
+counted apart from the findings, because a tool that crashed has judged nothing
+(an outside audit on 2026-08-30 fed a malformed config and the doctor answered
+`[found]` seven times with the tracebacks swallowed). It is still red. The same
+answer for a scan that hangs past its timeout (the doctor tracebacked with
+`TimeoutExpired`, outside audit 2026-08-31) and for one that printed part of a
+verdict and then crashed — a traceback on stderr beside exit 1 means the scan
+did not finish judging, however much it said first.
+
+Every file here is read first and the exception answered, never asked about and
+then read: `is_file()` followed by `read_bytes()` is two questions with a gap between
+them, and a file that passed the first and failed the second — `chmod 000`, or removed
+in the gap — was a `PermissionError` traceback beside exit 1, the code that means *the
+installation is incomplete*, from a reader that had decided nothing (self-audit round
+20, 2026-09-03). It is exit 1 still, with the sentence above: the question this mode
+answers is whether the bundle can run, and a scan that cannot be read cannot.
+
+**`--sarif FILE` writes the same run as SARIF 2.1.0 beside the report**, for the
+readers that speak it — GitHub code scanning (`upload-sarif`), reviewdog, an IDE —
+so a project's gates land where its other findings already land, without those
+readers learning anything about this bundle. The text report stays on stdout and
+stays the default; SARIF is a format, not a second opinion. The scanners are not
+touched: each is shipped standalone and speaks one line per finding, and the doctor
+already reads all nine, so the doctor translates. What the translation refuses to
+lose is the third answer. A finding is a `result`; `NA` is **not** — it is a
+`toolExecutionNotification` on the invocation (level `note`), because nothing is
+missing from a run that answered NA and its exit is 0. *The scan did not answer* is
+both: an `error` notification that marks the invocation `executionSuccessful: false`,
+and a `result` of the doctor's own rule `scan-did-not-answer` — because GitHub code
+scanning keeps a SARIF's results and drops its invocation whole, so a notification
+alone made "could not look" vanish one hop out, and a reader counting results saw a
+clean run over a scan that could not look, which is the sentence the manifest forbids
+(round 23, D2, measured 2026-09-05; owner's decision the same day). The invocation
+also names the doctor's exit code and why, the one string of an invocation GitHub
+keeps (round 23, D2). Every result
+carries a location the tree has: the path the scanner named when it exists, else the
+first file the sentence names, else `scaffold.json` — GitHub refuses a whole file over
+one result without one (round 23, D2). The SARIF file that cannot
+be written is exit 2 with a sentence, after the report has been printed: the
+verdict stood, the artefact asked for did not arrive. **A file already at that path
+is replaced only if it is this doctor's run over this root.** Two doctors over two
+trees given one `--sarif` path — a matrix job, a shared scratch file — left a log that
+parsed, held the later tree's run whole, and said nothing about the earlier tree's,
+whose answer was gone (self-audit round 20, 2026-09-03). The log is read back before
+the rename: another root's run, another tool's log, a file that is not a log, one that
+cannot be read or one too big to read back is left as it is, with a sentence naming
+what it holds and the same exit 2 — the verdict stood, the file asked for was not
+written. The read happens after the new log is written beside it and just before the
+rename, so the window in which two doctors finishing together both see nothing is
+the length of a read and a rename, not of a scan.
+
+exit 0 = clean · 1 = findings, or an incomplete install · 2 = called wrongly, or
+asked a question this bundle cannot answer for itself — the SARIF that could not be
+written, the rules of a bundle whose record does not vouch for it, a run of the
+scans off such a bundle, and a run in which no scan ran at all — both no verdict
+
+Role: reader — it reports where a project stands. Its evidence is that each
+scanner's own tests decide the verdicts it relays, and that NA is never a pass.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime
+import difflib
+import hashlib
+import json
+import os
+import pathlib
+import re
+import stat
+import subprocess
+import sys
+from typing import TYPE_CHECKING, Any, NamedTuple, TypeGuard
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+
+
+def _is_manifest(raw: object) -> TypeGuard[dict[str, Any]]:
+    """An object with a `gates` **object** in it, which is what `scan_entries` walks.
+
+    The key being *present* was the whole check, and `scan_entries` calls
+    `manifest["gates"].items()` on the next line — a manifest whose `gates` is a list got
+    past here and died one function later (self-audit round 18, 2026-09-02).
+    """
+    return isinstance(raw, dict) and isinstance(raw.get("gates"), dict)
+
+
+def load_manifest(path: pathlib.Path) -> dict[str, Any]:
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not _is_manifest(raw):
+        message = f"{path}: not a manifest — no 'gates' object"
+        raise ValueError(message)
+    return raw
+
+
+def scan_entries(manifest: dict[str, Any]) -> list[tuple[str, str]]:
+    return sorted(
+        (gid, entry["script"])
+        for gid, entry in manifest["gates"].items()
+        if entry.get("kind") == "scan"
+    )
+
+
+def suite_count(manifest: dict[str, Any]) -> int:
+    return sum(1 for entry in manifest["gates"].values() if entry.get("kind") == "suite")
+
+
+def _is_record_of_files(files: object) -> TypeGuard[dict[str, str]]:
+    """The name-to-digest object the installer writes, checked to the entries.
+
+    Every name is joined to the root and every digest compared to one; a name that is not
+    a name, or a digest that is not a digest, would be reported as a file whose contents
+    have changed — round 4's sentence for a bundle somebody edited (self-audit round 18,
+    2026-09-02).
+    """
+    return isinstance(files, dict) and all(
+        isinstance(name, str) and isinstance(recorded, str) for name, recorded in files.items()
+    )
+
+
+def check_installed_record(root: pathlib.Path) -> list[str]:
+    """What the installer wrote and is no longer what it wrote.
+
+    "Arrived intact" was checked as *present and compiles*, so a scanner whose body had
+    been replaced with `return 0` passed the check and then reported its gate as `pass`
+    on a tree that violated it (self-audit round 4, 2026-09-01). The installer records a
+    digest of every file it writes; a bundle installed before it did says so rather than
+    claiming either answer.
+
+    The boundary, written down because it is real: this catches an edited *scanner*,
+    and cannot catch an edited *doctor* — a check that has been removed does not run.
+    Nothing local can close that; what closes it is the copy in the package, which the
+    installer rewrites, and the pull request that shows the edit.
+    """
+    record = root / "tools" / "installed.json"
+    try:
+        text = record.read_text(encoding="utf-8")
+        written = json.loads(text)
+        files = written["files"]
+    except FileNotFoundError:
+        return [
+            (
+                "no tools/installed.json — this bundle was installed before the installer "
+                "recorded what it wrote, so intact cannot be checked; re-run the installer"
+            )
+        ]
+    except (OSError, ValueError, KeyError, TypeError) as problem:
+        return [f"tools/installed.json cannot be read: {problem}"]
+    # The guard above was written for the exceptions the parse and the subscript raise,
+    # and stopped one line short of `files.items()`: a record whose `files` holds a
+    # string, a list or `null` answered the question "is this bundle still intact?" with
+    # a raw `AttributeError` (self-audit round 18, 2026-09-02). A record this reader
+    # cannot use is one it says it cannot use.
+    if not _is_record_of_files(files):
+        held = json.dumps(files)[:40]
+        wrong = (
+            f"tools/installed.json cannot be read: 'files' holds {held}, not the "
+            "name-to-digest object the installer writes"
+        )
+        return [wrong]
+    # An install under way writes its record before its first file, naming under
+    # `arriving` the digest each file will have: a file in the window is the previous
+    # version or the new one, and only a file that is neither has been edited. With the
+    # record written last, every file that had landed read as "its contents have changed"
+    # (self-audit round 20, 2026-09-03). The key is gone from the finished record.
+    arriving = written.get("arriving", {})
+    if not _is_record_of_files(arriving):
+        held = json.dumps(arriving)[:40]
+        wrong = (
+            f"tools/installed.json cannot be read: 'arriving' holds {held}, not the "
+            "name-to-digest object the installer writes"
+        )
+        return [wrong]
+    found = []
+    if arriving:
+        found.append(
+            "an install into this tree is under way, or stopped before it could record what "
+            "landed — wait for it, or re-run the installer"
+        )
+    # An install that stopped partway leaves a tree that is half one bundle and half the
+    # one before it. Until the installer said so, the record went on describing the
+    # previous install and every file the stopped one *had* written came back as "its
+    # contents have changed" — the sentence for a bundle somebody edited. A record with no
+    # such key was written by an installer that did not know the question, and is read as
+    # finished (self-audit round 16, 2026-09-01).
+    elif written.get("finished", True) is False:
+        found.append(
+            "the last install into this tree did not finish, so part of the bundle may "
+            "still be the previous version — re-run the installer"
+        )
+    for name, recorded in sorted(files.items()):
+        said = _held_to_the_record(root / name, name, recorded, arriving.get(name))
+        if said is not None:
+            found.append(said)
+    # The record and the files are read at different moments, and an install that began
+    # between them rewrote the record first — so a record that is no longer the one read
+    # above means the files were held to a record that was not theirs. Measured: one read
+    # in 247 still said "changed" with the marker alone (self-audit round 20, 2026-09-03).
+    if _record_text(record) != text:
+        moved = (
+            "tools/installed.json changed while it was being checked — an install into "
+            "this tree is under way; wait for it, and run again"
+        )
+        return [moved]
+    return found
+
+
+def _record_text(record: pathlib.Path) -> str | None:
+    """The record as it is now, or nothing when it cannot be read now."""
+    try:
+        return record.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+
+def _held_to_the_record(
+    path: pathlib.Path, name: str, recorded: str, arriving: str | None = None
+) -> str | None:
+    """One recorded file against the tree: gone, unreadable, changed, or nothing to say.
+    A file that already holds what the running install is bringing (`arriving`) has
+    landed, not changed.
+
+    Read first, and answer the exception. This was `is_file()` and then `read_bytes()` on
+    the next line — two questions with a gap between them — and a file that passed the
+    first and failed the second, `chmod 000` or removed in the gap, was a `PermissionError`
+    traceback beside exit 1, the code that means *the installation is incomplete*, from a
+    reader that had decided nothing (self-audit round 20, 2026-09-03). Unreadable is its
+    own sentence: it is not round 4's "its contents have changed", which means somebody
+    edited the bundle, and a file nobody can read has not been shown to be either.
+    """
+    try:
+        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+    except FileNotFoundError:
+        return f"{name} was installed and is gone"
+    except OSError as problem:
+        return (
+            f"{name} cannot be read ({problem.strerror or problem}), so whether it is still "
+            "what was installed cannot be checked"
+        )
+    if actual not in (recorded, arriving):
+        return f"{name} is not what was installed — its contents have changed"
+    return None
+
+
+def check_installed(root: pathlib.Path, manifest: dict[str, Any], bundle: pathlib.Path) -> int:
+    """Is everything here, runnable, and still what arrived? Says nothing about the
+    project's own code."""
+    problems: list[str] = check_installed_record(root)
+    if not (root / "scaffold.json").is_file():
+        problems.append("no scaffold.json — the install did not finish")
+
+    scans = scan_entries(manifest)
+    for gid, script in scans:
+        # The same one road as `_held_to_the_record`, for the scans the record may not
+        # name: a bundle with no record reached the compile and died there instead.
+        # Compiled in memory: `py_compile` wrote `__pycache__/*.pyc` under the project's
+        # `tools/checks/`, nine files a Go or Node project has no `.gitignore` for and
+        # commits with its first `git add tools/` (self-audit round 22, F6). A check
+        # writes nothing into the tree it checks.
+        try:
+            compile((bundle / script).read_bytes(), str(bundle / script), "exec", dont_inherit=True)
+        except FileNotFoundError:
+            problems.append(f"{gid}: {script} is missing")
+        except OSError as denied:
+            problems.append(
+                f"{gid}: {script} cannot be read ({denied.strerror or denied}) — a scan "
+                "nobody can read does not run"
+            )
+        except (SyntaxError, ValueError) as error:
+            problems.append(f"{gid}: {script} does not compile: {error}")
+
+    if problems:
+        print("** the installation is incomplete:")
+        for problem in problems:
+            print(f"   {problem}")
+        return 1
+
+    total, suites = len(manifest["gates"]), suite_count(manifest)
+    print(f"installed: {total} gates ({len(scans)} scan · {suites} suite) — every scan runs")
+    return 0
+
+
+# One scan gets five minutes — a scan is a file read, not a build; one that is
+# still running has hung, and a hang is an answer the report has to carry.
+SCAN_TIMEOUT = 300
+
+
+def _found(gid: str, entry: dict[str, Any], unheld: list[str]) -> list[str]:
+    """`[found] <gate>`, with the rule on the line and the incident beneath it — off a
+    bundle that is still the one installed; otherwise the gate alone and one line saying
+    why the rest is not printed. Both fields are text from a file in the tree, and go
+    through the guard like a scanner's line."""
+    if unheld:
+        return [f"[found] {gid}", f"  rule: (not printed: {unheld[0]})"]
+    title = entry.get("title") or "(no title in this manifest)"
+    origin = entry.get("born_from") or "(origin not recorded in this manifest)"
+    return [f"[found] {gid} — {_shown(title)}", f"  born from: {_shown(origin)}"]
+
+
+# One scan's outcome, kept for the SARIF writer: the gate, one of pass / na / found /
+# error, the lines the scan printed, and the sentence the doctor said about it.
+Outcome = tuple[str, str, list[str], str]
+
+# The keys the bundle reads from a project's `scaffold.json` — one per scanner that
+# takes a path or a list, plus preflight's. Held to the scanners' own reads by
+# `tests/test_install_and_doctor.py`: a key a scanner started reading and nobody added
+# here would be reported as one nobody reads.
+SCAFFOLD_KEYS = frozenset(
+    {
+        "adr_path",
+        "dockerfiles",
+        "entrypoints",
+        "gates_path",
+        "tests_path",
+        "services_path",
+        "templates_path",
+        "purge_paths",
+        "src_path",
+        "preflight_jobs",
+        "waivers",
+    }
+)
+
+
+def check_scaffold_keys(root: pathlib.Path) -> list[str]:
+    """Every key in `scaffold.json` that no scanner reads, as finding lines.
+
+    A misspelt key — `templates_pth` for `templates_path` — was read by nobody: every
+    scanner answered NA from its default path and the doctor exited 0, while the same
+    value under the right key is a broken configuration and exit 1 (round 23, D4,
+    measured 2026-09-05). A configuration nobody reads is the project pointing at one
+    place and the tool looking at another, so it is a finding, and it names the nearest
+    key the bundle does read. Keys starting with `_` are the file's own comments. A file
+    that cannot be read as a configuration is left to the scanners, which say so.
+    """
+    path = root / "scaffold.json"
+    if not path.is_file():
+        return []
+    try:
+        config = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return []
+    if not isinstance(config, dict):
+        return []
+    lines = []
+    for key in sorted(k for k in config if not k.startswith("_")):
+        if key in SCAFFOLD_KEYS:
+            continue
+        near = difflib.get_close_matches(key, sorted(SCAFFOLD_KEYS), n=1, cutoff=0.6)
+        hint = f" — did you mean {near[0]}?" if near else ""
+        lines.append(
+            f"scaffold.json names {key}, which no scanner reads{hint} — every scanner "
+            "answered from its default instead; the keys the bundle reads are "
+            + ", ".join(sorted(SCAFFOLD_KEYS))
+        )
+    return lines
+
+
+# ---------------------------------------------------------------- waivers
+
+# Round 26 (2026-09-05) measured day one on real trees — 772 findings on django, 627 of
+# them one gate's test-file half; 30 of 30 on flask — and the moves a project had: fix
+# everything, delete the scan from the overlay, or point `tests_path` at nothing, which
+# was silent. A waiver is the fourth move and the only one the record keeps. It lives in
+# `scaffold.json` because the doctor is shipped alone and reads JSON and nothing else
+# (`tests/test_checks_are_standalone.py`); a `gates.yaml` block would have needed a
+# second YAML reader carried in this file. What it must carry is what this repository
+# holds its own noqa lines to, turned outward: a reason, a date and a name.
+WAIVER_REQUIRED = ("gate", "reason", "until", "decided_by")
+WAIVER_KEYS = frozenset({*WAIVER_REQUIRED, "scope"})
+WAIVERS = "waivers"
+_WITHOUT = {
+    "gate": "a waiver with no gate excuses nothing in particular",
+    "reason": "a waiver with no reason is a suppression",
+    "until": "a waiver with no until is permanent",
+    "decided_by": "a waiver nobody signed",
+}
+
+
+class Waiver(NamedTuple):
+    ordinal: int
+    gate: str
+    reason: str
+    until: datetime.date
+    decided_by: str
+    scope: str | None
+
+    @property
+    def terms(self) -> str:
+        return f"until {self.until.isoformat()}, decided by {self.decided_by}: {self.reason}"
+
+    @property
+    def justification(self) -> str:
+        """The sentence a suppressed SARIF result carries."""
+        return f"{self.reason} (until {self.until.isoformat()}, decided by {self.decided_by})"
+
+    def covers(self, gid: str, path: pathlib.Path) -> bool:
+        """The whole gate when it names no scope; else that file, or anything under it."""
+        if gid != self.gate:
+            return False
+        if self.scope is None:
+            return True
+        scope = self.scope.rstrip("/")
+        where = path.as_posix()
+        return where == scope or where.startswith(scope + "/")
+
+
+def _waiver_shape(ordinal: int, entry: object) -> list[str]:
+    """Every way one entry is not a waiver, in the words that say what is missing."""
+    if not isinstance(entry, dict):
+        return [f"waiver {ordinal} is not an object with gate, reason, until and decided_by"]
+    found = []
+    for key in sorted(set(entry) - WAIVER_KEYS):
+        near = difflib.get_close_matches(key, sorted(WAIVER_KEYS), n=1, cutoff=0.6)
+        hint = f" — did you mean {near[0]}?" if near else ""
+        found.append(
+            f"waiver {ordinal} names {_shown(key)}, which a waiver does not have{hint}; a"
+            " waiver carries gate, reason, until, decided_by and, optionally, scope"
+        )
+    for key in WAIVER_REQUIRED:
+        value = entry.get(key)
+        if not isinstance(value, str) or not value.strip():
+            found.append(f"waiver {ordinal} has no {key} — {_WITHOUT[key]}")
+    scope = entry.get("scope")
+    if scope is not None and not isinstance(scope, str):
+        found.append(
+            f"waiver {ordinal} gives scope {_shown(json.dumps(scope)[:40])}, which is not"
+            " a path — a scope is one file or directory, relative to the project"
+        )
+    elif isinstance(scope, str) and _leads_out(scope):
+        found.append(
+            f"waiver {ordinal} gives scope {_shown(scope)}, which leads outside the project"
+        )
+    return found
+
+
+def _leads_out(scope: str) -> bool:
+    """A scope is relative and stays in the tree, as a path — the same test a SARIF
+    location gets: `..` is refused before anything is opened."""
+    parts = pathlib.PurePosixPath(scope)
+    return parts.is_absolute() or ".." in parts.parts
+
+
+def _waiver(
+    ordinal: int, entry: dict[str, Any], scans: set[str], today: datetime.date
+) -> tuple[Waiver | None, list[str]]:
+    """One well-shaped entry as a waiver in force, or the findings about it."""
+    gate = str(entry["gate"])
+    if gate not in scans:
+        which = ", ".join(sorted(scans))
+        return None, [
+            (
+                f"waiver {ordinal} names {_shown(gate)}, which no scan in this bundle decides"
+                f" — the scans are {which}"
+            )
+        ]
+    try:
+        until = datetime.date.fromisoformat(str(entry["until"]))
+    except ValueError:
+        given = _shown(repr(entry["until"]))
+        return None, [f"waiver {ordinal} gives until {given}, which is not a date (YYYY-MM-DD)"]
+    if until < today:
+        return None, [
+            (
+                f"waiver {ordinal} for {gate} expired {until.isoformat()} — renew it with a"
+                " new until and a new reason, or fix the findings; an expired waiver excuses"
+                " nothing"
+            )
+        ]
+    reason, who = str(entry["reason"]).strip(), str(entry["decided_by"]).strip()
+    return Waiver(ordinal, gate, reason, until, who, entry.get("scope")), []
+
+
+def read_waivers(
+    root: pathlib.Path, manifest: dict[str, Any], today: datetime.date
+) -> tuple[list[Waiver], list[str]]:
+    """The waivers in force from `scaffold.json`, and every finding about the ones that
+    are not — a field missing, a date that is not one, a gate no scan decides, an expiry
+    that has passed. A file that cannot be read is left to the scanners, which say so."""
+    try:
+        config = json.loads((root / "scaffold.json").read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return [], []
+    if not isinstance(config, dict) or config.get("waivers") is None:
+        return [], []
+    declared = config.get("waivers")
+    if not isinstance(declared, list):
+        return [], [
+            (
+                f"scaffold.json gives waivers {_shown(json.dumps(declared)[:40])}, which is"
+                " not a list — waivers is a list of objects, each with gate, reason, until"
+                " and decided_by"
+            )
+        ]
+    scans = {gid for gid, _script in scan_entries(manifest)}
+    waivers: list[Waiver] = []
+    findings: list[str] = []
+    for ordinal, entry in enumerate(declared, start=1):
+        shape = _waiver_shape(ordinal, entry)
+        if shape:
+            findings += shape
+            continue
+        waiver, problems = _waiver(ordinal, entry, scans, today)
+        findings += problems
+        if waiver is not None:
+            waivers.append(waiver)
+    return waivers, findings
+
+
+def _excused(
+    root: pathlib.Path, waivers: list[Waiver], gid: str, said: list[str]
+) -> tuple[list[str], dict[Waiver, list[str]]]:
+    """A scan's lines split into the ones still live and the ones a waiver covers, by
+    the file the SARIF would place each on — so a scope means the same thing in the
+    report and in the log."""
+    live: list[str] = []
+    excused: dict[Waiver, list[str]] = {}
+    for line in said:
+        path, _region = _sarif_location(root, line.removeprefix(f"{gid}:").strip())
+        holder = next((w for w in waivers if w.covers(gid, path)), None)
+        if holder is None:
+            live.append(line)
+        else:
+            excused.setdefault(holder, []).append(line)
+    return live, excused
+
+
+def _plural(count: int, noun: str) -> str:
+    return f"{count} {noun}{'' if count == 1 else 's'}"
+
+
+def _report_found(
+    gid: str,
+    split: tuple[list[str], dict[Waiver, list[str]]],
+    entry: dict[str, Any],
+    unheld: list[str],
+    excused_by: dict[int, int],
+) -> tuple[list[str], list[Outcome]]:
+    """Print what a scan found, less what a waiver covers: the gate as failed (or not),
+    and the outcomes for the SARIF — the live lines under the gate, the excused ones
+    under each waiver that covers them. What each waiver excused is counted **here**,
+    into `excused_by` by the waiver's ordinal, where the waiver is still in hand."""
+    live, excused = split
+    outcomes: list[Outcome] = []
+    if live:
+        print("\n".join(_found(gid, entry, unheld)))
+        print("\n".join(live))
+        outcomes.append((gid, "found", live, ""))
+        for waiver, lines in excused.items():
+            print(f"  waived: {_plural(len(lines), 'finding')} under the waiver {waiver.terms}")
+    else:
+        # One waiver, or several with a scope each: a gate two scoped waivers cover between
+        # them unpacked as one and died of a ValueError, the same day fix 3 was measured.
+        under = [
+            f"{_plural(len(lines), 'finding')} under the waiver {waiver.terms}"
+            for waiver, lines in excused.items()
+        ]
+        print(f"[waived] {gid} — {' · '.join(under)}")
+    outcomes += [(gid, "waived", lines, waiver.justification) for waiver, lines in excused.items()]
+    for waiver, lines in excused.items():
+        excused_by[waiver.ordinal] = excused_by.get(waiver.ordinal, 0) + len(lines)
+    return [gid] if live else [], outcomes
+
+
+def _report_waivers(waivers: list[Waiver], excused_by: dict[int, int]) -> None:
+    """Every run that declares a waiver says what it excused — a reader of a green run
+    sees the count too, and a waiver that excused nothing is told so; it can go.
+
+    The count arrives by the waiver's **ordinal**. It used to be recovered from each
+    waived outcome's sentence with `startswith(reason)`, which credits every finding to
+    the first waiver whose reason opens the sentence: nine waivers that all say "later"
+    were "10 findings under 9 waivers" and eight lines of "excused nothing this run" on a
+    run where each had excused one — and a reader who took a line at its word and removed
+    that waiver had a red run next (measured 2026-09-08, bypass case B4, against the v0.9.0
+    wheel). A reason that opens another reason ("later" / "later this quarter") collided
+    the same way. A summary that has to find its cause by string prefix is a join on a
+    field somebody typed; the cause travels with the effect instead.
+    """
+    if not waivers:
+        return
+    total = sum(excused_by.values())
+    print(f"waived: {_plural(total, 'finding')} under {_plural(len(waivers), 'waiver')}")
+    for waiver in waivers:
+        where = f" {waiver.scope}" if waiver.scope else ""
+        idle = "" if excused_by.get(waiver.ordinal) else " — excused nothing this run"
+        print(f"  {waiver.gate}{where} {waiver.terms}{idle}")
+
+
+def today() -> datetime.date:
+    """The date a waiver's `until` is held against: UTC, the clock CI runs on, so a
+    waiver expires on the same day for everybody who runs the doctor."""
+    return datetime.datetime.now(datetime.UTC).date()
+
+
+def _before_the_scans(
+    root: pathlib.Path, manifest: dict[str, Any]
+) -> tuple[list[Waiver], list[str], list[Outcome]]:
+    """The doctor's own two findings, before any scan — a key no scanner reads, a waiver
+    that is not one — and the waivers in force. A scan cannot see a key it does not
+    read, so only the file that knows every key can say that one is nobody's; and a
+    broken waiver has the same standing as a broken configuration: a finding, and it
+    excuses nothing."""
+    failed: list[str] = []
+    outcomes: list[Outcome] = []
+    unread = check_scaffold_keys(root)
+    if unread:
+        print("[found] scaffold.json — a key no scanner reads")
+        print("\n".join(unread))
+        failed.append("scaffold.json")
+        outcomes.append(("scaffold.json", "found", unread, ""))
+    waivers, unfit = read_waivers(root, manifest, today())
+    if unfit:
+        print(f"[found] {WAIVERS} — a waiver that is not one excuses nothing")
+        print("\n".join(f"{WAIVERS}: {line}" for line in unfit))
+        failed.append(WAIVERS)
+        outcomes.append((WAIVERS, "found", unfit, ""))
+    return waivers, failed, outcomes
+
+
+# The doctor's own rule for a run the installed record does not vouch for, and the one
+# sentence the run ends on: the bundle that produced the lines is not the one the installer
+# wrote, so none of them is a verdict.
+UNHELD = "bundle-not-the-one-installed"
+NO_VERDICT = (
+    "no verdict: the bundle is not the one that was installed — the lines above are the"
+    " scanners' words, and what ran them cannot be vouched for"
+)
+# A manifest with no `scan` gate runs nothing, and a run that ran nothing printed one line
+# and exited 0 — a green over zero subjects (bypass case B13, 2026-09-08, measured against
+# the v0.9.0 wheel). Every scanner has a floor for its own subjects; this is the doctor's
+# for its list of scans. It is **not** the all-NA case: scans that ran and each answered NA
+# are a project the bundle could not measure, which `DECISIONS.md doctor-all-na-exits-zero`
+# decides and this leaves alone.
+NOTHING_RAN = (
+    "no verdict: no scan ran — this manifest names no scan gate, so nothing about the"
+    " project was checked"
+)
+
+
+def _is_an_installation(bundle: pathlib.Path) -> bool:
+    """Is this bundle a copy the installer wrote into a project, or the package itself?
+
+    `install.py` writes into `<project>/tools`, always under that name, and puts its record
+    beside the files. Either mark is enough: the name says where a copy lives, and the record
+    says one arrived — a bundle with the name and no record is round 4's case, still refused,
+    while the package, which has neither, is not asked a question it cannot answer.
+    """
+    return bundle.name == "tools" or (bundle / "installed.json").is_file()
+
+
+def _say_unheld(root: pathlib.Path, unheld: list[str]) -> None:
+    """What the installed record says, above the first gate line, so it is read before
+    the lines it disqualifies.
+
+    `check_installed_record` has run on every plain run since round 4 and was right each
+    time; its answer went to one place, the `rule:` line under a `[found]`. A scanner
+    replaced with `sys.exit(0)`, on a tree whose only violation is the one it reads, was
+    therefore `[ pass]` at exit 0 with the edit said nowhere, and a deleted record was a
+    sentence printed nowhere — while `--installed` saw both at once, in the mode the
+    shipped workflow never runs (measured 2026-09-08 against the v0.9.0 wheel, bypass
+    cases B5b and B24). A check whose only road to the output runs through another
+    check's finding counts when it does not matter and is silent when it does.
+    """
+    print(
+        f"** the bundle under {_shown(root)} is not the one that was installed — what it"
+        " answers cannot be vouched for"
+    )
+    for problem in unheld:
+        print(f"   {problem}")
+    print("   re-run the installer, or ask for the whole account with --installed\n")
+
+
+def run_scans(
+    root: pathlib.Path,
+    manifest: dict[str, Any],
+    bundle: pathlib.Path,
+    sarif: pathlib.Path | None = None,
+) -> int:
+    """Run every scan, reporting each gate rather than stopping at the first finding.
+
+    A finding carries the rule it breaks and the incident behind that rule — the two
+    lines that say why this is a finding and not a preference. They were in the SARIF
+    `help` and in `--rules`, and a person at the terminal or an agent reading the edit
+    hook saw `actions-sha-pinned: ci.yml: actions/checkout@v4` and nothing else
+    (self-audit round 22, F5). Both come off the installed manifest, which lives inside
+    the tree it holds to account, so they are printed only off a bundle that is still the
+    one installed — the rule `--rules` already keeps (`DECISIONS.md`
+    `the-rules-are-read-off-a-bundle-that-is-still-intact`). The findings themselves are
+    printed either way: they are the scanner's words, marked as the tree's. What is
+    not printed either way is a verdict: a record that does not hold is said above the
+    first gate line and again below the last, and the run exits 2 (`_say_unheld`).
+    """
+    broken: list[str] = []
+    # The record describes the bundle's home — the tree the installer wrote `tools/` into —
+    # which is the root on every plain run and is not when `--manifest` names a bundle
+    # elsewhere: then the root has no record to hold, and the bundle still does.
+    #
+    # And it is asked **only of an installation**. The package this bundle was copied from is
+    # not one: run as `python -m verifiable_gates.gates_doctor`, the home is `site-packages`,
+    # which has no record and never will, so every tree came back `no verdict` whatever it
+    # held (round 30's sweep, row S2/F4, 2026-09-08 — the row existed and the change did not
+    # ask it). What vouches for the package is the wheel it came in; what vouches for a copy
+    # in a project's `tools/` is the record the installer wrote there, and that is the copy
+    # somebody can edit.
+    home = bundle.parent
+    unheld = check_installed_record(home) if _is_an_installation(bundle) else []
+    if unheld:
+        _say_unheld(home, unheld)
+    waivers, failed, outcomes = _before_the_scans(root, manifest)
+    excused_by: dict[int, int] = {}
+    scans = scan_entries(manifest)
+    for gid, script in scans:
+        try:
+            result = subprocess.run(  # noqa: S603 — argv is built here, interpreter is sys.executable
+                [sys.executable, str(bundle / script), str(root)],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=SCAN_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            reason = f"the scan did not answer (timed out after {SCAN_TIMEOUT}s)"
+            print(f"[error] {gid} — {reason}")
+            broken.append(gid)
+            outcomes.append((gid, "error", [], reason))
+            continue
+        # Under a pipe — a CI log — stdout is block-buffered and stderr is not, so
+        # every scan's stderr surfaced above the first gate line and a traceback
+        # could not be matched to its gate (self-audit, 2026-08-31). Flush what
+        # was said so far, then pass the stderr through where it belongs.
+        sys.stdout.flush()
+        sys.stderr.write(_as_prose(result.stderr) + "\n" if result.stderr else "")
+        sys.stderr.flush()
+        crashed = "Traceback (most recent call last)" in result.stderr
+        if result.returncode == 0:
+            # A scan that answers NA names **what it looked for** — "no docs/adr", "no
+            # Python under app". The doctor printed the bare word and threw the reason
+            # away, so five different NA lines read identically and an operator could not
+            # tell "there is no such directory" from "a directory this scanner cannot
+            # read" — which is the distinction the scanners were changed to make
+            # (self-audit round 14, 2026-09-01).
+            said = [_shown(line) for line in result.stdout.strip().splitlines()]
+            if said and said[0].startswith("NA:"):
+                reason = said[0].removeprefix("NA:").strip()
+                print(f"[   NA] {gid} — {reason}")
+                outcomes.append((gid, "na", said, reason))
+            else:
+                print(f"[ pass] {gid}")
+                outcomes.append((gid, "pass", said, ""))
+        elif result.returncode == 1 and result.stdout.strip() and not crashed:
+            # Every line through the guard before it is printed or counted: what the
+            # doctor writes is its own sentence about what a scanner said, and a scanner's
+            # line is one finding whatever the tree it read was named (round 21).
+            said = [_shown(line) for line in result.stdout.strip().splitlines()]
+            split = _excused(root, waivers, gid, said)
+            still, reported = _report_found(gid, split, manifest["gates"][gid], unheld, excused_by)
+            failed += still
+            outcomes += reported
+        else:
+            reason = f"the scan did not answer (exit {result.returncode})"
+            print(f"[error] {gid} — {reason}")
+            broken.append(gid)
+            outcomes.append((gid, "error", [], f"{reason}\n{_as_prose(result.stderr)}".strip()))
+
+    print(f"\nwaiting on this project's own tests: {suite_count(manifest)} gates")
+    _report_waivers(waivers, excused_by)
+    verdict = _close(failed, broken, unheld, ran=len(scans))
+    if sarif is not None and not write_sarif(sarif, root, manifest, outcomes, unheld):
+        return 2
+    return verdict
+
+
+def _close(failed: list[str], broken: list[str], unheld: list[str], ran: int) -> int:
+    """The `**` summary lines, and the exit they stand for: findings 1, a scan that did
+    not answer 1, a bundle the record does not vouch for 2, no scan run at all 2 — the
+    last two whatever the others said, since a verdict needs a scan that ran off a bundle
+    that is the one installed."""
+    if failed:
+        print(f"** scans found problems in {len(failed)} gates: {', '.join(failed)}")
+    if broken:
+        print(f"** {len(broken)} scans did not answer, which is no verdict: {', '.join(broken)}")
+    if unheld:
+        print(f"** {NO_VERDICT}")
+    if not ran:
+        print(f"** {NOTHING_RAN}")
+    return 2 if unheld or not ran else 1 if failed or broken else 0
+
+
+# ---------------------------------------------------------------- SARIF
+
+SARIF_SCHEMA = (
+    "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"
+)
+INFORMATION_URI = "https://github.com/sayam/verifiable-gates"
+# The most the doctor reads back from a file already at `--sarif`, to tell whose run
+# it is. A log of 18,000 results is under 10 MiB; a file past this is answered without
+# being read, since an input of the right kind but too large is a road round 19 walked.
+READ_BACK_CEILING = 64 * 1024 * 1024
+# `<path>:<line> …`, `<path>: …` or `<path> …` at the head of a finding line. Whether
+# it is a location is decided by the tree, not by the shape: see `_sarif_result`.
+LOCATION = re.compile(r"^(?P<path>[^\s:]+)(?::(?P<line>\d+))?:?(?:\s+|$)")
+
+
+def _installed_version(root: pathlib.Path) -> str | None:
+    """The bundle version the installer recorded, or nothing — never a guess."""
+    try:
+        written = json.loads((root / "tools" / "installed.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    version = written.get("version") if isinstance(written, dict) else None
+    return version if isinstance(version, str) else None
+
+
+# The doctor's own copy of the scanners' guard, for the same reason it carries its own
+# whole-file writer: this file is shipped alone into a project's tools/ and may import
+# nothing from the package. Held byte-identical to the nine by
+# `tests/test_checks_are_standalone.py`.
+_ESCAPED = {
+    **{c: f"\\x{c:02x}" for c in (*range(0x20), 0x7F)},
+    **{
+        c: f"\\u{c:04x}"
+        for c in (
+            *range(0x80, 0xA0),
+            *range(0x200B, 0x2010),
+            *range(0x202A, 0x202F),
+            *range(0x2066, 0x206A),
+            0xFEFF,
+        )
+    },
+}
+
+
+def _shown(text: str | pathlib.Path) -> str:
+    """Text that can always be printed, and is always **one line**.
+
+    The scanners hold their own output to this; this is the second layer, and its boundary
+    is worth writing down. A scanner that prints two lines **is** reporting two findings —
+    the doctor reads one line as one finding and cannot second-guess that, so a rogue
+    scanner is not what this stops. What it stops is everything a line can carry *inside*
+    itself: an ANSI escape in a file name (`\x1b[2K\x1b[A`) that erases the finding printed
+    above it, a carriage return that rewrites the line, a C1 byte, a bidi override, a NUL
+    (self-audit round 21, 2026-09-03). The forging of a *line* is closed one layer up, in
+    the scanner, which is the only place that knows a file name is one value: see `_shown`
+    in each of the nine.
+    """
+    return os.fsencode(str(text)).decode("utf-8", "backslashreplace").translate(_ESCAPED)
+
+
+def _as_prose(text: str) -> str:
+    """A scanner's stderr, shown as the prose it is: line breaks kept, the rest escaped.
+
+    stdout is a grammar and every line of it becomes one finding; stderr is a traceback or
+    a sentence for a person, and escaping its newlines would make it unreadable. What must
+    not survive either way is a control character that moves a terminal's cursor.
+    """
+    return "\n".join(_shown(line) for line in text.splitlines(keepends=False))
+
+
+NAMED = re.compile(r"[\w.\-]+(?:/[\w.\-]+)*")
+LAST_RESORT = pathlib.Path("scaffold.json")
+
+
+def _inside_file(root: pathlib.Path, path: pathlib.Path) -> bool:
+    """A relative path, no `..`, and a file the tree has — the only kind a location may name."""
+    return not path.is_absolute() and ".." not in path.parts and (root / path).is_file()
+
+
+def _sarif_location(root: pathlib.Path, text: str) -> tuple[pathlib.Path, dict[str, int]]:
+    """Where a result lands: the head path when the tree has it, else the first file the
+    sentence names that the tree has, else `scaffold.json`.
+
+    A result carried no location when its head named nothing the reader could open — a
+    key, a sentence, a path outside — on the ground that an annotation on the wrong file
+    sends a reader to the wrong place (round 21). Measured 2026-09-05 (round 23, D2):
+    GitHub code scanning refuses the **whole file** when any result has no location —
+    `locationFromSarifResult: expected at least one location` — and what the project then
+    sees is a neutral check titled *Error when processing the SARIF file*, nothing else: no
+    finding, no `NA`, no `[error]`. A registry finding ("job with no gate in the index:
+    scans — add a row to gates.yaml …") and a missing `dependabot.yml` were enough. So every
+    result lands somewhere the tree has: the file the sentence names, or the configuration
+    every scanner reads — the right place to start from when a finding names no file.
+    """
+    head = LOCATION.match(text)
+    if head is not None:
+        path = pathlib.Path(head.group("path"))
+        if _inside_file(root, path):
+            return path, {"startLine": int(head.group("line"))} if head.group("line") else {}
+    for token in NAMED.findall(text):
+        candidate = pathlib.Path(token.strip("."))
+        if ("/" in token or "." in token) and _inside_file(root, candidate):
+            return candidate, {}
+    return LAST_RESORT, {}
+
+
+UNANSWERED = "scan-did-not-answer"
+
+
+def _sarif_result(root: pathlib.Path, gid: str, line: str) -> dict[str, Any]:
+    """One finding line as a SARIF result, always located where the tree agrees."""
+    return _located(root, gid, line.removeprefix(f"{gid}:").strip())
+
+
+def _sarif_unanswered(root: pathlib.Path, gid: str, sentence: str) -> dict[str, Any]:
+    """A scan that did not answer, as a result of the doctor's own rule — the one shape
+    GitHub keeps. The message is the report's own line, `<gate> — <why>`, and it lands on
+    the file the sentence names when the tree has it, else on the last resort."""
+    return _located(root, UNANSWERED, f"{gid} — {sentence}")
+
+
+def _located(root: pathlib.Path, rule_id: str, text: str) -> dict[str, Any]:
+    """A result under `rule_id` saying `text`, located where the tree agrees."""
+    result: dict[str, Any] = {"ruleId": rule_id, "level": "error", "message": {"text": text}}
+    path, region = _sarif_location(root, text)
+    # "Under the root" is decided on the **path**, not on what the path leads to.
+    # `is_absolute()` was the whole check, and `..` walked straight through it: a finding
+    # naming `../outside.txt` was given `uri: ../outside.txt`, because `(root / "..")` is
+    # a directory the operating system resolves happily and `is_file()` agreed (self-audit
+    # round 21, 2026-09-03). A `..` component is refused now, before anything is opened.
+    #
+    # Symlinks are deliberately **not** followed (owner's decision, 2026-09-04): a
+    # `app/link.py` inside the tree that points elsewhere still gets its location, because
+    # a SARIF annotation lands on the path a reader opens in the repository, and that path
+    # is a file the repository has. Following the link would drop a legitimate annotation
+    # from any project that keeps a vendored or shared directory that way. What is refused
+    # is a path that names somewhere else *as a path* — which is what a reader would have
+    # to follow out of the tree to make sense of.
+    location: dict[str, Any] = {
+        "artifactLocation": {"uri": path.as_posix(), "uriBaseId": "%SRCROOT%"}
+    }
+    if region:
+        location["region"] = region
+    result["locations"] = [{"physicalLocation": location}]
+    return result
+
+
+def _fingerprint(results: list[dict[str, Any]]) -> None:
+    """Give every result the key that survives an edit: the rule, the file, what the line
+    says — and its place among results saying the same thing in the same file.
+
+    Round 26 (2026-09-05) measured one finding before and after a line inserted above it:
+    `region.startLine` moved, the `:N` inside the message moved with it, and the file
+    carried no fingerprint — so everything the file said about that finding had changed
+    but the rule and the path, and anything keyed on the file as written (a baseline, a
+    diff of two runs, a dashboard) re-opened it on every edit above it. GitHub matches
+    alerts across commits on `partialFingerprints.primaryLocationLineHash` when a file
+    carries one; the line number is left out of it and kept in the message, for a reader.
+    Two identical findings in one file are two alerts: the second is keyed with its
+    ordinal among the identical ones, which an insert above both leaves alone.
+
+    The location's `uri` is deliberately not an ingredient: it is read out of this same
+    text (`_sarif_location`), so it would add nothing a test could hold — a mutation
+    dropping it stayed green (2026-09-05), which is the sign of a register nobody keeps.
+    """
+    seen: dict[tuple[str, str], int] = {}
+    for result in results:
+        text = result["message"]["text"]
+        head = LOCATION.match(text)
+        if head is not None and head.group("line"):
+            text = head.group("path") + text[head.end("line") :]
+        key = (result["ruleId"], text)
+        ordinal = seen.get(key, 0)
+        seen[key] = ordinal + 1
+        digest = hashlib.sha256("\0".join([*key, str(ordinal)]).encode("utf-8")).hexdigest()
+        result["partialFingerprints"] = {"primaryLocationLineHash": digest}
+
+
+def _exit_of(outcomes: list[Outcome], unheld: Sequence[str], ran: int) -> tuple[int, str]:
+    """The doctor's exit for this run and the sentence behind it, for the invocation.
+
+    GitHub code scanning keeps a SARIF's results and drops its invocation — every
+    notification, the `executionSuccessful` flag — and writes one string about it on the
+    analysis, `warning: unsuccessful tool execution, exit code 0`, the zero being its
+    reading of an invocation that named no exit code (round 23, D2, measured 2026-09-05).
+    So the invocation names the exit the doctor actually gives and why, in the words of
+    the report's own summary lines: the one thing about the run that reader will keep.
+    """
+    if unheld:
+        return 2, NO_VERDICT
+    if not ran:
+        return 2, NOTHING_RAN
+    found = sorted({gid for gid, kind, _said, _sentence in outcomes if kind == "found"})
+    unanswered = sorted({gid for gid, kind, _said, _sentence in outcomes if kind == "error"})
+    if not found and not unanswered:
+        return 0, "every scan answered pass or NA — nothing found, nothing unanswered"
+    parts = []
+    if found:
+        parts.append(f"scans found problems in {len(found)} gates: {', '.join(found)}")
+    if unanswered:
+        parts.append(
+            f"{len(unanswered)} scans did not answer, which is no verdict: {', '.join(unanswered)}"
+        )
+    return 1, "; ".join(parts)
+
+
+def _sarif_rules(
+    manifest: dict[str, Any], outcomes: list[Outcome], unheld: Sequence[str]
+) -> list[dict[str, Any]]:
+    """The driver's rules: one per installed scan, and the doctor's own only when a result
+    of this run hangs on them — a key no scanner reads, a waiver that is not one, a scan
+    that did not answer, a bundle the record does not vouch for."""
+    gates = manifest["gates"]
+    rules = []
+    for gid, _script in scan_entries(manifest):
+        gate = gates[gid]
+        rule: dict[str, Any] = {
+            "id": gid,
+            "shortDescription": {"text": str(gate.get("title", gid))},
+        }
+        if isinstance(gate.get("born_from"), str):
+            rule["fullDescription"] = {"text": gate["born_from"]}
+            rule["help"] = {"text": gate["born_from"]}
+        if isinstance(gate.get("layer"), str):
+            rule["properties"] = {"layer": gate["layer"]}
+        rules.append(rule)
+    if any(gid == "scaffold.json" for gid, _kind, _said, _sentence in outcomes):
+        # The doctor's own finding has no gate; a result still needs a rule to hang on.
+        rules.append(
+            {"id": "scaffold.json", "shortDescription": {"text": "a key no scanner reads"}}
+        )
+    if any(gid == WAIVERS for gid, _kind, _said, _sentence in outcomes):
+        rules.append(
+            {
+                "id": WAIVERS,
+                "shortDescription": {"text": "a waiver that is not one excuses nothing"},
+                "fullDescription": {
+                    "text": "A waiver in scaffold.json carries gate, reason, until and "
+                    "decided_by, and is in force through its until; one with a field "
+                    "missing, a date that is not one, a gate no scan decides, or an "
+                    "expiry that has passed is this finding, and excuses nothing."
+                },
+            }
+        )
+    if any(kind == "error" for _gid, kind, _said, _sentence in outcomes):
+        rules.append(
+            {
+                "id": UNANSWERED,
+                "shortDescription": {"text": "a scan did not answer, which is no verdict"},
+                "fullDescription": {
+                    "text": "The scanner named in the message exited without a verdict — "
+                    "a crash, a timeout, a tree it could not read. Nothing was checked; "
+                    "this is not a clean run."
+                },
+            }
+        )
+    if unheld:
+        rules.append(
+            {
+                "id": UNHELD,
+                "shortDescription": {"text": "the bundle is not the one that was installed"},
+                "fullDescription": {
+                    "text": "tools/installed.json records what the installer wrote, and a "
+                    "file named in the message is not that — edited, gone, or unreadable — "
+                    "or the record itself is missing or unreadable. The scans still ran and "
+                    "their lines are theirs; the run is no verdict. Re-run the installer."
+                },
+            }
+        )
+    return rules
+
+
+def sarif_log(
+    root: pathlib.Path,
+    manifest: dict[str, Any],
+    outcomes: list[Outcome],
+    unheld: Sequence[str] = (),
+) -> dict[str, Any]:
+    """The whole run as one SARIF 2.1.0 log. Pure: the same outcomes give the same log."""
+    rules = _sarif_rules(manifest, outcomes, unheld)
+    results: list[dict[str, Any]] = []
+    notes: list[dict[str, Any]] = []
+    for gid, kind, said, sentence in outcomes:
+        if kind == "found":
+            results += [_sarif_result(root, gid, line) for line in said if line.strip()]
+        elif kind == "waived":
+            # Still a result — a reader counts it — with the waiver's sentence on it, the
+            # shape code scanning shows as dismissed with a justification rather than gone.
+            for line in said:
+                result = _sarif_result(root, gid, line)
+                result["suppressions"] = [{"kind": "external", "justification": sentence}]
+                results.append(result)
+        elif kind in {"na", "error"}:
+            # The third answer, kept as what it is: neither a finding nor silence. NA is a
+            # note and nothing else; an unanswered scan is an error note **and** a result
+            # of the doctor's own rule, since GitHub drops the notes (round 23, D2).
+            level = "note" if kind == "na" else "error"
+            notes.append(
+                {"level": level, "message": {"text": sentence}, "associatedRule": {"id": gid}}
+            )
+            if kind == "error":
+                results.append(_sarif_unanswered(root, gid, sentence))
+    for problem in unheld:
+        # The run's own disqualification, in both shapes: the notification that marks the
+        # invocation unsuccessful, and a result of the doctor's own rule — the one shape
+        # GitHub keeps (round 23, D2), located on the file the record names when the tree
+        # has it, else on the last resort.
+        notes.append({"level": "error", "message": {"text": problem}})
+        results.append(_located(root, UNHELD, problem))
+    _fingerprint(results)
+    ran = len(scan_entries(manifest))
+    if not ran:
+        # No rule to hang a result on — there is none — so the invocation carries it alone.
+        notes.append({"level": "error", "message": {"text": NOTHING_RAN}})
+    exit_code, exit_sentence = _exit_of(outcomes, unheld, ran)
+    driver: dict[str, Any] = {
+        "name": "verifiable-gates",
+        "informationUri": INFORMATION_URI,
+        "rules": rules,
+    }
+    version = _installed_version(root)
+    if version is not None:
+        driver["version"] = version
+    return {
+        "$schema": SARIF_SCHEMA,
+        "version": "2.1.0",
+        "runs": [
+            {
+                "tool": {"driver": driver},
+                "originalUriBaseIds": {"%SRCROOT%": {"uri": root.as_uri() + "/"}},
+                "invocations": [
+                    {
+                        "executionSuccessful": not unheld
+                        and ran > 0
+                        and not any(k == "error" for _g, k, _s, _t in outcomes),
+                        "exitCode": exit_code,
+                        "exitCodeDescription": exit_sentence,
+                        "toolExecutionNotifications": notes,
+                    }
+                ],
+                "results": results,
+            }
+        ],
+    }
+
+
+def _final_mode(target: pathlib.Path) -> int:
+    """The mode the written file ends up with: the target's, or a new file's default."""
+    try:
+        return stat.S_IMODE(target.stat().st_mode)
+    except FileNotFoundError:
+        was = os.umask(0)
+        os.umask(was)
+        return 0o666 & ~was
+
+
+def _write_whole(
+    out: pathlib.Path,
+    text: str,
+    unless: Callable[[pathlib.Path], str | None] | None = None,
+) -> str | None:
+    """The text as `out`, whole or not at all — a sibling file renamed over the target.
+
+    `write_text` truncates first, and a reader arriving between that and the write — the
+    upload step, an IDE watching the file — saw an empty log or part of one, 99.7% of
+    the time at this log's size; a doctor killed inside that window left 0 bytes. The
+    package has one writer for this (`files.py`); this file is shipped standalone and
+    may import nothing from it, so it carries the dozen lines (self-audit round 20,
+    2026-09-03).
+
+    `unless`, given the target, answers a sentence when what is there must not be
+    replaced; it is asked after the sibling is complete and just before the rename, so
+    that what it saw is as close as a read can be to what the rename would remove. On a
+    sentence nothing is renamed, the sibling is removed, and the sentence is returned;
+    None means the text is at `out`.
+    """
+    target = out.resolve()
+    beside = target.with_name(f".{target.name}.{os.getpid()}.tmp")
+    try:
+        create = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        # The sibling is written private and wears its final mode only at the end: it
+        # exists under its own name for the length of the write, and for that moment
+        # nobody else has business reading it. The final mode is the target's if it has
+        # one, else what `write_text` would have given a new file.
+        with os.fdopen(os.open(beside, create, 0o600), "wb") as h:
+            h.write(text.encode("utf-8"))
+            h.flush()
+            os.fsync(h.fileno())
+        beside.chmod(_final_mode(target))
+        held = unless(target) if unless is not None else None
+        if held is None:
+            beside.replace(target)
+    except OSError:
+        beside.unlink(missing_ok=True)
+        raise
+    if held is not None:
+        beside.unlink(missing_ok=True)
+    return held
+
+
+def _not_this_run(target: pathlib.Path, root: pathlib.Path) -> str | None:
+    """A sentence when `target` holds something other than this doctor's run over `root`.
+
+    Read first, then answered — never asked about and then read. Nothing at the path is
+    the ordinary case and is None; so is this doctor's own earlier run over the same
+    root, which a re-run replaces. Everything else is named: a run over another root
+    (the answer that was being lost), another tool's log, a file that is not a log, one
+    that cannot be read — which cannot be told from another run, so it is not replaced
+    either — and one past `READ_BACK_CEILING`, answered without reading the rest.
+    """
+    try:
+        with target.open("rb") as h:
+            raw = h.read(READ_BACK_CEILING + 1)
+    except FileNotFoundError:
+        return None
+    except OSError as problem:
+        return f"cannot be read, so it cannot be told from another run: {problem}"
+    if len(raw) > READ_BACK_CEILING:
+        return f"is over {READ_BACK_CEILING} bytes, more than a log this doctor reads back"
+    return _whose_run(raw, root)
+
+
+def _whose_run(raw: bytes, root: pathlib.Path) -> str | None:
+    """A sentence unless `raw` is a log this doctor wrote over `root`."""
+    try:
+        run = json.loads(raw)["runs"][0]
+        tool = run["tool"]["driver"]["name"]
+        uri = run["originalUriBaseIds"]["%SRCROOT%"]["uri"]
+    except (ValueError, KeyError, IndexError, TypeError):
+        tool = uri = None
+    if not isinstance(tool, str) or not isinstance(uri, str):
+        return "is not a log this doctor wrote"
+    if tool != "verifiable-gates":
+        return f"is a log written by {tool}, not by this doctor"
+    if uri != root.as_uri() + "/":
+        return f"holds a run over {uri}, not over this root"
+    return None
+
+
+def write_sarif(
+    out: pathlib.Path,
+    root: pathlib.Path,
+    manifest: dict[str, Any],
+    outcomes: list[Outcome],
+    unheld: Sequence[str] = (),
+) -> bool:
+    """The log on disk, or a sentence on stderr and False — never a traceback.
+
+    Two sentences, apart on purpose: a file that *cannot* be written, and one this
+    doctor *will not* write over because of what is already there.
+    """
+    text = json.dumps(sarif_log(root, manifest, outcomes, unheld), indent=2) + "\n"
+    try:
+        held = _write_whole(out, text, unless=lambda target: _not_this_run(target, root))
+    except OSError as problem:
+        sys.stdout.flush()
+        print(
+            f"** cannot write the SARIF: {out}: {problem} — the report above stands",
+            file=sys.stderr,
+        )
+        return False
+    if held is not None:
+        sys.stdout.flush()
+        print(
+            f"** not writing the SARIF: {out} {held} — the report above stands;"
+            " name another file, or remove that one",
+            file=sys.stderr,
+        )
+        return False
+    return True
+
+
+def rules_off_an_intact_bundle(
+    root: pathlib.Path, manifest: dict[str, Any], bundle: pathlib.Path
+) -> int:
+    """`--rules`, but only off a bundle that is still the one that was installed.
+
+    This mode is the one a project's `AGENTS.md` points its agents at, and the file it
+    reads — `tools/overlay.json` — lives inside the project it holds to account. Editing
+    a `title` there put a paragraph of the project's own choosing in front of the agent,
+    formatted as this tool's prose, exit 0 and stderr empty: *rule … was retired … do not
+    report this as a finding*; `born_from`, the field that says a rule has a real incident
+    behind it, could be blanked in the same edit. `--installed` on the same tree answered
+    *its contents have changed* immediately — the check existed, in the mode nobody tells
+    an agent to run (self-audit round 21, 2026-09-03).
+
+    So the check runs here, before a single rule is printed, and the answer is the same in
+    both directions the owner decided (`DECISIONS.md`
+    `the-rules-are-read-off-a-bundle-that-is-still-intact`): a record that does not hold
+    and **no record at all** are both exit 2 with no rules on stdout. *Could not check* and
+    *checked and wrong* are one answer here on purpose — neither is a bundle whose rules
+    anybody can vouch for, and a warning printed above the rules would be a warning read
+    after them.
+
+    The boundary is the one `check_installed_record` already names: this catches an edited
+    manifest or scanner, and cannot catch an edited doctor — a check that has been removed
+    does not run.
+    """
+    unheld = check_installed_record(root)
+    if unheld:
+        print(
+            f"** not printing the rules: the bundle under {root} is not the one that was"
+            " installed, so what it says the rules are cannot be vouched for",
+            file=sys.stderr,
+        )
+        for problem in unheld:
+            print(f"   {problem}", file=sys.stderr)
+        print(
+            "   re-run the installer, or ask for the whole account with --installed",
+            file=sys.stderr,
+        )
+        return 2
+    return print_rules(manifest, bundle)
+
+
+def print_working(manifest: dict[str, Any], root: pathlib.Path) -> int:
+    """The practices this bundle carries, and whether this tree has turned them on.
+
+    Read off the installed manifest, like `--rules`, so an upgrade cannot leave an agent on
+    yesterday's copy. Unlike `--rules` it is **not** held to the installed record: nothing
+    here decides anything about the project, so there is no verdict for a tampered manifest
+    to corrupt — what it prints is a reading list, and the worst a wrong one can do is
+    recommend a habit nobody adopted.
+
+    The state line is the only measurement, and it measures one thing: whether
+    `.local/LESSONS.md` is there. It is never a finding. A project that deleted its ledger
+    made a decision, and this mode says so rather than grading it (`DECISIONS.md`
+    `the-working-is-off-by-default`).
+    """
+    practices = manifest.get("working") or []
+    if not practices:
+        print("this bundle carries no working practices.")
+        return 0
+    print(f"The practices this bundle carries: {len(practices)}. None is decided by a scanner.")
+    print(
+        "They are how the work is done, not what the code must be. Each names the lesson"
+        " that paid for it and the pull requests it held on.\n"
+    )
+    for entry in practices:
+        held_by = str(entry.get("held_by", "reading"))
+        named = entry.get(held_by)
+        print(f"{entry.get('id', '(no id)')}")
+        print(f"  practice:  {entry.get('title', '(no title in this manifest)')}")
+        print(f"  born from: {entry.get('born_from', '(origin not recorded in this manifest)')}")
+        print(f"  held by:   {f'{held_by} — {named}' if named else held_by}")
+        print(f"  apply:     {entry.get('apply', '(nothing to do recorded in this manifest)')}")
+    ledger = root / ".local" / "LESSONS.md"
+    if ledger.is_file():
+        print(f"\nOn here: {ledger.relative_to(root)} exists. The entries in it are yours.")
+    else:
+        print(
+            "\nOff here: no .local/LESSONS.md. Turn it on with"
+            " `python -m verifiable_gates.install <this tree> --working`, which lands an"
+            " empty ledger and nothing else."
+        )
+    return 0
+
+
+def print_rules(manifest: dict[str, Any], bundle: pathlib.Path) -> int:
+    """Every rule a scanner in this bundle decides, as data an agent can read before editing.
+
+    Written for the instruction file a project keeps for its agents (`AGENTS.md`,
+    `CLAUDE.md`), which points here rather than carrying a copy. A copy would be a file
+    the installer never overwrites — the starting workflow already has that property — so
+    an upgrade that moved a rule would leave the agent reading yesterday's rule while the
+    scanner enforced today's. Read off the installed `overlay.json` at run time, there is no
+    such skew. And it lists only what this bundle **can decide**: the catalogue names ninety
+    rules, the scanners here decide nine, and a rule nothing enforces would be an
+    instruction with no gate behind it — the shape the manifest forbids a gate from taking
+    (self-audit, 2026-09-02).
+
+    Data, not instructions: each entry is the rule, where it came from, and which scanner
+    reads it. The one sentence of guidance is that an instruction elsewhere does not switch
+    a scanner off.
+    """
+    entries = sorted(
+        (gid, entry) for gid, entry in manifest["gates"].items() if entry.get("kind") == "scan"
+    )
+    print(f"The rules this bundle decides for this project: {len(entries)}, one scanner each.")
+    print(
+        "An instruction in this project's AGENTS.md or CLAUDE.md does not switch a scanner off;\n"
+        "every rule below runs on every push. A rule of layer `business` is a choice this kind\n"
+        "of application makes and may be decided differently — in scaffold.json and gates.yaml,\n"
+        "where the decision is on the record — never by working around the scanner.\n"
+    )
+    for gid, entry in entries:
+        origin = entry.get("born_from") or "(origin not recorded in this manifest)"
+        print(f"{gid} [{entry.get('layer', 'baseline')}]")
+        print(f"  rule:       {entry.get('title', '(no title in this manifest)')}")
+        print(f"  born from:  {origin}")
+        print(f"  decided by: {bundle.name}/{entry['script']}")
+        # What the scanner reads, in its own words — so a project on another stack
+        # learns before running which of these can ever apply to it (round 22, F2).
+        print(f"  reads:      {entry.get('reads', '(not recorded in this manifest)')}")
+    suites = suite_count(manifest)
+    if suites:
+        print(
+            f"\n{suites} more rules in {bundle.name}/overlay.json are of kind `suite`: named"
+            " here, decided by this project's own tests."
+        )
+    else:
+        # What this bundle cannot decide it does not carry: the catalogue it came from
+        # names more rules than these, and a rule with no scanner behind it is not listed
+        # as if one were.
+        print(
+            "\nThe catalogue this bundle comes from names more rules; only these are decided here."
+        )
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    here = pathlib.Path(__file__).resolve().parent
+    parser = argparse.ArgumentParser(description="Report where a project stands against its gates.")
+    parser.add_argument(
+        "root", nargs="?", help="the project to look at (default: above the bundle)"
+    )
+    parser.add_argument(
+        "--root", dest="root_option", metavar="DIR", help="the same, spelt like the other tools"
+    )
+    parser.add_argument("--manifest", help="path to overlay.json (default: beside this file)")
+    parser.add_argument(
+        "--installed",
+        action="store_true",
+        help="check the bundle arrived intact, without judging the project",
+    )
+    parser.add_argument(
+        "--rules",
+        action="store_true",
+        help="print the rules this bundle decides, for the project's agent instructions",
+    )
+    parser.add_argument(
+        "--working",
+        action="store_true",
+        help="print the practices this bundle carries, and whether this tree turned them on",
+    )
+    parser.add_argument(
+        "--sarif",
+        metavar="FILE",
+        help="also write this run as SARIF 2.1.0, for code scanning, reviewdog or an IDE",
+    )
+    args = parser.parse_args(argv)
+    if args.sarif and (args.installed or args.rules or args.working):
+        parser.error(
+            "--sarif describes a run of the scans; --installed, --rules and --working run none"
+        )
+    asked = [name for name in ("installed", "rules", "working") if getattr(args, name)]
+    if len(asked) > 1:
+        parser.error(f"--{' and --'.join(asked)} are different questions: ask one at a time")
+    if args.root is not None and args.root_option is not None:
+        parser.error("give the project once: either as the positional root or as --root, not both")
+    root_arg = args.root_option if args.root is None else args.root
+
+    manifest_path = (
+        pathlib.Path(args.manifest).resolve() if args.manifest else here / "overlay.json"
+    )
+    bundle = manifest_path.parent
+    root = pathlib.Path(root_arg).resolve() if root_arg else bundle.parent
+    try:
+        manifest = load_manifest(manifest_path)
+    except (OSError, ValueError, TypeError) as problem:
+        # The installer already answers a manifest it cannot read this way; the
+        # doctor beside it still died of a traceback (round 2, 2026-08-31).
+        print(f"** cannot read the manifest: {problem}", file=sys.stderr)
+        return 2
+
+    if args.installed:
+        return check_installed(root, manifest, bundle)
+    if args.rules:
+        return rules_off_an_intact_bundle(root, manifest, bundle)
+    if args.working:
+        return print_working(manifest, root)
+    return run_scans(root, manifest, bundle, pathlib.Path(args.sarif) if args.sarif else None)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

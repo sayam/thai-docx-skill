@@ -1,0 +1,7 @@
+{
+  "_comment": "Written by vgproj for a repository that is not code. adr_path is named on purpose: if docs/adr goes missing the doctor says so instead of answering NA. Kept from here; see tools/scaffold.json.default for every key.",
+  "adr_path": "docs/adr",
+  "preflight_jobs": [
+    "scans"
+  ]
+}

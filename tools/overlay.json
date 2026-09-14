@@ -1,0 +1,298 @@
+{
+  "_comment": "What this bundle ships and which gates it can decide by itself. kind 'scan' means a script here answers it when pointed at a project root; kind 'suite' means the bundle names the rule but the project has to write its own test — those are reported as pending, never as passed. Some shipped files are neither: gates_doctor.py, preflight.py, lint_commits.py and check_issue_handoff.py are tools a project runs with context only its CI has (a commit range, a pull request number), so they take flags rather than a root and the doctor does not run them. The rules they enforce are published in rules.yaml like any other.",
+  "bundle": "verifiable-gates",
+  "ship": [
+    "gates_doctor.py",
+    "preflight.py",
+    "check_issue_handoff.py",
+    "lint_commits.py",
+    "checks/scan_adr_index.py",
+    "checks/scan_dockerfile_digest.py",
+    "checks/scan_entrypoint_debug.py",
+    "checks/scan_gates_registry.py",
+    "checks/scan_install_pinning.py",
+    "checks/scan_service_layer.py",
+    "checks/scan_templates_inline.py",
+    "checks/scan_workflow_pinning.py",
+    "checks/scan_write_discipline.py",
+    "ci-template.yml",
+    "gates.yaml.default",
+    "scaffold.json.default",
+    "local/LESSONS.md.default",
+    "local/README.md.default"
+  ],
+  "gates": {
+    "actions-sha-pinned": {
+      "kind": "scan",
+      "script": "checks/scan_workflow_pinning.py",
+      "reads": "the uses: steps of workflows and composite actions under .github",
+      "title": "Every action is pinned to a commit SHA with the version in a comment",
+      "layer": "baseline",
+      "born_from": "Tags move, commits do not — upload-artifact once sat on @v4 at a single call site for ten days with CI green throughout."
+    },
+    "adr-index-complete": {
+      "kind": "scan",
+      "script": "checks/scan_adr_index.py",
+      "reads": "the .md records and the README.md index under docs/adr (scaffold.json adr_path)",
+      "title": "The ADR index covers every record, numbered without repeats or gaps · and supersessions are recorded in both directions",
+      "layer": "baseline",
+      "born_from": "The index once stopped at 0026 while the files ran to 0033 — seven records from the phase that decided the biggest questions, invisible · audit round 14 added the second direction: ADR 0035 had superseded item 1 of 0032 since 2026-08-12, but 0032's own page did not know for seven days, while the module docstring at the head of app/audit.py still pointed at 0032 as the current mechanism, which CLAUDE.md explicitly forbids returning to."
+    },
+    "ci-tools-hash-pinned": {
+      "kind": "scan",
+      "script": "checks/scan_install_pinning.py",
+      "reads": "pip, pipx, npm/npx/yarn/pnpm, uv/uvx/poetry/pdm/pipenv and python -m build lines in workflows, composite actions, the scripts they run, and the root Dockerfile",
+      "title": "Tools CI installs for itself are pinned by hash, on both the Python and the Node side",
+      "layer": "baseline",
+      "born_from": "An unpinned install command takes whatever is newest at the second the job runs, and it runs with our workflow's privileges · pinning one package at a time pins only that package while the rest of the tree still floats."
+    },
+    "csp-no-inline": {
+      "kind": "scan",
+      "script": "checks/scan_templates_inline.py",
+      "reads": ".html, .htm, .jinja, .jinja2 and .j2 templates under app/templates (scaffold.json templates_path)",
+      "title": "CSP is pure self — no inline script, style, or handler anywhere",
+      "layer": "baseline",
+      "born_from": "ADR 0010 — the browser blocks inline content silently with no server-side error, so the gate has to read the template files directly rather than wait for symptoms."
+    },
+    "delete-means-soft-delete": {
+      "kind": "scan",
+      "script": "checks/scan_write_discipline.py",
+      "reads": "Python modules under app (scaffold.json src_path) — session.delete calls outside the purge_paths",
+      "title": "Delete means hide (soft delete) — only purge removes rows for real",
+      "layer": "business",
+      "born_from": "ADR 0014 — a `--dry-run` implemented as a rollback once deleted real data, because purge committed before the savepoint closed · so there must be exactly one place that can delete."
+    },
+    "gates-registry-total": {
+      "kind": "scan",
+      "script": "checks/scan_gates_registry.py",
+      "reads": "the gate index at gates.yaml (scaffold.json gates_path), the jobs of every workflow under .github/workflows, and the test files under tests",
+      "title": "The gate index matches reality in both directions, and every test file is accounted for",
+      "layer": "baseline",
+      "born_from": "semgrep was scanning only 71 of 136 files because its scope was declared in two places — an index nothing holds to reality is an index that quietly reports things that are not true · audit round 7 added another field (`guards:` — ADR 0062): a gate that is expensive and has never caught anything has to be able to say *which path* it earns its keep on, or the question \"is it still worth it\" is answered by feel every time."
+    },
+    "image-digest-pinned": {
+      "kind": "scan",
+      "script": "checks/scan_dockerfile_digest.py",
+      "reads": "the FROM lines of the root Dockerfile (scaffold.json dockerfiles), .github/dependabot.yml for a docker ecosystem, and — when the project named no Dockerfile — every Dockerfile* in the tree that git does not ignore",
+      "title": "The base image is pinned to a manifest-index digest and Dependabot moves it",
+      "layer": "baseline",
+      "born_from": "Pinning with nobody to move it freezes the vulnerabilities in place — the two must always arrive together, and the test enforces that the pair is not separated."
+    },
+    "logic-knows-no-http": {
+      "kind": "scan",
+      "script": "checks/scan_service_layer.py",
+      "reads": "Python modules under app/services (scaffold.json services_path) — their imports, for request-side symbols",
+      "title": "All logic lives in the service layer and knows nothing about HTTP",
+      "layer": "baseline",
+      "born_from": "Phase 3 — logic buried in routes makes the HTML and the API diverge the instant a second adapter exists · an AST scan forbids services importing anything from the request side."
+    },
+    "no-debug-entrypoint": {
+      "kind": "scan",
+      "script": "checks/scan_entrypoint_debug.py",
+      "reads": "the Python entrypoints run.py, wsgi.py, app.py and main.py (scaffold.json entrypoints), as an AST",
+      "title": "No entrypoint file can open a debug console, even when the wrong one is run",
+      "layer": "baseline",
+      "born_from": "The first SAST round pointed at an entrypoint that could enable debug and was being copied into the image — run the wrong one and you have a debug console that executes code from a web page."
+    }
+  },
+  "requires": {
+    "preflight.py": [
+      "pyyaml"
+    ]
+  },
+  "_requires_why": "Shipped files are stdlib-only so they run in a project that has installed nothing. preflight.py is the exception: it reads whole workflow files, which the narrow subset reader in the scans cannot do, and it runs on a developer's machine rather than a bare CI runner. The dependency is declared here so a target project learns it from the bundle instead of from a traceback, and a test holds this list to what the files actually import.",
+  "working": [
+    {
+      "id": "keep-a-ledger-of-the-working",
+      "title": "A lesson learnt about the working is written down where the next session will read it",
+      "born_from": "L-0001 · 2026-08-30 · The first entry was a shell guard that did not guard: `cmd && echo OK` inside a battery line let the chain continue after a failure, so a run reported success it had not had. Nothing recorded it, and the same shape was written again nineteen days later.",
+      "held_by": "file",
+      "file": "local/LESSONS.md.default",
+      "held_on": [
+        "pr/227",
+        "pr/231",
+        "pr/235",
+        "pr/237"
+      ],
+      "apply": "Keep one append-only file — id, stamp, `updates:` chain, and Context / Lesson / Apply. Never edit or delete an entry: the history of having been wrong is the part that carries. Before adding one, read the ledger; if an entry covers it, say so in `updates:` rather than writing a second."
+    },
+    {
+      "id": "a-lesson-is-written-in-the-turn-it-appears",
+      "title": "The entry is written in the turn the lesson appears, not at the end of the session",
+      "born_from": "L-0126 · 2026-09-03 · Work kept in the session scratchpad has to be moved before the context is cleared, and the move is the step that gets skipped when a session ends abruptly; two measurements were nearly lost that way. The same is true of the lesson itself: deferred to the close, it is written from memory or not at all.",
+      "held_by": "reading",
+      "held_on": [
+        "pr/232",
+        "pr/234",
+        "pr/235",
+        "pr/237"
+      ],
+      "apply": "When a guard fails, a tool lies, or a platform behaviour is discovered by measurement, append the entry before moving on. The evidence — the command, the run id, the number — is in front of you now and will not be in an hour."
+    },
+    {
+      "id": "work-products-live-where-they-survive",
+      "title": "Anything a later session could want is written where a cleared context cannot take it",
+      "born_from": "L-0126 · 2026-09-03 · Two probes written in the session's temporary directory were nearly lost when the context was cleared: moving them costs a turn, costs tokens, and is the step that gets skipped exactly when the session ends abruptly.",
+      "held_by": "file",
+      "file": "local/README.md.default",
+      "held_on": [
+        "pr/234",
+        "pr/235",
+        "pr/236",
+        "pr/237"
+      ],
+      "apply": "One directory per piece of work, created before the first file lands in it, each with a README saying what every file does, how to run it, and the raw numbers it measured. Scripts take their target as an argument so the next piece of work reuses them instead of copying them. The scratchpad is for what nobody will ever want again."
+    },
+    {
+      "id": "a-fix-lands-in-three-phases",
+      "title": "A fix lands in three phases, and the proof row is on the critical path of the second",
+      "born_from": "L-0121 · 2026-09-03 · The registry row that records what a change proved kept being the step that went missing — written last, when the pull request already looked finished. Splitting each fix into code-and-tests, then registry-and-suite, then the pull request itself put it where it could not be skipped, and it stopped going missing across nine consecutive fixes.",
+      "held_by": "reading",
+      "held_on": [
+        "pr/227",
+        "pr/228",
+        "pr/229",
+        "pr/230",
+        "pr/231",
+        "pr/234",
+        "pr/235",
+        "pr/236",
+        "pr/237"
+      ],
+      "apply": "Phase 1 — the code, its tests, the changelog entry, and the mutations. Phase 2 — the proof row in every gate whose tests caught a mutation, then the whole check set. Phase 3 — the commit and the pull request. Report at the end of each; a phase that cannot be reported is a phase that is not finished."
+    },
+    {
+      "id": "a-mutation-is-watched-not-assumed",
+      "title": "A test is believed when a planted defect is watched going red, and the tree is checked back",
+      "born_from": "L-0112 · 2026-09-03 · A mutation planted in a comment at the head of the file left the tests green, and the green was read as proof that the code was covered. Two more entries paid for the rest of the discipline: L-0115, that a green run says nothing unless you read *which* tests went red, and L-0118, that a mutation the same length as the line it replaced, restored inside the same second, leaves the old bytecode running.",
+      "held_by": "reading",
+      "held_on": [
+        "pr/228",
+        "pr/229",
+        "pr/230",
+        "pr/231",
+        "pr/234",
+        "pr/235",
+        "pr/236",
+        "pr/237"
+      ],
+      "apply": "Back the file up with a copy that keeps its timestamp, print the diff before running, read which tests went red rather than the count, restore from the backup and clear the bytecode cache before the control run, and check with a diff that the tree came back. A runner that is killed leaves the mutation behind: never start one over a tree that already carries one."
+    },
+    {
+      "id": "a-green-mutation-is-a-missing-test",
+      "title": "A planted defect that stays green names a test that does not exist yet",
+      "born_from": "L-0119 · 2026-09-02 · A mechanism deliberately copied into several shipped files had tests for one copy only, and the mutations against the others came back green. The green was the finding: it said the copies were not held to each other. Two later rounds found the same shape — a guard added on faith, with nothing requiring it.",
+      "held_by": "reading",
+      "held_on": [
+        "pr/226",
+        "pr/230",
+        "pr/235",
+        "pr/237"
+      ],
+      "apply": "Never explain a green away. Write the test that makes it red; if that test cannot be written, the code it covers was added without evidence and the pull request should say so. A green on a shape the sample does not contain proves nothing either — plant it where the shape really occurs."
+    },
+    {
+      "id": "a-race-is-a-seam-and-a-probe",
+      "title": "A race is proved by a seam and measured by a probe — after the fix, not only before",
+      "born_from": "L-0124 · 2026-09-03 · A fix on the writer's side passed every seam test and every neighbouring road, and the two-process probe still accused once in 247 reads: the residual window was inside the reader, not the writer. It went to none in 221 only after the reader read again.",
+      "held_by": "reading",
+      "held_on": [
+        "pr/228",
+        "pr/230",
+        "pr/231",
+        "pr/232"
+      ],
+      "apply": "Make the interleaving deterministic with a seam so the test is a proof rather than a coin toss, and keep the real-process probe that found the finding. Run the probe again at the same scale after the fix: a count that is not zero is a second window, not noise."
+    },
+    {
+      "id": "the-body-is-on-disk-before-the-branch",
+      "title": "The text a pull request needs is written to a file before the branch exists",
+      "born_from": "L-0104 · 2026-09-02 · A pull request body assembled in the shell that opened it carried a line that had to be exact, and the command chain was the wrong place to hold it. Written to a file first, it is reviewable before anything is pushed and survives an interrupted session.",
+      "held_by": "reading",
+      "held_on": [
+        "pr/231",
+        "pr/234",
+        "pr/235",
+        "pr/236",
+        "pr/237"
+      ],
+      "apply": "Write the commit message and the pull request body to files in the work directory first, then branch, commit with `--file`, and open the pull request with `--body-file`. An interrupted session then loses narration, never work."
+    },
+    {
+      "id": "guards-chains-and-paths",
+      "title": "A guard guards only if nothing follows it, and a relative path lands where you are not",
+      "born_from": "L-0001 · 2026-08-30 · `cmd && echo OK` inside a battery line let the chain continue past a failure and the run reported a success it had not had. The same class cost three more entries: a single-file type check that poisons the cache for the whole run (L-0021), a worktree created inside the repository rather than beside it because the path was relative (L-0123), and a liveness check that matched the shell running it (L-0138).",
+      "held_by": "reading",
+      "held_on": [
+        "pr/231",
+        "pr/235",
+        "pr/236"
+      ],
+      "apply": "End a chain guard with the failure, never with an echo. Give every command that creates something an absolute path. Run type checks over the whole tree, never one file. And never ask the process table whether your own command is running."
+    },
+    {
+      "id": "no-ai-trailers",
+      "title": "The authorship a commit claims is the project's decision, not the harness's default",
+      "born_from": "L-0122 · 2026-09-03 · The session harness inserted instructions to add `Co-Authored-By:` and a session URL to every commit, on a repository whose own commit lint refuses both. The repository's rule won because a job enforces it; on a project with no such job, the default would simply have landed.",
+      "held_by": "tool",
+      "tool": "lint_commits.py",
+      "held_on": [
+        "pr/234",
+        "pr/235",
+        "pr/236",
+        "pr/237"
+      ],
+      "apply": "Decide what a commit may claim, write it into a checker that runs in CI, and let the checker be what refuses. A convention that only lives in an instruction file is one the next tool's default overwrites silently."
+    },
+    {
+      "id": "an-instruction-is-run-from-what-the-reader-gets",
+      "title": "An instruction a document will carry is run first, from the artefact the reader will have",
+      "born_from": "L-0177 · 2026-09-05 · The README quickstart was verified from this checkout, whose editable install has files the wheel does not: `pip install verifiable-gates` then `python -m verifiable_gates.install .` answered \"the bundle is incomplete … refusing to install\", exit 1. Every transcript was real, every sentence was true here, and every one of them was false for a reader.",
+      "held_by": "reading",
+      "held_on": [
+        "pr/271",
+        "pr/274",
+        "pr/279",
+        "pr/310"
+      ],
+      "apply": "Before a document proposes a command, run it once from what the reader gets — the published wheel in a fresh venv, the tag the hook fetches, the page the host renders — and record the command, the output, the exit code, the date and the version beside the work. A transcript in a document is that record: re-run it when the tool's output moves. What cannot be run here is run as close as the tree allows, and the document says which half was run."
+    },
+    {
+      "id": "a-release-is-verified-from-what-it-published",
+      "title": "A release is not finished until its own documents run from the artefacts it published",
+      "born_from": "L-0178 · 2026-09-05 · A version was attested, verified, uploaded and listed — every automated step green — and could not run the quickstart it shipped with. Nothing after the tag ever tried the documents against what the release had actually put on the index, so the first person to find out would have been a stranger.",
+      "held_by": "reading",
+      "held_on": [
+        "run/33960735354",
+        "run/34003278676",
+        "run/34013666112"
+      ],
+      "apply": "After every tag, before the release is called done: install the published artefact into a fresh environment and run the documents' own commands from it; open the page each host renders and fetch every link and image it shows a reader; read the release notes back and compare them with the section they were cut from. A red here is a blocker, not a note — say so in the same breath as the release, and let the fix be the next change. Record what was run, what it answered, and what could not be run here."
+    },
+    {
+      "id": "a-release-body-is-the-section-it-was-cut-from",
+      "title": "The notes a release carries are the changelog section it was cut from, handed over as a file",
+      "born_from": "L-0179 · 2026-09-05 · A release was published whose entire body was the version string, because the runbook said \"notes from the tag\" beside a tag message the same runbook had asked for in one word. Every earlier release carried its changelog section — the summary and the entries, which is what the archive keeps and what a reader on the releases page is given.",
+      "held_by": "tool",
+      "tool": "release_body.py",
+      "held_on": [
+        "run/33960735354",
+        "run/34003278676",
+        "run/34013666112"
+      ],
+      "apply": "Extract the section into a file before the runbook is handed over and publish with that file, never from the tag message and never from the platform's own commit list. Read the body back afterwards and compare it with the section on disk, folding the carriage returns the platform stores — without that fold a body that matches reports every line different, which is a check that cannot tell wrong from wrong line endings. Releases from before the convention go in a register that can only shrink."
+    },
+    {
+      "id": "a-badge-is-somebody-elses-cache",
+      "title": "What a badge shows a reader is checked where the reader is, not at the badge's own source",
+      "born_from": "L-0197 · 2026-09-05 · An hour after a release was published the repository page still showed the previous version's badge. The image host had the new one; the copy served through the host's own image proxy was old, on a cache miss, and nothing in the post-release check had ever asked what a reader is served rather than what the source says.",
+      "held_by": "reading",
+      "held_on": [
+        "run/34003278676",
+        "run/34013666112",
+        "run/34031741928"
+      ],
+      "apply": "After every release, fetch each badge through whatever proxy the page a reader opens puts in front of it, and record what it says with its cache headers. Know which badges should move and which are static, and know each one's window. Inside the window the honest report names both answers — the source says the new version, the proxy is still serving the old one, its window is N hours. **After** the window has passed, a stale value is a finding and not a wait: it means the badge's own source is wrong."
+    }
+  ]
+}
