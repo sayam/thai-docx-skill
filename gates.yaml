@@ -1,12 +1,8 @@
-# This project's gate registry. vgproj wrote it for a repository that is not
-# code, and the installer keeps it from here: it holds your decisions now.
-#
-# The bundle's doctor still runs every scan it carries; the ones about
-# templates, services, entrypoints and Dockerfiles answer NA on a tree that
-# has none. This index names only what a prose repository can actually keep —
-# the decision index above all. Add a row when the tree grows something a scan
-# reads (a Dockerfile, a script), and `gates-registry-total` holds the index to
-# the workflows in both directions.
+# This project's gate registry. vgproj wrote the first four rows; the rest are
+# this skill's own gates, each pointing at the job that decides it. The scans
+# about templates, services, entrypoints and Dockerfiles answer NA on a tree
+# that has none. `gates-registry-total` holds this index to the workflows and
+# the test files in both directions.
 
 version: 1
 gates:
@@ -30,3 +26,9 @@ gates:
     kind: job
     severity: blocking
     enforced_by: {job: scans}
+  - id: docx-checker-proven-two-way
+    title: The checker names each of the five causes (ADR 0004), invisible text and misordered properties on a planted violation, passes a clean package, and refuses DOCTYPE and oversized packages
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_check.py]}
+    proved_by: docs/evidence/2026-09-15-checker-red-evidence.md
