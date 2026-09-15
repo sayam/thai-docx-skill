@@ -220,7 +220,7 @@ def test_legacy_python_docx_default_fails_on_causes_1_2_5():
 def test_legacy_helper_from_handoff_fails_on_1_5_and_order():
     report = check(FIXTURES / "legacy-helper-2026-09-14.docx")
     assert codes(report) == {"1", "5", "order"}
-    assert any("['14', '15']" in f["message"] for f in report.findings)
+    assert any("declared as 14, 15;" in f["message"] for f in report.findings)
 
 
 # --- the command as the agent runs it ---

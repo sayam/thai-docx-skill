@@ -1,7 +1,8 @@
 # 0005 — Fix rendering with format attributes, never by changing content
 
-- Status: accepted
+- Status: superseded
 - Decided: 2026-09-15
+- Superseded by: 0016
 
 ## Where it came from
 

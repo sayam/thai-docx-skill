@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "name": "thai-docx-skill-tests",
+  "description": "Test-only tools. Nothing here ships with the skill.",
+  "devDependencies": {
+    "commonmark": "0.31.2"
+  }
+}

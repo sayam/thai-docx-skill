@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: python3 tools/gates_doctor.py
 
-  # Runs the checker's own suite on the oldest Python the skill promises (ADR 0008).
+  # Runs the suite on the oldest Python the skill promises (ADR 0008).
   tests:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -32,5 +32,11 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
+      # Node runs the CommonMark reference implementation the parser is held to (ADR 0015)
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
       - run: python3 -m pip install --require-hashes -r requirements/dev.txt
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: tests/js
       - run: python3 -m pytest -q tests

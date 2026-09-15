@@ -11,14 +11,14 @@ citation makes the record say something it did not.
 | id | source | where | accessed | cited by |
 |---|---|---|---|---|
 | S1 | verifiable-gates 0.10.0 — the ADR index check (`adr-index-complete`) and the practice that a gate is proved in both directions | doi:10.5281/zenodo.22103110 · https://pypi.org/project/verifiable-gates/0.10.0/ | 2026-09-14 | 0001, 0002, 0012 |
-| S2 | Diagnosis of Thai .docx rendering, Claude Design session, 2026-09-14 — handoff kept verbatim | `docs/handoff/2026-09-14-claude-design.md` | 2026-09-14 | 0004, 0005, 0006, 0009, 0014 |
+| S2 | Diagnosis of Thai .docx rendering, Claude Design session, 2026-09-14 — handoff kept verbatim | `docs/handoff/2026-09-14-claude-design.md` | 2026-09-14 | 0004, 0005, 0006, 0009, 0014, 0016 |
 | S3 | Agent Skills specification | https://agentskills.io/specification | 2026-09-14 | 0002, 0003, 0006, 0007, 0011, 0014 |
 | S4 | skills-ref 0.1.1 — reference validator for Agent Skills; installs the `agentskills` command ("demonstration purposes only") | https://pypi.org/project/skills-ref/0.1.1/ | 2026-09-14 | 0014 |
 | S5 | SkillsMP FAQ — "How do I submit my skill?" (auto-indexing, daily sync, topics) | https://skillsmp.com/docs/faq | 2026-09-14 | 0002, 0011, 0014 |
 | S6 | Awesome Claude Skills (awesome-skills.com), curated by Ocean Path Ventures — no submission form on the site | https://awesome-skills.com | 2026-09-14 | 0002, 0014 |
 | S7 | ECMA-376 Office Open XML File Formats, 5th edition, Part 1 (WordprocessingML) | https://ecma-international.org/publications-and-standards/standards/ecma-376/ | 2026-09-15 | 0004 |
-| S8 | CommonMark Spec 0.31.2 — soft line breaks | https://spec.commonmark.org/0.31.2/ | 2026-09-15 | 0005, 0010 |
-| S9 | GitHub Flavored Markdown Spec, version 0.29-gfm (2019-04-06) | https://github.github.com/gfm/ | 2026-09-15 | 0010 |
+| S8 | CommonMark Spec 0.31.2 — soft line breaks; Unicode punctuation (P and S categories) | https://spec.commonmark.org/0.31.2/ | 2026-09-15 | 0005, 0010, 0015, 0016 |
+| S9 | GitHub Flavored Markdown Spec, version 0.29-gfm (2019-04-06) | https://github.github.com/gfm/ | 2026-09-15 | 0010, 0015 |
 | S10 | GitHub Docs — basic writing and formatting syntax, footnotes | https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax | 2026-09-15 | 0010 |
 | S11 | Claude Help Center — create and edit files with Claude (code execution, network egress settings) | https://support.claude.com/en/articles/12111783-create-and-edit-files-with-claude | 2026-09-14 | 0008 |
 | S12 | Claude Platform docs — code execution tool (Python 3.11, no network, no runtime installs) | https://platform.claude.com/docs/en/agents-and-tools/tool-use/code-execution-tool | 2026-09-14 | 0008, 0010 |
@@ -33,3 +33,6 @@ citation makes the record say something it did not.
 | S21 | verifiable-gates 0.10.0 — `conventional-commits` rule and `tools/lint_commits.py` | `tools/lint_commits.py` · https://pypi.org/project/verifiable-gates/0.10.0/ | 2026-09-15 | 0013 |
 | S22 | The MIT License | https://opensource.org/license/mit | 2026-09-15 | 0003 |
 | S23 | Developer Certificate of Origin 1.1 | https://developercertificate.org/ | 2026-09-15 | 0013 |
+| S24 | commonmark.js 0.31.2 — the CommonMark reference implementation (BSD-2-Clause) | npm `commonmark@0.31.2`, integrity sha512-2fRLTyb9r/2835k5cwcAwOj0DEc44FARnMp5veGsJ+mEAZdi52sNopLu07ZyElQUz058H43whzlERDIaaSw4rg== · https://github.com/commonmark/commonmark.js | 2026-09-15 | 0015 |
+| S25 | cmark-gfm, GitHub's Markdown renderer, as packaged by cmarkgfm 2025.10.22 | https://pypi.org/project/cmarkgfm/2025.10.22/ · https://github.com/github/cmark-gfm | 2026-09-15 | 0015 |
+| S26 | CPython `html.entities.html5` — the HTML5 named character references (Python 3.13) | https://docs.python.org/3.13/library/html.entities.html | 2026-09-15 | 0015 |

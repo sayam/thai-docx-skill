@@ -29,6 +29,7 @@ import json
 import pathlib
 import re
 import zipfile
+import zlib
 from xml.etree import ElementTree as ET
 
 from .ooxml import (
@@ -45,7 +46,7 @@ from .ooxml import (
 MAX_PART = 32 * 1024 * 1024
 MAX_TOTAL = 64 * 1024 * 1024
 COMPAT_URI = "http://schemas.microsoft.com/office/word"
-TEXT_PARTS = re.compile(r"^word/(document|footnotes|endnotes|header\d*|footer\d*)\.xml$")
+TEXT_PARTS = re.compile(r"^word/(document|footnotes|endnotes|header[0-9]*|footer[0-9]*)\.xml$")
 DOCTYPE = re.compile(rb"<!DOCTYPE", re.IGNORECASE)
 
 
@@ -79,26 +80,35 @@ class Report:
 
 
 def _read_parts(path, report: Report) -> dict[str, bytes] | None:
+    """The package's XML parts, or None with a finding. Only stored and deflated
+    entries are read — the two methods every Word file uses and both
+    implementations support — and every read is bounded by the declared sizes."""
     try:
         zf = zipfile.ZipFile(path)
-    except (zipfile.BadZipFile, OSError) as exc:
-        report.find("package", "", f"not a zip package: {exc}")
+    except (zipfile.BadZipFile, OSError, ValueError, EOFError):
+        report.find("package", "", "not a zip package")
         return None
     with zf:
         infos = zf.infolist()
         total = sum(i.file_size for i in infos)
         if total > MAX_TOTAL or any(i.file_size > MAX_PART for i in infos):
-            report.find("size", "", f"package would decompress to {total} bytes; refused")
+            report.find("size", "", "package would decompress to " + str(total) + " bytes; refused")
             return None
-        names = {i.filename for i in infos}
-        if "word/document.xml" not in names:
+        if "word/document.xml" not in {i.filename for i in infos}:
             report.find("package", "", "no word/document.xml; not a WordprocessingML package")
             return None
         parts = {}
         for info in infos:
             if not info.filename.endswith((".xml", ".rels")):
                 continue
-            data = zf.read(info)
+            if info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED) or info.flag_bits & 0x1:
+                report.find("package", info.filename, "entry uses encryption or a compression method other than stored or deflate")
+                return None
+            try:
+                data = zf.read(info)
+            except (zipfile.BadZipFile, OSError, ValueError, EOFError, RuntimeError, NotImplementedError, zlib.error):
+                report.find("package", info.filename, "entry cannot be read (corrupt data or checksum)")
+                return None
             if DOCTYPE.search(data):
                 report.find("doctype", info.filename, "XML part declares a DOCTYPE; refused")
                 return None
@@ -111,8 +121,8 @@ def _parse(parts: dict[str, bytes], report: Report) -> dict[str, ET.Element]:
     for name, data in parts.items():
         try:
             trees[name] = ET.fromstring(data)
-        except ET.ParseError as exc:
-            report.find("package", name, f"XML does not parse: {exc}")
+        except ET.ParseError:
+            report.find("package", name, "XML is not well-formed")
     return trees
 
 
@@ -150,8 +160,8 @@ def _check_rpr_twins(rpr: ET.Element, part: str, report: Report, what: str, thai
         cs = fonts.get(w("cs")) or fonts.get(w("cstheme"))
         if latin and not cs:
             report.find("5", part, f"in {what}, w:rFonts names a Latin font but no w:cs font")
-        elif thai and cs and not fonts.get(w("cstheme")) and cs.casefold() not in THAI_FONTS:
-            report.warn("font", part, f"in {what}, complex-script font {cs!r} is not known to carry Thai glyphs")
+        elif thai and cs and not fonts.get(w("cstheme")) and cs.lower() not in THAI_FONTS:
+            report.warn("font", part, "in " + what + ", complex-script font '" + cs + "' is not known to carry Thai glyphs")
     for latin, twin in (("sz", "szCs"), ("b", "bCs"), ("i", "iCs")):
         if rpr.find(w(latin)) is not None and rpr.find(w(twin)) is None:
             report.find("5", part, f"in {what}, <w:{latin}> has no <w:{twin}> beside it")
@@ -166,7 +176,7 @@ def _check_settings(root: ET.Element, report: Report) -> None:
         if cs.get(w("name")) == "compatibilityMode" and cs.get(w("uri")) == COMPAT_URI
     ]
     if modes != ["15"]:
-        report.find("1", part, f"compatibilityMode declared as {modes or 'nothing'}; must be exactly one 15")
+        report.find("1", part, "compatibilityMode declared as " + (", ".join(str(m) for m in modes) or "nothing") + "; must be exactly one 15")
 
 
 def _check_text_part(name: str, root: ET.Element, report: Report) -> None:
