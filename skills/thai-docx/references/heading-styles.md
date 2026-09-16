@@ -2,7 +2,15 @@
 
 Read this when the user asks for a heading look (SKILL.md, Heading styles). Each
 `heading-1` … `heading-6` line in the front matter holds declarations from this table,
-separated by `;`, as in a CSS rule.
+separated by `;`, as in a CSS rule:
+
+```markdown
+---
+heading-1: font-size: 20pt; color: #1F4E79; text-align: center; page-break-before: always
+heading-2: font-family: "TH SarabunPSK"; text-decoration: underline double; margin-left: 0.5in
+---
+```
+
 
 ## Properties
 
