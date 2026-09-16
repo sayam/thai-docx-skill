@@ -7,7 +7,8 @@ checklist; one fault in the package was found there and fixed, and the fix is he
 test as well as the goldens (gates `release-oracle-set-is-the-goldens`,
 `build-faithful-and-byte-stable`).
 
-Environment: Microsoft Word for macOS, Thai proofing language; the files of `main` at
+Environment: Microsoft Word for macOS — a very old version that opens the files read-only —
+and, for the re-checks, Word 365 for Windows; Thai proofing language; the files of `main` at
 06ce4ef (`sample-text-word_mac.docx`, `sample-options-word_mac.docx`), opened by the
 maintainer with formatting marks shown. Content synthetic (`tests/fixtures/thesis/`).
 
@@ -79,10 +80,26 @@ Heading 6 keep the body's.
   Planted "the front matter font ignored on the number": red in it alone.
 - **Checklist:** `sample-text` asks that the chapter number is the chapter title's size.
 
+## 5. The heading-number fix, seen
+
+The files rebuilt for section 4 were opened in Word 365 for Windows and Word for macOS: "บทที่ ๑"
+and "๑.๑" are their titles' size and weight in both; Word 365's font box shows TH Sarabun New
+20 pt, bold, on the number as on the title (maintainer, 2026-09-17).
+
+In Word for macOS the number's face looked slightly unlike the title's. By the package they
+are one face: Heading 1 names no font and inherits TH Sarabun New from `Normal`, and the level
+names TH Sarabun New. The one difference in the XML is that a numbering level's `w:rFonts`
+names three slots and `Normal`'s four (no `w:eastAsia` on the level); a probe pair differing only
+in that was built (`.local/work/2026-09-17-font-probe/`) and not opened. The Word for macOS at
+hand is a very old version that opens these files read-only and shows no font properties, so
+the maintainer decided that **Word 365 for Windows is the reference** for the face, and the
+observation stays unexplained rather than a reason to change bytes.
+
 ## Not proved here
 
-- That the chapter number now matches its title in Word for macOS, Word 365 and WPS Writer:
-  the files rebuilt for section 4 must be opened again before the tag.
+- Why the number's face looked unlike the title's in the old, read-only Word for macOS
+  (section 5), and whether a current Word for macOS shows it.
+- WPS Writer after either fix.
 - The same spreading in a heading given `text-align: justify` or `thai-distribute` in the front
   matter together with `--chapter-title-on-new-line`, which also breaks a line: not written for,
   not seen.
