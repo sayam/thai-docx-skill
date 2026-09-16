@@ -1,0 +1,92 @@
+# What a person who only uses the skill downloads: `thai-docx-<version>.zip`, the
+# skill directory and nothing else — no gates, tests or records (ADR 0018). The
+# repository's own source archives leave those out too (.gitattributes).
+#
+# The archive is built from the tag, refused unless every place that states the
+# version states the tag, attested (so a downloader can check CI built it), verified
+# in both directions, and only then attached:
+#
+#     gh attestation verify thai-docx-<version>.zip --repo sayam/thai-docx-skill
+
+name: release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: an existing release tag to build and attach the skill archive to
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  # The tag is held to the gates and the suite again: a release is cut from a commit,
+  # and nothing else proves that commit's own run was green.
+  release-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - run: python3 tools/gates_doctor.py
+      - run: python3 -m pip install --require-hashes -r requirements/dev.txt
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: tests/js
+      - run: python3 -m pytest -q tests
+
+  release-archive:
+    needs: release-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+      - name: every stated version is the tag
+        run: python3 tools/package_skill.py --tag "$TAG"
+      - name: pack the skill directory, and nothing else
+        run: |
+          set -euo pipefail
+          mkdir dist
+          python3 tools/package_skill.py "dist/thai-docx-${TAG#v}.zip"
+          python3 -c "import sys, zipfile; n = zipfile.ZipFile(sys.argv[1]).namelist(); assert n and all(x.startswith('thai-docx/') for x in n) and 'thai-docx/SKILL.md' in n, n; print(len(n), 'files')" dist/*.zip
+      - name: attest build provenance for the archive
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*.zip
+      - name: verify in both directions before anything is attached
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ZIP=$(ls dist/*.zip)
+          # a fresh attestation can take a moment to be served
+          for try in 1 2 3 4 5; do
+            if gh attestation verify "$ZIP" --repo "$GITHUB_REPOSITORY"; then break; fi
+            [ "$try" = 5 ] && exit 1
+            sleep 15
+          done
+          cp "$ZIP" tampered.zip && printf 'x' >> tampered.zip
+          if gh attestation verify tampered.zip --repo "$GITHUB_REPOSITORY"; then
+            echo "a tampered archive verified — the verifier reads nothing"; exit 1
+          fi
+      - name: attach the archive to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" dist/*.zip --clobber

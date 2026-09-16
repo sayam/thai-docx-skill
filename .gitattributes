@@ -1,0 +1,19 @@
+# What a download of this repository carries — GitHub's "Download ZIP", the source
+# archives of a release, `git archive` — is the skill, its license, the README, the
+# changelog and PROMPT.md (ADR 0018).
+# A clone or a fork carries everything: the gates, tests and records travel with
+# anyone who develops the skill, and a pull request is held to them in CI.
+/.github export-ignore
+/docs export-ignore
+/js export-ignore
+/requirements export-ignore
+/tests export-ignore
+/tools export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/gates.yaml export-ignore
+/scaffold.json export-ignore
+/SOURCES.md export-ignore
+
+# The generated bundle is diffed as text but not counted as hand-written code.
+/skills/thai-docx/scripts/thai_docx.js linguist-generated=true
