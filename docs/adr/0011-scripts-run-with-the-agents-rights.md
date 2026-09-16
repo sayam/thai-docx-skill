@@ -1,7 +1,8 @@
 # 0011 — Bundled scripts run with the agent's rights: eight limits
 
-- Status: accepted
+- Status: superseded
 - Decided: 2026-09-15
+- Superseded by: 0025
 
 ## Where it came from
 

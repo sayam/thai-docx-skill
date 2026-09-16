@@ -26,6 +26,11 @@ gates:
     kind: job
     severity: blocking
     enforced_by: {job: scans}
+  - id: conventional-commits
+    title: Every commit a push or pull request adds is a Conventional Commit, signed off (DCO 1.1), with no assistant trailers (ADR 0013)
+    kind: job
+    severity: blocking
+    enforced_by: {job: commits}
   - id: docx-checker-proven-two-way
     title: The checker names each of the five causes (ADR 0004), invisible text and misordered properties on a planted violation, passes a clean package, and refuses DOCTYPE and oversized packages
     kind: test
@@ -33,17 +38,66 @@ gates:
     enforced_by: {job: tests, tests: [tests/test_check.py]}
     proved_by: docs/evidence/2026-09-15-checker-red-evidence.md
   - id: markdown-dialect-proven
-    title: The parser accepts exactly the Markdown ADR 0010 names — each construct on a fixture — and stops with a line number on anything outside it
+    title: The parser accepts exactly the Markdown ADR 0022 names — each construct on a fixture — and stops with a line number on anything outside it
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_markdown.py]}
+    proved_by: docs/evidence/2026-09-15-parser-held-to-references.md
   - id: build-faithful-and-byte-stable
-    title: The build refuses to write a package that fails its own checker or differs from the Markdown by one character (ADR 0005), and the same input gives the same bytes on every run (ADR 0008)
+    title: The build refuses to write a package that fails its own checker or differs from the Markdown by one character (ADR 0023), and the same input gives the same bytes on every run (ADR 0008)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_build.py]}
+    proved_by: [docs/evidence/2026-09-15-build-goldens-and-mutations.md, docs/evidence/2026-09-16-options-structure-goldens-and-mutations.md]
   - id: markdown-held-to-references
     title: The parser reads every generated document as commonmark.js does (CommonMark-only text) and as cmark-gfm does (GFM text), except in the divergences ADR 0015 names, and refuses only what the reference shows as raw HTML
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_oracle.py]}
+    proved_by: docs/evidence/2026-09-15-parser-held-to-references.md
+  - id: javascript-matches-python
+    title: The JavaScript file reads Markdown, writes .docx bytes, reports on sound and damaged packages and answers on the command line exactly as the Python package does (ADR 0008, 0017), stays within the script limits (ADR 0011), and is the bundle its committed sources build
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_js_parity.py]}
+    proved_by: docs/evidence/2026-09-15-javascript-matches-python.md
+  - id: release-carries-only-the-skill
+    title: A release attaches one archive, built from the tag, holding the skill directory and nothing else, refused unless every stated version is the tag, and attested and verified both ways before it is attached (ADR 0012, 0018)
+    kind: job
+    severity: blocking
+    enforced_by: {job: release-archive}
+  - id: release-tag-passes-the-gates
+    title: The tag a release is cut from passes the gates and the whole suite on the oldest supported Python before its archive is built (ADR 0012)
+    kind: job
+    severity: blocking
+    enforced_by: {job: release-check}
+  - id: skill-archive-is-the-skill
+    title: The archive a user downloads holds exactly skills/thai-docx, gives the same bytes on every run, and SKILL.md, the Python package and the JavaScript file state one version (ADR 0012, 0018)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_package_skill.py]}
+    proved_by: docs/evidence/2026-09-15-skill-md-archive-and-agents.md
+  - id: release-oracle-set-is-the-goldens
+    title: The documents a release is opened in — every variant once per application, with a checklist naming each — are byte for byte the goldens the build is held to (ADR 0012)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_oracle_set.py]}
+    proved_by: docs/evidence/2026-09-16-office-check-five-applications.md
+  - id: grill-is-the-users-word
+    title: The interview happens only when the user's own message says so — the script reads the message and names the mode, so no model chooses the mode for the user (ADR 0026)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_grill.py]}
+    proved_by: docs/evidence/2026-09-16-grill-is-the-users-word.md
+  - id: profiles-are-data
+    title: A profile holds only settings a flag could set, checked as flags are; it is found in the project, the home or the skill in that order; saving, exporting and importing stay inside the profile directories, and both implementations write the same bytes (ADR 0024, 0025)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_profiles.py]}
+    proved_by: docs/evidence/2026-09-16-profiles-are-data.md
+  - id: skill-md-tells-the-truth
+    title: SKILL.md passes the Agent Skills validator from the downloaded archive, stays under its ceiling, and every default, flag, finding code, command and sandbox snippet it gives is the one the skill has, run as written (ADR 0007, 0014, 0026)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_skill_md.py]}
+    proved_by: [docs/evidence/2026-09-15-skill-md-archive-and-agents.md, docs/evidence/2026-09-16-agents-with-the-grown-skill.md]
