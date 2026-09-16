@@ -284,6 +284,9 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
         ["build", "doc/in.md", out, "--profile"],
         ["build", "thesis/thesis.md", out, "--chapter-title-on-new-line", "--toc"],
         ["build", "doc/in.md", out, "--chapter-title-on-new-line"],  # a document with no regions: the warning
+        # flags whose structure the document lacks share a warning per structure (ADR 0028)
+        ["build", "doc/in.md", out, "--chapter-label", "บท", "--appendix-label", "Appendix", "--appendix-numbers", "decimal", "--front-page-numbers", "decimal", "--figure-label", "ภาพ"],
+        ["build", "doc/sub/เอกสาร.md", out, "--table-widths", "auto", "--no-repeat-table-header", "--table-label", "ตาราง"],
         # grill mode is the user's word (ADR 0026): both read the message the same way
         ["grill", "--said", "thai-docx grill"],
         ["grill", "--said", "ขอ THAI_DOCX\tGRILL หน่อย"],

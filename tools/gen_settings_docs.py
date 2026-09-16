@@ -22,11 +22,14 @@ from thai_docx import settings as st  # noqa: E402
 INTRO = {
     1: "Every document has these.",
     2: "The header and footer, and how Word draws the numbers it generates.",
-    3: "These change only a document that has tables.",
-    4: "These change only a document that has headings.",
-    5: "These change only a document with region comments or `Table:` / `Figure:` captions — "
-       "[chapters.md](chapters.md).",
+    3: "How tables are laid out.",
+    4: "How headings are numbered and listed.",
+    5: "For a report or thesis: region comments and `Table:` / `Figure:` captions — [chapters.md](chapters.md).",
 }
+
+
+def _and(items: list[str]) -> str:
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
 
 def render() -> str:
@@ -44,6 +47,17 @@ def render() -> str:
             if s["layer"] == layer:
                 name, shows, flag = s["doc"]
                 out.append("| " + name + " | " + shows + " | " + flag + " |")
+        needs: dict[str, list[str]] = {}
+        for s in st.SETTINGS:
+            if s["layer"] == layer and s.get("needs") in st.STRUCTURES:
+                needs.setdefault(s["needs"], []).append("`" + s["flag"] + "`")
+        for need, flags in needs.items():
+            out += ["", "Without " + st.STRUCTURES[need][0] + ", " + _and(flags) + (" changes" if len(flags) == 1 else " change")
+                    + " nothing, and the build says so."]
+        for s in st.SETTINGS:
+            if s["layer"] == layer and s.get("clashes"):
+                place, does, _ = st.CLASHES[s["clashes"]]
+                out += ["", "`" + s["flag"] + "` beside " + place + " " + does + ", and the build says so."]
     return "\n".join(out) + "\n"
 
 
