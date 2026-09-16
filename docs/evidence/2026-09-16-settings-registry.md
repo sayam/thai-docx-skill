@@ -66,11 +66,12 @@ What the measurement changed against the plan:
 measurement on eleven documents for every setting that needs a structure, holds the warning
 to it in both directions, and fails unless each setting is seen both warned about and not.
 
-The warning found a real duplicate in a release variant: `tools/oracle_set.py`'s
-`sample-layout` passes `--toc` to the thesis, which places its own `<!-- toc -->`, so the golden
-`thesis-layout.docx` holds two tables of contents. Its bytes are unchanged here (a refactor
-keeps goldens); the test now names the warning, and removing the flag is a golden change of
-its own.
+The warning names a duplicate the release set holds on purpose: `tools/oracle_set.py`'s
+`sample-layout` passes `--toc` to the thesis, which places its own `<!-- toc -->`, and its
+checklist asks the applications to show "a table of contents on the cover as well as the one
+in the front pages" — the variant is how `--toc` is opened in a thesis. The golden
+`thesis-layout.docx` is unchanged; `tests/test_oracle_set.py` now expects that one warning for
+that variant and none for the others, and the checklist line says the build warns.
 
 | # | planted defect | red (whole suite) | named by |
 |---|---|---|---|

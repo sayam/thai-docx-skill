@@ -82,7 +82,7 @@ SHOWS = {
     ),
     "sample-layout": (
         "F14 (8.5 × 13 in) landscape pages; margins 1 in all round; body 15 pt",
-        "A table of contents on the cover as well as the one in the front pages",
+        "A table of contents on the cover as well as the one in the front pages (on purpose: the build warns that --toc adds a second)",
         "The long table does not repeat its header row",
         "No spelling squiggles at all",
     ),
