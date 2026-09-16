@@ -31,6 +31,7 @@ file that is gone, a repeated number or a gap in the numbering is red.
 | 0023 | [Fix rendering with format attributes, never by changing content (restated with captions)](0023-fidelity-transformations-restated-again.md) | 2026-09-16 | accepted |
 | 0024 | [Profiles are data: settings a user saves, exports and imports](0024-profiles-are-data-saved-and-shared.md) | 2026-09-16 | accepted |
 | 0025 | [Bundled scripts run with the agent's rights: the limits, restated for profiles](0025-script-limits-restated-for-profiles.md) | 2026-09-16 | accepted |
-| 0026 | [Two modes, and the script decides which: grill is the user's word, read (restated)](0026-grill-is-the-users-word-read-by-the-script.md) | 2026-09-16 | accepted |
+| 0026 | [Two modes, and the script decides which: grill is the user's word, read (restated)](0026-grill-is-the-users-word-read-by-the-script.md) | 2026-09-16 | superseded by 0029 |
 | 0027 | [Generated matter carries what an application would otherwise supply: list entries, and a font on every run](0027-lists-carry-entries-and-runs-name-their-font.md) | 2026-09-16 | accepted |
 | 0028 | [Settings live in one registry, grouped by what they need; everything else is derived from it](0028-settings-in-one-registry-grouped-by-what-they-need.md) | 2026-09-16 | accepted |
+| 0029 | [Grill from a profile and save as another: the interview is data, read by the script (restated)](0029-grill-from-a-profile-save-as-another.md) | 2026-09-16 | accepted |

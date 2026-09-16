@@ -2,10 +2,10 @@
 
     thai_docx profile list
     thai_docx profile show NAME
-    thai_docx profile save NAME [--from NAME] [--project] [build flags]
+    thai_docx profile save NAME [--from NAME [--default SETTING,…]] [--project] [build flags]
     thai_docx profile export NAME [OUT.json]
     thai_docx profile import FILE.json [--name NAME] [--project]
-    thai_docx build IN.md OUT.docx --profile NAME|PATH [flags]
+    thai_docx build IN.md OUT.docx --profile NAME|PATH [--default SETTING,…] [flags]
 
 A profile holds settings and nothing else. Its values are checked by turning them into
 the build's own flags, so a profile can hold nothing a command line could not, and a
@@ -205,7 +205,7 @@ def listing() -> list[dict]:
 # --- the command ----------------------------------------------------------------------
 
 
-USAGE = ("usage: thai_docx profile list | show NAME | save NAME [--from NAME] [--project] [build flags] | "
+USAGE = ("usage: thai_docx profile list | show NAME | save NAME [--from NAME [--default SETTING[,SETTING]]] [--project] [build flags] | "
          "export NAME [OUT.json] | import FILE.json [--name NAME] [--project]")
 
 
@@ -226,6 +226,27 @@ def _flag(argv: list[str], name: str) -> tuple[list[str], str | None]:
         out.append(argv[i])
         i += 1
     return out, value
+
+
+def _defaults(argv: list[str]) -> tuple[list[str], list[str]]:
+    """Take every `--default SETTING[,SETTING]` out of argv: the settings a profile gives
+    back to their defaults before any flag applies (ADR 0029)."""
+    out, keys, i = [], [], 0
+    while i < len(argv):
+        head, eq, tail = argv[i].partition("=")
+        if head != "--default":
+            out.append(argv[i])
+            i += 1
+            continue
+        if not eq and i + 1 >= len(argv):
+            raise ProfileError("--default needs a value")
+        value = tail if eq else argv[i + 1]
+        i += 1 if eq else 2
+        for key in value.split(","):
+            if key not in FLAGS:
+                raise ProfileError('--default: unknown setting "' + key + '"; the settings are ' + ", ".join(FLAGS))
+            keys.append(key)
+    return out, keys
 
 
 def main(argv: list[str]) -> int:
@@ -252,8 +273,9 @@ def run(argv: list[str]) -> dict:
     if command == "save" and rest:
         name, rest = rest[0], rest[1:]
         rest, project = ([a for a in rest if a != "--project"], "--project" in rest)
+        rest, reset = _defaults(rest)
         rest, base = _flag(rest, "--from")
-        settings = load(base)[0]["settings"] if base else {}
+        settings = {k: v for k, v in load(base)[0]["settings"].items() if k not in reset} if base else {}
         try:
             opts, _, _ = b.parse_args(as_flags(settings) + rest + ["in.md", "out.docx"])
         except b.BuildError as exc:
@@ -292,10 +314,12 @@ def run(argv: list[str]) -> dict:
 
 
 def expand(argv: list[str]) -> tuple[list[str], dict | None]:
-    """`--profile NAME` → the profile's flags before the rest, and what to report."""
-    rest, name = _flag(list(argv), "--profile")
+    """`--profile NAME` → the profile's flags before the rest, less the settings `--default`
+    names, and what to report."""
+    rest, reset = _defaults(argv)
+    rest, name = _flag(rest, "--profile")
     if name is None:
         return rest, None
     data, where, path = load(name)
     used = {"name": path.stem, "where": where, "path": str(path), "sha256": digest(data["settings"])}
-    return as_flags(data["settings"]) + rest, used
+    return as_flags({k: v for k, v in data["settings"].items() if k not in reset}) + rest, used

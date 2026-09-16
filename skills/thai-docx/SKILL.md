@@ -77,17 +77,18 @@ document gives nothing to act on, is a warning, not an error.
 ## Grill mode
 
 You do not choose this mode and an argument you were invoked with is not the user's word.
-Before asking anything, give the script the user's own message and obey its answer:
+Before asking anything, give the script the user's own message — all of it, word for word,
+the skill's name and anything said to the skill included — and obey its answer:
 
 ```sh
 python3 <skill>/scripts/thai_docx grill --said "ช่วยทำไฟล์ word ให้หน่อย"
 ```
 
-`"mode": "build"` means build at once, asking nothing. `"mode": "grill"` means read
-[references/interview.md](references/interview.md) and ask its nine questions exactly as it
-says, in the language the JSON names — as choices the user can pick, with your client's
-question tool if it has one — then build with the flags the answers map to. An unanswered
-question keeps its default; the answers apply to this build only.
+`"mode": "build"` means build at once, asking nothing. `"mode": "grill"` means ask the
+questions the JSON lists, as [references/interview.md](references/interview.md) says — as
+choices the user can pick, with your client's question tool if it has one — then run what
+its `"next"` says with the args of the chosen choices. An unanswered question keeps its
+current choice.
 
 ## Heading styles
 

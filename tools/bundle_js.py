@@ -48,7 +48,7 @@ def bundle() -> str:
         '"use strict";\n'
         "const VERSION = " + json.dumps(version) + ";\n"
         + body
-        + "\nconst api = { VERSION, buildDocument, checkDocument, buildText, checkBytes, parseMarkdown, plainText, parseArgs, pyDumps, DEFAULTS, SETTINGS, cliMain };\n"
+        + "\nconst api = { VERSION, buildDocument, checkDocument, buildText, checkBytes, parseMarkdown, plainText, parseArgs, pyDumps, DEFAULTS, SETTINGS, QUESTIONS, cliMain };\n"
         'if (typeof module !== "undefined" && module.exports) module.exports = api;\n'
         "root.ThaiDocx = api;\n"
         'if (typeof require !== "undefined" && typeof module !== "undefined" && require.main === module) process.exitCode = cliMain(process.argv.slice(2));\n'

@@ -176,7 +176,7 @@ USAGE = "usage: thai_docx build IN.md OUT.docx " + " ".join(
        else " " + s["usage"])
     + "]"
     for s in SETTINGS
-) + " [--profile NAME|PATH] [--allow-dir DIR]"
+) + " [--profile NAME|PATH [--default SETTING[,SETTING]]] [--allow-dir DIR]"
 NUMBER = re.compile(r"[0-9]+(?:\.[0-9]+)?")  # used with fullmatch: no "$" before a newline
 
 
@@ -308,3 +308,51 @@ def settings_warnings(opts: dict, present: set[str]) -> list[str]:
         if clash in present and opts[s["key"]] != s["default"]:
             out.append(s["flag"] + ": " + CLASHES[clash][2])
     return out
+
+
+# --- the interview (ADR 0029) ----------------------------------------------------------------
+
+# The nine questions of grill mode, in order. A choice sets settings (`set`), or takes a value
+# the user types (`other`: the setting and the placeholder its flag shows), or says where the
+# answers are kept (`save`). Labels are (Thai, English).
+QUESTIONS: tuple[dict, ...] = (
+    {"key": "font", "text": ("ฟอนต์", "Font"), "choices": (
+        {"set": {"font": "TH Sarabun New"}, "label": ("TH Sarabun New", "TH Sarabun New")},
+        {"set": {"font": "TH SarabunPSK"}, "label": ("TH SarabunPSK", "TH SarabunPSK")},
+        {"set": {"font": "Sarabun"}, "label": ("Sarabun", "Sarabun")},
+        {"other": {"font": "NAME"}, "label": ("อื่น ๆ: พิมพ์ชื่อฟอนต์", "Other: the font name")})},
+    {"key": "size", "text": ("ขนาดตัวอักษร", "Font size"), "choices": (
+        {"set": {"size": 16}, "label": ("16 pt", "16 pt")},
+        {"set": {"size": 14}, "label": ("14 pt", "14 pt")},
+        {"set": {"size": 15}, "label": ("15 pt", "15 pt")},
+        {"other": {"size": "N"}, "label": ("อื่น ๆ: พิมพ์ขนาด", "Other: the size")})},
+    {"key": "paper", "text": ("กระดาษและขอบ", "Paper and margins"), "choices": (
+        {"set": {"paper": "a4", "margins": (1.0, 1.0, 1.0, 1.5)},
+         "label": ("A4 ขอบซ้าย 1.5 นิ้ว ด้านอื่น 1 นิ้ว", "A4, left 1.5 in, others 1 in")},
+        {"set": {"paper": "a4", "margins": (1.0, 1.0, 1.0, 1.0)}, "label": ("A4 ขอบ 1 นิ้วทุกด้าน", "A4, 1 in all round")},
+        {"set": {"paper": "letter", "margins": (1.0, 1.0, 1.0, 1.5)},
+         "label": ("Letter ขอบซ้าย 1.5 นิ้ว ด้านอื่น 1 นิ้ว", "Letter, left 1.5 in, others 1 in")},
+        {"other": {"paper": "PAPER", "margins": "T,R,B,L"},
+         "label": ("อื่น ๆ: กระดาษ และขอบ บน ขวา ล่าง ซ้าย เป็นนิ้ว", "Other: paper, and margins top, right, bottom, left in inches")})},
+    {"key": "align", "text": ("การจัดย่อหน้า", "Paragraph alignment"), "choices": (
+        {"set": {"align": "left"}, "label": ("ชิดซ้าย", "Left")},
+        {"set": {"align": "thai"}, "label": ("กระจายแบบไทย", "Thai distributed")})},
+    {"key": "indent", "text": ("ย่อหน้าบรรทัดแรกของเนื้อความ", "First-line indent of body paragraphs"), "choices": (
+        {"set": {"indent": 0.0}, "label": ("ไม่ย่อ", "None")},
+        {"set": {"indent": 0.5}, "label": ("0.5 นิ้ว", "0.5 in")},
+        {"set": {"indent": 1.0}, "label": ("1 นิ้ว", "1 in")},
+        {"other": {"indent": "N"}, "label": ("อื่น ๆ: พิมพ์เป็นนิ้ว", "Other: inches")})},
+    {"key": "toc", "text": ("สารบัญ", "Table of contents"), "choices": (
+        {"set": {"toc": False}, "label": ("ไม่ใส่", "No")},
+        {"set": {"toc": True}, "label": ("ใส่", "Yes")})},
+    {"key": "page-numbers", "text": ("เลขหน้า", "Page numbers"), "choices": (
+        {"set": {"page_numbers": False}, "label": ("ไม่ใส่", "No")},
+        {"set": {"page_numbers": "top-right"}, "label": ("ใส่", "Yes")})},
+    {"key": "squiggles", "text": ("เส้นหยักตรวจคำสะกด", "Spelling squiggles"), "choices": (
+        {"set": {"hide_spelling_errors": False}, "label": ("แสดง", "Show")},
+        {"set": {"hide_spelling_errors": True}, "label": ("ซ่อน (ซ่อนคำที่สะกดผิดจริงด้วย)", "Hide (hides real typos too)")})},
+    {"key": "save", "text": ("บันทึกการตั้งค่านี้ไว้ใช้ครั้งต่อไป", "Keep these settings for next time"), "choices": (
+        {"save": None, "label": ("ไม่บันทึก", "No")},
+        {"save": "home", "label": ("บันทึกเป็นของฉัน: พิมพ์ชื่อ", "Yes, as mine: the name")},
+        {"save": "project", "label": ("บันทึกไว้ในโปรเจกต์นี้: พิมพ์ชื่อ", "Yes, in this project: the name")})},
+)

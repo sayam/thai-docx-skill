@@ -272,10 +272,19 @@ function profileCheckName(name) {
   return name;
 }
 
+// A path as Python's pathlib writes it: "." and empty components dropped, a leading "//"
+// kept, "." for nothing. POSIX only; on Windows the path stays as given.
+function profilePathString(p) {
+  const path = require("path");
+  if (path.sep !== "/") return p;
+  const root = p.startsWith("//") && !p.startsWith("///") ? "//" : p.startsWith("/") ? "/" : "";
+  return root + p.split("/").filter((x) => x !== "" && x !== ".").join("/") || ".";
+}
+
 function profileFind(name) {
   const fs = require("fs");
   const path = require("path");
-  if (profileIsPath(name)) return ["path", name];
+  if (profileIsPath(name)) return ["path", profilePathString(name)];
   profileCheckName(name);
   for (const [where, directory] of profileDirectories()) {
     const p = path.join(directory, name + ".json");
@@ -354,7 +363,7 @@ function profileListing() {
   return out;
 }
 
-const PROFILE_USAGE = "usage: thai_docx profile list | show NAME | save NAME [--from NAME] [--project] [build flags] | " +
+const PROFILE_USAGE = "usage: thai_docx profile list | show NAME | save NAME [--from NAME [--default SETTING[,SETTING]]] [--project] [build flags] | " +
   "export NAME [OUT.json] | import FILE.json [--name NAME] [--project]";
 
 // Take `--name VALUE` or `--name=VALUE` out of argv; null when it is not there.
@@ -380,6 +389,39 @@ function profileTakeFlag(argv, name) {
   return [out, value];
 }
 
+// Take every `--default SETTING[,SETTING]` out of argv: the settings a profile gives back
+// to their defaults before any flag applies (ADR 0029).
+function profileTakeDefaults(argv) {
+  const out = [];
+  const keys = [];
+  let i = 0;
+  while (i < argv.length) {
+    const at = argv[i].indexOf("=");
+    const head = at < 0 ? argv[i] : argv[i].slice(0, at);
+    if (head !== "--default") {
+      out.push(argv[i]);
+      i += 1;
+      continue;
+    }
+    if (at < 0 && i + 1 >= argv.length) throw new ProfileError("--default needs a value");
+    const value = at >= 0 ? argv[i].slice(at + 1) : argv[i + 1];
+    i += at >= 0 ? 1 : 2;
+    for (const key of value.split(",")) {
+      if (!Object.prototype.hasOwnProperty.call(PROFILE_FLAGS, key)) {
+        throw new ProfileError('--default: unknown setting "' + key + '"; the settings are ' + Object.keys(PROFILE_FLAGS).join(", "));
+      }
+      keys.push(key);
+    }
+  }
+  return [out, keys];
+}
+
+function profileWithout(settings, keys) {
+  const out = {};
+  for (const [k, v] of Object.entries(settings)) if (!keys.includes(k)) out[k] = v;
+  return out;
+}
+
 function profileRun(argv) {
   const path = require("path");
   const fs = require("fs");
@@ -399,9 +441,10 @@ function profileRun(argv) {
     rest = rest.slice(1);
     const project = rest.includes("--project");
     rest = rest.filter((a) => a !== "--project");
-    let base;
+    let base, reset;
+    [rest, reset] = profileTakeDefaults(rest);
     [rest, base] = profileTakeFlag(rest, "--from");
-    const settings = base === null ? {} : profileRead(profileFind(base)[1]).settings;
+    const settings = base === null ? {} : profileWithout(profileRead(profileFind(base)[1]).settings, reset);
     let opts;
     try {
       [opts] = parseArgs(profileAsFlags(settings).concat(rest, ["in.md", "out.docx"]));
@@ -452,10 +495,11 @@ function profileRun(argv) {
 // `--profile NAME` → the profile's flags before the rest, and what to report.
 function profileExpand(argv) {
   const path = require("path");
-  const [rest, name] = profileTakeFlag(argv.slice(), "--profile");
+  const [withoutDefaults, reset] = profileTakeDefaults(argv.slice());
+  const [rest, name] = profileTakeFlag(withoutDefaults, "--profile");
   if (name === null) return [rest, null];
   const [where, p] = profileFind(name);
   const data = profileRead(p);
   const used = { name: path.basename(p, ".json"), where, path: p, sha256: profileDigest(data.settings) };
-  return [profileAsFlags(data.settings).concat(rest), used];
+  return [profileAsFlags(profileWithout(data.settings, reset)).concat(rest), used];
 }

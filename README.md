@@ -38,7 +38,9 @@ Then ask for a Word document with Thai in it. The skill builds at once with anno
 defaults; say `thai-docx grill` to be asked about font, page and layout first.
 Settings that suit your work can be kept as a profile and used again with
 `--profile NAME`; `profile export` writes the file to hand to someone else, who takes it
-with `profile import` (`docs/adr/0024`).
+with `profile import` (`docs/adr/0024`). `thai-docx grill from thesis save to thesis-v1`
+asks the questions again starting from a profile and keeps the answers under a new name
+(`docs/adr/0029`).
 Python 3.11+ or Node.js is enough; nothing is installed and nothing reaches the network.
 
 ## Develop the skill

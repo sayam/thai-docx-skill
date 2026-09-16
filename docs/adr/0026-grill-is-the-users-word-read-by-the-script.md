@@ -1,8 +1,9 @@
 # 0026 — Two modes, and the script decides which: grill is the user's word, read (restated)
 
-- Status: accepted
+- Status: superseded
 - Decided: 2026-09-16
 - Supersedes: 0019
+- Superseded by: 0029
 
 ## Where it came from
 
