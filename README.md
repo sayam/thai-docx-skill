@@ -10,9 +10,8 @@ squiggles under every Thai word, Thai lines that wrap inside words, bullets and
 bold that work. The agent writes Markdown; one bundled command builds the
 document and checks it without changing a character of the content.
 
-**Status: v0.1.0 is not released yet.** The skill builds and checks documents, and
-its tests pass; the release waits for the check in five office applications
-(`docs/adr/0012`).
+**Status: v0.1.0.** Checked in the office applications of `docs/adr/0012`, with Word 365
+for Windows as the reference; `CHANGELOG.md` lists what it does.
 
 ## Use the skill
 

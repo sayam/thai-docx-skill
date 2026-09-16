@@ -8,7 +8,11 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ## [Unreleased]
 
-The first version, v0.1.0, not yet tagged.
+## [0.1.0] - 2026-09-17
+
+The first version. Checked in Word 365 for Windows (desktop and web), Word for macOS, Google
+Docs, LibreOffice Writer and WPS Writer (ADR 0012; `docs/evidence/2026-09-16-office-check-five-applications.md`,
+`docs/evidence/2026-09-17-word-for-macos.md`).
 
 ### Added
 
@@ -83,24 +87,7 @@ The first version, v0.1.0, not yet tagged.
   contents beside `<!-- toc -->`.
 - `references/settings.md`: every setting, its default and an example flag, generated from
   the settings registry.
-
-### Changed
-
-- The settings live in one registry per implementation, and the defaults, the parser, the
-  usage line, the reported settings and the flags a profile holds are derived from it; the
-  build is split into modules along the layers of ADR 0028. No golden changed. The usage line
-  lists the flags in the registry's order.
-- SKILL.md is 6.8 KB: the settings table, the Markdown dialect, the finding codes and the
-  sandbox snippet moved into `references/`. The grill questions reach the agent only in the
-  grill command's output, and `references/interview.md` says how to ask them.
-
-### Fixed
-
-- The number Word draws for a heading — "บทที่ 1", "1.1", "ภาคผนวก ก" — was at the body's
-  size and font beside a larger title; it now takes its heading's look, including what the
-  front matter's `heading-n` sets (found in Word 365 and Word for macOS).
-- With `--align thai`, the line before a hard break was spread letter by letter across the page
-  in Word ("ภ า ษ า ไ ท ย"); the document now tells Word not to expand a line ending with
-  SHIFT+RETURN (found in Word for macOS).
-- The JavaScript reported a profile given by a path such as `./a//b.json` as typed where
-  Python writes `a/b.json`, in `profile show`, `export` and grill.
+- The number Word draws for a heading — "บทที่ 1", "1.1", "ภาคผนวก ก" — takes its heading's
+  size, font, weight and colour, including what the front matter's `heading-n` sets.
+- `--align thai` spreads Thai lines only: a paragraph with no Thai stays left-aligned, and the
+  line before a hard break is not spread letter by letter.
