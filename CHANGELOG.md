@@ -96,5 +96,8 @@ The first version, v0.1.0, not yet tagged.
 
 ### Fixed
 
+- With `--align thai`, the line before a hard break was spread letter by letter across the page
+  in Word ("ภ า ษ า ไ ท ย"); the document now tells Word not to expand a line ending with
+  SHIFT+RETURN (found in Word for macOS).
 - The JavaScript reported a profile given by a path such as `./a//b.json` as typed where
   Python writes `a/b.json`, in `profile show`, `export` and grill.

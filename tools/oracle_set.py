@@ -74,6 +74,7 @@ SHOWS = {
     ),
     "sample-options": (
         "Body paragraphs Thai distributed, first line indented 0.5 in, line spacing 1.5",
+        "The line before a hard break (chapter 1, the paragraph with H₂SO₄ and Ctrl + S) is not spread letter by letter",
         "Front pages count i ii iii; the first page of every section has no number; numbers top centre",
         "Page, list, footnote, heading and caption numbers in Thai digits (๑ ๒ ๓); ตารางที่ ๑-๑",
         "Appendix headings read Appendix A, B, C; captions ตารางที่ A-1",

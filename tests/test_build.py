@@ -800,6 +800,21 @@ def test_thai_distributed_leaves_a_paragraph_without_thai_alone(tmp_path):
         assert 'w:jc w:val="left"' not in zf.read("word/document.xml").decode()
 
 
+def test_thai_distributed_leaves_a_line_ending_in_a_manual_break_unspread(tmp_path):
+    """A hard break in a Thai distributed paragraph: Word spread the line before it letter by
+    letter across the page ("ภ า ษ า ไ ท ย", Word for macOS, 2026-09-17). With --align thai
+    the document says not to expand a line that ends with SHIFT+RETURN; left alignment has
+    nothing to spread and writes nothing."""
+    text = "ข้อความภาษาไทยที่ขึ้นบรรทัดใหม่  \nด้วย hard break\n"
+    for flags, written in ((["--align", "thai"], True), ([], False)):
+        opts, _, _ = b.parse_args(flags + ["in.md", "out.docx"])
+        result, out = build(tmp_path, text, **opts)
+        with zipfile.ZipFile(out) as zf:
+            settings, doc = zf.read("word/settings.xml").decode(), zf.read("word/document.xml").decode()
+        assert result["ok"] and result["findings"] == [] and "<w:br/>" in doc
+        assert ("<w:compat><w:doNotExpandShiftReturn/><w:compatSetting " in settings) is written, flags
+
+
 def test_every_generated_run_names_the_font(tmp_path):
     """A numbering level, and the hyperlink style a rebuilt list writes its entries in, are
     drawn in the application's own default when they name no font: WPS showed "บทที่ ๑" as

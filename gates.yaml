@@ -48,7 +48,7 @@ gates:
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_build.py]}
-    proved_by: [docs/evidence/2026-09-15-build-goldens-and-mutations.md, docs/evidence/2026-09-16-options-structure-goldens-and-mutations.md, docs/evidence/2026-09-16-adr-0027-mutations.md]
+    proved_by: [docs/evidence/2026-09-15-build-goldens-and-mutations.md, docs/evidence/2026-09-16-options-structure-goldens-and-mutations.md, docs/evidence/2026-09-16-adr-0027-mutations.md, docs/evidence/2026-09-17-word-for-macos.md]
   - id: markdown-held-to-references
     title: The parser reads every generated document as commonmark.js does (CommonMark-only text) and as cmark-gfm does (GFM text), except in the divergences ADR 0015 names, and refuses only what the reference shows as raw HTML
     kind: test
@@ -82,7 +82,7 @@ gates:
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_oracle_set.py]}
-    proved_by: docs/evidence/2026-09-16-office-check-five-applications.md
+    proved_by: [docs/evidence/2026-09-16-office-check-five-applications.md, docs/evidence/2026-09-17-word-for-macos.md]
   - id: grill-is-the-users-word
     title: The interview happens only when the user's own message says so — the script reads the message, names the mode, the profile it starts from and the name it saves to, and gives the questions with what each choice means against that start, so no model chooses the mode or works out an answer for the user (ADR 0029)
     kind: test
