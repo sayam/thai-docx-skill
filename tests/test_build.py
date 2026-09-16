@@ -767,25 +767,32 @@ def test_thai_distributed_leaves_a_paragraph_without_thai_alone(tmp_path):
     no Thai in it — an English reference, a Latin caption, a list entry — keeps the ordinary
     left alignment, so "(2024a)" does not come out as "( 2 0 2 4 a)" (ADR 0027)."""
     text = ("ข้อความไทยในย่อหน้านี้\n\nBennett, G., & Hall, T. (2024a). Static analysis tools.\n\n"
-            "- English list item\n- รายการภาษาไทย\n\nTable: English caption\n\n| a | b |\n|---|---|\n| 1 | 2 |\n")
-    opts, _, _ = b.parse_args(["--align", "thai", "in.md", "out.docx"])
-    result, out = build(tmp_path, text, **opts)
-    with zipfile.ZipFile(out) as zf:
-        doc = zf.read("word/document.xml").decode()
-        styles = zf.read("word/styles.xml").decode()
-    assert result["ok"] and result["findings"] == []
-    assert 'w:val="thaiDistribute"' in styles, "the document's own alignment is unchanged"
-    said = [(re.findall(r'w:jc w:val="(\w+)"', p), "".join(re.findall(r"<w:t[^>]*>([^<]*)</w:t>", p)))
-            for p in re.findall(r"<w:p>.*?</w:p>", doc, re.S)]
-    for jc, said_text in said:
-        if not said_text:
-            continue
-        has_thai = b.has_thai(said_text)
-        assert (jc == []) is has_thai, (jc, said_text[:40])
+            "- English list item\n- รายการภาษาไทย\n\nTable: English caption\n\n| a | b |\n|---|---:|\n| 1 | 2 |\n")
+    # a Thai label makes every caption Thai; a Latin one leaves a caption, and the entry a
+    # list writes for it, with no Thai at all
+    latin = "# Introduction\n\n<!-- list-of-tables -->\n\n"
+    for flags, source, latin_lines in ((["--align", "thai"], text, 4), (["--align", "thai", "--table-label", "Table", "--toc"], latin + text, 8)):
+        opts, _, _ = b.parse_args(flags + ["in.md", "out.docx"])
+        result, out = build(tmp_path, source, **opts)
+        with zipfile.ZipFile(out) as zf:
+            doc = zf.read("word/document.xml").decode()
+            styles = zf.read("word/styles.xml").decode()
+        assert result["ok"] and result["findings"] == []
+        assert 'w:val="thaiDistribute"' in styles, "the document's own alignment is unchanged"
+        said = [(re.findall(r'w:jc w:val="(\w+)"', p), "".join(re.findall(r"<w:t[^>]*>([^<]*)</w:t>", p)))
+                for p in re.findall(r"<w:p>.*?</w:p>", doc, re.S)]
+        for jc, said_text in said:
+            if not said_text:
+                continue
+            has_thai = b.has_thai(said_text)
+            assert (jc == []) is has_thai, (jc, said_text[:40])
+            assert len(jc) <= 1, "a paragraph that sets its own alignment keeps it: " + said_text[:40]
+        # the reference, a list item, two left table cells (the right column keeps its own) — and with Latin labels the caption, the heading and an entry for each
+        assert sum(1 for jc, t in said if t and jc == ["left"]) == latin_lines, flags
     # left alignment is untouched by the rule
     plain, out2 = build(tmp_path, text)
     with zipfile.ZipFile(out2) as zf:
-        assert "w:jc" not in zf.read("word/document.xml").decode()
+        assert 'w:jc w:val="left"' not in zf.read("word/document.xml").decode()
 
 
 def test_every_generated_run_names_the_font(tmp_path):
