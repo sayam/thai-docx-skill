@@ -1,4 +1,4 @@
-# 2026-09-17 — Word for macOS: the fifth application, and a line spread letter by letter
+# 2026-09-17 — Word for macOS: the fifth application, a line spread letter by letter, and a chapter number at the body's size
 
 What this proves: the release documents of `tools/oracle_set.py` were opened in Microsoft Word
 for macOS, the one application of ADR 0012 left unchecked on 2026-09-16
@@ -49,11 +49,40 @@ SHIFT+RETURN". Without the flag nothing is written, so three goldens keep their 
   written": red in it and the three goldens built without `--align thai`.
 - **Checklist:** `sample-options` now asks that the line before a hard break is not spread.
 
+## 4. The re-check, and a second fault
+
+The rebuilt `sample-options` was opened again in Word for macOS and Word 365 for Windows: the
+line before the hard break stays as written in both (maintainer, 2026-09-17).
+
+In the same files the maintainer found the number Word draws for a chapter heading — "บทที่ ๑"
+before "บทนำ" — at 16 pt, the body's size, beside a 20 pt title; Word 365's font box showed 16
+on the number and 20 on the title. The fault was the package's, from ADR 0027: every numbering
+level named a font and size so that WPS would not fall back to its own, and every level named
+the *body's*. A level's run properties override the paragraph's style for the number, so
+heading numbers lost the heading's size, and would have lost a front matter font, colour or
+underline too.
+
+**The fix:** the levels of the heading numbering (chapters and `--heading-numbers`) and of the
+appendices take their heading's run properties — the built-in look with what `heading-n`
+in the front matter changes, the same computation the heading style is written from — and
+still name a font (the heading's, or the document's). Lists keep the body's; levels past
+Heading 6 keep the body's.
+
+- **Goldens rebuilt on purpose:** `thesis-text.docx`, `thesis-options.docx`,
+  `thesis-layout.docx`; in each only `word/numbering.xml` differs (the chapter level now
+  `<w:b/><w:bCs/><w:sz w:val="40"/>`), and the JavaScript gives the same bytes. The two
+  sample goldens keep theirs: the heading styles are written byte for byte as before.
+- **Named test:** `test_every_generated_run_names_the_font` now holds the list levels to the
+  body, the heading levels to their heading (a `heading-1` with a font, 22 pt, a colour and an
+  underline included, compared with the Heading 1 style), and levels past Heading 6 to the
+  body. Planted "heading levels take the body's look": red in it and the three thesis goldens.
+  Planted "the front matter font ignored on the number": red in it alone.
+- **Checklist:** `sample-text` asks that the chapter number is the chapter title's size.
+
 ## Not proved here
 
-- That Word for macOS (and Word 365 for Windows, which was not seen to spread the line on
-  2026-09-16 but was not asked to look) now keeps the line: the rebuilt `sample-options` file
-  must be opened again before the tag.
+- That the chapter number now matches its title in Word for macOS, Word 365 and WPS Writer:
+  the files rebuilt for section 4 must be opened again before the tag.
 - The same spreading in a heading given `text-align: justify` or `thai-distribute` in the front
   matter together with `--chapter-title-on-new-line`, which also breaks a line: not written for,
   not seen.

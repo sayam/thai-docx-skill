@@ -20,8 +20,28 @@ def _end_section(xml: str, sect: str) -> str:
     return xml[:end] + sect + xml[end:]
 
 
+# the built-in look of Heading 1 … 6: (points above the body size, bold, italic)
+HEADING_LOOK = ((4, True, False), (2, True, False), (0, True, False), (0, True, True), (0, True, False), (0, False, True))
+
+
 class Package(Writer):
     """A Writer that also writes every other part, and the whole package in order."""
+
+    def heading_run(self, n: int) -> tuple[str | None, str]:
+        """Heading n's font as the front matter names it (None: the document's), and the rest of
+        its run properties in schema order — the built-in look, with what heading-n changes
+        (ADR 0020). The style and the number Word draws for the heading both take them."""
+        p = self.heading_props.get(n, {})
+        more, bold, italic = HEADING_LOOK[n - 1]
+        pt = p.get("size", self.opts["size"] + more)
+        half = str(half_up(pt * 2))
+        return p.get("font"), (
+            ("<w:b/><w:bCs/>" if p.get("bold", bold) else "") + ("<w:i/><w:iCs/>" if p.get("italic", italic) else "")
+            + ("<w:strike/>" if p.get("strike") else "")
+            + ('<w:color w:val="' + p["color"] + '"/>' if "color" in p else "")
+            + '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>'
+            + ('<w:u w:val="' + p["underline"] + '"/>' if p.get("underline") else "")
+        )
 
     def document_xml(self, body: str) -> str:
         pw, ph, top, right, bottom, left = self.page
@@ -104,19 +124,12 @@ class Package(Writer):
 
         jc = '<w:jc w:val="thaiDistribute"/>' if self.opts["align"] == "thai" else ""
 
-        def heading(n: int, pt: float, bold: bool, italic: bool) -> str:
+        def heading(n: int) -> str:
             """The built-in look, with what the front matter's heading-n changes (ADR 0020)."""
             p = self.heading_props.get(n, {})
-            face = attr(p["font"]) if "font" in p else ""
-            pt = p.get("size", pt)
-            rpr = (
-                ("<w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + " w:eastAsia=" + face + "/>" if face else "")
-                + ("<w:b/><w:bCs/>" if p.get("bold", bold) else "") + ("<w:i/><w:iCs/>" if p.get("italic", italic) else "")
-                + ("<w:strike/>" if p.get("strike") else "")
-                + ('<w:color w:val="' + p["color"] + '"/>' if "color" in p else "")
-                + '<w:sz w:val="' + hp(pt) + '"/><w:szCs w:val="' + hp(pt) + '"/>'
-                + ('<w:u w:val="' + p["underline"] + '"/>' if p.get("underline") else "")
-            )
+            name, rest = self.heading_run(n)
+            face = attr(name) if name is not None else ""
+            rpr = ("<w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + " w:eastAsia=" + face + "/>" if face else "") + rest
             num = '<w:numPr><w:ilvl w:val="' + str(n - 1) + '"/><w:numId w:val="' + str(self.heading_num_id()) + '"/></w:numPr>' if n in self.numbered_levels() else ""
             spacing = '<w:spacing w:before="' + str(p.get("before", 240 if n == 1 else 200)) + '" w:after="' + str(p.get("after", 80)) + '"'
             spacing += (' w:line="' + str(p["line"]) + '" w:lineRule="auto"/>') if "line" in p else "/>"
@@ -172,8 +185,7 @@ class Package(Writer):
             '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:rPr>'
             "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>"
             '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + LANG + "</w:rPr></w:style>"
-            + heading(1, size + 4, True, False) + heading(2, size + 2, True, False) + heading(3, size, True, False)
-            + heading(4, size, True, True) + heading(5, size, True, False) + heading(6, size, False, True)
+            + "".join(heading(n) for n in range(1, 7))
             + '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720"/><w:contextualSpacing/></w:pPr></w:style>'
             '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720" w:right="720"/></w:pPr><w:rPr><w:i/><w:iCs/></w:rPr></w:style>'
             '<w:style w:type="paragraph" w:styleId="CodeBlock"><w:name w:val="Code Block"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr><w:rPr><w:rFonts w:ascii="'
@@ -198,6 +210,15 @@ class Package(Writer):
         half = str(half_up(size * 2))
         level_font = ("<w:rPr><w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + "/>"
                       '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + LANG + "</w:rPr>")
+
+        def heading_font(l: int) -> str:
+            """A heading level's number is drawn as its heading is — "บทที่ 1" at Heading 1's size,
+            not the body's — naming the font all the same; levels past Heading 6 have none."""
+            if l >= len(HEADING_LOOK):
+                return level_font
+            name, rest = self.heading_run(l + 1)
+            face = attr(name) if name is not None else font
+            return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + LANG + "</w:rPr>"
         bullet = "".join(
             '<w:lvl w:ilvl="' + str(l) + '"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/>'
             '<w:pPr><w:ind w:left="' + str(720 * (l + 1)) + '" w:hanging="360"/></w:pPr>' + level_font + "</w:lvl>"
@@ -225,7 +246,7 @@ class Package(Writer):
             levels = "".join(
                 '<w:lvl w:ilvl="' + str(l) + '"><w:start w:val="1"/><w:numFmt w:val="' + fmt + '"/>'
                 + ('<w:pStyle w:val="Heading' + str(l + 1) + '"/>' if l + 1 in levels_on else "")
-                + '<w:suff w:val="space"/><w:lvlText w:val=' + attr(lvl_text(l)) + '/><w:lvlJc w:val="left"/>' + level_font + "</w:lvl>"
+                + '<w:suff w:val="space"/><w:lvlText w:val=' + attr(lvl_text(l)) + '/><w:lvlJc w:val="left"/>' + heading_font(l) + "</w:lvl>"
                 for l in range(9)
             )
             headings = '<w:abstractNum w:abstractNumId="2"><w:multiLevelType w:val="multilevel"/>' + levels + "</w:abstractNum>"
@@ -237,7 +258,7 @@ class Package(Writer):
             headings += '<w:abstractNum w:abstractNumId="3"><w:multiLevelType w:val="multilevel"/>' + "".join(
                 '<w:lvl w:ilvl="' + str(l) + '"><w:start w:val="1"/><w:numFmt w:val="' + (first if l == 0 else fmt) + '"/>'
                 + '<w:suff w:val="space"/><w:lvlText w:val=' + attr(self.opts["appendix_label"] + " %1" if l == 0 else ".".join("%" + str(k + 1) for k in range(l + 1)))
-                + '/><w:lvlJc w:val="left"/>' + level_font + "</w:lvl>"
+                + '/><w:lvlJc w:val="left"/>' + heading_font(l) + "</w:lvl>"
                 for l in range(9)
             ) + "</w:abstractNum>"
             nums += '<w:num w:numId="' + str(self.heading_num_id() + 1) + '"><w:abstractNumId w:val="3"/></w:num>'

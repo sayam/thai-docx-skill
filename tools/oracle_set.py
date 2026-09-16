@@ -66,6 +66,7 @@ SHOWS = {
         "Cover has no page number; front pages count ก ข ค — note what page 3 shows (ค, or ฃ)",
         "Every # starts a new page; chapter 1 restarts page numbers at 1, at the bottom centre",
         "Headings read บทที่ 1 …, 1.1 …; appendices ภาคผนวก ก, ข, ค; bibliography and ประวัติผู้เขียน unnumbered",
+        "The number of a heading (บทที่ 1, 1.1, ภาคผนวก ก) is its heading's size, font and weight, not the body's",
         "Captions read ตารางที่ 1-1, รูปที่ 2-1, ตารางที่ ก-1 — before and after updating fields",
         "Table of contents, list of tables and list of figures fill in after updating fields, in TH Sarabun New",
         "The 40-row results table repeats its header row on every page",

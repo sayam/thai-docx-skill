@@ -96,6 +96,9 @@ The first version, v0.1.0, not yet tagged.
 
 ### Fixed
 
+- The number Word draws for a heading — "บทที่ 1", "1.1", "ภาคผนวก ก" — was at the body's
+  size and font beside a larger title; it now takes its heading's look, including what the
+  front matter's `heading-n` sets (found in Word 365 and Word for macOS).
 - With `--align thai`, the line before a hard break was spread letter by letter across the page
   in Word ("ภ า ษ า ไ ท ย"); the document now tells Word not to expand a line ending with
   SHIFT+RETURN (found in Word for macOS).
