@@ -17,7 +17,11 @@ import zipfile
 import pytest
 
 from thai_docx import build as b
+from thai_docx import fidelity as fi
+from thai_docx import layout as lo
 from thai_docx import markdown as md
+from thai_docx import parts as pa
+from thai_docx import writer as wr
 from thai_docx.check import check
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -86,18 +90,18 @@ def test_sample_text_round_trips_paragraph_for_paragraph():
     doc = md.parse((FIXTURES / "sample.md").read_text(encoding="utf-8"))
     with zipfile.ZipFile(GOLDEN / "sample-default.docx") as zf:
         parts = {n: zf.read(n) for n in zf.namelist()}
-    assert b.docx_text(parts, len(doc.footnote_order)) == b.expected_text(doc)
-    assert "☐ งานที่ยังไม่ทำ" in b.docx_text(parts, 1)
+    assert fi.docx_text(parts, len(doc.footnote_order)) == fi.expected_text(doc)
+    assert "☐ งานที่ยังไม่ทำ" in fi.docx_text(parts, 1)
 
 
 def test_a_writer_that_drops_a_character_is_refused(tmp_path, monkeypatch):
-    original = b.Writer.text_run
+    original = wr.Writer.text_run
 
     def lossy(self, node, extra=""):
         node = dict(node, s=node["s"][:-1]) if node["s"].endswith("ข") else node
         return original(self, node, extra)
 
-    monkeypatch.setattr(b.Writer, "text_run", lossy)
+    monkeypatch.setattr(wr.Writer, "text_run", lossy)
     result, out = build(tmp_path, "กข")
     assert not result["ok"] and [f["code"] for f in result["findings"]] == ["fidelity"]
     assert "กข" not in json.dumps(result, ensure_ascii=False), "a finding never quotes the document"
@@ -105,7 +109,8 @@ def test_a_writer_that_drops_a_character_is_refused(tmp_path, monkeypatch):
 
 
 def test_a_writer_that_breaks_a_cause_is_refused(tmp_path, monkeypatch):
-    monkeypatch.setattr(b, "LANG", "<w:cs/>")
+    monkeypatch.setattr(wr, "LANG", "<w:cs/>")
+    monkeypatch.setattr(pa, "LANG", "<w:cs/>")  # the package's other parts name it too
     result, out = build(tmp_path, "ก")
     assert not result["ok"] and {f["code"] for f in result["findings"]} == {"2"}
     assert not out.exists()
@@ -154,14 +159,14 @@ def test_image_is_scaled_to_the_text_width(tmp_path):
     shutil.copy(FIXTURES / "pixel.png", tmp_path / "p.png")
     _, out = build(tmp_path, "![a](p.png)", margins=(1, 3.5, 1, 3.5))
     doc = zipfile.ZipFile(out).read("word/document.xml").decode()
-    text_width_emu = (b.PAPER["a4"][0] - 2 * int(3.5 * 1440)) * b.EMU_PER_TWIP  # narrower than 200 px
-    cx, cy = text_width_emu, 50 * b.EMU_PER_PX * text_width_emu // (200 * b.EMU_PER_PX)
+    text_width_emu = (b.PAPER["a4"][0] - 2 * int(3.5 * 1440)) * wr.EMU_PER_TWIP  # narrower than 200 px
+    cx, cy = text_width_emu, 50 * wr.EMU_PER_PX * text_width_emu // (200 * wr.EMU_PER_PX)
     assert f'cx="{cx}" cy="{cy}"' in doc
 
 
 def test_jpeg_dimensions_are_read_from_sof():
     jpeg = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00" + b"\xff\xc0\x00\x11\x08\x00\x20\x00\x40\x03\x01\x22\x00\x02\x11\x01\x03\x11\x01" + b"\xff\xd9"
-    assert b._image_size(jpeg) == ("jpeg", 64, 32)
+    assert wr._image_size(jpeg) == ("jpeg", 64, 32)
 
 
 def test_unreferenced_footnote_is_refused(tmp_path):
@@ -203,7 +208,7 @@ def test_table_header_row_repeats_unless_turned_off(tmp_path):
         assert result["ok"] and result["settings"]["repeat_table_header"] == bool(repeats)
         assert doc.count("<w:tblHeader/>") == repeats and doc.count("<w:tr>") == 3
         # text clear of the borders, and rows no taller than their text
-        assert doc.count(b.CELL_MARGINS) == 1 and doc.count('<w:pPr><w:spacing w:after="0"/></w:pPr>') == 6
+        assert doc.count(wr.CELL_MARGINS) == 1 and doc.count('<w:pPr><w:spacing w:after="0"/></w:pPr>') == 6
     with pytest.raises(b.BuildError, match="takes no value"):
         b.parse_args(["--no-repeat-table-header=yes", "in.md", "out.docx"])
 
@@ -299,7 +304,7 @@ def test_page_numbers_go_where_the_flag_places_them(tmp_path):
             doc, types, rels = (zf.read(n).decode() for n in ("word/document.xml", "[Content_Types].xml", "word/_rels/document.xml.rels"))
         other = {"header": "footer", "footer": "header"}[kind]
         assert f"word/{other}1.xml" not in names and f"{other}Reference" not in doc
-        assert part.startswith(b.XML + f"<w:{tag} ") and part.endswith(f"</w:{tag}>") and f'<w:jc w:val="{jc}"/>' in part and " PAGE " in part
+        assert part.startswith(wr.XML + f"<w:{tag} ") and part.endswith(f"</w:{tag}>") and f'<w:jc w:val="{jc}"/>' in part and " PAGE " in part
         assert f'<w:{kind}Reference w:type="default"' in doc and f"wordprocessingml.{kind}+xml" in types and f'Target="{kind}1.xml"' in rels
     # a following argument is a position only when it names one
     opts, positional, _ = b.parse_args(["--page-numbers", "in.md", "out.docx"])
@@ -443,23 +448,23 @@ def test_regions_make_a_section_of_every_chapter_and_page_before_and_after(tmp_p
     # chapters: "บทที่ n" on #, 1.1 on ##; headings outside the chapters are unnumbered
     assert '<w:lvlText w:val="บทที่ %1"/>' in numbering and '<w:lvlText w:val="%1.%2"/>' in numbering
     assert doc.count('<w:pStyle w:val="Heading1"/><w:numPr><w:numId w:val="0"/></w:numPr>') == 3  # บทคัดย่อ, สารบัญ, ภาคผนวก ก
-    assert '<w:pStyle w:val="Heading1"/></w:pPr><w:r><w:rPr>' + b.LANG + '</w:rPr><w:t xml:space="preserve">บทนำ' in doc
+    assert '<w:pStyle w:val="Heading1"/></w:pPr><w:r><w:rPr>' + wr.LANG + '</w:rPr><w:t xml:space="preserve">บทนำ' in doc
     # directives become fields, and Word is asked to fill them in
     assert ' TOC \\o "1-3" \\h \\z \\u ' in doc and ' TOC \\h \\z \\c "Table" ' in doc and '<w:updateFields w:val="true"/>' in settings
     assert 'w:styleId="Caption"' in styles and 'w:styleId="TableofFigures"' in styles and 'w:styleId="TOC1"' in styles
     # captions: chapter-number-seq inside the chapters, restarting at every #, plain in the back
     parts = {n: zipfile.ZipFile(out).read(n) for n in names}
-    text = b.docx_text(parts, 0)
+    text = fi.docx_text(parts, 0)
     captions = [t for t in text if t.startswith(("ตารางที่", "รูปที่"))]
     assert captions == ["ตารางที่ 1-1 สาเหตุ", "ตารางที่ 2-1 รูปแบบ", "ตารางที่ 1 ข้อมูล",  # the list of tables holds them
                         "ตารางที่ 1-1 สาเหตุ", "รูปที่ 1-1 ขั้นตอน", "ตารางที่ 2-1 รูปแบบ", "ตารางที่ 1 ข้อมูล"]
     # ADR 0027: the lists carry their entries, so an application that never updates a field shows them
     assert text[4:10] == ["บทคัดย่อ", "สารบัญ", "บทที่ 1 บทนำ", "ที่มา", "บทที่ 2 ทฤษฎี", "ภาคผนวก ก"], text[:12]
     assert doc.count('<w:pStyle w:val="TOC1"/>') == 8 and doc.count('<w:pStyle w:val="TOC2"/>') == 1
-    assert '<w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr>' + b.LANG + '</w:rPr><w:t xml:space="preserve">บทคัดย่อ</w:t>' in doc
+    assert '<w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr>' + wr.LANG + '</w:rPr><w:t xml:space="preserve">บทคัดย่อ</w:t>' in doc
     assert ' STYLEREF 1 \\s ' in doc and ' SEQ Table \\* ARABIC \\s 1 ' in doc and ' SEQ Figure \\* ARABIC \\s 1 ' in doc
     assert '<w:pPr><w:pStyle w:val="Caption"/><w:keepNext/></w:pPr>' in doc, "a table caption stays with its table"
-    assert '<w:pPr><w:keepNext/></w:pPr><w:r><w:rPr>' + b.LANG + '</w:rPr><w:drawing>' in doc, "an image stays with its caption"
+    assert '<w:pPr><w:keepNext/></w:pPr><w:r><w:rPr>' + wr.LANG + '</w:rPr><w:drawing>' in doc, "an image stays with its caption"
     assert '<w:pPr><w:pStyle w:val="Caption"/><w:jc w:val="center"/><w:sectPr>' in doc, "the figure's caption ends chapter 1"
 
 
@@ -524,8 +529,8 @@ def test_appendices_are_lettered_and_front_pages_take_the_chosen_numbers(tmp_pat
         # no numbered list here: the headings' list is numId 2, the appendices' 3
         assert doc.count('<w:numPr><w:ilvl w:val="0"/><w:numId w:val="3"/></w:numPr>') == 2 and '<w:numPr><w:ilvl w:val="1"/><w:numId w:val="3"/></w:numPr>' in doc
         assert doc.count('<w:pStyle w:val="Heading1"/><w:numPr><w:numId w:val="0"/></w:numPr>') == 3  # บทคัดย่อ, บรรณานุกรม, ประวัติผู้เขียน
-        assert [t for t in b.docx_text(parts, 0) if t.startswith("ตารางที่")] == captions
-    assert b.number_text(27, "upper-letters", False) == "AA" and b.number_text(3, "thai-letters", False) == "ค" and b.number_text(14, "upper-roman", False) == "XIV"
+        assert [t for t in fi.docx_text(parts, 0) if t.startswith("ตารางที่")] == captions
+    assert lo.number_text(27, "upper-letters", False) == "AA" and lo.number_text(3, "thai-letters", False) == "ค" and lo.number_text(14, "upper-roman", False) == "XIV"
     for text, line, message in (
         ("<!-- front -->\n\n# ก\n\n<!-- appendices -->\n\n# ข\n\n<!-- chapters -->\n", 9, "the regions go front, chapters, back, appendices, back"),
         ("<!-- back -->\n\n# ก\n\n<!-- back -->\n", 5, "a second <!-- back --> comes only after <!-- appendices -->"),
@@ -569,7 +574,7 @@ def test_without_region_comments_captions_count_through_the_document_and_nothing
     doc = zipfile.ZipFile(out).read("word/document.xml").decode()
     parts = {n: zipfile.ZipFile(out).read(n) for n in zipfile.ZipFile(out).namelist()}
     assert result["ok"] and result["findings"] == [] and len(_sections(doc)) == 1 and "numId" not in doc
-    assert [t for t in b.docx_text(parts, 0) if t.startswith("Table")] == ["Table ๑ หนึ่ง", "Table ๒ สอง ต่อ"]
+    assert [t for t in fi.docx_text(parts, 0) if t.startswith("Table")] == ["Table ๑ หนึ่ง", "Table ๒ สอง ต่อ"]
     assert ' SEQ Table \\* ThaiArabic ' in doc and "STYLEREF" not in doc
     # the goldens hold that a document with none of this keeps its bytes
 
@@ -623,7 +628,7 @@ def _page_parts(out) -> dict[str, str]:
 
 
 def test_header_and_footer_text_share_their_place_with_the_page_number(tmp_path):
-    centre = '<w:pPr><w:pStyle w:val="{}"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + b.LANG + '</w:rPr><w:t xml:space="preserve">{}</w:t></w:r></w:p>'
+    centre = '<w:pPr><w:pStyle w:val="{}"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + wr.LANG + '</w:rPr><w:t xml:space="preserve">{}</w:t></w:r></w:p>'
     # text alone: one part, no number
     opts, _, _ = b.parse_args(["--header", "ลับ & <ด่วน>", "in.md", "out.docx"])
     result, out = build(tmp_path, "ก", **opts)
@@ -665,7 +670,7 @@ def test_first_page_can_go_without_its_number(tmp_path):
         sect = doc[doc.index("<w:sectPr>"):doc.index("</w:sectPr>") + len("</w:sectPr>")]
         assert sect.startswith(f'<w:sectPr><w:{kind}Reference w:type="default" r:id="rId1"/><w:{kind}Reference w:type="first" r:id="rId2"/>')
         assert sect.endswith("<w:titlePg/></w:sectPr>")
-        assert f'Id="rId2" Type="{b.REL}{kind}" Target="{kind}2.xml"' in rels and f'PartName="/word/{kind}2.xml"' in types
+        assert f'Id="rId2" Type="{wr.REL}{kind}" Target="{kind}2.xml"' in rels and f'PartName="/word/{kind}2.xml"' in types
         assert " PAGE " in numbered and "PAGE" not in first and first.endswith(f"<w:p><w:pPr><w:pStyle w:val=\"{kind.capitalize()}\"/></w:pPr></w:p></w:{tag}>")
     # without the flag, one part and no title page — the goldens keep their bytes
     opts, _, _ = b.parse_args(["--page-numbers", "in.md", "out.docx"])
@@ -732,9 +737,9 @@ def test_the_chapter_title_can_start_its_own_line(tmp_path):
         doc = zf.read("word/document.xml").decode()
         parts = {n: zf.read(n) for n in zf.namelist()}
     assert result["ok"] and result["findings"] == [] and result["warnings"] == []
-    breaks = "<w:r><w:rPr>" + b.LANG + "</w:rPr><w:br/></w:r>"
+    breaks = "<w:r><w:rPr>" + wr.LANG + "</w:rPr><w:br/></w:r>"
     assert doc.count(breaks) == 2, "the chapter and the appendix, not the ## heading"
-    text_of = b.docx_text(parts, 0)
+    text_of = fi.docx_text(parts, 0)
     assert "\nบทนำ" in text_of and "\nแบบสอบถาม" in text_of and "ที่มา" in text_of
     assert "บทที่ 1 บทนำ" in text_of, "the list entry is still one line"
     assert result["counts"]["headings"] == 3, "a heading moved to its own line is still a heading"
@@ -758,7 +763,7 @@ def test_a_heading_over_two_lines_reads_as_one_in_the_list(tmp_path):
         parts = {n: zf.read(n) for n in zf.namelist()}
     assert result["ok"] and result["findings"] == []
     assert "<w:br/>" in doc, "the heading itself keeps the break"
-    assert "บทที่ 1 บทนำ เรื่องทั่วไป" in b.docx_text(parts, 0), "the entry is one line"
+    assert "บทที่ 1 บทนำ เรื่องทั่วไป" in fi.docx_text(parts, 0), "the entry is one line"
     assert "บทที่ 1 บทนำ\nเรื่องทั่วไป" not in doc
 
 
@@ -784,7 +789,7 @@ def test_thai_distributed_leaves_a_paragraph_without_thai_alone(tmp_path):
         for jc, said_text in said:
             if not said_text:
                 continue
-            has_thai = b.has_thai(said_text)
+            has_thai = lo.has_thai(said_text)
             assert (jc == []) is has_thai, (jc, said_text[:40])
             assert len(jc) <= 1, "a paragraph that sets its own alignment keeps it: " + said_text[:40]
         # the reference, a list item, two left table cells (the right column keeps its own) — and with Latin labels the caption, the heading and an entry for each
@@ -809,7 +814,7 @@ def test_every_generated_run_names_the_font(tmp_path):
     font = '<w:rFonts w:ascii="Sarabun" w:hAnsi="Sarabun" w:cs="Sarabun"/>'
     # the font, the size, and the complex-script flag: without <w:cs/> WPS draws Thai in the
     # level's Latin font, which is where "บทที่ ๑" came out as Latin letters
-    rpr = "<w:rPr>" + font + '<w:sz w:val="32"/><w:szCs w:val="32"/>' + b.LANG + "</w:rPr>"
+    rpr = "<w:rPr>" + font + '<w:sz w:val="32"/><w:szCs w:val="32"/>' + wr.LANG + "</w:rPr>"
     levels = numbering.count("<w:lvl ")
     assert levels == 4 * 9 and numbering.count(rpr + "</w:lvl>") == levels, "every level"
     link = styles.split('w:styleId="Hyperlink"', 1)[1].split("</w:style>", 1)[0]

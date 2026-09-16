@@ -21,6 +21,8 @@ import pytest
 from skills_ref.validator import validate
 
 from thai_docx import build as b
+from thai_docx import fidelity as fi
+from thai_docx import layout as lo
 from thai_docx import grill as gr
 from thai_docx import profiles as pf
 
@@ -153,7 +155,7 @@ def test_interview_asks_nine_questions_with_choices_in_each_language():
 def test_heading_styles_section_names_every_property_and_its_example_builds():
     """ADR 0020: the table is the parser's list, and the example is one the build takes."""
     documented = [p for row in _table(HEADING_STYLES, "Properties") for p in re.findall(r"`([a-z-]+)`", row[0])]
-    assert sorted(documented) == sorted(b.HEADING_PROPERTIES)
+    assert sorted(documented) == sorted(lo.HEADING_PROPERTIES)
     section = SKILL_MD.split("\n## Heading styles", 1)[1].split("\n## ", 1)[0]
     example = re.search(r"```markdown\n(.*?)```", section, re.S).group(1)
     outcome, data = b.build_text(example + "\n# หัวข้อ\n\n## ย่อย\n", dict(b.DEFAULTS), lambda src: None)
@@ -163,7 +165,7 @@ def test_heading_styles_section_names_every_property_and_its_example_builds():
             continue
         for name in re.findall(r"`([a-z-]+)`", next(row[0] for row in _table(HEADING_STYLES, "Properties") if f"`{value}`" in row[1])):
             front = f"---\nheading-1: {name}: {value}\n---\n\n# ก\n"
-            if name == "text-decoration" and value in b.UNDERLINE:
+            if name == "text-decoration" and value in lo.UNDERLINE:
                 front = front.replace(value, "underline " + value)
             if name == "font-family":
                 continue
@@ -180,7 +182,7 @@ def test_chapters_example_builds_as_the_section_says(tmp_path):
     assert data and outcome["findings"] == [] and outcome["warnings"] == [], outcome
     with zipfile.ZipFile(io.BytesIO(data)) as zf:
         parts = {n: zf.read(n) for n in zf.namelist()}
-    text = b.docx_text(parts, 0)
+    text = fi.docx_text(parts, 0)
     captions = [t for t in text if t.startswith(("ตารางที่", "รูปที่"))]
     assert captions == ["ตารางที่ 1-1 ผลการสำรวจ", "ตารางที่ ก-1 ผู้ตอบแบบสอบถาม",  # the list of tables holds them (ADR 0027)
                         "ตารางที่ 1-1 ผลการสำรวจ", "รูปที่ 1-1 ขั้นตอนการทำงาน", "ตารางที่ ก-1 ผู้ตอบแบบสอบถาม"]
