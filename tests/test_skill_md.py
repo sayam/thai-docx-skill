@@ -33,6 +33,10 @@ INTERVIEW = (SKILL / "references" / "interview.md").read_text(encoding="utf-8")
 HEADING_STYLES = (SKILL / "references" / "heading-styles.md").read_text(encoding="utf-8")
 CHAPTERS = (SKILL / "references" / "chapters.md").read_text(encoding="utf-8")
 PROFILES = (SKILL / "references" / "profiles.md").read_text(encoding="utf-8")
+SETTINGS = (SKILL / "references" / "settings.md").read_text(encoding="utf-8")
+MARKDOWN = (SKILL / "references" / "markdown.md").read_text(encoding="utf-8")
+CHECK = (SKILL / "references" / "check.md").read_text(encoding="utf-8")
+SANDBOX = (SKILL / "references" / "sandbox.md").read_text(encoding="utf-8")
 FIXTURES = ROOT / "tests" / "fixtures"
 sys.path.insert(0, str(ROOT / "tools"))
 import package_skill  # noqa: E402
@@ -73,59 +77,34 @@ def test_skill_md_stays_within_its_ceiling():
     body = SKILL_MD.split("---", 2)[2]
     assert len(body.splitlines()) < 500
     assert len(SKILL_MD.encode("utf-8")) <= 12_000, len(SKILL_MD.encode("utf-8"))
-    for link in re.findall(r"\]\(((?:references|scripts|assets)/[^)#]+)\)", SKILL_MD):
+    links = re.findall(r"\]\(((?:references|scripts|assets)/[^)#]+)\)", SKILL_MD)
+    for link in links:
         assert (SKILL / link).is_file(), link
+    # a reference nothing links to is a file no agent opens
+    assert sorted("references/" + p.name for p in (SKILL / "references").iterdir()) == sorted(set(links))
 
 
 # --- what it says the build does ----------------------------------------------------------
 
 
-def test_settings_table_states_the_defaults_and_flags_that_change_them():
+def test_the_defaults_skill_md_names_are_the_build_s():
+    """The one line of defaults SKILL.md keeps; every other setting is in the generated
+    references/settings.md, held by tests/test_settings.py (ADR 0028)."""
     d = b.DEFAULTS
-    margins = ", ".join(f"{m:g}" for m in d["margins"])
-    expected = {
-        "font": d["font"],
-        "size": f"{d['size']} pt",
-        "paper": d["paper"].upper(),
-        "orientation": "landscape" if d["landscape"] else "portrait",
-        "margins, inches": f"{margins} (top, right, bottom, left)",
-        "first-line indent, inches": "none" if not d["indent"] else f"{d['indent']:g}",
-        "line spacing": f"{d['line_spacing']:g}",
-        "alignment": d["align"],
-        "table of contents": "none" if not d["toc"] else "yes",
-        "heading numbers": "none" if not d["heading_numbers"] else "yes",
-        "page numbers": "none" if not d["page_numbers"] else "yes",
-        "header / footer text": "none" if d["header"] is None and d["footer"] is None else "yes",
-        "page, list and footnote numbers": "๑ ๒ ๓" if d["thai_digits"] else "1 2 3",
-        "spelling squiggles": "hidden" if d["hide_spelling_errors"] else "shown",
-        "table column widths": d["table_widths"],
-        "table text size": "as the body" if d["table_size"] is None else f"{d['table_size']} pt",
-        "caption and chapter labels": f"{d['table_label']}, {d['figure_label']}, {d['chapter_label']}",
-        "page numbers before the chapters": {"thai-letters": "ก ข ค"}[d["front_page_numbers"]],
-        "appendix numbers": d["appendix_label"] + " " + {"thai-letters": "ก"}[d["appendix_numbers"]],
-        "table header row": "repeats on every page" if d["repeat_table_header"] else "first page only",
-    }
-    key = {
-        "font": "font", "size": "size", "paper": "paper", "orientation": "landscape", "margins, inches": "margins", "first-line indent, inches": "indent", "line spacing": "line_spacing", "alignment": "align",
-        "table of contents": "toc", "heading numbers": "heading_numbers", "page numbers": "page_numbers", "spelling squiggles": "hide_spelling_errors",
-        "page, list and footnote numbers": "thai_digits", "header / footer text": "header",
-        "table header row": "repeat_table_header", "table column widths": "table_widths", "table text size": "table_size", "caption and chapter labels": "table_label",
-        "page numbers before the chapters": "front_page_numbers", "appendix numbers": "appendix_numbers",
-    }
-    rows = _table(SKILL_MD, "Settings")
-    assert {r[0]: r[1] for r in rows} == expected
-    for name, _, flag in rows:
-        example = shlex.split(re.search(r"`([^`]+)`", flag).group(1))
-        opts, _, _ = b.parse_args(example + ["in.md", "out.docx"])
-        changed = {k for k in opts if opts[k] != b.DEFAULTS[k]}
-        assert changed == {key[name]}, f"{name}: {example} changes {changed or 'nothing'}"
+    top, right, bottom, left = d["margins"]
+    assert top == right == bottom != left
+    line = (f"Defaults: {d['font']} {d['size']} pt, {d['paper'].upper()} {'landscape' if d['landscape'] else 'portrait'},"
+            f" margins {top:g} in (left {left:g} in), {'single' if d['line_spacing'] == 1 else str(d['line_spacing']) + '×'} spacing,"
+            f" {d['align']}-aligned, no table of contents or page numbers.")
+    assert not d["toc"] and not d["page_numbers"]
+    assert line in " ".join(SKILL_MD.split())
 
 
 def test_every_flag_named_is_a_flag_the_build_takes_and_every_flag_is_named():
     """Every flag is named where the agent reads it — SKILL.md or a file it sends them to —
     and nothing names a flag the commands do not have."""
     usage = _flags(b.USAGE) | _flags(pf.USAGE) | _flags(gr.USAGE)  # build, profile, grill
-    read_by_the_agent = (SKILL_MD, INTERVIEW, CHAPTERS, PROFILES, HEADING_STYLES)
+    read_by_the_agent = (SKILL_MD, INTERVIEW, CHAPTERS, PROFILES, HEADING_STYLES, SETTINGS, MARKDOWN, CHECK, SANDBOX)
     assert set().union(*(_flags(t) for t in read_by_the_agent)) == usage
     for text in read_by_the_agent:
         assert _flags(text) <= usage
@@ -156,8 +135,7 @@ def test_heading_styles_section_names_every_property_and_its_example_builds():
     """ADR 0020: the table is the parser's list, and the example is one the build takes."""
     documented = [p for row in _table(HEADING_STYLES, "Properties") for p in re.findall(r"`([a-z-]+)`", row[0])]
     assert sorted(documented) == sorted(lo.HEADING_PROPERTIES)
-    section = SKILL_MD.split("\n## Heading styles", 1)[1].split("\n## ", 1)[0]
-    example = re.search(r"```markdown\n(.*?)```", section, re.S).group(1)
+    example = re.search(r"```markdown\n(.*?)```", HEADING_STYLES, re.S).group(1)
     outcome, data = b.build_text(example + "\n# หัวข้อ\n\n## ย่อย\n", dict(b.DEFAULTS), lambda src: None)
     assert data and outcome["findings"] == [] and outcome["warnings"] == [], outcome
     for value in re.findall(r"`([^`]+)`", "".join(row[1] for row in _table(HEADING_STYLES, "Properties"))):
@@ -194,7 +172,7 @@ def test_chapters_example_builds_as_the_section_says(tmp_path):
 def test_finding_codes_table_names_every_code_the_checker_reports():
     source = (SKILL / "scripts" / "thai_docx" / "check.py").read_text(encoding="utf-8")
     emitted = set(re.findall(r'\.find\(\s*"([^"]+)"', source))
-    documented = {code for row in _table(SKILL_MD, "Check an existing .docx") for code in re.findall(r"`([^`]+)`", row[0])}
+    documented = {code for row in _table(CHECK, "Codes") for code in re.findall(r"`([^`]+)`", row[0])}
     assert documented == emitted
 
 
@@ -277,7 +255,7 @@ def test_the_no_shell_snippet_runs_in_a_bare_sandbox(unpacked):
         if os.environ.get("CI"):
             pytest.fail("Node.js is required in CI")
         pytest.skip("Node.js is not installed")
-    snippet = re.search(r"```js\n(.*?)```", SKILL_MD, re.S).group(1)
+    snippet = re.search(r"```js\n(.*?)```", SANDBOX, re.S).group(1)
     driver = """
 const vm = require("vm"), fs = require("fs");
 const [bundle, png] = process.argv.slice(1);
