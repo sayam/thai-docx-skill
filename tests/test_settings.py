@@ -48,7 +48,8 @@ def test_every_entry_is_whole_and_every_flag_once():
         assert ("read" in s) is (s["kind"] not in ("switch", "off")), s["key"]
         if "read" in s:
             assert s["read"][0] in reads and s["takes"], s["key"]
-        assert s.get("needs") in (None, *st.DEFAULTS), s["key"]
+        assert s.get("needs") in (None, *st.DEFAULTS, *st.STRUCTURES), s["key"]
+        assert s.get("clashes") in (None, *st.CLASHES), s["key"]
         assert s["flag"].startswith("--") and len(s["doc"]) == 3, s["key"]
     assert st.USAGE == b.USAGE and set(re.findall(r"--[a-z-]+", st.USAGE)) == set(flags) | {"--profile", "--allow-dir"}
 
@@ -77,7 +78,7 @@ def test_the_reference_is_generated_and_every_example_changes_its_own_setting():
     assert gen_settings_docs.main(["--check"]) == 0, "run python3 tools/gen_settings_docs.py"
     for s in st.SETTINGS:
         example = shlex.split(re.search(r"`([^`]+)`", s["doc"][2]).group(1))
-        needed = [st.BY_KEY[s["needs"]]["flag"]] if s.get("needs") else []
+        needed = [st.BY_KEY[s["needs"]]["flag"]] if s.get("needs") in st.DEFAULTS else []
         opts, _, _ = st.parse_args(needed + example + ["in.md", "out.docx"])
         changed = {k for k in opts if opts[k] != st.DEFAULTS[k]}
         assert changed == {s["key"], *([s["needs"]] if needed else [])}, s["key"]
@@ -104,3 +105,64 @@ def test_the_reference_states_each_default():
         "chapter_title_on_new_line": "beside its number" if not d["chapter_title_on_new_line"] else "under its number",
     }
     assert {s["key"]: s["doc"][1] for s in st.SETTINGS} == shows
+
+
+# what the document holds, from nothing to all of it; the edges are a region comment with no
+# heading under it, a table inside a quote, and a front comment with nothing after it
+DOCUMENTS = {
+    "plain": "ข้อความ\n",
+    "headings": "# หัวข้อ\n\n## ย่อย\n\nข้อความ\n",
+    "quoted table": "> | ก | ข |\n> |---|---|\n> | 1 | 22 |\n",
+    "table caption": "Table: ผล\n\n| ก | ข |\n|---|---|\n| 1 | 22 |\n",
+    "figure caption": "![x](p.png)\n\nFigure: ภาพ\n",
+    "chapters, no heading": "<!-- chapters -->\n\nข้อความ\n",
+    "chapters": "<!-- chapters -->\n\n# บทนำ\n\nข้อความ\n",
+    "appendices": "<!-- appendices -->\n\n# แบบสอบถาม\n\nข้อความ\n",
+    "front at the end": "ปก\n\n<!-- front -->\n",
+    "front": "ปก\n\n<!-- front -->\n\n# บทคัดย่อ\n\nข้อความ\n\n<!-- chapters -->\n\n# บทนำ\n",
+    "toc comment": "# หัว\n\n<!-- toc -->\n",
+}
+PNG = (ROOT / "tests" / "fixtures" / "pixel.png").read_bytes()
+
+
+def _built(text: str, argv: list[str]) -> dict:
+    opts, _, _ = st.parse_args(argv + ["in.md", "out.docx"])
+    result, _ = b.build_text(text, opts, lambda src: (src, PNG))
+    assert result.get("findings") == [], result
+    return result
+
+
+def test_a_flag_is_said_to_have_changed_nothing_exactly_when_it_changed_no_byte():
+    """The structure a setting needs is data (ADR 0028). For every such setting and every
+    document: without the structure, the file is the same with the flag as without it, and
+    the build says so; with it, nothing is said."""
+    branches: dict[str, set[bool]] = {}
+    for name, text in DOCUMENTS.items():
+        plain = _built(text, [])
+        assert [w for w in plain["warnings"] if w["code"] == "settings"] == [], name
+        for s in st.SETTINGS:
+            if s.get("needs") not in st.STRUCTURES:
+                continue
+            example = shlex.split(re.search(r"`([^`]+)`", s["doc"][2]).group(1))
+            given = _built(text, example)
+            said = [w["message"] for w in given["warnings"] if w["code"] == "settings"]
+            branches.setdefault(s["key"], set()).add(given["sha256"] == plain["sha256"])
+            if given["sha256"] == plain["sha256"]:
+                assert said == [s["flag"] + " changed nothing: " + st.STRUCTURES[s["needs"]][1]], (name, s["flag"])
+            else:
+                assert said == [], (name, s["flag"], said)
+    assert all(seen == {True, False} for seen in branches.values()), "every setting both warned about and not"
+
+
+def test_flags_that_need_the_same_structure_share_one_warning_and_a_duplicate_is_named():
+    all_of_them = ["--chapter-label", "บท", "--appendix-label", "Appendix", "--appendix-numbers", "decimal", "--no-repeat-table-header"]
+    said = [w["message"] for w in _built(DOCUMENTS["plain"], all_of_them)["warnings"]]
+    assert said == [
+        "--no-repeat-table-header changed nothing: the document has no table",
+        "--chapter-label changed nothing: the document has no <!-- chapters --> or <!-- appendices --> comment",
+        "--appendix-label and --appendix-numbers changed nothing: the document has no <!-- appendices --> comment",
+    ]
+    twice = _built(DOCUMENTS["toc comment"], ["--toc"])
+    assert [w["message"] for w in twice["warnings"]] == [
+        "--toc: the document places a table of contents with <!-- toc --> as well, so it now has two"]
+    assert _built(DOCUMENTS["headings"], ["--toc"])["warnings"] == []

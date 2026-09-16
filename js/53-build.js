@@ -21,12 +21,6 @@ function buildText(text, opts, readImage) {
   const data = packZip(parts);
   const report = checkBytes(data, "<bytes>");
   const findings = report.findings.slice();
-  // a flag that changed nothing is said out loud, never dropped in silence
-  const settingsWarnings = [];
-  if (opts.chapter_title_on_new_line && !writer.items.some((item) => item.number !== undefined)) {
-    settingsWarnings.push("--chapter-title-on-new-line changed nothing: the document has no" +
-      " <!-- chapters --> or <!-- appendices --> comment, so no heading carries a number");
-  }
   if (!findings.length) {
     const expected = expectedText(doc, opts);
     const actual = docxText(new Map(parts), doc.footnoteOrder.length);
@@ -43,10 +37,21 @@ function buildText(text, opts, readImage) {
         message: "paragraph " + (idx + 1) + " does not match the Markdown (" + expected.length + " paragraphs expected, " + actual.length + " written)" });
     }
   }
+  const items = writer.items;
+  const present = new Set([
+    ["tables", writer.counts.tables > 0],
+    ["table captions", items.some((item) => item.caption && item.caption.kind === "table")],
+    ["figure captions", items.some((item) => item.caption && item.caption.kind === "figure")],
+    ["chapters or appendices", writer.hasChapters],
+    ["numbered headings", items.some((item) => item.number !== undefined)],
+    ["appendices", writer.regions.includes("appendices")],
+    ["front", writer.regions.includes("front")],
+    ["toc comment", items.some((item) => item.block.t === "directive" && item.block.name === "toc")],
+  ].filter(([, there]) => there).map(([name]) => name));
   const outcome = {
     counts: { ...writer.counts, runs: report.counts.runs || 0 },
     warnings: byLine([...writer.styleWarnings, ...writer.layoutWarnings, ...doc.warnings]).map((m) => ({ code: "markdown", message: m }))
-      .concat(settingsWarnings.map((m) => ({ code: "settings", message: m }))).concat(report.warnings),
+      .concat(settingsWarnings(opts, present).map((m) => ({ code: "settings", message: m }))).concat(report.warnings),
     findings,
     sha256: sha256Hex(data),
     bytes: data.length,

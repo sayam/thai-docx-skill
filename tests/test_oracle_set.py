@@ -25,6 +25,13 @@ def test_every_variant_for_every_application_is_its_golden(tmp_path):
         assert f"## {variant}" in checklist and hashlib.sha256(golden_bytes).hexdigest() in checklist
     for r in results:
         assert r["ok"] and r["findings"] == []
-        # only the sample's literal LaTeX warns; the thesis builds clean
-        assert all("LaTeX" in w["message"] for w in r["warnings"]) and (r["variant"] == "sample-basic" or r["warnings"] == [])
+        # the sample's literal LaTeX warns; sample-layout's --toc beside the thesis's own
+        # <!-- toc --> writes a second table of contents, and says so (ADR 0028)
+        said = [w["message"] for w in r["warnings"]]
+        if r["variant"] == "sample-basic":
+            assert said and all("LaTeX" in m for m in said)
+        elif r["variant"] == "sample-layout":
+            assert said == ["--toc: the document places a table of contents with <!-- toc --> as well, so it now has two"]
+        else:
+            assert said == []
     assert all(a in checklist for a in oracle_set.APPLICATIONS)

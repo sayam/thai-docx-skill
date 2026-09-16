@@ -32,7 +32,7 @@ from . import package
 from .fidelity import docx_text, expected_text
 from .parts import Package
 from .settings import (  # noqa: F401  the names callers know the build's settings by
-    DEFAULTS, PAPER, USAGE, BuildError, parse_args, settings_json,
+    DEFAULTS, PAPER, USAGE, BuildError, parse_args, settings_json, settings_warnings,
 )
 
 _OS_ERRORS = {
@@ -81,15 +81,21 @@ def build_text(text: str, opts: dict, read_image) -> tuple[dict, bytes | None]:
             findings.append({"code": "fidelity", "part": "word/document.xml",
                              "message": "paragraph " + str(idx + 1) + " does not match the Markdown (" + str(len(expected))
                              + " paragraphs expected, " + str(len(actual)) + " written)"})
-    # a flag that changed nothing is said out loud, never dropped in silence
-    settings_warnings = []
-    if opts["chapter_title_on_new_line"] and not any("number" in item for item in writer.items):
-        settings_warnings.append("--chapter-title-on-new-line changed nothing: the document has no"
-                                 " <!-- chapters --> or <!-- appendices --> comment, so no heading carries a number")
+    items = writer.items
+    present = {name for name, there in (
+        ("tables", writer.counts["tables"] > 0),
+        ("table captions", any(item.get("caption", {}).get("kind") == "table" for item in items)),
+        ("figure captions", any(item.get("caption", {}).get("kind") == "figure" for item in items)),
+        ("chapters or appendices", writer.has_chapters),
+        ("numbered headings", any("number" in item for item in items)),
+        ("appendices", "appendices" in writer.regions),
+        ("front", "front" in writer.regions),
+        ("toc comment", any(item["block"]["t"] == "directive" and item["block"]["name"] == "toc" for item in items)),
+    ) if there}
     result.update(
         counts={**writer.counts, "runs": report.counts.get("runs", 0)},
         warnings=[{"code": "markdown", "message": m} for m in by_line(writer.style_warnings + writer.layout_warnings + doc.warnings)]
-        + [{"code": "settings", "message": m} for m in settings_warnings] + report.warnings,
+        + [{"code": "settings", "message": m} for m in settings_warnings(opts, present)] + report.warnings,
         findings=findings,
         sha256=hashlib.sha256(data).hexdigest(),
         bytes=len(data),

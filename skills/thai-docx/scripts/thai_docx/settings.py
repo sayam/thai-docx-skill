@@ -26,6 +26,24 @@ APPENDIX_NUMBERS = {"thai-letters": "thaiLetters", "upper-letters": "upperLetter
 MIN_TEXT_TWIPS = 1440
 # layers (ADR 0028): 1 page and type, 2 page furniture, 3 tables, 4 headings, 5 thesis structure
 LAYERS = {1: "page and type", 2: "page furniture", 3: "tables", 4: "headings", 5: "thesis structure"}
+# what a document may hold that a setting needs (ADR 0028): the name a registry entry says in
+# `needs` or `clashes` → (the thing, as the settings reference names it; why the flag did nothing)
+STRUCTURES = {
+    "tables": ("a table", "the document has no table"),
+    "table captions": ("a `Table:` caption", "the document has no 'Table:' caption"),
+    "figure captions": ("a `Figure:` caption", "the document has no 'Figure:' caption"),
+    "chapters or appendices": ("a `<!-- chapters -->` or `<!-- appendices -->` comment",
+                               "the document has no <!-- chapters --> or <!-- appendices --> comment"),
+    "numbered headings": ("a `#` heading under `<!-- chapters -->` or `<!-- appendices -->`",
+                          "no heading carries a chapter or appendix number; a # heading under <!-- chapters --> or <!-- appendices --> does"),
+    "appendices": ("an `<!-- appendices -->` comment", "the document has no <!-- appendices --> comment"),
+    "front": ("a `<!-- front -->` comment", "the document has no <!-- front --> comment"),
+}
+# (what the document places, as the reference names it; what the flag then does; the warning)
+CLASHES = {
+    "toc comment": ("a `<!-- toc -->` comment", "makes a second table of contents",
+                    "the document places a table of contents with <!-- toc --> as well, so it now has two"),
+}
 
 # read: ("text", most characters, characters refused besides the forbidden ones)
 #       ("points", least, most) — a whole number stays an integer
@@ -33,6 +51,9 @@ LAYERS = {1: "page and type", 2: "page furniture", 3: "tables", 4: "headings", 5
 #       ("numbers", how many) — floats, comma-separated
 #       ("choice", values) and ("position", values) — the second may be left out
 # report: (the name in the build's "settings", "value" | "float" | "sides")
+# needs: a setting that must be on too (refused without it), or a structure in STRUCTURES (the
+#        build warns that the flag changed nothing when the document lacks it)
+# clashes: a structure in CLASHES the setting duplicates (the build warns)
 # doc: (the setting, its default, the flag with an example) — the row of references/settings.md
 SETTINGS: tuple[dict, ...] = (
     {"key": "font", "flag": "--font", "kind": "value", "default": "TH Sarabun New", "layer": 1,
@@ -67,6 +88,7 @@ SETTINGS: tuple[dict, ...] = (
      "report": ("align", "value"),
      "doc": ("alignment", "left", "`--align thai` (Thai distributed; a paragraph with no Thai stays left)")},
     {"key": "toc", "flag": "--toc", "kind": "switch", "default": False, "layer": 4,
+     "clashes": "toc comment",
      "report": ("toc", "value"),
      "doc": ("table of contents", "none", "`--toc` (at the top of the document)")},
     {"key": "heading_numbers", "flag": "--heading-numbers", "kind": "switch", "default": False, "layer": 4,  # 1. / 1.1 / 1.1.1, numbered by Word
@@ -95,10 +117,12 @@ SETTINGS: tuple[dict, ...] = (
      "report": ("hide_spelling_errors", "value"),
      "doc": ("spelling squiggles", "shown", "`--hide-spelling-errors`")},
     {"key": "repeat_table_header", "flag": "--no-repeat-table-header", "kind": "off", "default": True, "layer": 3,
+     "needs": "tables",
      "report": ("repeat_table_header", "value"),
      "doc": ("table header row", "repeats on every page", "`--no-repeat-table-header`")},
     {"key": "table_widths", "flag": "--table-widths", "kind": "value", "default": "equal", "layer": 3,  # or by the longest text
      "read": ("choice", ("equal", "auto")), "takes": "equal or auto",
+     "needs": "tables",
      "report": ("table_widths", "value"),
      "doc": ("table column widths", "equal", "`--table-widths auto` (wider for longer text)")},
     {"key": "table_size", "flag": "--table-size", "kind": "option", "default": None, "layer": 3,  # None: the body size
@@ -107,29 +131,36 @@ SETTINGS: tuple[dict, ...] = (
      "doc": ("table text size", "as the body", "`--table-size 14` (1–400)")},
     {"key": "chapter_label", "flag": "--chapter-label", "kind": "value", "default": "บทที่", "layer": 5,
      "read": ("text", 40, "\t\n%"), "takes": "text of 1 to 40 characters on one line, without %", "usage": "TEXT",
+     "needs": "chapters or appendices",
      "report": ("chapter_label", "value"),
      "doc": ("chapter label", "บทที่", '`--chapter-label "บท"`')},
     {"key": "table_label", "flag": "--table-label", "kind": "value", "default": "ตารางที่", "layer": 5,
      "read": ("text", 40, "\t\n%"), "takes": "text of 1 to 40 characters on one line, without %", "usage": "TEXT",
+     "needs": "table captions",
      "report": ("table_label", "value"),
      "doc": ("table caption label", "ตารางที่", '`--table-label "ตาราง"`')},
     {"key": "figure_label", "flag": "--figure-label", "kind": "value", "default": "รูปที่", "layer": 5,
      "read": ("text", 40, "\t\n%"), "takes": "text of 1 to 40 characters on one line, without %", "usage": "TEXT",
+     "needs": "figure captions",
      "report": ("figure_label", "value"),
      "doc": ("figure caption label", "รูปที่", '`--figure-label "ภาพที่"`')},
     {"key": "front_page_numbers", "flag": "--front-page-numbers", "kind": "value", "default": "thai-letters", "layer": 5,
      "read": ("choice", tuple(FRONT_NUMBERS)), "takes": ", ".join(FRONT_NUMBERS),
+     "needs": "front",
      "report": ("front_page_numbers", "value"),
      "doc": ("page numbers before the chapters", "ก ข ค", "`--front-page-numbers lower-roman` (or `upper-roman`, `decimal`)")},
     {"key": "appendix_label", "flag": "--appendix-label", "kind": "value", "default": "ภาคผนวก", "layer": 5,
      "read": ("text", 40, "\t\n%"), "takes": "text of 1 to 40 characters on one line, without %", "usage": "TEXT",
+     "needs": "appendices",
      "report": ("appendix_label", "value"),
      "doc": ("appendix label", "ภาคผนวก", '`--appendix-label "Appendix"`')},
     {"key": "appendix_numbers", "flag": "--appendix-numbers", "kind": "value", "default": "thai-letters", "layer": 5,
      "read": ("choice", tuple(APPENDIX_NUMBERS)), "takes": ", ".join(APPENDIX_NUMBERS),
+     "needs": "appendices",
      "report": ("appendix_numbers", "value"),
      "doc": ("appendix numbers", "ก ข ค", "`--appendix-numbers upper-letters` (or `decimal`, `upper-roman`)")},
     {"key": "chapter_title_on_new_line", "flag": "--chapter-title-on-new-line", "kind": "switch", "default": False, "layer": 5,
+     "needs": "numbered headings",
      "report": ("chapter_title_on_new_line", "value"),
      "doc": ("chapter title", "beside its number", "`--chapter-title-on-new-line` (บทที่ 1 on one line, the title under it)")},
 )
@@ -233,7 +264,7 @@ def parse_args(argv: list[str]) -> tuple[dict, list[str], list[str]]:
         raise BuildError(USAGE)
     for s in SETTINGS:
         needed = s.get("needs")
-        if needed and opts[s["key"]] != s["default"] and opts[needed] == DEFAULTS[needed]:
+        if needed in DEFAULTS and opts[s["key"]] != s["default"] and opts[needed] == DEFAULTS[needed]:
             raise BuildError(s["flag"] + " needs " + BY_KEY[needed]["flag"])
     pw, ph = page_size(opts)
     top, right, bottom, left = (half_up(m * 1440) for m in opts["margins"])
@@ -255,4 +286,25 @@ def settings_json(opts: dict) -> dict:
         elif form == "sides":
             value = dict(zip(("top", "right", "bottom", "left"), (float(v) for v in value), strict=True))
         out[name] = value
+    return out
+
+
+def _and(flags: list[str]) -> str:
+    return flags[0] if len(flags) == 1 else ", ".join(flags[:-1]) + " and " + flags[-1]
+
+
+def settings_warnings(opts: dict, present: set[str]) -> list[str]:
+    """A flag that changed nothing is said out loud, never dropped in silence: one warning
+    for each structure the document lacks, naming every flag given that needed it; then
+    one for each flag that duplicates what the document already places."""
+    missing: dict[str, list[str]] = {}
+    for s in SETTINGS:
+        need = s.get("needs")
+        if need in STRUCTURES and need not in present and opts[s["key"]] != s["default"]:
+            missing.setdefault(need, []).append(s["flag"])
+    out = [_and(flags) + " changed nothing: " + STRUCTURES[need][1] for need, flags in missing.items()]
+    for s in SETTINGS:
+        clash = s.get("clashes")
+        if clash in present and opts[s["key"]] != s["default"]:
+            out.append(s["flag"] + ": " + CLASHES[clash][2])
     return out

@@ -81,6 +81,7 @@ Table: ผู้ตอบแบบสอบถาม
   still read it as one line. Without the flag the number and the title share a line.
 - **Lists:** `<!-- toc -->`, `<!-- list-of-tables -->`, `<!-- list-of-figures -->` fill in
   when Word opens the file; write the heading above each yourself. Do not add `--toc` as
-  well: it puts a second table of contents on the cover.
+  well: it puts a second table of contents on the cover, and the build warns so. A flag
+  whose region or caption the document lacks is warned about too — pass the warning on.
 - **Flags:** ก ข ค front pages, "ภาคผนวก ก" and Arabic digits are the defaults; add
   `--front-page-numbers`, `--appendix-numbers` or `--thai-digits` only when asked.

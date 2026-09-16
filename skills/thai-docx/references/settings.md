@@ -35,7 +35,7 @@ The header and footer, and how Word draws the numbers it generates.
 
 ## Tables
 
-These change only a document that has tables.
+How tables are laid out.
 
 | setting | default | flag |
 |---|---|---|
@@ -43,18 +43,22 @@ These change only a document that has tables.
 | table column widths | equal | `--table-widths auto` (wider for longer text) |
 | table text size | as the body | `--table-size 14` (1–400) |
 
+Without a table, `--no-repeat-table-header` and `--table-widths` change nothing, and the build says so.
+
 ## Headings
 
-These change only a document that has headings.
+How headings are numbered and listed.
 
 | setting | default | flag |
 |---|---|---|
 | table of contents | none | `--toc` (at the top of the document) |
 | heading numbers | none | `--heading-numbers` (1. for `#`, 1.1 for `##`, 1.1.1 …) |
 
+`--toc` beside a `<!-- toc -->` comment makes a second table of contents, and the build says so.
+
 ## Thesis structure
 
-These change only a document with region comments or `Table:` / `Figure:` captions — [chapters.md](chapters.md).
+For a report or thesis: region comments and `Table:` / `Figure:` captions — [chapters.md](chapters.md).
 
 | setting | default | flag |
 |---|---|---|
@@ -65,3 +69,15 @@ These change only a document with region comments or `Table:` / `Figure:` captio
 | appendix label | ภาคผนวก | `--appendix-label "Appendix"` |
 | appendix numbers | ก ข ค | `--appendix-numbers upper-letters` (or `decimal`, `upper-roman`) |
 | chapter title | beside its number | `--chapter-title-on-new-line` (บทที่ 1 on one line, the title under it) |
+
+Without a `<!-- chapters -->` or `<!-- appendices -->` comment, `--chapter-label` changes nothing, and the build says so.
+
+Without a `Table:` caption, `--table-label` changes nothing, and the build says so.
+
+Without a `Figure:` caption, `--figure-label` changes nothing, and the build says so.
+
+Without a `<!-- front -->` comment, `--front-page-numbers` changes nothing, and the build says so.
+
+Without an `<!-- appendices -->` comment, `--appendix-label` and `--appendix-numbers` change nothing, and the build says so.
+
+Without a `#` heading under `<!-- chapters -->` or `<!-- appendices -->`, `--chapter-title-on-new-line` changes nothing, and the build says so.

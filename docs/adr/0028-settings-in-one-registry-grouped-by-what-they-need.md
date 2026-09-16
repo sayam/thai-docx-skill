@@ -60,9 +60,17 @@ proving the behaviour.
 
 - *another setting* (`page_number_on_first` needs `page_numbers`): refused before the build,
   with the message the registry gives, as today;
-- *a structure in the document* (region comments, captions, tables, headings): the build
-  goes on, and one warning per layer names the settings given that changed nothing. `--toc`
-  beside a `<!-- toc -->` comment is warned about the same way.
+- *a structure in the document* — a table, a `Table:` or `Figure:` caption, a
+  `<!-- chapters -->` or `<!-- appendices -->` comment, a numbered heading, an
+  `<!-- appendices -->` or a `<!-- front -->` comment: the build goes on, and one warning for
+  each structure the document lacks names every setting given that needed it, "--appendix-label
+  and --appendix-numbers changed nothing: …". A setting needs a structure only when, without it,
+  the file is the same byte for byte with the flag as without — measured, and held by a test
+  over every such setting and a set of documents. `--toc`, `--heading-numbers` and
+  `--table-size` change the file even with no heading or table (a field, numbering, a style),
+  so they need nothing and are never said to have changed nothing.
+- *a duplicate*: `--toc` beside a `<!-- toc -->` comment writes a second table of contents,
+  and the build says so.
 
 Warnings keep the code `settings` that ADR 0027 introduced.
 
@@ -94,7 +102,7 @@ Left out on purpose:
 A setting described once cannot disagree with itself. The nine hand-kept copies were
 held equal only by tests that noticed after the fact; generating them turns a class of
 slips into something that cannot be written. Grouping by what a setting needs makes the
-"changed nothing" rule one rule instead of one sentence per flag, and gives the interview,
+"changed nothing" rule one rule instead of one sentence per flag, true because it is measured, and gives the interview,
 SKILL.md and the code the same order to follow. Keeping the registry as data about settings
 — rather than a plug-in system — keeps the promise of 0008: one flow, two implementations,
 the same bytes.
