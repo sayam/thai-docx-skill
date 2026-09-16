@@ -728,3 +728,32 @@ def known_divergence(text: str, ours: list[tuple], gfm: list[tuple]) -> str | No
     if re.search(r"[*_]~|~[*_]", text) and _flags_only(ours) == _flags_only(gfm):
         return "emphasis beside unpaired strikethrough tildes"
     return None
+
+
+# --- a wide corpus for comparing the two implementations with each other -------
+# No reference judges this one: it exists to find where Python and JavaScript
+# strings disagree — astral characters beside delimiters, Unicode spaces,
+# combining marks, line separators, CRLF, entities past the BMP, and characters
+# the build refuses (whose line numbers must agree too).
+
+WIDE_EXTRA = ["😀", "a😀", "😀*", "*😀", "_😀_", "𝒜", "\u00a0", "\u3000", "\u2028", "\u2029", "e\u0301", "กำ", "\u0e33",
+              "&#x1F600;", "&#128512;", "&#9;", "&#x0;", "&#xD800;", "&#x110000;", "[😀]", "[😀]: /😀", "<😀>", "\r\n", "\r",
+              "\t", "www.😀.example", "a@😀.example", "https://x.example/😀)", "$😀$", "\ufb01", "\u216b", "ก่ำ"]
+WIDE_REFUSED = ["\u200b", "\x07", "\ufeff", "&#10;", "&#x7F;", "\ufffe"]
+
+
+def generate_wide(seed: int) -> str:
+    rng = random.Random(seed)
+    saved_w, saved_p = WORDS[:], PUNCT[:]
+    WORDS[:] = saved_w + WIDE_EXTRA
+    PUNCT[:] = saved_p + WIDE_EXTRA
+    try:
+        text = _generate(rng, False)
+    finally:
+        WORDS[:], PUNCT[:] = saved_w, saved_p
+    if rng.random() < 0.08:
+        lines = text.split("\n")
+        k = rng.randrange(len(lines))
+        lines[k] += rng.choice(WIDE_REFUSED)
+        text = "\n".join(lines)
+    return ("\ufeff" if rng.random() < 0.05 else "") + text

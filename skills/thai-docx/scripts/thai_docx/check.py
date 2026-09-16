@@ -16,7 +16,7 @@ Findings, each with a `code`:
     package  not a WordprocessingML package
 
 Warnings never fail the check; today there is one: a complex-script font the
-checker does not know to carry Thai glyphs (ADR 0009).
+checker does not know to carry Thai glyphs (ADR 0026).
 
 Role: decider — exit 0 when there are no findings, 1 when there are, 2 when the
 file could not be examined at all. The output is one JSON line, and never carries
@@ -28,10 +28,9 @@ from __future__ import annotations
 import json
 import pathlib
 import re
-import zipfile
-import zlib
 from xml.etree import ElementTree as ET
 
+from . import package
 from .ooxml import (
     INVISIBLE,
     PPR_ORDER,
@@ -46,8 +45,9 @@ from .ooxml import (
 MAX_PART = 32 * 1024 * 1024
 MAX_TOTAL = 64 * 1024 * 1024
 COMPAT_URI = "http://schemas.microsoft.com/office/word"
-TEXT_PARTS = re.compile(r"^word/(document|footnotes|endnotes|header[0-9]*|footer[0-9]*)\.xml$")
+TEXT_PARTS = re.compile(r"word/(document|footnotes|endnotes|header[0-9]*|footer[0-9]*)\.xml")  # fullmatch
 DOCTYPE = re.compile(rb"<!DOCTYPE", re.IGNORECASE)
+DECLARED_ENCODING = re.compile("\ufeff?<\\?xml[^>]*?[ \\t\\r\\n]encoding[ \\t\\r\\n]*=[ \\t\\r\\n]*[\"']([^\"']*)[\"']")
 
 
 class Report:
@@ -79,46 +79,63 @@ class Report:
         }
 
 
-def _read_parts(path, report: Report) -> dict[str, bytes] | None:
-    """The package's XML parts, or None with a finding. Only stored and deflated
-    entries are read — the two methods every Word file uses and both
-    implementations support — and every read is bounded by the declared sizes."""
+def _read_parts(data: bytes, report: Report) -> dict[str, bytes] | None:
+    """The package's XML parts, or None with a finding — read by the rules of
+    ADR 0017, which js/10-zip.js follows too. Only stored and deflated entries are
+    read, and every read is bounded by the declared sizes."""
+    if len(data) > package.MAX_FILE:
+        report.find("size", "", "package file is larger than " + str(package.MAX_FILE) + " bytes; refused")
+        return None
     try:
-        zf = zipfile.ZipFile(path)
-    except (zipfile.BadZipFile, OSError, ValueError, EOFError):
+        infos = package.entries(data)
+    except package.PackageError:
         report.find("package", "", "not a zip package")
         return None
-    with zf:
-        infos = zf.infolist()
-        total = sum(i.file_size for i in infos)
-        if total > MAX_TOTAL or any(i.file_size > MAX_PART for i in infos):
-            report.find("size", "", "package would decompress to " + str(total) + " bytes; refused")
+    seen = set()
+    for info in infos:
+        if info.name in seen:
+            report.find("package", info.name, "entry name appears more than once")
             return None
-        if "word/document.xml" not in {i.filename for i in infos}:
-            report.find("package", "", "no word/document.xml; not a WordprocessingML package")
+        seen.add(info.name)
+    total = sum(i.file_size for i in infos)
+    if total > MAX_TOTAL or any(i.file_size > MAX_PART for i in infos):
+        report.find("size", "", "package would decompress to " + str(total) + " bytes; refused")
+        return None
+    if "word/document.xml" not in seen:
+        report.find("package", "", "no word/document.xml; not a WordprocessingML package")
+        return None
+    parts = {}
+    for info in infos:
+        if not info.name.endswith((".xml", ".rels")):
+            continue
+        if info.method not in (0, 8) or info.flags & 0x1:
+            report.find("package", info.name, "entry uses encryption or a compression method other than stored or deflate")
             return None
-        parts = {}
-        for info in infos:
-            if not info.filename.endswith((".xml", ".rels")):
-                continue
-            if info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED) or info.flag_bits & 0x1:
-                report.find("package", info.filename, "entry uses encryption or a compression method other than stored or deflate")
-                return None
-            try:
-                data = zf.read(info)
-            except (zipfile.BadZipFile, OSError, ValueError, EOFError, RuntimeError, NotImplementedError, zlib.error):
-                report.find("package", info.filename, "entry cannot be read (corrupt data or checksum)")
-                return None
-            if DOCTYPE.search(data):
-                report.find("doctype", info.filename, "XML part declares a DOCTYPE; refused")
-                return None
-            parts[info.filename] = data
+        try:
+            part = package.read(data, info)
+        except package.PackageError:
+            report.find("package", info.name, "entry cannot be read (corrupt data or checksum)")
+            return None
+        if DOCTYPE.search(part):
+            report.find("doctype", info.name, "XML part declares a DOCTYPE; refused")
+            return None
+        parts[info.name] = part
     return parts
 
 
 def _parse(parts: dict[str, bytes], report: Report) -> dict[str, ET.Element]:
     trees = {}
     for name, data in parts.items():
+        # UTF-8 only — what Word writes, and what both implementations read (ADR 0015)
+        try:
+            text = data.decode("utf-8")
+            declared = DECLARED_ENCODING.match(text)
+            utf8 = data[:2] not in (b"\xff\xfe", b"\xfe\xff") and (declared is None or declared.group(1).lower() in ("utf-8", "utf8"))
+        except UnicodeDecodeError:
+            utf8 = False
+        if not utf8:
+            report.find("package", name, "XML part is not UTF-8")
+            continue
         try:
             trees[name] = ET.fromstring(data)
         except ET.ParseError:
@@ -250,8 +267,17 @@ def _check_numbering(name: str, root: ET.Element, report: Report) -> None:
 
 def check(path) -> Report:
     """`path` is a file path, or a file-like object with the package's bytes."""
-    report = Report(str(path) if isinstance(path, (str, pathlib.Path)) else "<bytes>")
-    parts = _read_parts(pathlib.Path(path) if isinstance(path, (str, pathlib.Path)) else path, report)
+    if isinstance(path, (str, pathlib.Path)):
+        report = Report(str(path))
+        try:
+            with open(path, "rb") as f:
+                data = f.read(package.MAX_FILE + 1)
+        except OSError:
+            data = b""  # judged like any other file that is no zip
+    else:
+        report = Report("<bytes>")
+        data = path.read(package.MAX_FILE + 1)
+    parts = _read_parts(data, report)
     if parts is None:
         return report
     trees = _parse(parts, report)
@@ -264,7 +290,7 @@ def check(path) -> Report:
     else:
         _check_settings(settings, report)
     for name, root in trees.items():
-        if TEXT_PARTS.match(name):
+        if TEXT_PARTS.fullmatch(name):
             _check_text_part(name, root, report)
     if "word/styles.xml" in trees:
         _check_styles("word/styles.xml", trees["word/styles.xml"], report)

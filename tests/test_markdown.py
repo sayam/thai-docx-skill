@@ -1,4 +1,4 @@
-"""The Markdown dialect of ADR 0010, one construct at a time — and the line number
+"""The Markdown dialect of ADR 0022, one construct at a time — and the line number
 on everything outside it. Uses the parser directly; the build tests cover the XML.
 """
 
@@ -371,3 +371,16 @@ def test_html_comment_block_is_dropped():
 def test_plain_text_orders_everything_the_docx_must_carry():
     doc = md.parse("# h\n\np  \nq\n\n- [x] t\n\n| a |\n|---|\n| b |\n\n> z\n\n```\nc\n```")
     assert md.plain_text(doc.blocks) == ["h", "p\nq", "☑ t", "a", "b", "z", "c"]
+
+
+def test_nesting_past_the_limit_stops_with_its_line():
+    """Blocks, and inline formatting within a block, nested past MAX_DEPTH stop the build
+    at the line where the limit is crossed, instead of overflowing the stack later."""
+    ok = ">" * (md.MAX_DEPTH - 1) + " ก\n"
+    assert md.parse(ok).blocks
+    with pytest.raises(md.Unsupported, match="blocks nested more than") as e:
+        md.parse("ก\n\n" + "".join("> " * i + "- ก\n" for i in range(md.MAX_DEPTH)))
+    assert e.value.line > 2
+    with pytest.raises(md.Unsupported, match="inline formatting nested more than") as e:
+        md.parse("ก\n\nข\n\n" + "*ก " * md.MAX_DEPTH + "ข" + " ก*" * md.MAX_DEPTH + "\n")
+    assert e.value.line == 5
