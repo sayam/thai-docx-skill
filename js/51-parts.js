@@ -11,7 +11,26 @@ function endSection(xml, sect) {
 }
 
 // A Writer that also writes every other part, and the whole package in order.
+// the built-in look of Heading 1 … 6: [points above the body size, bold, italic]
+const HEADING_LOOK = [[4, true, false], [2, true, false], [0, true, false], [0, true, true], [0, true, false], [0, false, true]];
+
 class Package extends Writer {
+  // Heading n's font as the front matter names it (null: the document's), and the rest of its
+  // run properties in schema order — the built-in look, with what heading-n changes (ADR 0020).
+  // The style and the number Word draws for the heading both take them.
+  headingRun(n) {
+    const p = this.headingProps.get(n) || {};
+    const [more, bold, italic] = HEADING_LOOK[n - 1];
+    const pt = has(p, "size") ? p.size : this.opts.size + more;
+    const half = String(halfUp(pt * 2));
+    return [has(p, "font") ? p.font : null,
+      ((has(p, "bold") ? p.bold : bold) ? "<w:b/><w:bCs/>" : "") + ((has(p, "italic") ? p.italic : italic) ? "<w:i/><w:iCs/>" : "") +
+      (p.strike ? "<w:strike/>" : "") +
+      (has(p, "color") ? '<w:color w:val="' + p.color + '"/>' : "") +
+      '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' +
+      (p.underline ? '<w:u w:val="' + p.underline + '"/>' : "")];
+  }
+
   documentXml(body) {
     const [pw, ph, top, right, bottom, left] = this.page;
     const rids = []; // [kind, numbered part, plain part]
@@ -102,17 +121,11 @@ class Package extends Writer {
     const hp = (pt) => String(halfUp(pt * 2));
     const jc = this.opts.align === "thai" ? '<w:jc w:val="thaiDistribute"/>' : "";
     // The built-in look, with what the front matter's heading-n changes (ADR 0020).
-    const heading = (n, pt, bold, italic) => {
+    const heading = (n) => {
       const p = this.headingProps.get(n) || {};
-      const face = has(p, "font") ? attr(p.font) : "";
-      if (has(p, "size")) pt = p.size;
-      const rpr =
-        (face ? "<w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + " w:eastAsia=" + face + "/>" : "") +
-        ((has(p, "bold") ? p.bold : bold) ? "<w:b/><w:bCs/>" : "") + ((has(p, "italic") ? p.italic : italic) ? "<w:i/><w:iCs/>" : "") +
-        (p.strike ? "<w:strike/>" : "") +
-        (has(p, "color") ? '<w:color w:val="' + p.color + '"/>' : "") +
-        '<w:sz w:val="' + hp(pt) + '"/><w:szCs w:val="' + hp(pt) + '"/>' +
-        (p.underline ? '<w:u w:val="' + p.underline + '"/>' : "");
+      const [name, rest] = this.headingRun(n);
+      const face = name !== null ? attr(name) : "";
+      const rpr = (face ? "<w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + " w:eastAsia=" + face + "/>" : "") + rest;
       const num = this.numberedLevels().has(n) ? '<w:numPr><w:ilvl w:val="' + (n - 1) + '"/><w:numId w:val="' + this.headingNumId() + '"/></w:numPr>' : "";
       let spacing = '<w:spacing w:before="' + (has(p, "before") ? p.before : n === 1 ? 240 : 200) + '" w:after="' + (has(p, "after") ? p.after : 80) + '"';
       spacing += has(p, "line") ? ' w:line="' + p.line + '" w:lineRule="auto"/>' : "/>";
@@ -162,8 +175,7 @@ class Package extends Writer {
       '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:rPr>' +
       "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>" +
       '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + LANG + "</w:rPr></w:style>" +
-      heading(1, size + 4, true, false) + heading(2, size + 2, true, false) + heading(3, size, true, false) +
-      heading(4, size, true, true) + heading(5, size, true, false) + heading(6, size, false, true) +
+      [1, 2, 3, 4, 5, 6].map((n) => heading(n)).join("") +
       '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720"/><w:contextualSpacing/></w:pPr></w:style>' +
       '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720" w:right="720"/></w:pPr><w:rPr><w:i/><w:iCs/></w:rPr></w:style>' +
       '<w:style w:type="paragraph" w:styleId="CodeBlock"><w:name w:val="Code Block"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr><w:rPr><w:rFonts w:ascii="' +
@@ -192,6 +204,14 @@ class Package extends Writer {
     const half = String(halfUp(this.opts.size * 2));
     const levelFont = "<w:rPr><w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + "/>" +
       '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + LANG + "</w:rPr>";
+    // A heading level's number is drawn as its heading is — "บทที่ 1" at Heading 1's size, not
+    // the body's — naming the font all the same; levels past Heading 6 have none.
+    const headingFont = (l) => {
+      if (l >= HEADING_LOOK.length) return levelFont;
+      const [name, rest] = this.headingRun(l + 1);
+      const face = name !== null ? attr(name) : font;
+      return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + LANG + "</w:rPr>";
+    };
     for (let l = 0; l < 9; l++) {
       bullet += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/>' +
         '<w:pPr><w:ind w:left="' + 720 * (l + 1) + '" w:hanging="360"/></w:pPr>' + levelFont + "</w:lvl>";
@@ -210,7 +230,7 @@ class Package extends Writer {
         const text = l === 0 ? (this.hasChapters ? this.opts.chapter_label + " %1" : "%1.") : Array.from({ length: l + 1 }, (_, k) => "%" + (k + 1)).join(".");
         levels += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="' + fmt + '"/>' +
           (levelsOn.has(l + 1) ? '<w:pStyle w:val="Heading' + (l + 1) + '"/>' : "") +
-          '<w:suff w:val="space"/><w:lvlText w:val=' + attr(text) + '/><w:lvlJc w:val="left"/>' + levelFont + "</w:lvl>";
+          '<w:suff w:val="space"/><w:lvlText w:val=' + attr(text) + '/><w:lvlJc w:val="left"/>' + headingFont(l) + "</w:lvl>";
       }
       headings = '<w:abstractNum w:abstractNumId="2"><w:multiLevelType w:val="multilevel"/>' + levels + "</w:abstractNum>";
       nums += '<w:num w:numId="' + this.headingNumId() + '"><w:abstractNumId w:val="2"/></w:num>';
@@ -223,7 +243,7 @@ class Package extends Writer {
       for (let l = 0; l < 9; l++) {
         const text = l === 0 ? this.opts.appendix_label + " %1" : Array.from({ length: l + 1 }, (_, k) => "%" + (k + 1)).join(".");
         levels += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="' + (l === 0 ? first : fmt) + '"/>' +
-          '<w:suff w:val="space"/><w:lvlText w:val=' + attr(text) + '/><w:lvlJc w:val="left"/>' + levelFont + "</w:lvl>";
+          '<w:suff w:val="space"/><w:lvlText w:val=' + attr(text) + '/><w:lvlJc w:val="left"/>' + headingFont(l) + "</w:lvl>";
       }
       headings += '<w:abstractNum w:abstractNumId="3"><w:multiLevelType w:val="multilevel"/>' + levels + "</w:abstractNum>";
       nums += '<w:num w:numId="' + (this.headingNumId() + 1) + '"><w:abstractNumId w:val="3"/></w:num>';

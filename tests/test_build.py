@@ -818,10 +818,14 @@ def test_thai_distributed_leaves_a_line_ending_in_a_manual_break_unspread(tmp_pa
 def test_every_generated_run_names_the_font(tmp_path):
     """A numbering level, and the hyperlink style a rebuilt list writes its entries in, are
     drawn in the application's own default when they name no font: WPS showed "บทที่ ๑" as
-    Latin letters, and a table of contents it rebuilt changed font (ADR 0027)."""
+    Latin letters, and a table of contents it rebuilt changed font (ADR 0027). A heading's own
+    number is drawn as the heading is: Word 365 and Word for macOS showed "บทที่ ๑" at the
+    body's 16 pt beside a 20 pt chapter title while every level named the body's size
+    (2026-09-17)."""
     opts, _, _ = b.parse_args(["--font", "Sarabun", "--heading-numbers", "--thai-digits", "--toc",
                                "in.md", "out.docx"])
-    text = "<!-- chapters -->\n\n# บทนำ\n\n## ที่มา\n\n1. หนึ่ง\n\n- จุด\n\n<!-- appendices -->\n\n# แบบสอบถาม\n"
+    front = '---\nheading-1: font-family: "TH SarabunPSK"; font-size: 22pt; color: #1F4E79; text-decoration: underline\n---\n\n'
+    text = front + "<!-- chapters -->\n\n# บทนำ\n\n## ที่มา\n\n1. หนึ่ง\n\n- จุด\n\n<!-- appendices -->\n\n# แบบสอบถาม\n"
     result, out = build(tmp_path, text, **opts)
     with zipfile.ZipFile(out) as zf:
         numbering, styles = zf.read("word/numbering.xml").decode(), zf.read("word/styles.xml").decode()
@@ -829,9 +833,25 @@ def test_every_generated_run_names_the_font(tmp_path):
     font = '<w:rFonts w:ascii="Sarabun" w:hAnsi="Sarabun" w:cs="Sarabun"/>'
     # the font, the size, and the complex-script flag: without <w:cs/> WPS draws Thai in the
     # level's Latin font, which is where "บทที่ ๑" came out as Latin letters
-    rpr = "<w:rPr>" + font + '<w:sz w:val="32"/><w:szCs w:val="32"/>' + wr.LANG + "</w:rPr>"
-    levels = numbering.count("<w:lvl ")
-    assert levels == 4 * 9 and numbering.count(rpr + "</w:lvl>") == levels, "every level"
+    body = "<w:rPr>" + font + '<w:sz w:val="32"/><w:szCs w:val="32"/>' + wr.LANG + "</w:rPr>"
+    abstract = dict(re.findall(r'<w:abstractNum w:abstractNumId="(\d)">(.*?)</w:abstractNum>', numbering))
+    assert sorted(abstract) == ["0", "1", "2", "3"], "bullets, ordered lists, chapter headings, appendix headings"
+    for number in ("0", "1"):
+        assert abstract[number].count(body + "</w:lvl>") == 9, "a list's number is the body's"
+    heading1 = styles.split('w:styleId="Heading1"', 1)[1].split("</w:style>", 1)[0].split("<w:rPr>", 1)[1].split("</w:rPr>", 1)[0]
+    heading2 = styles.split('w:styleId="Heading2"', 1)[1].split("</w:style>", 1)[0].split("<w:rPr>", 1)[1].split("</w:rPr>", 1)[0]
+    for number in ("2", "3"):
+        levels = re.findall(r"<w:lvl .*?(<w:rPr>.*?</w:rPr>)</w:lvl>", abstract[number])
+        assert len(levels) == 9
+        # level 1 is Heading 1 as the front matter set it: its font, size, colour, underline
+        psk = '<w:rFonts w:ascii="TH SarabunPSK" w:hAnsi="TH SarabunPSK" w:cs="TH SarabunPSK"/>'
+        assert levels[0] == "<w:rPr>" + psk + '<w:b/><w:bCs/><w:color w:val="1F4E79"/><w:sz w:val="44"/><w:szCs w:val="44"/><w:u w:val="single"/>' + wr.LANG + "</w:rPr>"
+        assert heading1 == psk.replace("/>", ' w:eastAsia="TH SarabunPSK"/>') + levels[0][len("<w:rPr>") + len(psk):-len(wr.LANG + "</w:rPr>")]
+        # level 2 is the built-in Heading 2 in the document's font: 18 pt, bold
+        assert levels[1] == "<w:rPr>" + font + '<w:b/><w:bCs/><w:sz w:val="36"/><w:szCs w:val="36"/>' + wr.LANG + "</w:rPr>"
+        assert heading2 == levels[1][len("<w:rPr>") + len(font):-len(wr.LANG + "</w:rPr>")]
+        assert '<w:i/><w:iCs/><w:sz w:val="32"/>' in levels[3] and "<w:b/>" not in levels[5], "Heading 4 italic, Heading 6 not bold"
+        assert levels[6:] == [body] * 3, "levels past Heading 6 take the body's"
     link = styles.split('w:styleId="Hyperlink"', 1)[1].split("</w:style>", 1)[0]
     assert font in link, "the entries a rebuilt list writes are hyperlink runs"
     normal = styles.split('w:styleId="Normal"', 1)[1].split("</w:style>", 1)[0]
