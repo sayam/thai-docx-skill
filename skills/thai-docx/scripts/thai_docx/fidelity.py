@@ -1,0 +1,75 @@
+"""The fidelity reference (ADR 0023): the text every paragraph of the package must hold,
+built from the Markdown, and the text the package does hold, read back from its XML.
+"""
+
+from __future__ import annotations
+
+import unicodedata
+from xml.etree import ElementTree as ET
+
+from . import markdown as md
+from .layout import LIST_FIELDS, caption_text, layout, list_entries
+from .ooxml import w
+from .settings import DEFAULTS
+
+
+def docx_text(parts: dict[str, bytes], footnote_count: int) -> list[str]:
+    """Every paragraph's text from the package, in the order plain_text() gives it.
+    A tab is text, except the one that separates a footnote's mark from its body."""
+    out = []
+
+    def paragraphs(root):
+        for p in root.iter(w("p")):
+            pieces, seen, after_mark = [], False, False
+            for el in p.iter():
+                tag = el.tag
+                if tag == w("footnoteRef"):
+                    after_mark = True
+                    seen = True
+                elif tag == w("t"):
+                    pieces.append(el.text or "")
+                    seen = True
+                    after_mark = False
+                elif tag == w("tab"):
+                    if not after_mark:
+                        pieces.append("\t")
+                    after_mark = False
+                    seen = True
+                elif tag == w("br"):
+                    pieces.append("\n")
+                    seen = True
+                elif tag == w("drawing"):
+                    seen = True
+            if seen:
+                out.append("".join(pieces))
+
+    paragraphs(ET.fromstring(parts["word/document.xml"]))
+    if footnote_count:
+        root = ET.fromstring(parts["word/footnotes.xml"])
+        for note in root.iter(w("footnote")):
+            if note.get(w("type")) is None:
+                paragraphs(note)
+    return out
+
+
+def expected_text(doc: md.Document, opts: dict | None = None) -> list[str]:
+    opts = opts or DEFAULTS
+    out = []
+    items = layout(doc, opts)[0]
+    if opts["toc"]:
+        out.extend(text for _, text in list_entries(items, "toc"))  # the entries the field carries
+    for item in items:
+        if "caption" in item:
+            out.append(caption_text(item["caption"]))
+        elif item["block"]["t"] == "directive" and item["block"]["name"] in LIST_FIELDS:
+            out.extend(text for _, text in list_entries(items, item["block"]["name"]))
+        elif opts["chapter_title_on_new_line"] and "number" in item and item["block"]["t"] == "heading":
+            out.extend("\n" + line for line in md.plain_text([item["block"]]))
+        else:
+            out.extend(md.plain_text([item["block"]]))
+    for label in doc.footnote_order:
+        blocks = doc.footnotes[label]
+        if not blocks or blocks[0]["t"] != "paragraph":
+            out.append("")
+        out.extend(md.plain_text(blocks))
+    return [unicodedata.normalize("NFC", s) for s in out]

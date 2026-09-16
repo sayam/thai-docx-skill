@@ -3277,64 +3277,9 @@ function settingsJson(opts) {
   return out;
 }
 
-// ---- 50-build.js -----------------------------------------------------------
-// thai-docx — build: the JavaScript port of scripts/thai_docx/build.py. The same
-// Markdown, images and settings give the same bytes (ADR 0008).
-
-const CODE_FONT = "Consolas";
-const SYMBOL_FONT = "Segoe UI Symbol";
-const NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-const REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
-const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
-const EMU_PER_PX = 9525;
-const EMU_PER_TWIP = 635;
-let LANG = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>';
-// Thai marks above and below a consonant take no width of their own when a column is measured
-const THAI_MARKS = new Set([0x0e31, 0x0e34, 0x0e35, 0x0e36, 0x0e37, 0x0e38, 0x0e39, 0x0e3a, 0x0e47, 0x0e48, 0x0e49, 0x0e4a, 0x0e4b, 0x0e4c, 0x0e4d, 0x0e4e]);
-// Word's own table default; with no table style it would otherwise be 0 and text touches the borders
-const CELL_MARGINS = '<w:tblCellMar><w:left w:w="108" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar>';
-
-function esc(s) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function attr(s) {
-  return '"' + esc(s).replace(/"/g, "&quot;").replace(/\t/g, "&#9;").replace(/\n/g, "&#10;").replace(/\r/g, "&#13;") + '"';
-}
-
-function imageSize(data) {
-  const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-  if (data.length >= 24 && sig.every((v, i) => data[i] === v) && data[12] === 0x49 && data[13] === 0x48 && data[14] === 0x44 && data[15] === 0x52) {
-    const wpx = rd32be(data, 16);
-    const hpx = rd32be(data, 20);
-    if (wpx && hpx) return ["png", wpx, hpx];
-    throw new BuildError("image has no width or height");
-  }
-  if (data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) {
-    let i = 2;
-    while (i + 9 <= data.length) {
-      if (data[i] !== 0xff) {
-        i += 1;
-        continue;
-      }
-      const marker = data[i + 1];
-      if (marker === 0xd8 || marker === 0x01 || marker === 0xff || (marker >= 0xd0 && marker <= 0xd7)) {
-        i += marker === 0xff ? 1 : 2;
-        continue;
-      }
-      const length = (data[i + 2] << 8) | data[i + 3];
-      if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
-        const hpx = (data[i + 5] << 8) | data[i + 6];
-        const wpx = (data[i + 7] << 8) | data[i + 8];
-        if (wpx && hpx) return ["jpeg", wpx, hpx];
-        throw new BuildError("image has no width or height");
-      }
-      if (length < 2) break;
-      i += 2 + length;
-    }
-  }
-  throw new BuildError("image is not a PNG or JPEG file (by its bytes, not its name)");
-}
+// ---- 48-layout.js ----------------------------------------------------------
+// thai-docx — layout: the port of scripts/thai_docx/layout.py. What the parsed document declares,
+// before a byte is written: heading styles (ADR 0020), regions, captions and lists (ADR 0021, 0027).
 
 // --- heading styles from front matter (ADR 0020) ---
 
@@ -3634,15 +3579,6 @@ function layout(doc, opts) {
   return [items, regions, warnings];
 }
 
-// Close a section in the properties of its last top-level paragraph — a table's is the
-// empty paragraph after it — so no empty paragraph can spill onto a page of its own.
-function endSection(xml, sect) {
-  const at = xml.lastIndexOf("<w:p>");
-  if (xml.startsWith("<w:p><w:pPr/>", at)) return xml.slice(0, at) + "<w:p><w:pPr>" + sect + "</w:pPr>" + xml.slice(at + "<w:p><w:pPr/>".length);
-  const end = xml.indexOf("</w:pPr>", at);
-  return xml.slice(0, end) + sect + xml.slice(end);
-}
-
 const LIST_KINDS = { "list-of-tables": "table", "list-of-figures": "figure" };
 
 // An entry is one line: a heading broken over two lines reads as one in the list.
@@ -3673,6 +3609,66 @@ function listEntries(items, name) {
 function captionText(c) {
   const number = (c.chapter ? c.chapter + "-" : "") + c.seq;
   return c.label + " " + number + (c.inlines.length ? " " + inlineText(c.inlines) : "");
+}
+
+// ---- 50-writer.js ----------------------------------------------------------
+// thai-docx — writer: the port of scripts/thai_docx/writer.py. The body of word/document.xml;
+// Package in 51-parts.js adds the other parts. The same Markdown, images and settings give
+// the same bytes (ADR 0008).
+
+const CODE_FONT = "Consolas";
+const SYMBOL_FONT = "Segoe UI Symbol";
+const NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+const REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
+const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+const EMU_PER_PX = 9525;
+const EMU_PER_TWIP = 635;
+let LANG = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>';
+// Thai marks above and below a consonant take no width of their own when a column is measured
+const THAI_MARKS = new Set([0x0e31, 0x0e34, 0x0e35, 0x0e36, 0x0e37, 0x0e38, 0x0e39, 0x0e3a, 0x0e47, 0x0e48, 0x0e49, 0x0e4a, 0x0e4b, 0x0e4c, 0x0e4d, 0x0e4e]);
+// Word's own table default; with no table style it would otherwise be 0 and text touches the borders
+const CELL_MARGINS = '<w:tblCellMar><w:left w:w="108" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar>';
+
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function attr(s) {
+  return '"' + esc(s).replace(/"/g, "&quot;").replace(/\t/g, "&#9;").replace(/\n/g, "&#10;").replace(/\r/g, "&#13;") + '"';
+}
+
+function imageSize(data) {
+  const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  if (data.length >= 24 && sig.every((v, i) => data[i] === v) && data[12] === 0x49 && data[13] === 0x48 && data[14] === 0x44 && data[15] === 0x52) {
+    const wpx = rd32be(data, 16);
+    const hpx = rd32be(data, 20);
+    if (wpx && hpx) return ["png", wpx, hpx];
+    throw new BuildError("image has no width or height");
+  }
+  if (data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) {
+    let i = 2;
+    while (i + 9 <= data.length) {
+      if (data[i] !== 0xff) {
+        i += 1;
+        continue;
+      }
+      const marker = data[i + 1];
+      if (marker === 0xd8 || marker === 0x01 || marker === 0xff || (marker >= 0xd0 && marker <= 0xd7)) {
+        i += marker === 0xff ? 1 : 2;
+        continue;
+      }
+      const length = (data[i + 2] << 8) | data[i + 3];
+      if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
+        const hpx = (data[i + 5] << 8) | data[i + 6];
+        const wpx = (data[i + 7] << 8) | data[i + 8];
+        if (wpx && hpx) return ["jpeg", wpx, hpx];
+        throw new BuildError("image has no width or height");
+      }
+      if (length < 2) break;
+      i += 2 + length;
+    }
+  }
+  throw new BuildError("image is not a PNG or JPEG file (by its bytes, not its name)");
 }
 
 function rd32be(b, o) {
@@ -4014,7 +4010,23 @@ class Writer {
     });
     return out.join("");
   }
+}
 
+// ---- 51-parts.js -----------------------------------------------------------
+// thai-docx — parts: the port of scripts/thai_docx/parts.py. The package around the body: sections,
+// styles, numbering, settings, footnotes, headers and footers, and the package in order.
+
+// Close a section in the properties of its last top-level paragraph — a table's is the
+// empty paragraph after it — so no empty paragraph can spill onto a page of its own.
+function endSection(xml, sect) {
+  const at = xml.lastIndexOf("<w:p>");
+  if (xml.startsWith("<w:p><w:pPr/>", at)) return xml.slice(0, at) + "<w:p><w:pPr>" + sect + "</w:pPr>" + xml.slice(at + "<w:p><w:pPr/>".length);
+  const end = xml.indexOf("</w:pPr>", at);
+  return xml.slice(0, end) + sect + xml.slice(end);
+}
+
+// A Writer that also writes every other part, and the whole package in order.
+class Package extends Writer {
   documentXml(body) {
     const [pw, ph, top, right, bottom, left] = this.page;
     const rids = []; // [kind, numbered part, plain part]
@@ -4366,6 +4378,10 @@ class Writer {
   }
 }
 
+// ---- 52-fidelity.js --------------------------------------------------------
+// thai-docx — fidelity: the port of scripts/thai_docx/fidelity.py. The text the package must hold,
+// from the Markdown, and the text it does hold, read back from its XML (ADR 0023).
+
 function docxText(parts, footnoteCount) {
   const out = [];
   const paragraphs = (root) => {
@@ -4404,11 +4420,6 @@ function docxText(parts, footnoteCount) {
   return out;
 }
 
-// `line N: …` messages in line order; messages on one line keep theirs.
-function byLine(messages) {
-  return messages.map((m, k) => [parseInt(m.split(":")[0].split(" ")[1], 10), k, m]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map((x) => x[2]);
-}
-
 function expectedText(doc, opts) {
   const out = [];
   opts = opts || DEFAULTS;
@@ -4430,13 +4441,21 @@ function expectedText(doc, opts) {
   return out.map((s) => s.normalize("NFC"));
 }
 
+// ---- 53-build.js -----------------------------------------------------------
+// thai-docx — build: the port of scripts/thai_docx/build.py — the flow, and nothing else (ADR 0028).
+
+// `line N: …` messages in line order; messages on one line keep theirs.
+function byLine(messages) {
+  return messages.map((m, k) => [parseInt(m.split(":")[0].split(" ")[1], 10), k, m]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map((x) => x[2]);
+}
+
 // The build from Markdown text to package bytes: [outcome, bytes-or-null].
 // `readImage(src)` returns [resolvedPath, Uint8Array] or throws BuildError.
 function buildText(text, opts, readImage) {
   let doc, writer, parts;
   try {
     doc = parseMarkdown(text);
-    writer = new Writer(doc, opts, readImage);
+    writer = new Package(doc, opts, readImage);
     parts = writer.pkg();
   } catch (e) {
     if (e instanceof Unsupported) return [{ error: e.what, line: e.line }, null];

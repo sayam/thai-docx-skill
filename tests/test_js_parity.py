@@ -316,13 +316,13 @@ def test_a_writer_defect_is_refused_the_same_way(tmp_path):
     refuses the package. No input reaches it, so the same defect is planted in both."""
     python_lang = "LANG = '<w:cs/><w:lang w:val=\"en-US\" w:bidi=\"th-TH\"/>'"
     js_lang = "let LANG = '<w:cs/><w:lang w:val=\"en-US\" w:bidi=\"th-TH\"/>';"
-    assert python_lang in (ROOT / "skills/thai-docx/scripts/thai_docx/build.py").read_text(encoding="utf-8")
+    assert python_lang in (ROOT / "skills/thai-docx/scripts/thai_docx/writer.py").read_text(encoding="utf-8")
     source = BUNDLE.read_text(encoding="utf-8")
     assert source.count(js_lang) == 1
     broken = tmp_path / "broken.cjs"
     broken.write_text(source.replace(js_lang, "let LANG = '<w:cs/>';"), encoding="utf-8")
     (tmp_path / "in.md").write_text("ก\n", encoding="utf-8")
-    planted = "import sys; sys.path.insert(0, sys.argv[1]); from thai_docx import build, __main__; build.LANG = '<w:cs/>'; sys.exit(__main__.main(sys.argv[2:]))"
+    planted = "import sys; sys.path.insert(0, sys.argv[1]); from thai_docx import writer, parts, __main__; writer.LANG = parts.LANG = '<w:cs/>'; sys.exit(__main__.main(sys.argv[2:]))"
     args = ["build", "in.md", "out.docx"]
     py = _run([sys.executable, "-c", planted, str(ROOT / "skills/thai-docx/scripts")], args, tmp_path)
     js = _run(["node", str(broken)], args, tmp_path)
