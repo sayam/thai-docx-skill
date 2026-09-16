@@ -95,6 +95,12 @@ gates:
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_profiles.py]}
     proved_by: docs/evidence/2026-09-16-profiles-are-data.md
+  - id: settings-in-one-registry
+    title: Every setting is one registry entry, the same in both implementations, and the parser, the defaults, the reported settings, the flags a profile holds and the settings reference are derived from it — each example there changing its own setting (ADR 0028)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_settings.py]}
+    proved_by: docs/evidence/2026-09-16-settings-registry.md
   - id: skill-md-tells-the-truth
     title: SKILL.md passes the Agent Skills validator from the downloaded archive, stays under its ceiling, and every default, flag, finding code, command and sandbox snippet it gives is the one the skill has, run as written (ADR 0007, 0014, 0026)
     kind: test

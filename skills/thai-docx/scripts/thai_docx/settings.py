@@ -1,0 +1,258 @@
+"""The settings of a build, in one registry (ADR 0028).
+
+Every setting is one entry: its flag, its kind, its default, the layer it belongs to, how
+a value is read and what the refusal says, what it needs, and the name the build reports
+it under. The defaults, the usage line, the parser, the reported settings and the flags a
+profile may hold are all derived from the entries; `js/45-settings.js` holds the same
+entries, and a test holds the two equal.
+
+Kinds: `value` takes a value; `option` takes one or is left out (None, or False for the
+page numbers); `list` takes numbers separated by commas; `switch` turns a setting on;
+`off` turns a setting that is on by default off.
+"""
+
+from __future__ import annotations
+
+import math
+import re
+
+from . import markdown as md
+
+PAPER = {"a4": (11906, 16838), "letter": (12240, 15840), "f14": (12240, 18720)}  # f14: 8.5 x 13 in, folio
+PAGE_NUMBERS = ("top-right", "top-center", "bottom-center")  # the first is --page-numbers with no position
+# page numbers before the chapters, and appendix numbers: flag value → Word's number format
+FRONT_NUMBERS = {"thai-letters": "thaiLetters", "lower-roman": "lowerRoman", "upper-roman": "upperRoman", "decimal": "decimal"}
+APPENDIX_NUMBERS = {"thai-letters": "thaiLetters", "upper-letters": "upperLetter", "decimal": "decimal", "upper-roman": "upperRoman"}
+MIN_TEXT_TWIPS = 1440
+# layers (ADR 0028): 1 page and type, 2 page furniture, 3 tables, 4 headings, 5 thesis structure
+LAYERS = {1: "page and type", 2: "page furniture", 3: "tables", 4: "headings", 5: "thesis structure"}
+
+# read: ("text", most characters, characters refused besides the forbidden ones)
+#       ("points", least, most) — a whole number stays an integer
+#       ("number", least or None, most or None) — always a float
+#       ("numbers", how many) — floats, comma-separated
+#       ("choice", values) and ("position", values) — the second may be left out
+# report: (the name in the build's "settings", "value" | "float" | "sides")
+# doc: (the setting, its default, the flag with an example) — the row of references/settings.md
+SETTINGS: tuple[dict, ...] = (
+    {"key": "font", "flag": "--font", "kind": "value", "default": "TH Sarabun New", "layer": 1,
+     "read": ("text", 64, ""), "takes": "a font name of 1 to 64 characters", "usage": "NAME",
+     "report": ("font", "value"),
+     "doc": ("font", "TH Sarabun New", '`--font "Sarabun"`')},
+    {"key": "size", "flag": "--size", "kind": "value", "default": 16, "layer": 1,
+     "read": ("points", 1, 400), "takes": "a number of points from 1 to 400", "usage": "PT",
+     "report": ("size_pt", "value"),
+     "doc": ("size", "16 pt", "`--size 14` (1–400)")},
+    {"key": "paper", "flag": "--paper", "kind": "value", "default": "a4", "layer": 1,
+     "read": ("choice", tuple(PAPER)), "takes": "a4, letter or f14",
+     "report": ("paper", "value"),
+     "doc": ("paper", "A4", "`--paper letter` or `--paper f14` (8.5 × 13 in)")},
+    {"key": "landscape", "flag": "--landscape", "kind": "switch", "default": False, "layer": 1,
+     "report": ("landscape", "value"),
+     "doc": ("orientation", "portrait", "`--landscape` (margins stay top, right, bottom, left)")},
+    {"key": "margins", "flag": "--margins", "kind": "list", "default": (1.0, 1.0, 1.0, 1.5), "layer": 1,  # top, right, bottom, left — inches
+     "read": ("numbers", 4), "takes": "four non-negative numbers: top,right,bottom,left", "usage": "T,R,B,L",
+     "report": ("margins_in", "sides"),
+     "doc": ("margins, inches", "1, 1, 1, 1.5 (top, right, bottom, left)", "`--margins 1,1,1,1`")},
+    {"key": "indent", "flag": "--indent", "kind": "value", "default": 0.0, "layer": 1,  # first line of body paragraphs — inches
+     "read": ("number", None, None), "takes": "a non-negative number of inches", "usage": "IN",
+     "report": ("first_line_indent_in", "float"),
+     "doc": ("first-line indent, inches", "none", "`--indent 0.5` (body paragraphs only)")},
+    {"key": "line_spacing", "flag": "--line-spacing", "kind": "value", "default": 1.0, "layer": 1,  # code and footnotes stay single
+     "read": ("number", 1, 3), "takes": "a multiple of single spacing from 1 to 3", "usage": "N",
+     "report": ("line_spacing", "float"),
+     "doc": ("line spacing", "1", "`--line-spacing 1.5` (1–3; code and footnotes stay single)")},
+    {"key": "align", "flag": "--align", "kind": "value", "default": "left", "layer": 1,
+     "read": ("choice", ("left", "thai")), "takes": "left or thai",
+     "report": ("align", "value"),
+     "doc": ("alignment", "left", "`--align thai` (Thai distributed; a paragraph with no Thai stays left)")},
+    {"key": "toc", "flag": "--toc", "kind": "switch", "default": False, "layer": 4,
+     "report": ("toc", "value"),
+     "doc": ("table of contents", "none", "`--toc` (at the top of the document)")},
+    {"key": "heading_numbers", "flag": "--heading-numbers", "kind": "switch", "default": False, "layer": 4,  # 1. / 1.1 / 1.1.1, numbered by Word
+     "report": ("heading_numbers", "value"),
+     "doc": ("heading numbers", "none", "`--heading-numbers` (1. for `#`, 1.1 for `##`, 1.1.1 …)")},
+    {"key": "page_numbers", "flag": "--page-numbers", "kind": "option", "default": False, "layer": 2,  # or one of PAGE_NUMBERS
+     "read": ("position", PAGE_NUMBERS), "takes": "top-right, top-center or bottom-center",
+     "report": ("page_numbers", "value"),
+     "doc": ("page numbers", "none", "`--page-numbers` (top right), `--page-numbers top-center` or `--page-numbers bottom-center`")},
+    {"key": "page_number_on_first", "flag": "--no-page-number-first", "kind": "off", "default": True, "layer": 2,
+     "needs": "page_numbers",
+     "report": ("page_number_on_first", "value"),
+     "doc": ("page number on page 1", "shown", "`--no-page-number-first` (with `--page-numbers`)")},
+    {"key": "header", "flag": "--header", "kind": "option", "default": None, "layer": 2,  # centred at the top of every page
+     "read": ("text", 200, "\t\n"), "takes": "text of 1 to 200 characters on one line", "usage": "TEXT",
+     "report": ("header", "value"),
+     "doc": ("header text", "none", '`--header "ลับ"` (centred, above a page number there)')},
+    {"key": "footer", "flag": "--footer", "kind": "option", "default": None, "layer": 2,  # centred at the bottom of every page
+     "read": ("text", 200, "\t\n"), "takes": "text of 1 to 200 characters on one line", "usage": "TEXT",
+     "report": ("footer", "value"),
+     "doc": ("footer text", "none", '`--footer "TEXT"` (centred, above a page number there)')},
+    {"key": "thai_digits", "flag": "--thai-digits", "kind": "switch", "default": False, "layer": 2,  # numbers Word generates; never the text
+     "report": ("thai_digits", "value"),
+     "doc": ("page, list and footnote numbers", "1 2 3", "`--thai-digits` (๑ ๒ ๓; the text itself is never changed)")},
+    {"key": "hide_spelling_errors", "flag": "--hide-spelling-errors", "kind": "switch", "default": False, "layer": 1,
+     "report": ("hide_spelling_errors", "value"),
+     "doc": ("spelling squiggles", "shown", "`--hide-spelling-errors`")},
+    {"key": "repeat_table_header", "flag": "--no-repeat-table-header", "kind": "off", "default": True, "layer": 3,
+     "report": ("repeat_table_header", "value"),
+     "doc": ("table header row", "repeats on every page", "`--no-repeat-table-header`")},
+    {"key": "table_widths", "flag": "--table-widths", "kind": "value", "default": "equal", "layer": 3,  # or by the longest text
+     "read": ("choice", ("equal", "auto")), "takes": "equal or auto",
+     "report": ("table_widths", "value"),
+     "doc": ("table column widths", "equal", "`--table-widths auto` (wider for longer text)")},
+    {"key": "table_size", "flag": "--table-size", "kind": "option", "default": None, "layer": 3,  # None: the body size
+     "read": ("points", 1, 400), "takes": "a number of points from 1 to 400", "usage": "PT",
+     "report": ("table_size_pt", "value"),
+     "doc": ("table text size", "as the body", "`--table-size 14` (1–400)")},
+    {"key": "chapter_label", "flag": "--chapter-label", "kind": "value", "default": "บทที่", "layer": 5,
+     "read": ("text", 40, "\t\n%"), "takes": "text of 1 to 40 characters on one line, without %", "usage": "TEXT",
+     "report": ("chapter_label", "value"),
+     "doc": ("chapter label", "บทที่", '`--chapter-label "บท"`')},
+    {"key": "table_label", "flag": "--table-label", "kind": "value", "default": "ตารางที่", "layer": 5,
+     "read": ("text", 40, "\t\n%"), "takes": "text of 1 to 40 characters on one line, without %", "usage": "TEXT",
+     "report": ("table_label", "value"),
+     "doc": ("table caption label", "ตารางที่", '`--table-label "ตาราง"`')},
+    {"key": "figure_label", "flag": "--figure-label", "kind": "value", "default": "รูปที่", "layer": 5,
+     "read": ("text", 40, "\t\n%"), "takes": "text of 1 to 40 characters on one line, without %", "usage": "TEXT",
+     "report": ("figure_label", "value"),
+     "doc": ("figure caption label", "รูปที่", '`--figure-label "ภาพที่"`')},
+    {"key": "front_page_numbers", "flag": "--front-page-numbers", "kind": "value", "default": "thai-letters", "layer": 5,
+     "read": ("choice", tuple(FRONT_NUMBERS)), "takes": ", ".join(FRONT_NUMBERS),
+     "report": ("front_page_numbers", "value"),
+     "doc": ("page numbers before the chapters", "ก ข ค", "`--front-page-numbers lower-roman` (or `upper-roman`, `decimal`)")},
+    {"key": "appendix_label", "flag": "--appendix-label", "kind": "value", "default": "ภาคผนวก", "layer": 5,
+     "read": ("text", 40, "\t\n%"), "takes": "text of 1 to 40 characters on one line, without %", "usage": "TEXT",
+     "report": ("appendix_label", "value"),
+     "doc": ("appendix label", "ภาคผนวก", '`--appendix-label "Appendix"`')},
+    {"key": "appendix_numbers", "flag": "--appendix-numbers", "kind": "value", "default": "thai-letters", "layer": 5,
+     "read": ("choice", tuple(APPENDIX_NUMBERS)), "takes": ", ".join(APPENDIX_NUMBERS),
+     "report": ("appendix_numbers", "value"),
+     "doc": ("appendix numbers", "ก ข ค", "`--appendix-numbers upper-letters` (or `decimal`, `upper-roman`)")},
+    {"key": "chapter_title_on_new_line", "flag": "--chapter-title-on-new-line", "kind": "switch", "default": False, "layer": 5,
+     "report": ("chapter_title_on_new_line", "value"),
+     "doc": ("chapter title", "beside its number", "`--chapter-title-on-new-line` (บทที่ 1 on one line, the title under it)")},
+)
+
+DEFAULTS = {s["key"]: s["default"] for s in SETTINGS}
+BY_FLAG = {s["flag"]: s for s in SETTINGS}
+BY_KEY = {s["key"]: s for s in SETTINGS}
+USAGE = "usage: thai_docx build IN.md OUT.docx " + " ".join(
+    "[" + s["flag"]
+    + ("" if s["kind"] in ("switch", "off")
+       else " [" + "|".join(s["read"][1]) + "]" if s["read"][0] == "position"
+       else " " + "|".join(s["read"][1]) if s["read"][0] == "choice"
+       else " " + s["usage"])
+    + "]"
+    for s in SETTINGS
+) + " [--profile NAME|PATH] [--allow-dir DIR]"
+NUMBER = re.compile(r"[0-9]+(?:\.[0-9]+)?")  # used with fullmatch: no "$" before a newline
+
+
+class BuildError(Exception):
+    def __init__(self, what: str):
+        super().__init__(what)
+        self.what = what
+
+
+def half_up(x: float) -> int:
+    return int(math.floor(x + 0.5))
+
+
+def page_size(opts: dict) -> tuple[int, int]:
+    """Width and height in twips; landscape turns the paper, the margins stay top, right, bottom, left."""
+    pw, ph = PAPER[opts["paper"]]
+    return (ph, pw) if opts["landscape"] else (pw, ph)
+
+
+def _read(s: dict, value: str):
+    """A value as the entry reads it, or BuildError with the entry's own words."""
+    how = s["read"]
+    refused = BuildError(s["flag"] + " takes " + s["takes"])
+    if how[0] == "text":
+        if not value or len(value) > how[1] or any(c in how[2] or md.forbidden_char(c) for c in value):
+            raise refused
+        return value
+    if how[0] in ("choice", "position"):
+        if value not in how[1]:
+            raise refused
+        return value
+    if how[0] == "numbers":
+        vals = value.split(",")
+        if len(vals) != how[1] or not all(NUMBER.fullmatch(v) for v in vals):
+            raise refused
+        return tuple(float(v) for v in vals)
+    if not NUMBER.fullmatch(value) or (how[1] is not None and not how[1] <= float(value) <= how[2]):
+        raise refused
+    x = float(value)
+    return int(x) if how[0] == "points" and x == int(x) else x
+
+
+def parse_args(argv: list[str]) -> tuple[dict, list[str], list[str]]:
+    """Flags → (opts, positionals, allow_dirs). Raises BuildError with a message
+    both implementations share; no abbreviations, `--flag value` or `--flag=value`."""
+    opts = dict(DEFAULTS)
+    positional: list[str] = []
+    allow: list[str] = []
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if not arg.startswith("--"):
+            positional.append(arg)
+            i += 1
+            continue
+        name, eq, value = arg.partition("=")
+        s = BY_FLAG.get(name)
+        if s is not None and s["kind"] == "option" and s["read"][0] == "position":
+            # the position is optional: taken only when it names one
+            if not eq and i + 1 < len(argv) and argv[i + 1] in s["read"][1]:
+                eq, value = "=", argv[i + 1]
+                i += 1
+            opts[s["key"]] = _read(s, value) if eq else s["read"][1][0]
+            i += 1
+            continue
+        if s is not None and s["kind"] in ("switch", "off"):
+            if eq:
+                raise BuildError(name + " takes no value")
+            opts[s["key"]] = s["kind"] == "switch"
+            i += 1
+            continue
+        if s is None and name != "--allow-dir":
+            raise BuildError("unknown option " + name)
+        if not eq:
+            if i + 1 >= len(argv):
+                raise BuildError(name + " needs a value")
+            value = argv[i + 1]
+            i += 1
+        i += 1
+        if s is None:
+            allow.append(value)
+        else:
+            opts[s["key"]] = _read(s, value)
+    if len(positional) != 2:
+        raise BuildError(USAGE)
+    for s in SETTINGS:
+        needed = s.get("needs")
+        if needed and opts[s["key"]] != s["default"] and opts[needed] == DEFAULTS[needed]:
+            raise BuildError(s["flag"] + " needs " + BY_KEY[needed]["flag"])
+    pw, ph = page_size(opts)
+    top, right, bottom, left = (half_up(m * 1440) for m in opts["margins"])
+    if pw - left - right < MIN_TEXT_TWIPS or ph - top - bottom < MIN_TEXT_TWIPS:
+        raise BuildError("--margins leave less than one inch for text")
+    if pw - left - right - half_up(opts["indent"] * 1440) < MIN_TEXT_TWIPS:
+        raise BuildError("--indent leaves less than one inch for text")
+    return opts, positional, allow
+
+
+def settings_json(opts: dict) -> dict:
+    """The settings as the build reports them, in registry order."""
+    out = {}
+    for s in SETTINGS:
+        name, form = s["report"]
+        value = opts[s["key"]]
+        if form == "float":
+            value = float(value)
+        elif form == "sides":
+            value = dict(zip(("top", "right", "bottom", "left"), (float(v) for v in value), strict=True))
+        out[name] = value
+    return out

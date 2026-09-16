@@ -21,6 +21,7 @@ import os
 import pathlib
 
 from . import build as b
+from . import settings as st
 
 SCHEMA = 1
 DIR_NAME = ".thai-docx"
@@ -28,22 +29,8 @@ KEYS = ("schema", "id", "title", "description", "version", "source", "maintainer
 TEXT_KEYS = ("id", "version", "source", "maintainer")
 MAX_TEXT = 200
 MAX_BYTES = 64 * 1024  # a profile is settings; anything larger is not one (ADR 0025)
-# setting → how it is written as a flag; "switch" flags say the value that turns them on
-FLAGS: dict[str, tuple[str, str]] = {
-    "font": ("value", "--font"), "size": ("value", "--size"), "paper": ("value", "--paper"),
-    "landscape": ("switch", "--landscape"), "margins": ("list", "--margins"), "indent": ("value", "--indent"),
-    "line_spacing": ("value", "--line-spacing"), "align": ("value", "--align"), "toc": ("switch", "--toc"),
-    "heading_numbers": ("switch", "--heading-numbers"), "page_numbers": ("option", "--page-numbers"),
-    "page_number_on_first": ("off", "--no-page-number-first"), "header": ("option", "--header"),
-    "footer": ("option", "--footer"), "thai_digits": ("switch", "--thai-digits"),
-    "hide_spelling_errors": ("switch", "--hide-spelling-errors"),
-    "repeat_table_header": ("off", "--no-repeat-table-header"), "table_widths": ("value", "--table-widths"),
-    "table_size": ("option", "--table-size"), "chapter_label": ("value", "--chapter-label"),
-    "table_label": ("value", "--table-label"), "figure_label": ("value", "--figure-label"),
-    "front_page_numbers": ("value", "--front-page-numbers"), "appendix_label": ("value", "--appendix-label"),
-    "appendix_numbers": ("value", "--appendix-numbers"),
-    "chapter_title_on_new_line": ("switch", "--chapter-title-on-new-line"),
-}
+# setting → how it is written as a flag, from the registry (ADR 0028); "switch" flags say the value that turns them on
+FLAGS: dict[str, tuple[str, str]] = {s["key"]: (s["kind"], s["flag"]) for s in st.SETTINGS}
 
 
 class ProfileError(Exception):

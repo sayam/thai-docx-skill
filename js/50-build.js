@@ -1,36 +1,6 @@
 // thai-docx — build: the JavaScript port of scripts/thai_docx/build.py. The same
 // Markdown, images and settings give the same bytes (ADR 0008).
 
-const PAPER = { a4: [11906, 16838], letter: [12240, 15840], f14: [12240, 18720] }; // f14: 8.5 x 13 in, folio
-const PAGE_NUMBERS = ["top-right", "top-center", "bottom-center"]; // the first is --page-numbers with no position
-const DEFAULTS = {
-  font: "TH Sarabun New",
-  size: 16,
-  paper: "a4",
-  landscape: false,
-  margins: [1.0, 1.0, 1.0, 1.5],
-  indent: 0.0,
-  line_spacing: 1.0, // multiple of single spacing; code and footnotes stay single
-  align: "left",
-  toc: false,
-  heading_numbers: false, // 1. / 1.1 / 1.1.1 from # down, numbered by Word
-  page_numbers: false, // or where the number goes: one of PAGE_NUMBERS
-  page_number_on_first: true, // false leaves the first page without its number
-  header: null, // text centred at the top of every page
-  footer: null, // text centred at the bottom of every page
-  thai_digits: false, // page, list and footnote numbers Word generates; never the text
-  hide_spelling_errors: false,
-  repeat_table_header: true, // the header row of every table repeats on each page
-  table_widths: "equal", // or "auto": by the longest text in each column
-  table_size: null, // points for the text in table cells; null: the body size
-  chapter_label: "บทที่", // before the chapter number, in <!-- chapters --> (ADR 0021)
-  table_label: "ตารางที่", // before a table caption's number
-  figure_label: "รูปที่", // before a figure caption's number
-  front_page_numbers: "thai-letters", // page numbers before the chapters: one of FRONT_NUMBERS
-  appendix_label: "ภาคผนวก", // before an appendix number, in <!-- appendices -->
-  appendix_numbers: "thai-letters", // one of APPENDIX_NUMBERS
-  chapter_title_on_new_line: false, // "บทที่ 1" on its own line, the title under it (ADR 0027)
-};
 const CODE_FONT = "Consolas";
 const SYMBOL_FONT = "Segoe UI Symbol";
 const NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -39,20 +9,10 @@ const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 const EMU_PER_PX = 9525;
 const EMU_PER_TWIP = 635;
 let LANG = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>';
-const MIN_TEXT_TWIPS = 1440;
 // Thai marks above and below a consonant take no width of their own when a column is measured
 const THAI_MARKS = new Set([0x0e31, 0x0e34, 0x0e35, 0x0e36, 0x0e37, 0x0e38, 0x0e39, 0x0e3a, 0x0e47, 0x0e48, 0x0e49, 0x0e4a, 0x0e4b, 0x0e4c, 0x0e4d, 0x0e4e]);
 // Word's own table default; with no table style it would otherwise be 0 and text touches the borders
 const CELL_MARGINS = '<w:tblCellMar><w:left w:w="108" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar>';
-const USAGE = "usage: thai_docx build IN.md OUT.docx [--font NAME] [--size PT] [--paper a4|letter|f14] [--landscape] [--margins T,R,B,L] [--indent IN] [--line-spacing N] [--align left|thai] [--toc] [--heading-numbers] [--page-numbers [top-right|top-center|bottom-center]] [--no-page-number-first] [--header TEXT] [--footer TEXT] [--chapter-label TEXT] [--table-label TEXT] [--figure-label TEXT] [--front-page-numbers thai-letters|lower-roman|upper-roman|decimal] [--appendix-label TEXT] [--appendix-numbers thai-letters|upper-letters|decimal|upper-roman] [--chapter-title-on-new-line] [--thai-digits] [--hide-spelling-errors] [--table-widths equal|auto] [--table-size PT] [--no-repeat-table-header] [--profile NAME|PATH] [--allow-dir DIR]";
-const NUMBER = /^[0-9]+(?:\.[0-9]+)?$/;
-
-class BuildError extends Error {
-  constructor(what) {
-    super(what);
-    this.what = what;
-  }
-}
 
 function esc(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -60,16 +20,6 @@ function esc(s) {
 
 function attr(s) {
   return '"' + esc(s).replace(/"/g, "&quot;").replace(/\t/g, "&#9;").replace(/\n/g, "&#10;").replace(/\r/g, "&#13;") + '"';
-}
-
-// Width and height in twips; landscape turns the paper, the margins stay top, right, bottom, left.
-function pageSize(opts) {
-  const [pw, ph] = PAPER[opts.paper];
-  return opts.landscape ? [ph, pw] : [pw, ph];
-}
-
-function halfUp(x) {
-  return Math.floor(x + 0.5);
 }
 
 function imageSize(data) {
@@ -242,9 +192,6 @@ function headingStyles(doc) {
 
 const REGIONS = ["front", "chapters", "back", "appendices"];
 const ORDER = "front, chapters, back, appendices, back"; // a second back only after the appendices
-// page numbers before the chapters, and appendix numbers: flag value → Word's number format
-const FRONT_NUMBERS = { "thai-letters": "thaiLetters", "lower-roman": "lowerRoman", "upper-roman": "upperRoman", decimal: "decimal" };
-const APPENDIX_NUMBERS = { "thai-letters": "thaiLetters", "upper-letters": "upperLetter", decimal: "decimal", "upper-roman": "upperRoman" };
 function hasThai(text) {
   for (const ch of text) if (ch >= "\u0e00" && ch <= "\u0e7f") return true;
   return false;
@@ -1203,38 +1150,6 @@ function expectedText(doc, opts) {
   return out.map((s) => s.normalize("NFC"));
 }
 
-function settingsJson(opts) {
-  const [top, right, bottom, left] = opts.margins;
-  return {
-    font: opts.font,
-    size_pt: Number.isInteger(opts.size) ? opts.size : new PyFloat(opts.size),
-    paper: opts.paper,
-    landscape: opts.landscape,
-    margins_in: { top: new PyFloat(top), right: new PyFloat(right), bottom: new PyFloat(bottom), left: new PyFloat(left) },
-    first_line_indent_in: new PyFloat(opts.indent),
-    line_spacing: new PyFloat(opts.line_spacing),
-    align: opts.align,
-    toc: opts.toc,
-    heading_numbers: opts.heading_numbers,
-    page_numbers: opts.page_numbers,
-    page_number_on_first: opts.page_number_on_first,
-    header: opts.header,
-    footer: opts.footer,
-    thai_digits: opts.thai_digits,
-    hide_spelling_errors: opts.hide_spelling_errors,
-    repeat_table_header: opts.repeat_table_header,
-    table_widths: opts.table_widths,
-    table_size_pt: opts.table_size === null ? null : Number.isInteger(opts.table_size) ? opts.table_size : new PyFloat(opts.table_size),
-    chapter_label: opts.chapter_label,
-    table_label: opts.table_label,
-    figure_label: opts.figure_label,
-    front_page_numbers: opts.front_page_numbers,
-    appendix_label: opts.appendix_label,
-    appendix_numbers: opts.appendix_numbers,
-    chapter_title_on_new_line: opts.chapter_title_on_new_line,
-  };
-}
-
 // The build from Markdown text to package bytes: [outcome, bytes-or-null].
 // `readImage(src)` returns [resolvedPath, Uint8Array] or throws BuildError.
 function buildText(text, opts, readImage) {
@@ -1284,111 +1199,3 @@ function buildText(text, opts, readImage) {
   return [outcome, findings.length ? null : data];
 }
 
-function parseArgs(argv) {
-  const opts = { ...DEFAULTS, margins: DEFAULTS.margins.slice() };
-  const positional = [];
-  const allow = [];
-  const valued = ["--font", "--size", "--paper", "--margins", "--indent", "--line-spacing", "--align", "--table-widths", "--table-size", "--header", "--footer", "--chapter-label", "--table-label", "--figure-label", "--front-page-numbers", "--appendix-label", "--appendix-numbers", "--allow-dir"];
-  const switches = {
-    "--landscape": ["landscape", true], "--toc": ["toc", true], "--heading-numbers": ["heading_numbers", true], "--no-page-number-first": ["page_number_on_first", false],
-    "--chapter-title-on-new-line": ["chapter_title_on_new_line", true],
-    "--thai-digits": ["thai_digits", true], "--hide-spelling-errors": ["hide_spelling_errors", true],
-    "--no-repeat-table-header": ["repeat_table_header", false],
-  };
-  let i = 0;
-  while (i < argv.length) {
-    const arg = argv[i];
-    if (arg.startsWith("--")) {
-      const eqAt = arg.indexOf("=");
-      const name = eqAt < 0 ? arg : arg.slice(0, eqAt);
-      const eq = eqAt >= 0;
-      let value = eq ? arg.slice(eqAt + 1) : "";
-      if (name === "--page-numbers") {
-        // the position is optional: taken only when it names one
-        let given = eq;
-        if (!eq && i + 1 < argv.length && PAGE_NUMBERS.includes(argv[i + 1])) {
-          given = true;
-          value = argv[i + 1];
-          i += 1;
-        }
-        if (given && !PAGE_NUMBERS.includes(value)) throw new BuildError("--page-numbers takes top-right, top-center or bottom-center");
-        opts.page_numbers = given ? value : PAGE_NUMBERS[0];
-        i += 1;
-        continue;
-      }
-      if (Object.prototype.hasOwnProperty.call(switches, name)) {
-        if (eq) throw new BuildError(name + " takes no value");
-        const [key, on] = switches[name];
-        opts[key] = on;
-        i += 1;
-        continue;
-      }
-      if (!valued.includes(name)) throw new BuildError("unknown option " + name);
-      if (!eq) {
-        if (i + 1 >= argv.length) throw new BuildError(name + " needs a value");
-        value = argv[i + 1];
-        i += 1;
-      }
-      i += 1;
-      if (name === "--font") {
-        let bad = !value || codePointLength(value) > 64;
-        for (const c of value) if (forbiddenChar(c) !== null) bad = true;
-        if (bad) throw new BuildError("--font takes a font name of 1 to 64 characters");
-        opts.font = value;
-      } else if (name === "--size") {
-        if (!NUMBER.test(value) || !(Number(value) >= 1 && Number(value) <= 400)) throw new BuildError("--size takes a number of points from 1 to 400");
-        opts.size = Number(value);
-      } else if (name === "--front-page-numbers") {
-        if (!Object.prototype.hasOwnProperty.call(FRONT_NUMBERS, value)) throw new BuildError("--front-page-numbers takes " + Object.keys(FRONT_NUMBERS).join(", "));
-        opts.front_page_numbers = value;
-      } else if (name === "--appendix-numbers") {
-        if (!Object.prototype.hasOwnProperty.call(APPENDIX_NUMBERS, value)) throw new BuildError("--appendix-numbers takes " + Object.keys(APPENDIX_NUMBERS).join(", "));
-        opts.appendix_numbers = value;
-      } else if (name === "--chapter-label" || name === "--table-label" || name === "--figure-label" || name === "--appendix-label") {
-        let bad = !value || codePointLength(value) > 40;
-        for (const c of value) if (c === "\t" || c === "\n" || c === "%" || forbiddenChar(c) !== null) bad = true;
-        if (bad) throw new BuildError(name + " takes text of 1 to 40 characters on one line, without %");
-        opts[name.slice(2).replace("-", "_")] = value;
-      } else if (name === "--header" || name === "--footer") {
-        let bad = !value || codePointLength(value) > 200;
-        for (const c of value) if (c === "\t" || c === "\n" || forbiddenChar(c) !== null) bad = true;
-        if (bad) throw new BuildError(name + " takes text of 1 to 200 characters on one line");
-        opts[name.slice(2)] = value;
-      } else if (name === "--table-size") {
-        if (!NUMBER.test(value) || !(Number(value) >= 1 && Number(value) <= 400)) throw new BuildError("--table-size takes a number of points from 1 to 400");
-        opts.table_size = Number(value);
-      } else if (name === "--paper") {
-        if (!Object.prototype.hasOwnProperty.call(PAPER, value)) throw new BuildError("--paper takes a4, letter or f14");
-        opts.paper = value;
-      } else if (name === "--margins") {
-        const vals = value.split(",");
-        if (vals.length !== 4 || !vals.every((v) => NUMBER.test(v))) throw new BuildError("--margins takes four non-negative numbers: top,right,bottom,left");
-        opts.margins = vals.map(Number);
-      } else if (name === "--indent") {
-        if (!NUMBER.test(value)) throw new BuildError("--indent takes a non-negative number of inches");
-        opts.indent = Number(value);
-      } else if (name === "--line-spacing") {
-        if (!NUMBER.test(value) || !(Number(value) >= 1 && Number(value) <= 3)) throw new BuildError("--line-spacing takes a multiple of single spacing from 1 to 3");
-        opts.line_spacing = Number(value);
-      } else if (name === "--align") {
-        if (value !== "left" && value !== "thai") throw new BuildError("--align takes left or thai");
-        opts.align = value;
-      } else if (name === "--table-widths") {
-        if (value !== "equal" && value !== "auto") throw new BuildError("--table-widths takes equal or auto");
-        opts.table_widths = value;
-      } else if (name === "--allow-dir") {
-        allow.push(value);
-      }
-      continue;
-    }
-    positional.push(arg);
-    i += 1;
-  }
-  if (positional.length !== 2) throw new BuildError(USAGE);
-  if (!opts.page_number_on_first && !opts.page_numbers) throw new BuildError("--no-page-number-first needs --page-numbers");
-  const [pw, ph] = pageSize(opts);
-  const [top, right, bottom, left] = opts.margins.map((m) => halfUp(m * 1440));
-  if (pw - left - right < MIN_TEXT_TWIPS || ph - top - bottom < MIN_TEXT_TWIPS) throw new BuildError("--margins leave less than one inch for text");
-  if (pw - left - right - halfUp(opts.indent * 1440) < MIN_TEXT_TWIPS) throw new BuildError("--indent leaves less than one inch for text");
-  return [opts, positional, allow];
-}

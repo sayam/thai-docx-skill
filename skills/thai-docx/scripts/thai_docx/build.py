@@ -18,7 +18,6 @@ import errno
 import hashlib
 import io
 import json
-import math
 import os
 import pathlib
 import re
@@ -31,37 +30,11 @@ from . import check as check_mod
 from . import markdown as md
 from . import package
 from .ooxml import W, w
+from .settings import (  # noqa: F401  the build's settings, and the names callers know them by
+    APPENDIX_NUMBERS, DEFAULTS, FRONT_NUMBERS, MIN_TEXT_TWIPS, NUMBER, PAGE_NUMBERS, PAPER, USAGE,
+    BuildError, half_up, page_size, parse_args, settings_json,
+)
 
-PAPER = {"a4": (11906, 16838), "letter": (12240, 15840), "f14": (12240, 18720)}  # f14: 8.5 x 13 in, folio
-PAGE_NUMBERS = ("top-right", "top-center", "bottom-center")  # the first is --page-numbers with no position
-DEFAULTS = {
-    "font": "TH Sarabun New",
-    "size": 16,
-    "paper": "a4",
-    "landscape": False,
-    "margins": (1.0, 1.0, 1.0, 1.5),  # top, right, bottom, left — inches
-    "indent": 0.0,  # first line of body paragraphs — inches
-    "line_spacing": 1.0,  # multiple of single spacing; code and footnotes stay single
-    "align": "left",
-    "toc": False,
-    "heading_numbers": False,  # 1. / 1.1 / 1.1.1 from # down, numbered by Word
-    "page_numbers": False,  # or where the number goes: one of PAGE_NUMBERS
-    "page_number_on_first": True,  # False leaves the first page without its number
-    "header": None,  # text centred at the top of every page
-    "footer": None,  # text centred at the bottom of every page
-    "thai_digits": False,  # page, list and footnote numbers Word generates; never the text
-    "hide_spelling_errors": False,
-    "repeat_table_header": True,  # the header row of every table repeats on each page
-    "table_widths": "equal",  # or "auto": by the longest text in each column
-    "table_size": None,  # points for the text in table cells; None: the body size
-    "chapter_label": "บทที่",  # before the chapter number, in <!-- chapters --> (ADR 0021)
-    "table_label": "ตารางที่",  # before a table caption's number
-    "figure_label": "รูปที่",  # before a figure caption's number
-    "front_page_numbers": "thai-letters",  # page numbers before the chapters: one of FRONT_NUMBERS
-    "appendix_label": "ภาคผนวก",  # before an appendix number, in <!-- appendices -->
-    "appendix_numbers": "thai-letters",  # one of APPENDIX_NUMBERS
-    "chapter_title_on_new_line": False,  # "บทที่ 1" on its own line, the title under it (ADR 0027)
-}
 CODE_FONT = "Consolas"
 SYMBOL_FONT = "Segoe UI Symbol"
 NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
@@ -70,25 +43,16 @@ XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
 EMU_PER_PX = 9525  # at 96 dpi
 EMU_PER_TWIP = 635
 LANG = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>'
-MIN_TEXT_TWIPS = 1440
 # Thai marks above and below a consonant take no width of their own when a column is measured
 THAI_MARKS = frozenset([0x0E31, *range(0x0E34, 0x0E3B), *range(0x0E47, 0x0E4F)])
 # Word's own table default; with no table style it would otherwise be 0 and text touches the borders
 CELL_MARGINS = '<w:tblCellMar><w:left w:w="108" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar>'
-USAGE = "usage: thai_docx build IN.md OUT.docx [--font NAME] [--size PT] [--paper a4|letter|f14] [--landscape] [--margins T,R,B,L] [--indent IN] [--line-spacing N] [--align left|thai] [--toc] [--heading-numbers] [--page-numbers [top-right|top-center|bottom-center]] [--no-page-number-first] [--header TEXT] [--footer TEXT] [--chapter-label TEXT] [--table-label TEXT] [--figure-label TEXT] [--front-page-numbers thai-letters|lower-roman|upper-roman|decimal] [--appendix-label TEXT] [--appendix-numbers thai-letters|upper-letters|decimal|upper-roman] [--chapter-title-on-new-line] [--thai-digits] [--hide-spelling-errors] [--table-widths equal|auto] [--table-size PT] [--no-repeat-table-header] [--profile NAME|PATH] [--allow-dir DIR]"
-_NUMBER = re.compile(r"[0-9]+(?:\.[0-9]+)?")  # used with fullmatch: no "$" before a newline
 _OS_ERRORS = {
     errno.ENOENT: "No such file or directory",
     errno.EACCES: "Permission denied",
     errno.EISDIR: "Is a directory",
     errno.ENOTDIR: "Not a directory",
 }
-
-
-class BuildError(Exception):
-    def __init__(self, what: str):
-        super().__init__(what)
-        self.what = what
 
 
 def esc(s: str) -> str:
@@ -98,16 +62,6 @@ def esc(s: str) -> str:
 def attr(s: str) -> str:
     """An attribute value with its double quotes."""
     return '"' + esc(s).replace('"', "&quot;").replace("\t", "&#9;").replace("\n", "&#10;").replace("\r", "&#13;") + '"'
-
-
-def page_size(opts: dict) -> tuple[int, int]:
-    """Width and height in twips; landscape turns the paper, the margins stay top, right, bottom, left."""
-    pw, ph = PAPER[opts["paper"]]
-    return (ph, pw) if opts["landscape"] else (pw, ph)
-
-
-def half_up(x: float) -> int:
-    return int(math.floor(x + 0.5))
 
 
 def os_error(exc: OSError) -> str:
@@ -237,7 +191,7 @@ def heading_styles(doc: md.Document) -> tuple[dict[int, dict], list[str]]:
             elif name == "margin-bottom":
                 props["after"] = _length(val, line, where, False)
             elif name == "line-height":
-                if not _NUMBER.fullmatch(val) or not 1 <= float(val) <= 3:
+                if not NUMBER.fullmatch(val) or not 1 <= float(val) <= 3:
                     raise md.Unsupported(line, where + " takes a multiple of single spacing from 1 to 3")
                 props["line"] = half_up(float(val) * 240)
             elif name == "page-break-before":
@@ -254,9 +208,6 @@ def heading_styles(doc: md.Document) -> tuple[dict[int, dict], list[str]]:
 
 REGIONS = ("front", "chapters", "back", "appendices")
 ORDER = "front, chapters, back, appendices, back"  # a second back only after the appendices
-# page numbers before the chapters, and appendix numbers: flag value → Word's number format
-FRONT_NUMBERS = {"thai-letters": "thaiLetters", "lower-roman": "lowerRoman", "upper-roman": "upperRoman", "decimal": "decimal"}
-APPENDIX_NUMBERS = {"thai-letters": "thaiLetters", "upper-letters": "upperLetter", "decimal": "decimal", "upper-roman": "upperRoman"}
 def has_thai(text: str) -> bool:
     return any("\u0e00" <= ch <= "\u0e7f" for ch in text)
 
@@ -1224,21 +1175,6 @@ def expected_text(doc: md.Document, opts: dict | None = None) -> list[str]:
 # --- entry ---------------------------------------------------------------------
 
 
-def settings_json(opts: dict) -> dict:
-    top, right, bottom, left = opts["margins"]
-    return {
-        "font": opts["font"], "size_pt": opts["size"], "paper": opts["paper"], "landscape": opts["landscape"],
-        "margins_in": {"top": float(top), "right": float(right), "bottom": float(bottom), "left": float(left)},
-        "first_line_indent_in": float(opts["indent"]), "line_spacing": float(opts["line_spacing"]),
-        "align": opts["align"], "toc": opts["toc"], "heading_numbers": opts["heading_numbers"], "page_numbers": opts["page_numbers"],
-        "page_number_on_first": opts["page_number_on_first"], "header": opts["header"], "footer": opts["footer"],
-        "thai_digits": opts["thai_digits"], "hide_spelling_errors": opts["hide_spelling_errors"], "repeat_table_header": opts["repeat_table_header"], "table_widths": opts["table_widths"], "table_size_pt": opts["table_size"],
-        "chapter_label": opts["chapter_label"], "table_label": opts["table_label"], "figure_label": opts["figure_label"],
-        "front_page_numbers": opts["front_page_numbers"], "appendix_label": opts["appendix_label"], "appendix_numbers": opts["appendix_numbers"],
-        "chapter_title_on_new_line": opts["chapter_title_on_new_line"],
-    }
-
-
 def build_text(text: str, opts: dict, read_image) -> tuple[dict, bytes | None]:
     """The whole build except reading the Markdown and writing the file: the part
     both implementations must agree on byte for byte."""
@@ -1379,121 +1315,6 @@ def build(md_path, out_path, opts: dict, allow_dirs: list) -> dict:
         return result
     result["ok"] = True
     return result
-
-
-def parse_args(argv: list[str]) -> tuple[dict, list[str], list[str]]:
-    """Flags → (opts, positionals, allow_dirs). Raises BuildError with a message
-    both implementations share; no abbreviations, `--flag value` or `--flag=value`."""
-    opts = dict(DEFAULTS)
-    positional: list[str] = []
-    allow: list[str] = []
-    valued = ("--font", "--size", "--paper", "--margins", "--indent", "--line-spacing", "--align", "--table-widths", "--table-size", "--header", "--footer", "--chapter-label", "--table-label", "--figure-label", "--front-page-numbers", "--appendix-label", "--appendix-numbers", "--allow-dir")
-    switches = {
-        "--landscape": ("landscape", True), "--toc": ("toc", True), "--heading-numbers": ("heading_numbers", True), "--no-page-number-first": ("page_number_on_first", False),
-        "--chapter-title-on-new-line": ("chapter_title_on_new_line", True),
-        "--thai-digits": ("thai_digits", True), "--hide-spelling-errors": ("hide_spelling_errors", True),
-        "--no-repeat-table-header": ("repeat_table_header", False),
-    }
-    i = 0
-    while i < len(argv):
-        arg = argv[i]
-        if arg.startswith("--"):
-            name, eq, value = arg.partition("=")
-            if name == "--page-numbers":  # the position is optional: taken only when it names one
-                if not eq and i + 1 < len(argv) and argv[i + 1] in PAGE_NUMBERS:
-                    eq, value = "=", argv[i + 1]
-                    i += 1
-                if eq and value not in PAGE_NUMBERS:
-                    raise BuildError("--page-numbers takes top-right, top-center or bottom-center")
-                opts["page_numbers"] = value if eq else PAGE_NUMBERS[0]
-                i += 1
-                continue
-            if name in switches:
-                if eq:
-                    raise BuildError(name + " takes no value")
-                key, on = switches[name]
-                opts[key] = on
-                i += 1
-                continue
-            if name not in valued:
-                raise BuildError("unknown option " + name)
-            if not eq:
-                if i + 1 >= len(argv):
-                    raise BuildError(name + " needs a value")
-                value = argv[i + 1]
-                i += 1
-            i += 1
-            if name == "--font":
-                if not value or len(value) > 64 or any(md.forbidden_char(c) for c in value):
-                    raise BuildError("--font takes a font name of 1 to 64 characters")
-                opts["font"] = value
-            elif name == "--size":
-                if not _NUMBER.fullmatch(value) or not 1 <= float(value) <= 400:
-                    raise BuildError("--size takes a number of points from 1 to 400")
-                size = float(value)
-                opts["size"] = int(size) if size == int(size) else size
-            elif name == "--front-page-numbers":
-                if value not in FRONT_NUMBERS:
-                    raise BuildError("--front-page-numbers takes " + ", ".join(FRONT_NUMBERS))
-                opts["front_page_numbers"] = value
-            elif name == "--appendix-numbers":
-                if value not in APPENDIX_NUMBERS:
-                    raise BuildError("--appendix-numbers takes " + ", ".join(APPENDIX_NUMBERS))
-                opts["appendix_numbers"] = value
-            elif name in ("--chapter-label", "--table-label", "--figure-label", "--appendix-label"):
-                if not value or len(value) > 40 or any(c in "\t\n%" or md.forbidden_char(c) for c in value):
-                    raise BuildError(name + " takes text of 1 to 40 characters on one line, without %")
-                opts[name[2:].replace("-", "_")] = value
-            elif name in ("--header", "--footer"):
-                if not value or len(value) > 200 or any(c in "\t\n" or md.forbidden_char(c) for c in value):
-                    raise BuildError(name + " takes text of 1 to 200 characters on one line")
-                opts[name[2:]] = value
-            elif name == "--table-size":
-                if not _NUMBER.fullmatch(value) or not 1 <= float(value) <= 400:
-                    raise BuildError("--table-size takes a number of points from 1 to 400")
-                size = float(value)
-                opts["table_size"] = int(size) if size == int(size) else size
-            elif name == "--paper":
-                if value not in PAPER:
-                    raise BuildError("--paper takes a4, letter or f14")
-                opts["paper"] = value
-            elif name == "--margins":
-                vals = value.split(",")
-                if len(vals) != 4 or not all(_NUMBER.fullmatch(v) for v in vals):
-                    raise BuildError("--margins takes four non-negative numbers: top,right,bottom,left")
-                opts["margins"] = tuple(float(v) for v in vals)
-            elif name == "--indent":
-                if not _NUMBER.fullmatch(value):
-                    raise BuildError("--indent takes a non-negative number of inches")
-                opts["indent"] = float(value)
-            elif name == "--line-spacing":
-                if not _NUMBER.fullmatch(value) or not 1 <= float(value) <= 3:
-                    raise BuildError("--line-spacing takes a multiple of single spacing from 1 to 3")
-                opts["line_spacing"] = float(value)
-            elif name == "--align":
-                if value not in ("left", "thai"):
-                    raise BuildError("--align takes left or thai")
-                opts["align"] = value
-            elif name == "--table-widths":
-                if value not in ("equal", "auto"):
-                    raise BuildError("--table-widths takes equal or auto")
-                opts["table_widths"] = value
-            elif name == "--allow-dir":
-                allow.append(value)
-            continue
-        positional.append(arg)
-        i += 1
-    if len(positional) != 2:
-        raise BuildError(USAGE)
-    if not opts["page_number_on_first"] and not opts["page_numbers"]:
-        raise BuildError("--no-page-number-first needs --page-numbers")
-    pw, ph = page_size(opts)
-    top, right, bottom, left = (half_up(m * 1440) for m in opts["margins"])
-    if pw - left - right < MIN_TEXT_TWIPS or ph - top - bottom < MIN_TEXT_TWIPS:
-        raise BuildError("--margins leave less than one inch for text")
-    if pw - left - right - half_up(opts["indent"] * 1440) < MIN_TEXT_TWIPS:
-        raise BuildError("--indent leaves less than one inch for text")
-    return opts, positional, allow
 
 
 def main(argv: list[str]) -> int:
