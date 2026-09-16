@@ -1,7 +1,8 @@
 # 0009 — Two modes: build at once with announced defaults, or interview first
 
-- Status: accepted
+- Status: superseded
 - Decided: 2026-09-15
+- Superseded by: 0019
 
 ## Where it came from
 

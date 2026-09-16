@@ -1,7 +1,8 @@
 # 0010 — What Markdown v0.1 accepts, and what stops the build
 
-- Status: accepted
+- Status: superseded
 - Decided: 2026-09-15
+- Superseded by: 0022
 
 ## Where it came from
 
