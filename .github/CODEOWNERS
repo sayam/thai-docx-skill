@@ -1,0 +1,12 @@
+# Every change from a contributor needs the maintainer's review. With main protected
+# (the `scans`, `commits` and `tests` checks required of everyone, review from code
+# owners required of everyone but the maintainer — ADR 0018), a pull request from a
+# fork cannot merge by weakening the gates it is held to: the workflow, the registry
+# and the tools that decide them are all listed here.
+*                   @sayam
+/.github/           @sayam
+/tools/             @sayam
+/gates.yaml         @sayam
+/scaffold.json      @sayam
+/requirements/      @sayam
+/docs/adr/          @sayam
