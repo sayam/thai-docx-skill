@@ -4348,8 +4348,12 @@ class Package extends Writer {
       parts.push("<w:footnotePr>" + fmt + '<w:footnote w:id="-1"/><w:footnote w:id="0"/></w:footnotePr>');
     }
     const uri = ' w:uri="http://schemas.microsoft.com/office/word" ';
+    // Thai distributed spreads a line that ends in a manual break letter by letter across the
+    // page; Word's "don't expand character spaces on a line ending with SHIFT+RETURN" keeps
+    // such a line as it is. It goes before every compatSetting.
+    const shiftReturn = this.opts.align === "thai" ? "<w:doNotExpandShiftReturn/>" : "";
     parts.push(
-      "<w:compat>" +
+      "<w:compat>" + shiftReturn +
       '<w:compatSetting w:name="compatibilityMode"' + uri + 'w:val="15"/>' +
       '<w:compatSetting w:name="overrideTableStyleFontSizeAndJustification"' + uri + 'w:val="1"/>' +
       '<w:compatSetting w:name="enableOpenTypeFeatures"' + uri + 'w:val="1"/>' +

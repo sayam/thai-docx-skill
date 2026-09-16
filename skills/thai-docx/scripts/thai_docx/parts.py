@@ -259,8 +259,12 @@ class Package(Writer):
             fmt = '<w:numFmt w:val="thaiNumbers"/>' if self.opts["thai_digits"] else ""
             parts.append("<w:footnotePr>" + fmt + '<w:footnote w:id="-1"/><w:footnote w:id="0"/></w:footnotePr>')
         uri = ' w:uri="http://schemas.microsoft.com/office/word" '
+        # Thai distributed spreads a line that ends in a manual break letter by letter across
+        # the page ("ภ า ษ า ไ ท ย"); Word's "don't expand character spaces on a line ending
+        # with SHIFT+RETURN" keeps such a line as it is. It goes before every compatSetting.
+        shift_return = "<w:doNotExpandShiftReturn/>" if self.opts["align"] == "thai" else ""
         parts.append(
-            "<w:compat>"
+            "<w:compat>" + shift_return +
             '<w:compatSetting w:name="compatibilityMode"' + uri + 'w:val="15"/>'
             '<w:compatSetting w:name="overrideTableStyleFontSizeAndJustification"' + uri + 'w:val="1"/>'
             '<w:compatSetting w:name="enableOpenTypeFeatures"' + uri + 'w:val="1"/>'
