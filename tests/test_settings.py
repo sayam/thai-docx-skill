@@ -1,0 +1,106 @@
+"""The settings registry (ADR 0028): one entry per setting, the same entries in both
+implementations, and everything that describes a setting derived from them — the parser,
+the defaults, the report, the flags a profile holds, and the reference the agent reads."""
+
+from __future__ import annotations
+
+import json
+import pathlib
+import re
+import shlex
+import subprocess
+import sys
+
+from thai_docx import build as b
+from thai_docx import profiles as pf
+from thai_docx import settings as st
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+BUNDLE = ROOT / "skills" / "thai-docx" / "scripts" / "thai_docx.js"
+sys.path.insert(0, str(ROOT / "tools"))
+import gen_settings_docs  # noqa: E402
+
+
+def _js_settings() -> list:
+    done = subprocess.run(["node", "-e", "process.stdout.write(JSON.stringify(require(process.argv[1]).SETTINGS))", str(BUNDLE)],
+                          capture_output=True, text=True, timeout=60)
+    assert done.returncode == 0 and done.stderr == "", done.stderr
+    return json.loads(done.stdout)
+
+
+def test_both_implementations_hold_the_same_entries():
+    """Data, not behaviour — the parity suite proves the behaviour. `doc` is the reference's
+    wording, which only the Python generator reads."""
+    python = json.loads(json.dumps([{k: v for k, v in s.items() if k != "doc"} for s in st.SETTINGS]))
+    js = _js_settings()
+    assert [s["key"] for s in js] == [s["key"] for s in python]
+    for mine, theirs in zip(python, js, strict=True):
+        assert mine == theirs, mine["key"]
+
+
+def test_every_entry_is_whole_and_every_flag_once():
+    kinds = {"value", "option", "list", "switch", "off"}
+    reads = {"text", "points", "number", "numbers", "choice", "position"}
+    flags = [s["flag"] for s in st.SETTINGS]
+    assert len(set(flags)) == len(flags) and len({s["key"] for s in st.SETTINGS}) == len(flags)
+    for s in st.SETTINGS:
+        assert s["kind"] in kinds and s["layer"] in st.LAYERS, s["key"]
+        assert ("read" in s) is (s["kind"] not in ("switch", "off")), s["key"]
+        if "read" in s:
+            assert s["read"][0] in reads and s["takes"], s["key"]
+        assert s.get("needs") in (None, *st.DEFAULTS), s["key"]
+        assert s["flag"].startswith("--") and len(s["doc"]) == 3, s["key"]
+    assert st.USAGE == b.USAGE and set(re.findall(r"--[a-z-]+", st.USAGE)) == set(flags) | {"--profile", "--allow-dir"}
+
+
+def test_the_parser_the_report_and_the_profile_come_from_the_registry():
+    assert b.DEFAULTS is st.DEFAULTS and b.parse_args is st.parse_args
+    assert list(pf.FLAGS) == [s["key"] for s in st.SETTINGS]
+    assert list(st.settings_json(st.DEFAULTS)) == [s["report"][0] for s in st.SETTINGS]
+    for s in st.SETTINGS:
+        assert pf.FLAGS[s["key"]] == (s["kind"], s["flag"])
+
+
+def test_each_refusal_is_the_registry_s_words():
+    for s in st.SETTINGS:
+        if "read" not in s or s["read"][0] == "position":
+            continue
+        try:
+            st.parse_args([s["flag"], "\x01", "in.md", "out.docx"])
+        except st.BuildError as exc:
+            assert exc.what == s["flag"] + " takes " + s["takes"]
+        else:
+            raise AssertionError(s["flag"] + " took a control character")
+
+
+def test_the_reference_is_generated_and_every_example_changes_its_own_setting():
+    assert gen_settings_docs.main(["--check"]) == 0, "run python3 tools/gen_settings_docs.py"
+    for s in st.SETTINGS:
+        example = shlex.split(re.search(r"`([^`]+)`", s["doc"][2]).group(1))
+        needed = [st.BY_KEY[s["needs"]]["flag"]] if s.get("needs") else []
+        opts, _, _ = st.parse_args(needed + example + ["in.md", "out.docx"])
+        changed = {k for k in opts if opts[k] != st.DEFAULTS[k]}
+        assert changed == {s["key"], *([s["needs"]] if needed else [])}, s["key"]
+
+
+def test_the_reference_states_each_default():
+    d = st.DEFAULTS
+    margins = ", ".join(f"{m:g}" for m in d["margins"])
+    shows = {
+        "font": d["font"], "size": f"{d['size']} pt", "paper": d["paper"].upper(),
+        "landscape": "landscape" if d["landscape"] else "portrait",
+        "margins": f"{margins} (top, right, bottom, left)", "indent": "none" if not d["indent"] else f"{d['indent']:g}",
+        "line_spacing": f"{d['line_spacing']:g}", "align": d["align"],
+        "hide_spelling_errors": "hidden" if d["hide_spelling_errors"] else "shown",
+        "toc": "yes" if d["toc"] else "none", "heading_numbers": "yes" if d["heading_numbers"] else "none",
+        "page_numbers": "yes" if d["page_numbers"] else "none", "page_number_on_first": "shown" if d["page_number_on_first"] else "none",
+        "header": d["header"] or "none", "footer": d["footer"] or "none",
+        "thai_digits": "๑ ๒ ๓" if d["thai_digits"] else "1 2 3",
+        "repeat_table_header": "repeats on every page" if d["repeat_table_header"] else "first page only",
+        "table_widths": d["table_widths"], "table_size": "as the body" if d["table_size"] is None else f"{d['table_size']} pt",
+        "chapter_label": d["chapter_label"], "table_label": d["table_label"], "figure_label": d["figure_label"],
+        "front_page_numbers": {"thai-letters": "ก ข ค"}[d["front_page_numbers"]],
+        "appendix_label": d["appendix_label"], "appendix_numbers": {"thai-letters": "ก ข ค"}[d["appendix_numbers"]],
+        "chapter_title_on_new_line": "beside its number" if not d["chapter_title_on_new_line"] else "under its number",
+    }
+    assert {s["key"]: s["doc"][1] for s in st.SETTINGS} == shows

@@ -51,8 +51,10 @@ message when it is refused, what it needs, and the name the build reports it und
 the registry, in both implementations, come: the defaults, the usage line, the parser, the
 settings the build reports, and the flags a profile may hold. From it, checked into the
 repository with a `--check` that fails when stale, as the JavaScript bundle is: the settings
-table the agent reads (`references/settings.md`). A test holds the two registries equal
-entry for entry; the parity suite goes on proving the behaviour.
+table the agent reads (`references/settings.md`), from each entry's `doc` — its name, its
+default as a reader says it, and an example flag. A test holds the two registries equal
+entry for entry except `doc`, which only the Python generator reads; the parity suite goes on
+proving the behaviour.
 
 **What a setting needs is data, not code in the flow.** Two kinds:
 
@@ -84,7 +86,8 @@ Left out on purpose:
 - `--allow-dir` and `--profile` in the registry's settings: they say where files are read
   from, not how the document looks, and a profile may never carry them (0025).
 - Changing any default, message or golden. This record rearranges; it decides nothing a
-  user can see except the new warnings.
+  user can see except the new warnings, and the usage line listing the flags in the
+  registry's order.
 
 ## Why
 

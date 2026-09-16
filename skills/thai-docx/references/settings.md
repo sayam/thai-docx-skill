@@ -1,0 +1,67 @@
+# Settings
+
+Generated from the settings registry by `tools/gen_settings_docs.py`; do not edit by hand.
+
+The defaults, and the flag that changes each one. Add a flag only for what the user asked
+for; every other setting keeps its default.
+
+## Page and type
+
+Every document has these.
+
+| setting | default | flag |
+|---|---|---|
+| font | TH Sarabun New | `--font "Sarabun"` |
+| size | 16 pt | `--size 14` (1–400) |
+| paper | A4 | `--paper letter` or `--paper f14` (8.5 × 13 in) |
+| orientation | portrait | `--landscape` (margins stay top, right, bottom, left) |
+| margins, inches | 1, 1, 1, 1.5 (top, right, bottom, left) | `--margins 1,1,1,1` |
+| first-line indent, inches | none | `--indent 0.5` (body paragraphs only) |
+| line spacing | 1 | `--line-spacing 1.5` (1–3; code and footnotes stay single) |
+| alignment | left | `--align thai` (Thai distributed; a paragraph with no Thai stays left) |
+| spelling squiggles | shown | `--hide-spelling-errors` |
+
+## Page furniture
+
+The header and footer, and how Word draws the numbers it generates.
+
+| setting | default | flag |
+|---|---|---|
+| page numbers | none | `--page-numbers` (top right), `--page-numbers top-center` or `--page-numbers bottom-center` |
+| page number on page 1 | shown | `--no-page-number-first` (with `--page-numbers`) |
+| header text | none | `--header "ลับ"` (centred, above a page number there) |
+| footer text | none | `--footer "TEXT"` (centred, above a page number there) |
+| page, list and footnote numbers | 1 2 3 | `--thai-digits` (๑ ๒ ๓; the text itself is never changed) |
+
+## Tables
+
+These change only a document that has tables.
+
+| setting | default | flag |
+|---|---|---|
+| table header row | repeats on every page | `--no-repeat-table-header` |
+| table column widths | equal | `--table-widths auto` (wider for longer text) |
+| table text size | as the body | `--table-size 14` (1–400) |
+
+## Headings
+
+These change only a document that has headings.
+
+| setting | default | flag |
+|---|---|---|
+| table of contents | none | `--toc` (at the top of the document) |
+| heading numbers | none | `--heading-numbers` (1. for `#`, 1.1 for `##`, 1.1.1 …) |
+
+## Thesis structure
+
+These change only a document with region comments or `Table:` / `Figure:` captions — [chapters.md](chapters.md).
+
+| setting | default | flag |
+|---|---|---|
+| chapter label | บทที่ | `--chapter-label "บท"` |
+| table caption label | ตารางที่ | `--table-label "ตาราง"` |
+| figure caption label | รูปที่ | `--figure-label "ภาพที่"` |
+| page numbers before the chapters | ก ข ค | `--front-page-numbers lower-roman` (or `upper-roman`, `decimal`) |
+| appendix label | ภาคผนวก | `--appendix-label "Appendix"` |
+| appendix numbers | ก ข ค | `--appendix-numbers upper-letters` (or `decimal`, `upper-roman`) |
+| chapter title | beside its number | `--chapter-title-on-new-line` (บทที่ 1 on one line, the title under it) |
