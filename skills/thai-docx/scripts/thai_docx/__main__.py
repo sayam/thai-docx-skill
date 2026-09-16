@@ -1,7 +1,9 @@
 """thai_docx — build a Thai-correct .docx from Markdown, or check one.
 
-    python3 scripts/thai_docx check  FILE.docx
-    python3 scripts/thai_docx build  IN.md OUT.docx [flags]     (not yet: v0.1)
+    python3 scripts/thai_docx check   FILE.docx
+    python3 scripts/thai_docx build   IN.md OUT.docx [flags]
+    python3 scripts/thai_docx profile list | show | save | export | import
+    python3 scripts/thai_docx grill   --said "the user's own message"
 
 Standard library only; no network, no subprocesses (ADR 0011).
 """
@@ -15,9 +17,9 @@ import sys
 if __package__ in (None, ""):
     # `python3 scripts/thai_docx …` runs this file as a script, not a package.
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
-    from thai_docx import build, check
+    from thai_docx import build, check, grill, profiles
 else:
-    from . import build, check
+    from . import build, check, grill, profiles
 
 
 def main(argv: list[str]) -> int:
@@ -25,7 +27,11 @@ def main(argv: list[str]) -> int:
         return check.main(argv[1:])
     if argv and argv[0] == "build":
         return build.main(argv[1:])
-    print(json.dumps({"ok": False, "error": "usage: thai_docx check FILE.docx | build IN.md OUT.docx"}))
+    if argv and argv[0] == "profile":
+        return profiles.main(argv[1:])
+    if argv and argv[0] == "grill":
+        return grill.main(argv[1:])
+    print(json.dumps({"ok": False, "error": "usage: thai_docx check FILE.docx | build IN.md OUT.docx | profile ... | grill --said ..."}))
     return 2
 
 

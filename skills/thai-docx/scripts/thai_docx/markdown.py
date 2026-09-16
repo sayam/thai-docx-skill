@@ -1,11 +1,11 @@
-"""Markdown → a small block/inline tree, for the dialect ADR 0010 accepts.
+"""Markdown → a small block/inline tree, for the dialect ADR 0022 accepts.
 
 The block and inline parsers are a port of commonmark.js 0.31.2, the CommonMark
 reference implementation (BSD-2-Clause, Copyright (c) 2014 John MacFarlane; its
 licence is reproduced in LICENSES/commonmark.js.txt beside this skill). Extended
 here with GFM tables, strikethrough, extended autolinks and task list items, and
 GitHub footnotes. Anything outside the
-dialect raises `Unsupported` with the line it was found on (ADR 0005, 0010).
+dialect raises `Unsupported` with the line it was found on (ADR 0022, 0023).
 
 It is written to be ported line for line to JavaScript (ADR 0008), so it never
 leans on what only Python means: whitespace, digits and punctuation are named
@@ -42,6 +42,12 @@ ENTITIES: dict[str, str] = json.loads(
 FLAGS = ("b", "i", "strike", "code", "u", "sup", "sub")
 ALLOWED_TAGS = ("br", "sup", "sub", "u", "kbd")
 CODE_INDENT = 4
+
+
+# Deepest nesting of blocks, and of inline formatting within a block, that is read.
+# Past it every later step recurses; a limit both implementations share turns a
+# stack overflow — at a depth that differs by runtime — into the same refusal.
+MAX_DEPTH = 100
 
 
 class Unsupported(Exception):
@@ -200,7 +206,7 @@ class Node:
     __slots__ = ("type", "parent", "first_child", "last_child", "prev", "next", "open", "line", "string_content",
                  "literal", "info", "level", "list_data", "fence_char", "fence_length", "fence_offset", "is_fenced",
                  "html_type", "destination", "title", "label", "aligns", "rows", "task", "math", "task_ok", "extended", "table_failed",
-                 "lines", "fn_id")
+                 "lines")
 
     def __init__(self, type_: str, line: int = 0):
         self.type = type_
@@ -227,8 +233,7 @@ class Node:
         self.task_ok = False
         self.extended = False  # a GFM extended autolink, not CommonMark
         self.table_failed = False  # a delimiter row under this paragraph did not fit its header
-        self.lines = None  # paragraph: [(line number, text)] for error messages
-        self.fn_id = 0
+        self.lines = None  # paragraph: [(line number, text, indented)]
 
     def append_child(self, child: "Node") -> None:
         child.unlink()
@@ -380,6 +385,11 @@ class BlockParser:
     def add_child(self, tag: str) -> Node:
         while not _can_contain(self.tip.type, tag):
             self.finalize(self.tip, self.line_number - 1)
+        depth, above = 1, self.tip
+        while above.parent is not None:
+            depth, above = depth + 1, above.parent
+        if depth > MAX_DEPTH:
+            raise Unsupported(self.line_number, f"blocks nested more than {MAX_DEPTH} deep are not supported")
         child = Node(tag, self.line_number)
         if tag == "paragraph":
             child.lines = []
@@ -676,12 +686,8 @@ def _finalize_html_block(p, b):
     raise Unsupported(b.line, "HTML blocks are not supported; only <br>, <sup>, <sub>, <u>, <kbd> inside text, and comments")
 
 
-def _finalize_item(p, b):
-    pass
-
-
 _FINALIZE = {
-    "document": _finalize_document, "list": _finalize_noop, "block_quote": _finalize_noop, "item": _finalize_item,
+    "document": _finalize_document, "list": _finalize_noop, "block_quote": _finalize_noop, "item": _finalize_noop,
     "footnote_def": _finalize_noop, "heading": _finalize_noop, "thematic_break": _finalize_noop,
     "code_block": _finalize_code_block, "html_block": _finalize_html_block, "paragraph": _finalize_noop,
     "table": _finalize_noop,
@@ -1749,6 +1755,7 @@ class Document:
         self.footnotes: dict[str, list[dict]] = {}
         self.footnote_order: list[str] = []  # by first reference
         self.front_matter: dict[str, str] = {}
+        self.front_matter_lines: dict[str, int] = {}  # key -> the line it was last given on
         self.warnings: list[str] = []
         self.pending: dict[str, list[dict]] = {}
 
@@ -1771,8 +1778,7 @@ def parse(text: str) -> Document:
     bp = BlockParser()
     root = bp.parse(body)
     _resolve_inlines(bp, root)
-    counter = {"n": 0}
-    doc.blocks = _blocks(bp, root, doc, counter)
+    doc.blocks = _blocks(bp, root, doc)
     unreferenced = [label for label in bp.footnote_defs if label not in doc.footnotes]
     if unreferenced:
         fn = bp.footnote_defs[unreferenced[0]]
@@ -1781,7 +1787,7 @@ def parse(text: str) -> Document:
     return doc
 
 
-re_front_matter_line = re.compile("^([A-Za-z_][A-Za-z0-9_-]*):(?:[ \\t]+(.*))?$")
+re_front_matter_line = re.compile("^([A-Za-z_][A-Za-z0-9_-]*):(?:[ \\t]+([^\\n]*))?$")
 
 
 def _front_matter(lines: list[str], doc: Document) -> int:
@@ -1792,10 +1798,12 @@ def _front_matter(lines: list[str], doc: Document) -> int:
     if not lines or lines[0] != "---":
         return 0
     found: dict[str, str] = {}
+    at: dict[str, int] = {}
     for i in range(1, len(lines)):
         line = lines[i]
         if line in ("---", "...") and found:
             doc.front_matter.update(found)
+            doc.front_matter_lines.update(at)
             return i + 1
         if not line.strip(" \t"):
             continue
@@ -1806,7 +1814,18 @@ def _front_matter(lines: list[str], doc: Document) -> int:
         if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
             v = v[1:-1]
         found[m.group(1)] = v
+        at[m.group(1)] = i + 1
     return 0
+
+
+def _inline_depth_within(block: Node, line: int) -> None:
+    """Refuse inline formatting nested past MAX_DEPTH, before any walk recurses into it."""
+    stack = [(n, 1) for n in block.children()]
+    while stack:
+        node, depth = stack.pop()
+        if depth > MAX_DEPTH:
+            raise Unsupported(line, f"inline formatting nested more than {MAX_DEPTH} deep is not supported")
+        stack.extend((n, depth + 1) for n in node.children())
 
 
 def _resolve_inlines(bp: BlockParser, node: Node) -> None:
@@ -1814,6 +1833,7 @@ def _resolve_inlines(bp: BlockParser, node: Node) -> None:
         if child.type in ("paragraph", "heading"):
             ip = InlineParser(bp, child.line)
             ip.parse(child)
+            _inline_depth_within(child, child.line)
             _link_extended(child)
         elif child.type == "table":
             parsed = []
@@ -1823,6 +1843,7 @@ def _resolve_inlines(bp: BlockParser, node: Node) -> None:
                     holder = Node("paragraph", no)
                     holder.string_content = cell
                     InlineParser(bp, no).parse(holder)
+                    _inline_depth_within(holder, no)
                     _link_extended(holder)
                     row.append(holder)
                 parsed.append(row)
@@ -1831,7 +1852,7 @@ def _resolve_inlines(bp: BlockParser, node: Node) -> None:
             _resolve_inlines(bp, child)
 
 
-def _inlines(bp: BlockParser, block: Node, doc: Document, counter: dict) -> list[dict]:
+def _inlines(bp: BlockParser, block: Node, doc: Document) -> list[dict]:
     out: list[dict] = []
     tags = {"sup": 0, "sub": 0, "u": 0, "kbd": 0}
 
@@ -1937,14 +1958,62 @@ def _plain(node: Node) -> str:
     return "".join(parts)
 
 
-def _blocks(bp: BlockParser, node: Node, doc: Document, counter: dict) -> list[dict]:
+DIRECTIVES = ("front", "chapters", "back", "appendices", "toc", "list-of-tables", "list-of-figures")
+re_directive = re.compile("<!--[ \\t]*([a-z-]+)[ \\t]*-->")  # fullmatch
+
+
+re_near_directive = re.compile("<!--[ \\t]*([A-Za-z][A-Za-z _-]{0,30}?)[ \\t]*-->")  # fullmatch
+DIRECTIVE_ALIASES = {"chapter": "chapters", "appendix": "appendices", "list-of-table": "list-of-tables",
+                     "list-of-figure": "list-of-figures", "table-of-contents": "toc", "contents": "toc"}
+
+
+def _edit_distance(a: str, b: str) -> int:
+    row = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        prev, row[0] = row[0], i
+        for j, cb in enumerate(b, 1):
+            prev, row[j] = row[j], min(row[j] + 1, row[j - 1] + 1, prev + (ca != cb))
+    return row[len(b)]
+
+
+def _meant_directive(body: str) -> str | None:
+    """The directive a comment of a word or two looks meant as: the same but for case or
+    spacing, a known slip (chapter, appendix), or one or two letters off a long name."""
+    m = re_near_directive.fullmatch(body)
+    if m is None:
+        return None
+    word = re.sub("[ _]+", "-", m.group(1).lower())
+    if word in DIRECTIVES:
+        return word
+    if word in DIRECTIVE_ALIASES:
+        return DIRECTIVE_ALIASES[word]
+    for name in DIRECTIVES:
+        if _edit_distance(word, name) <= (2 if len(name) >= 6 else 1):
+            return name
+    return None
+
+
+def _blocks(bp: BlockParser, node: Node, doc: Document) -> list[dict]:
     out = []
     for child in node.children():
         t = child.type
         if t == "heading":
-            out.append({"t": "heading", "level": child.level, "inlines": _inlines(bp, child, doc, counter)})
+            out.append({"t": "heading", "level": child.level, "inlines": _inlines(bp, child, doc)})
         elif t == "paragraph":
-            out.append({"t": "paragraph", "inlines": _inlines(bp, child, doc, counter)})
+            out.append({"t": "paragraph", "inlines": _inlines(bp, child, doc), "line": child.line})
+        elif t == "html_block":
+            # a comment alone at the top level may be a directive (ADR 0021); any other renders
+            # nothing — with a warning when it looks meant as one, so none is lost silently
+            body = child.string_content.strip(" \t\n")
+            d = re_directive.fullmatch(body)
+            if node.type == "document" and d and d.group(1) in DIRECTIVES:
+                out.append({"t": "directive", "name": d.group(1), "line": child.line})
+            else:
+                meant = _meant_directive(body)
+                if meant and d and d.group(1) == meant:
+                    bp.warnings.append(f"line {child.line}: <!-- {meant} --> works only at the top level, not inside a list, quotation or footnote; read as a comment")
+                elif meant:
+                    bp.warnings.append(f"line {child.line}: {body} is read as a comment; the comment that works is <!-- {meant} -->")
         elif t == "code_block":
             literal = child.literal or ""
             lines = literal.split("\n")
@@ -1952,19 +2021,19 @@ def _blocks(bp: BlockParser, node: Node, doc: Document, counter: dict) -> list[d
                 lines.pop()
             out.append({"t": "code", "lines": lines, "info": child.info or ("math" if child.math else ""), "math": child.math})
         elif t == "block_quote":
-            out.append({"t": "quote", "blocks": _blocks(bp, child, doc, counter)})
+            out.append({"t": "quote", "blocks": _blocks(bp, child, doc)})
         elif t == "list":
-            items = [_blocks(bp, item, doc, counter) for item in child.children()]
+            items = [_blocks(bp, item, doc) for item in child.children()]
             data = child.list_data
             out.append({"t": "list", "ordered": data["type"] == "ordered", "start": data["start"] or 1, "items": items})
         elif t == "thematic_break":
             out.append({"t": "break"})
         elif t == "table":
-            rows = [[_inlines(bp, cell, doc, counter) for cell in row] for row in child.rows]
-            out.append({"t": "table", "aligns": child.aligns, "rows": rows})
+            rows = [[_inlines(bp, cell, doc) for cell in row] for row in child.rows]
+            out.append({"t": "table", "aligns": child.aligns, "rows": rows, "line": child.line})
         elif t == "footnote_def":
             # footnote bodies are collected; their references may come later
-            doc.pending[child.label] = _blocks(bp, child, doc, counter)
+            doc.pending[child.label] = _blocks(bp, child, doc)
     if node.type == "document":
         for label in doc.footnote_order:
             doc.footnotes[label] = doc.pending[label]
