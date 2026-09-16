@@ -11,6 +11,7 @@ thai_docx profile list                       # every profile found, and which on
 thai_docx profile show NAME                  # its settings, and the settings a build resolves
 thai_docx profile save NAME [flags]          # the flags as a profile of the user's own
 thai_docx profile save NAME --from OTHER [flags]   # start from another profile
+thai_docx profile save NAME --from OTHER --default toc,size   # …with those settings back to their defaults
 thai_docx profile save NAME [flags] --project      # for this project, not the user
 thai_docx profile export NAME [OUT.json]     # the file to send to someone
 thai_docx profile import FILE.json [--name NAME] [--project]
@@ -36,7 +37,9 @@ Each prints one JSON line, as `build` does: `"ok"`, the `"path"` written or read
   `./.thai-docx/profiles/`, then `~/.thai-docx/profiles/`, then the skill's own.
 - **`save` and `import` write** to `~/.thai-docx/profiles/` — with `--project`, to
   `./.thai-docx/profiles/`. Nowhere else; a name is a name, never a path.
-- **Precedence:** the defaults, then the profile, then the flags typed after it.
+- **Precedence:** the defaults, then the profile, then the flags typed after it. A flag can
+  only add to a profile; `--default SETTING[,SETTING]` after `--profile` or `--from` takes
+  settings out of it first, back to their defaults.
 - **A profile is refused** when it holds a key or a value the build would refuse, naming the
   file and the key. The message is the flag's own, so fix the setting it names.
 - **Settings** are the build's own names (`size`, `align`, `page_numbers`, `margins`, …);

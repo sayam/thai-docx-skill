@@ -110,25 +110,21 @@ def test_every_flag_named_is_a_flag_the_build_takes_and_every_flag_is_named():
         assert _flags(text) <= usage
 
 
-def test_interview_asks_nine_questions_with_choices_in_each_language():
-    """ADR 0026: nine fixed questions, choice a the default, the same choices in both
-    languages, and a flag or a command for every choice but a."""
-    shapes = []
-    for language in ("**Thai**", "**English**"):
-        block = INTERVIEW.split(language, 1)[1].split("\n**", 1)[0].split("\n## ", 1)[0]
-        questions = re.findall(r"^> (\d)\. (.*)$", block, re.M)
-        assert [n for n, _ in questions] == [str(n) for n in range(1, 10)], language
-        shapes.append([re.findall(r"(?:^| · |— )([a-d])\) ", line) for _, line in questions])
-    assert shapes[0] == shapes[1] and all(choices[0] == "a" and len(choices) >= 2 for choices in shapes[0])
-    mapped = {row[0] for row in _table(INTERVIEW, "From answers to flags")}
-    assert mapped == {str(n) for n, choices in enumerate(shapes[0], 1) if len(choices) >= 2}
-    for row in _table(INTERVIEW, "From answers to flags"):
-        for flag in re.findall(r"`([^`]+)`", row[2]):
-            if "NAME" in flag or " N" in flag or "T,R,B,L" in flag:
-                continue
-            if flag.startswith("profile ") or flag in _flags(pf.USAGE):  # question 9 runs a command
-                continue
-            b.parse_args(shlex.split(flag) + ["in.md", "out.docx"])
+def test_the_interview_holds_no_question_the_command_did_not_give():
+    """ADR 0029: the questions reach the agent only in the grill command's JSON. On
+    2026-09-16 Haiku asked the questions straight from this file without running the
+    command; a file with no question in it leaves nothing to ask that way."""
+    from thai_docx import settings as st
+    for q in st.QUESTIONS:
+        for text in q["text"]:
+            assert text not in INTERVIEW, text
+        for c in q["choices"]:
+            for label in c["label"]:
+                if len(label) > 3 and label not in ("No", "Yes", "Left", "None", "Show"):
+                    assert label not in INTERVIEW, label
+    keys = re.search(r"keys, for when the user names only some of them: (.*)\.", " ".join(INTERVIEW.split())).group(1)
+    assert re.findall(r"`([a-z-]+)`", keys) == [q["key"] for q in st.QUESTIONS]
+    assert "grill --said" in INTERVIEW and '"questions"' in INTERVIEW and '"next"' in INTERVIEW
 
 
 def test_heading_styles_section_names_every_property_and_its_example_builds():

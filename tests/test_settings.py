@@ -12,6 +12,7 @@ import subprocess
 import sys
 
 from thai_docx import build as b
+from thai_docx import grill as g
 from thai_docx import profiles as pf
 from thai_docx import settings as st
 
@@ -38,6 +39,23 @@ def test_both_implementations_hold_the_same_entries():
         assert mine == theirs, mine["key"]
 
 
+def test_both_implementations_ask_the_same_questions():
+    """The interview is data in both (ADR 0029): the same questions, choices and labels."""
+    done = subprocess.run(["node", "-e", "process.stdout.write(JSON.stringify(require(process.argv[1]).QUESTIONS))", str(BUNDLE)],
+                          capture_output=True, text=True, timeout=60)
+    assert done.returncode == 0, done.stderr
+    assert json.loads(done.stdout) == json.loads(json.dumps(st.QUESTIONS))
+    for q in st.QUESTIONS:
+        assert 2 <= len(q["choices"]) <= 4 and all(len(c["label"]) == 2 and all(c["label"]) for c in q["choices"]), q["key"]
+        for c in q["choices"]:
+            if "set" in c:
+                opts, _, _ = st.parse_args(pf.as_flags(c["set"]) + ["in.md", "out.docx"])
+                assert all(g._same(opts[k], v) for k, v in c["set"].items()), (q["key"], c)
+        assert ("set" in q["choices"][0]) is (q["key"] != "save")
+        if q["key"] != "save":
+            assert all(g._same(st.DEFAULTS[k], v) for k, v in q["choices"][0]["set"].items()), "choice a is the default"
+
+
 def test_every_entry_is_whole_and_every_flag_once():
     kinds = {"value", "option", "list", "switch", "off"}
     reads = {"text", "points", "number", "numbers", "choice", "position"}
@@ -51,7 +69,7 @@ def test_every_entry_is_whole_and_every_flag_once():
         assert s.get("needs") in (None, *st.DEFAULTS, *st.STRUCTURES), s["key"]
         assert s.get("clashes") in (None, *st.CLASHES), s["key"]
         assert s["flag"].startswith("--") and len(s["doc"]) == 3, s["key"]
-    assert st.USAGE == b.USAGE and set(re.findall(r"--[a-z-]+", st.USAGE)) == set(flags) | {"--profile", "--allow-dir"}
+    assert st.USAGE == b.USAGE and set(re.findall(r"--[a-z-]+", st.USAGE)) == set(flags) | {"--profile", "--default", "--allow-dir"}
 
 
 def test_the_parser_the_report_and_the_profile_come_from_the_registry():

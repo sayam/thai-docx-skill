@@ -72,3 +72,29 @@ The first version, v0.1.0, not yet tagged.
   of every page it runs onto; by default it repeats (ADR 0022).
 - A release archive holding only the skill directory; the gates travel with forks and
   hold every pull request at merge (ADR 0018).
+- Grill from a profile and save as another (ADR 0029): `thai-docx grill from thesis save to
+  thesis-v1` (or `จาก`, `บันทึกเป็น`; `only`/`เฉพาะ` to ask some questions) starts the
+  interview from a profile's answers; the grill command gives the questions, the choice each
+  setting holds now, and the flags each choice means. `--default SETTING` gives a setting
+  of a profile back to its default, on `build --profile` and `profile save --from`.
+- A flag that changed nothing is said out loud (ADR 0028): the build warns when a table,
+  caption, region or thesis flag has nothing in the document to act on — exactly when the
+  file is the same with the flag as without — and when `--toc` would add a second table of
+  contents beside `<!-- toc -->`.
+- `references/settings.md`: every setting, its default and an example flag, generated from
+  the settings registry.
+
+### Changed
+
+- The settings live in one registry per implementation, and the defaults, the parser, the
+  usage line, the reported settings and the flags a profile holds are derived from it; the
+  build is split into modules along the layers of ADR 0028. No golden changed. The usage line
+  lists the flags in the registry's order.
+- SKILL.md is 6.8 KB: the settings table, the Markdown dialect, the finding codes and the
+  sandbox snippet moved into `references/`. The grill questions reach the agent only in the
+  grill command's output, and `references/interview.md` says how to ask them.
+
+### Fixed
+
+- The JavaScript reported a profile given by a path such as `./a//b.json` as typed where
+  Python writes `a/b.json`, in `profile show`, `export` and grill.

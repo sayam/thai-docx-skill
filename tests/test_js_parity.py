@@ -296,6 +296,20 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
         ["grill", "--said", "THAİ-DOCX GRILL"],  # a letter no ASCII fold touches: neither mode changes
         ["grill"],
         ["grill", "--message", "thai-docx grill"],
+        # grill from a profile, save as another (ADR 0029), and --default
+        ["grill", "--said", "thai-docx grill from report save to report-v1"],
+        ["grill", "--said", "ขอ thai-docx grill จาก report เฉพาะ toc,2,page-numbers"],
+        ["grill", "--said", "THAI_DOCX GRILL บันทึกเป็นv2 only 9"],
+        ["grill", "--said", "thai-docx grill from ./.thai-docx//profiles/report.json"],
+        ["grill", "--said", "thai-docx grill from missing"],
+        ["grill", "--said", "thai-docx grill save to ../x"],
+        ["grill", "--said", "thai-docx grill only margins"],
+        ["grill", "--said", "thai-docx grill from report from report"],
+        ["profile", "show", "./.thai-docx//profiles/./report.json"],
+        ["profile", "save", "mine", "--from", "report", "--default", "thai_digits,page_numbers", "--default=size", "--toc"],
+        ["build", "doc/in.md", out, "--profile", "report", "--default", "align,line_spacing"],
+        ["build", "doc/in.md", out, "--profile", "report", "--default", "bogus"],
+        ["build", "doc/in.md", out, "--default"],
     ]
 
 

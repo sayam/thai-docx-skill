@@ -141,3 +141,23 @@ def test_a_saved_profile_gives_the_same_document_as_the_flags(home, tmp_path):
     run("profile", "save", "house", *flags)
     viaprofile = run("build", "in.md", "profile.docx", "--profile", "house")
     assert direct["sha256"] == viaprofile["sha256"] and direct["settings"] == viaprofile["settings"]
+
+
+def test_default_takes_settings_out_of_a_profile_before_any_flag(home):
+    """ADR 0029: a flag can only add to a profile; --default gives settings back to their
+    defaults, so an answer of "no" can undo a profile's "yes"."""
+    assert run("profile", "save", "thesis", "--toc", "--size", "15", "--page-numbers")["ok"]
+    derived = run("profile", "save", "v1", "--from", "thesis", "--default", "toc", "--default=page_numbers", "--align", "thai")
+    assert derived["settings"] == {"size": 15, "align": "thai"}
+    (home / "in.md").write_text("# ก\n\nข\n", encoding="utf-8")
+    once = run("build", "in.md", "a.docx", "--profile", "thesis", "--default", "toc,page_numbers", "--align", "thai")
+    assert once["settings"]["toc"] is False and once["settings"]["page_numbers"] is False
+    assert once["sha256"] == run("build", "in.md", "b.docx", "--profile", "v1")["sha256"]
+    assert once["profile"]["sha256"] == run("profile", "show", "thesis")["sha256"], "the profile used is reported as it is"
+    # without a profile the settings already are their defaults
+    plain = run("build", "in.md", "c.docx", "--default", "toc")
+    assert plain["ok"] and plain["sha256"] == run("build", "in.md", "d.docx")["sha256"]
+    for args, error in ((["--default", "font_size"], '--default: unknown setting "font_size"'),
+                        (["--default"], "--default needs a value")):
+        refused = run("build", "in.md", "e.docx", "--profile", "thesis", *args)
+        assert refused["ok"] is False and refused["error"].startswith(error), refused

@@ -3177,7 +3177,7 @@ const USAGE = "usage: thai_docx build IN.md OUT.docx " + SETTINGS.map((s) =>
     : s.read[0] === "position" ? " [" + s.read[1].join("|") + "]"
     : s.read[0] === "choice" ? " " + s.read[1].join("|")
     : " " + s.usage) +
-  "]").join(" ") + " [--profile NAME|PATH] [--allow-dir DIR]";
+  "]").join(" ") + " [--profile NAME|PATH [--default SETTING[,SETTING]]] [--allow-dir DIR]";
 const NUMBER = /^[0-9]+(?:\.[0-9]+)?$/;
 
 class BuildError extends Error {
@@ -3312,6 +3312,57 @@ function settingsWarnings(opts, present) {
   }
   return out;
 }
+
+// The nine questions of grill mode, in order (ADR 0029): the port of QUESTIONS in settings.py.
+// A choice sets settings (`set`), or takes a value the user types (`other`), or says where the
+// answers are kept (`save`). Labels are [Thai, English].
+const QUESTIONS = [
+  { key: "font", text: ["ฟอนต์", "Font"], choices: [
+    { set: {"font": "TH Sarabun New"}, label: ["TH Sarabun New", "TH Sarabun New"] },
+    { set: {"font": "TH SarabunPSK"}, label: ["TH SarabunPSK", "TH SarabunPSK"] },
+    { set: {"font": "Sarabun"}, label: ["Sarabun", "Sarabun"] },
+    { other: {"font": "NAME"}, label: ["อื่น ๆ: พิมพ์ชื่อฟอนต์", "Other: the font name"] },
+  ] },
+  { key: "size", text: ["ขนาดตัวอักษร", "Font size"], choices: [
+    { set: {"size": 16}, label: ["16 pt", "16 pt"] },
+    { set: {"size": 14}, label: ["14 pt", "14 pt"] },
+    { set: {"size": 15}, label: ["15 pt", "15 pt"] },
+    { other: {"size": "N"}, label: ["อื่น ๆ: พิมพ์ขนาด", "Other: the size"] },
+  ] },
+  { key: "paper", text: ["กระดาษและขอบ", "Paper and margins"], choices: [
+    { set: {"paper": "a4", "margins": [1.0,  1.0,  1.0,  1.5]}, label: ["A4 ขอบซ้าย 1.5 นิ้ว ด้านอื่น 1 นิ้ว", "A4, left 1.5 in, others 1 in"] },
+    { set: {"paper": "a4", "margins": [1.0,  1.0,  1.0,  1.0]}, label: ["A4 ขอบ 1 นิ้วทุกด้าน", "A4, 1 in all round"] },
+    { set: {"paper": "letter", "margins": [1.0,  1.0,  1.0,  1.5]}, label: ["Letter ขอบซ้าย 1.5 นิ้ว ด้านอื่น 1 นิ้ว", "Letter, left 1.5 in, others 1 in"] },
+    { other: {"paper": "PAPER", "margins": "T,R,B,L"}, label: ["อื่น ๆ: กระดาษ และขอบ บน ขวา ล่าง ซ้าย เป็นนิ้ว", "Other: paper, and margins top, right, bottom, left in inches"] },
+  ] },
+  { key: "align", text: ["การจัดย่อหน้า", "Paragraph alignment"], choices: [
+    { set: {"align": "left"}, label: ["ชิดซ้าย", "Left"] },
+    { set: {"align": "thai"}, label: ["กระจายแบบไทย", "Thai distributed"] },
+  ] },
+  { key: "indent", text: ["ย่อหน้าบรรทัดแรกของเนื้อความ", "First-line indent of body paragraphs"], choices: [
+    { set: {"indent": 0.0}, label: ["ไม่ย่อ", "None"] },
+    { set: {"indent": 0.5}, label: ["0.5 นิ้ว", "0.5 in"] },
+    { set: {"indent": 1.0}, label: ["1 นิ้ว", "1 in"] },
+    { other: {"indent": "N"}, label: ["อื่น ๆ: พิมพ์เป็นนิ้ว", "Other: inches"] },
+  ] },
+  { key: "toc", text: ["สารบัญ", "Table of contents"], choices: [
+    { set: {"toc": false}, label: ["ไม่ใส่", "No"] },
+    { set: {"toc": true}, label: ["ใส่", "Yes"] },
+  ] },
+  { key: "page-numbers", text: ["เลขหน้า", "Page numbers"], choices: [
+    { set: {"page_numbers": false}, label: ["ไม่ใส่", "No"] },
+    { set: {"page_numbers": "top-right"}, label: ["ใส่", "Yes"] },
+  ] },
+  { key: "squiggles", text: ["เส้นหยักตรวจคำสะกด", "Spelling squiggles"], choices: [
+    { set: {"hide_spelling_errors": false}, label: ["แสดง", "Show"] },
+    { set: {"hide_spelling_errors": true}, label: ["ซ่อน (ซ่อนคำที่สะกดผิดจริงด้วย)", "Hide (hides real typos too)"] },
+  ] },
+  { key: "save", text: ["บันทึกการตั้งค่านี้ไว้ใช้ครั้งต่อไป", "Keep these settings for next time"], choices: [
+    { save: null, label: ["ไม่บันทึก", "No"] },
+    { save: "home", label: ["บันทึกเป็นของฉัน: พิมพ์ชื่อ", "Yes, as mine: the name"] },
+    { save: "project", label: ["บันทึกไว้ในโปรเจกต์นี้: พิมพ์ชื่อ", "Yes, in this project: the name"] },
+  ] },
+];
 
 // ---- 48-layout.js ----------------------------------------------------------
 // thai-docx — layout: the port of scripts/thai_docx/layout.py. What the parsed document declares,
@@ -4815,10 +4866,19 @@ function profileCheckName(name) {
   return name;
 }
 
+// A path as Python's pathlib writes it: "." and empty components dropped, a leading "//"
+// kept, "." for nothing. POSIX only; on Windows the path stays as given.
+function profilePathString(p) {
+  const path = require("path");
+  if (path.sep !== "/") return p;
+  const root = p.startsWith("//") && !p.startsWith("///") ? "//" : p.startsWith("/") ? "/" : "";
+  return root + p.split("/").filter((x) => x !== "" && x !== ".").join("/") || ".";
+}
+
 function profileFind(name) {
   const fs = require("fs");
   const path = require("path");
-  if (profileIsPath(name)) return ["path", name];
+  if (profileIsPath(name)) return ["path", profilePathString(name)];
   profileCheckName(name);
   for (const [where, directory] of profileDirectories()) {
     const p = path.join(directory, name + ".json");
@@ -4897,7 +4957,7 @@ function profileListing() {
   return out;
 }
 
-const PROFILE_USAGE = "usage: thai_docx profile list | show NAME | save NAME [--from NAME] [--project] [build flags] | " +
+const PROFILE_USAGE = "usage: thai_docx profile list | show NAME | save NAME [--from NAME [--default SETTING[,SETTING]]] [--project] [build flags] | " +
   "export NAME [OUT.json] | import FILE.json [--name NAME] [--project]";
 
 // Take `--name VALUE` or `--name=VALUE` out of argv; null when it is not there.
@@ -4923,6 +4983,39 @@ function profileTakeFlag(argv, name) {
   return [out, value];
 }
 
+// Take every `--default SETTING[,SETTING]` out of argv: the settings a profile gives back
+// to their defaults before any flag applies (ADR 0029).
+function profileTakeDefaults(argv) {
+  const out = [];
+  const keys = [];
+  let i = 0;
+  while (i < argv.length) {
+    const at = argv[i].indexOf("=");
+    const head = at < 0 ? argv[i] : argv[i].slice(0, at);
+    if (head !== "--default") {
+      out.push(argv[i]);
+      i += 1;
+      continue;
+    }
+    if (at < 0 && i + 1 >= argv.length) throw new ProfileError("--default needs a value");
+    const value = at >= 0 ? argv[i].slice(at + 1) : argv[i + 1];
+    i += at >= 0 ? 1 : 2;
+    for (const key of value.split(",")) {
+      if (!Object.prototype.hasOwnProperty.call(PROFILE_FLAGS, key)) {
+        throw new ProfileError('--default: unknown setting "' + key + '"; the settings are ' + Object.keys(PROFILE_FLAGS).join(", "));
+      }
+      keys.push(key);
+    }
+  }
+  return [out, keys];
+}
+
+function profileWithout(settings, keys) {
+  const out = {};
+  for (const [k, v] of Object.entries(settings)) if (!keys.includes(k)) out[k] = v;
+  return out;
+}
+
 function profileRun(argv) {
   const path = require("path");
   const fs = require("fs");
@@ -4942,9 +5035,10 @@ function profileRun(argv) {
     rest = rest.slice(1);
     const project = rest.includes("--project");
     rest = rest.filter((a) => a !== "--project");
-    let base;
+    let base, reset;
+    [rest, reset] = profileTakeDefaults(rest);
     [rest, base] = profileTakeFlag(rest, "--from");
-    const settings = base === null ? {} : profileRead(profileFind(base)[1]).settings;
+    const settings = base === null ? {} : profileWithout(profileRead(profileFind(base)[1]).settings, reset);
     let opts;
     try {
       [opts] = parseArgs(profileAsFlags(settings).concat(rest, ["in.md", "out.docx"]));
@@ -4995,40 +5089,60 @@ function profileRun(argv) {
 // `--profile NAME` → the profile's flags before the rest, and what to report.
 function profileExpand(argv) {
   const path = require("path");
-  const [rest, name] = profileTakeFlag(argv.slice(), "--profile");
+  const [withoutDefaults, reset] = profileTakeDefaults(argv.slice());
+  const [rest, name] = profileTakeFlag(withoutDefaults, "--profile");
   if (name === null) return [rest, null];
   const [where, p] = profileFind(name);
   const data = profileRead(p);
   const used = { name: path.basename(p, ".json"), where, path: p, sha256: profileDigest(data.settings) };
-  return [profileAsFlags(data.settings).concat(rest), used];
+  return [profileAsFlags(profileWithout(data.settings, reset)).concat(rest), used];
 }
 
 // ---- 56-grill.js -----------------------------------------------------------
-// Grill mode is the user's word, not the agent's choice (ADR 0026) — the port of
-// thai_docx/grill.py. The agent hands the command the user's own message; the command,
-// not the model, says which mode the build is in.
+// Grill mode is the user's word, not the agent's choice (ADR 0026, restated by 0029) — the
+// port of thai_docx/grill.py. The agent hands the command the user's own message; the
+// command, not the model, says which mode the build is in — and, in grill mode, which
+// questions to ask, which choice each setting holds now, and what every choice means.
 
 const GRILL_USAGE = "usage: thai_docx grill --said \"the user's own message, word for word\"";
 const GRILL_PHRASE = "thai-docx grill";
 const GRILL_MAX_CHARS = 20000;
+// the words that may follow the phrase (ADR 0029): part → [English, Thai]
+const GRILL_PARTS = { from: ["from", "จาก"], save_to: ["save to", "บันทึกเป็น"], only: ["only", "เฉพาะ"] };
+
+class GrillError extends Error {
+  constructor(what) {
+    super(what);
+    this.what = what;
+  }
+}
+
+// ASCII case folded and `_` read as `-`: one character for one, so positions hold.
+function grillFold(text) {
+  let out = "";
+  for (const ch of text) out += ch >= "A" && ch <= "Z" ? String.fromCharCode(ch.charCodeAt(0) + 32) : ch === "_" ? "-" : ch;
+  return out;
+}
+
+function grillWords(message) {
+  const out = [];
+  let current = "";
+  for (const ch of message) {
+    if (/\s/.test(ch)) {
+      if (current) out.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  if (current) out.push(current);
+  return out;
+}
 
 // The message as the phrase is looked for in it: ASCII case folded, `_` read as `-`,
 // every run of whitespace one space. ASCII only, so both implementations fold alike.
 function grillPlain(message) {
-  const out = [];
-  let space = false;
-  for (const ch of message) {
-    if (/\s/.test(ch)) {
-      space = out.length !== 0;
-      continue;
-    }
-    if (space) out.push(" ");
-    space = false;
-    let c = ch;
-    if (c >= "A" && c <= "Z") c = String.fromCharCode(c.charCodeAt(0) + 32);
-    out.push(c === "_" ? "-" : c);
-  }
-  return out.join("");
+  return grillFold(grillWords(message).join(" "));
 }
 
 // The language the questions are asked in: Thai when the user wrote any Thai.
@@ -5043,17 +5157,140 @@ function grillMode(message) {
   return grillPlain(message).includes(GRILL_PHRASE) ? "grill" : "build";
 }
 
+// `from`, `save to` and `only`, read from the words directly after the phrase, as the user
+// wrote them; the first word that is none of them ends the reading.
+function grillParts(message) {
+  const joined = grillWords(message).join(" ");
+  let rest = joined.slice(grillPlain(message).indexOf(GRILL_PHRASE) + GRILL_PHRASE.length).split(" ");
+  if (rest.length && rest[0] === "") rest = rest.slice(1);
+  const found = {};
+  let i = 0;
+  while (i < rest.length) {
+    const word = rest[i];
+    let value = null;
+    let part = null;
+    for (const [name, [english, thai]] of Object.entries(GRILL_PARTS)) {
+      const said = english.split(" ");
+      const here = rest.slice(i, i + said.length).map(grillFold);
+      if (here.length === said.length && here.every((w, k) => w === said[k])) {
+        part = name;
+        i += said.length;
+        break;
+      }
+      if (word.startsWith(thai)) {
+        part = name;
+        i += 1;
+        value = word.slice(thai.length) || null;
+        break;
+      }
+    }
+    if (part === null) break;
+    if (Object.prototype.hasOwnProperty.call(found, part)) throw new GrillError("'" + GRILL_PARTS[part][0] + "' is given twice");
+    if (value === null) {
+      if (i >= rest.length) throw new GrillError("'" + GRILL_PARTS[part][0] + "' needs a word after it");
+      value = rest[i];
+      i += 1;
+    }
+    found[part] = value;
+  }
+  return found;
+}
+
+function grillSame(a, b) {
+  if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((x, k) => grillSame(x, b[k]));
+  return a === b;
+}
+
+// The flags that make a choice true against the settings in force: nothing for what already
+// holds, `--default` for a setting going back to its default, its flag otherwise.
+function grillArgs(chosen, now) {
+  const changed = {};
+  for (const [k, v] of Object.entries(chosen)) if (!grillSame(v, now[k])) changed[k] = v;
+  const reset = Object.keys(changed).filter((k) => grillSame(changed[k], DEFAULTS[k]));
+  const kept = {};
+  for (const [k, v] of Object.entries(changed)) if (!reset.includes(k)) kept[k] = v;
+  const out = profileAsFlags(kept);
+  return reset.length ? out.concat(["--default", reset.join(",")]) : out;
+}
+
+function grillQuestions(now, lang, only, saveTo) {
+  const k = lang === "th" ? 0 : 1;
+  const out = [];
+  QUESTIONS.forEach((q, index) => {
+    if ((saveTo !== null && q.key === "save") || (only !== null && !only.includes(q.key))) return;
+    const choices = [];
+    let matched = false;
+    q.choices.forEach((c, n) => {
+      const choice = { letter: "abcd"[n], label: c.label[k] };
+      if (c.set) {
+        choice.current = Object.entries(c.set).every(([key, v]) => grillSame(v, now[key]));
+        choice.args = grillArgs(c.set, now);
+        matched = matched || choice.current;
+      } else if (c.other) {
+        choice.args = Object.entries(c.other).flatMap(([key, placeholder]) => [SETTINGS.find((s) => s.key === key).flag, placeholder]);
+        choice.other = true;
+      } else {
+        choice.current = c.save === null;
+        choice.args = [];
+        choice.save = c.save;
+      }
+      choices.push(choice);
+    });
+    for (const choice of choices) if (choice.other) choice.current = !matched;
+    out.push({ number: index + 1, key: q.key, text: q.text[k], choices });
+  });
+  return out;
+}
+
 function grillRun(argv) {
   if (argv.length !== 2 || argv[0] !== "--said") return { ok: false, error: GRILL_USAGE };
   let message = argv[1];
   if (message.length > GRILL_MAX_CHARS) message = message.slice(0, GRILL_MAX_CHARS);
-  if (grillMode(message) === "grill") {
-    return { ok: true, mode: "grill", language: grillLanguage(message),
-             questions: "references/interview.md",
-             next: "ask the nine questions exactly as references/interview.md gives them, then build" };
+  if (grillMode(message) !== "grill") {
+    return { ok: true, mode: "build",
+             next: "build at once with the announced defaults; ask nothing first" };
   }
-  return { ok: true, mode: "build",
-           next: "build at once with the announced defaults; ask nothing first" };
+  let found, start = null, now = { ...DEFAULTS }, saveTo = null, only = null;
+  try {
+    found = grillParts(message);
+    if (Object.prototype.hasOwnProperty.call(found, "from")) {
+      const [where, p] = profileFind(found.from);
+      const data = profileRead(p);
+      [now] = parseArgs(profileAsFlags(data.settings).concat(["in.md", "out.docx"]));
+      start = { name: found.from, where, path: p, settings: data.settings };
+    }
+    if (Object.prototype.hasOwnProperty.call(found, "save_to")) {
+      saveTo = found.save_to;
+      if (profileIsPath(saveTo)) throw new GrillError("'save to' takes a profile name, not a path: " + saveTo);
+      profileCheckName(saveTo);
+    }
+    if (Object.prototype.hasOwnProperty.call(found, "only")) {
+      const keys = QUESTIONS.map((q) => q.key);
+      only = [];
+      for (let key of found.only.split(",")) {
+        key = /^[0-9]{1,2}$/.test(key) && Number(key) >= 1 && Number(key) <= keys.length ? keys[Number(key) - 1] : grillFold(key);
+        if (!keys.includes(key)) throw new GrillError("'" + key + "' is not a question; the questions are " + keys.join(", "));
+        only.push(key);
+      }
+    }
+  } catch (e) {
+    if (e instanceof GrillError || e instanceof ProfileError) return { ok: false, error: e.what };
+    throw e;
+  }
+  const lang = grillLanguage(message);
+  const base = start ? "--from " + found.from + " " : "";
+  let then;
+  if (saveTo !== null) {
+    then = "run `thai_docx profile save " + saveTo + " " + base + "ARGS`, then build with `--profile " + saveTo + "`";
+  } else {
+    then = "build with " + (start ? "`--profile " + found.from + "` and " : "") + "ARGS; for a save choice, first run" +
+      " `thai_docx profile save NAME " + base + "ARGS` (add `--project` for the project) and build with `--profile NAME`";
+  }
+  return { ok: true, mode: "grill", language: lang, start, save_to: saveTo,
+           questions: grillQuestions(now, lang, only, saveTo),
+           next: "ask these questions as references/interview.md says, the current choice marked; an unanswered" +
+             " question keeps its current choice. ARGS are the args of the chosen choices, in order, with the" +
+             " user's value in place of a placeholder. Then " + then };
 }
 
 // ---- 90-entry.js -----------------------------------------------------------
@@ -5278,7 +5515,7 @@ function checkDocument(bytes) {
   return JSON.parse(pyDumps(checkBytes(bytes, "<bytes>").asDict()));
 }
 
-const api = { VERSION, buildDocument, checkDocument, buildText, checkBytes, parseMarkdown, plainText, parseArgs, pyDumps, DEFAULTS, SETTINGS, cliMain };
+const api = { VERSION, buildDocument, checkDocument, buildText, checkBytes, parseMarkdown, plainText, parseArgs, pyDumps, DEFAULTS, SETTINGS, QUESTIONS, cliMain };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 root.ThaiDocx = api;
 if (typeof require !== "undefined" && typeof module !== "undefined" && require.main === module) process.exitCode = cliMain(process.argv.slice(2));
