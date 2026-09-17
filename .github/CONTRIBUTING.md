@@ -2,7 +2,9 @@
 
 Thank you for helping. This page is for changing the skill; to use it, read the
 [user guide](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en.md)
-([ภาษาไทย](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/th.md)).
+([ภาษาไทย](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/th.md)). Everyone who
+takes part follows the [code of conduct](https://github.com/sayam/thai-docx-skill/blob/main/CODE_OF_CONDUCT.md); how decisions are made is in
+[GOVERNANCE.md](https://github.com/sayam/thai-docx-skill/blob/main/GOVERNANCE.md).
 
 ## Ask first, in an issue
 
@@ -114,6 +116,34 @@ the rest is marked `export-ignore` (`docs/adr/0018`).
   shows its planted defects red.
 - **Synthetic content only** in fixtures, evidence and examples — no real people, documents or
   institutions.
+
+## How a pull request is reviewed
+
+Every pull request is reviewed by a code owner before it merges; the maintainer's own pull
+requests are reviewed against the same list by the maintainer and by the required checks
+(`scans`, `commits`, `tests`, `lint`, `deps`) and CodeQL's alerts ("Static analysis" above). A
+review looks at:
+
+1. **The claim.** The description says what changes for a user and why; a design change links
+   its ADR.
+2. **The test that went red.** A new or changed test fails without the change — the pull request
+   says how that was seen — and passes with it.
+3. **Both implementations.** Python and `js/` change together; the bundle is regenerated; parity
+   holds.
+4. **The goldens.** Unchanged, or changed on purpose with the parts named and a request to open the
+   files in Word 365 for Windows.
+5. **The limits of ADR 0025.** No network, subprocess, `eval`, environment read or new write path;
+   input from a user, an agent or a file is checked against an allowlist before use. A change that
+   moves a boundary updates `docs/assurance-case.md`.
+6. **What the agent reads.** SKILL.md and `references/` stay true (the tests say so) and SKILL.md
+   stays under 12,000 bytes; wording an agent follows is changed only with a note of how it was
+   tried on an agent.
+7. **Documentation.** The user guides, the settings reference and the CHANGELOG say what changed.
+8. **Dependencies and workflows.** New CI tools are pinned by hash and actions by commit SHA;
+   workflow permissions stay least-privilege.
+
+A reviewer approves, asks for changes with the item number, or explains why the change is declined.
+Nothing merges with a failing required check.
 
 ## Add a decision
 
