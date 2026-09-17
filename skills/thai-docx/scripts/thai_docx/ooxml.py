@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """What the checker and the builder both know about WordprocessingML.
 
 The data lives once, in `assets/ooxml.json`, and the JavaScript implementation

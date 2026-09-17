@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Sayam Sriphua
+// SPDX-License-Identifier: MIT
 // thai-docx — layout: the port of scripts/thai_docx/layout.py. What the parsed document declares,
 // before a byte is written: heading styles (ADR 0020), regions, captions and lists (ADR 0021, 0027).
 

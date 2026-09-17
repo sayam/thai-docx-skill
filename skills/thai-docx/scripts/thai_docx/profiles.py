@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """Profiles: a file of settings a user saves, shares and uses again (ADR 0024).
 
     thai_docx profile list

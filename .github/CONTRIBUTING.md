@@ -114,6 +114,10 @@ the rest is marked `export-ignore` (`docs/adr/0018`).
   edited into something else.
 - **Evidence for a new gate.** A gate in `gates.yaml` names the file in `docs/evidence/` that
   shows its planted defects red.
+- **SPDX lines on a new source file.** A new file in `js/`, the Python package, `tests/` or this
+  project's tools starts with SPDX comment lines: `SPDX-FileCopyrightText: <year> <your name>`
+  — you keep the copyright of what you write; add your own line to a file you change substantially —
+  then `SPDX-License-Identifier: MIT` (`tests/test_licensing.py`).
 - **Synthetic content only** in fixtures, evidence and examples — no real people, documents or
   institutions.
 

@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """tools/oracle_set.py: the documents a release is opened in (ADR 0012) — one per
 application, the same bytes as the goldens, and a checklist that names them all."""
 

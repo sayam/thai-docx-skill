@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Sayam Sriphua
+// SPDX-License-Identifier: MIT
 // thai-docx — writer: the port of scripts/thai_docx/writer.py. The body of word/document.xml;
 // Package in 51-parts.js adds the other parts. The same Markdown, images and settings give
 // the same bytes (ADR 0008).

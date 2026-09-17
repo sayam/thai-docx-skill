@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """`thai_docx build`: faithful to the Markdown (ADR 0005), the same bytes every
 run (ADR 0008), and never a file that fails its own checker (ADR 0007).
 """

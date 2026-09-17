@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """Inputs and drivers that hold the JavaScript implementation to the Python one
 (ADR 0008): the same Markdown reading, the same .docx bytes, the same checker
 report. Every generator is seeded; nothing here reads the clock or the network.

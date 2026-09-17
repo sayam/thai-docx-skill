@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Sayam Sriphua
+// SPDX-License-Identifier: MIT
 // thai-docx — base: text, hashing, and Python's JSON, spelled out so that this
 // JavaScript implementation prints what the Python one prints (ADR 0008, 0015).
 

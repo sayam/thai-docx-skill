@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """What a person who only uses the skill receives (ADR 0018): the skill directory and
 nothing else, the same bytes on every run, and one version everywhere it is stated.
 """

@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """Write the settings reference the agent reads from the settings registry (ADR 0028).
 
     python3 tools/gen_settings_docs.py           # write skills/thai-docx/references/settings.md

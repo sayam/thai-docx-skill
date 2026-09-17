@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """Profiles (ADR 0024): settings saved as data, used again, exported and imported —
 holding nothing a command line could not, and never read or written outside the profile
 directories of ADR 0025."""

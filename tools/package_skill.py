@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """Pack the skill for people who only use it: `skills/thai-docx/` as `thai-docx/` in
 one zip, and nothing else from this repository (ADR 0018).
 

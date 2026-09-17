@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """Build the synthetic documents a release is opened in, once per application (ADR 0012).
 
     python3 tools/oracle_set.py OUT_DIR

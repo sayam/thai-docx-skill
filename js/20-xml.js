@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Sayam Sriphua
+// SPDX-License-Identifier: MIT
 // thai-docx — XML: the element tree Python's xml.etree.ElementTree builds, for the
 // parts the checker reads. Namespaced tags are "{uri}local"; attributes keep only
 // non-xmlns names; `text` is the text before the first child. Malformed XML — an

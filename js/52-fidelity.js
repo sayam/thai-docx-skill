@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Sayam Sriphua
+// SPDX-License-Identifier: MIT
 // thai-docx — fidelity: the port of scripts/thai_docx/fidelity.py. The text the package must hold,
 // from the Markdown, and the text it does hold, read back from its XML (ADR 0023).
 

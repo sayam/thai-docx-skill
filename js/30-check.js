@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Sayam Sriphua
+// SPDX-License-Identifier: MIT
 // thai-docx — check: the JavaScript port of scripts/thai_docx/check.py. Findings,
 // messages, counts and their order match it exactly (ADR 0004, 0005, 0008, 0011).
 

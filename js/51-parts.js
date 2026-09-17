@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Sayam Sriphua
+// SPDX-License-Identifier: MIT
 // thai-docx — parts: the port of scripts/thai_docx/parts.py. The package around the body: sections,
 // styles, numbering, settings, footnotes, headers and footers, and the package in order.
 

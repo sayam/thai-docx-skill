@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """thai_docx — build a Thai-correct .docx from Markdown, or check one.
 
     python3 scripts/thai_docx check   FILE.docx

@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Sayam Sriphua
+// SPDX-License-Identifier: MIT
 // The CommonMark reference implementation (commonmark.js 0.31.2) reduced to the
 // canonical sequence tests/oracle.py builds — the strict oracle for the core
 // dialect. Reads a JSON array of Markdown strings on stdin, writes a JSON array

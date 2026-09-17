@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """Measure which characters expat — the XML parser behind the Python checker —
 accepts in names, and write them to skills/thai-docx/assets/xml-names.json for
 the JavaScript XML reader (ADR 0008, 0017).

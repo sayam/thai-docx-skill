@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """The settings registry (ADR 0028): one entry per setting, the same entries in both
 implementations, and everything that describes a setting derived from them — the parser,
 the defaults, the report, the flags a profile holds, and the reference the agent reads."""

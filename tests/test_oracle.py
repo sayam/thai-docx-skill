@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """The parser held to two reference implementations over generated documents
 (ADR 0015): commonmark.js on CommonMark-only text, cmark-gfm on GFM text.
 

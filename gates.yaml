@@ -107,6 +107,12 @@ gates:
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_settings.py]}
     proved_by: docs/evidence/2026-09-16-settings-registry.md
+  - id: sources-name-their-licence
+    title: Every source file of the project — the skill's Python and JavaScript, the tests and this project's own tools — opens with its SPDX copyright and licence lines, the commonmark.js ports naming BSD-2-Clause and their author too, and the bundle states its parts' lines once (ADR 0003)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_licensing.py]}
+    proved_by: docs/evidence/2026-09-17-sources-name-their-licence.md
   - id: python-lints-clean
     title: PEP 8 as pycodestyle's errors and warnings read it, lines of at most 150 characters, pyflakes and bugbear find nothing in the skill's Python, the tools or the tests (ruff.toml)
     kind: job
