@@ -113,6 +113,16 @@ gates:
     severity: blocking
     enforced_by: {job: lint, step: eslint}
     proved_by: docs/evidence/2026-09-17-coding-standards.md
+  - id: deps-have-no-known-vulnerabilities
+    title: Every push and pull request checks the pinned development dependencies against the OSV database for known vulnerabilities and malicious packages, and fails on any; a release is not built while one is open (CONTRIBUTING.md, Dependencies)
+    kind: job
+    severity: blocking
+    enforced_by: {job: deps}
+  - id: sast-codeql
+    title: CodeQL's security-extended queries analyse the Python, the JavaScript and the workflows on every pull request, every push to main and weekly; an alert of medium severity or higher is fixed or dismissed with a reason before merge (CONTRIBUTING.md, Static analysis)
+    kind: job
+    severity: advisory
+    enforced_by: {job: codeql}
   - id: suite-covers-the-skill
     title: The suite reaches at least 97% of the branches of the skill's Python, command-line runs included (.coveragerc)
     kind: job

@@ -88,3 +88,18 @@ jobs:
         working-directory: tests/js
       - name: eslint
         run: tests/js/node_modules/.bin/eslint --config tests/js/eslint.config.cjs js
+
+  # Known vulnerabilities and malicious packages in the pinned development dependencies, from the
+  # OSV database (gate deps-have-no-known-vulnerabilities). The skill has none at run time. The
+  # scanner runs from its image pinned by digest (v2.6.0), called directly: the action's own
+  # wrapper names its image by tag and passes a scan that found no lockfile.
+  deps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: osv-scanner
+        uses: docker://ghcr.io/google/osv-scanner-action@sha256:71ad04ab2f8798be47870f9b18817ad317c2f8f2f97aa6726ba10d5578bc174a # v2.6.0
+        with:
+          entrypoint: osv-scanner
+          args: scan source --lockfile=requirements.txt:requirements/dev.txt --lockfile=tests/js/package-lock.json
