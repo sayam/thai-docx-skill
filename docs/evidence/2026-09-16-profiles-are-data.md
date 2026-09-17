@@ -67,5 +67,5 @@ Two of these were green when first run and are here because the gap was real:
   the file it read, and `import` on another home is tested, but only within one tree.
 - Rendering (ADR 0012): what a profile builds is a document like any other, checked by the
   goldens of `2026-09-16-options-structure-goldens-and-mutations.md`.
-- Profiles added by contributors to `skills/thai-docx/profiles/`: the search order is tested,
-  the skill ships no profile of its own yet.
+- Profiles the skill could ship in `skills/thai-docx/profiles/`: the search order is tested; the
+  skill ships no profile of its own, so the directory does not exist.

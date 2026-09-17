@@ -136,6 +136,7 @@ gates:
     kind: job
     severity: advisory
     enforced_by: {job: codeql}
+    proved_by: docs/evidence/2026-09-18-codeql-alerts-triaged.md
   - id: scorecard-published
     title: OpenSSF Scorecard reads main from a git clone (not the export-ignore tarball) weekly and on every push to main, publishes to api.scorecard.dev for the badge and uploads its findings to code scanning; the score is a report, not a merge gate
     kind: job

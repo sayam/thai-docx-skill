@@ -11,6 +11,9 @@ same program makes it. An app that cannot run Python on an uploaded file cannot 
 this; ask it for Markdown instead and build the file yourself with
 `python3 thai-docx/scripts/thai_docx build doc.md doc.docx`.
 
+This route has not been tried in any app yet. If you try it, please say in an
+[issue](https://github.com/sayam/thai-docx-skill/issues) which app you used and what happened.
+
 ---
 
 You have `thai-docx-<version>.zip`, uploaded with this message. It holds a program that

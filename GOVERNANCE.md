@@ -11,7 +11,8 @@ decision is made and recorded, who does what, and what happens if the maintainer
   [`docs/adr/`](docs/adr/README.md): where it came from, the decision, why, what it leaves out, and
   when it expires. A record is never edited into another decision; a new record supersedes it.
 - **Every change reaches `main` through a pull request** that passes the required checks —
-  `scans`, `commits`, `tests`, `lint`, `deps` — for everyone, the maintainer included
+  `scans`, `commits`, `tests`, `lint`, `deps`, and CodeQL's code-scanning results — for everyone,
+  the maintainer included
   ([ADR 0018](docs/adr/0018-users-get-the-skill-contributors-get-the-gates.md)).
 - **Rendering questions are settled in Word 365 for Windows**, the reference application; other
   applications' differences are recorded in `docs/evidence/`, not fixed by changing bytes.

@@ -1,7 +1,8 @@
 # 0003 — License everything under MIT, and ship the notice inside the skill
 
-- Status: accepted
+- Status: superseded
 - Decided: 2026-09-15
+- Superseded by: 0031
 
 ## Where it came from
 

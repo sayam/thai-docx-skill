@@ -16,6 +16,9 @@
 /ruff.toml export-ignore
 /.coveragerc export-ignore
 /SOURCES.md export-ignore
+/CODE_OF_CONDUCT.md export-ignore
+/GOVERNANCE.md export-ignore
+/ROADMAP.md export-ignore
 /CITATION.cff export-ignore
 
 # The generated bundle is diffed as text but not counted as hand-written code.
