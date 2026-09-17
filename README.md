@@ -57,6 +57,8 @@ python3 tools/gates_doctor.py                                   # the gates
 python3 -m pip install --require-hashes -r requirements/dev.txt
 (cd tests/js && npm ci --ignore-scripts)                        # the CommonMark reference
 python3 -m pytest -q tests                                      # the suite
+python3 -m ruff check skills/thai-docx/scripts tools tests      # the lint (ruff.toml)
+python3 -m coverage run -m pytest -q tests && python3 -m coverage combine -q && python3 -m coverage report
 ```
 
 CI runs both on every push and pull request, and lints every commit they add.

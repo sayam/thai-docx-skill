@@ -1,0 +1,12 @@
+# The suite's reach into the skill's Python (gate suite-covers-the-skill). Subprocesses are
+# followed: most command-line tests run `thai_docx` as a user would.
+[run]
+source = skills/thai-docx/scripts/thai_docx
+branch = true
+parallel = true
+patch = subprocess
+
+[report]
+fail_under = 97
+skip_covered = true
+show_missing = true
