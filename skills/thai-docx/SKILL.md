@@ -77,8 +77,9 @@ document gives nothing to act on, is a warning, not an error.
 ## Grill mode
 
 You do not choose this mode and an argument you were invoked with is not the user's word.
-Before asking anything, give the script the user's own message — all of it, word for word,
-the skill's name and anything said to the skill included — and obey its answer:
+Before asking anything, give the script the user's own message — all of it, word for word.
+If the message begins with this skill's name and words after it, those words are part of the
+message: pass them, never only what follows them. Then obey the script's answer:
 
 ```sh
 python3 <skill>/scripts/thai_docx grill --said "ช่วยทำไฟล์ word ให้หน่อย"
