@@ -1,6 +1,6 @@
 ---
 name: thai-docx
-description: Create Microsoft Word (.docx) documents containing Thai or mixed Thai–English text that render correctly in Word, LibreOffice, Google Docs and WPS — no spelling squiggles under every Thai word, Thai lines that wrap inside words, working bullets and bold. Write the content as Markdown and run one bundled command that builds and checks the file without changing a character. Use whenever the user asks for a Word or .docx file and the content includes Thai (ภาษาไทย, ไฟล์ Word, เอกสาร docx), or reports a Thai .docx with broken spacing or red squiggles. It builds at once with announced defaults. When the user's message says "thai-docx grill", use this skill to ask its fixed questions about font, page and layout before building.
+description: Make or check a Word .docx with Thai (ไฟล์ Word ภาษาไทย). When the user's message says "thai-docx grill", use this skill to ask its fixed questions first. https://github.com/sayam/thai-docx-skill
 license: MIT (LICENSE.txt)
 compatibility: Runs with Python 3.11+ (standard library only) or a JavaScript runtime (Node.js, or a sandbox that runs async JavaScript). No network access or package installs.
 metadata:

@@ -8,6 +8,11 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ## [Unreleased]
 
+### Changed
+
+- The skill's description is 195 characters (was 731), so the skill uploads in the Claude
+  apps, which take 200, and ends with the repository's address.
+
 ## [0.1.0] - 2026-09-17
 
 The first version. Checked in Word 365 for Windows (desktop and web), Word for macOS, Google
