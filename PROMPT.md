@@ -1,5 +1,7 @@
 # thai-docx for chat apps without skills
 
+[ภาษาไทย: อธิบายทีละขั้น](PROMPT.th.md)
+
 For an AI chat app that does not load Agent Skills but can run Python on files you
 upload. Upload `thai-docx-<version>.zip` from this repository's releases, then paste
 everything below the line as your first message, followed by your request.

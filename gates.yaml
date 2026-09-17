@@ -112,8 +112,8 @@ gates:
     severity: blocking
     enforced_by: {job: tests}
   - id: skill-md-tells-the-truth
-    title: SKILL.md passes the Agent Skills validator from the downloaded archive, stays under its ceiling, and every default, flag, finding code, command and sandbox snippet it gives is the one the skill has, run as written, and every reference it has is linked; the user guides' examples read as they say and name only real flags (ADR 0007, 0014, 0028, 0029)
+    title: SKILL.md passes the Agent Skills validator from the downloaded archive, stays under its ceiling, and every default, flag, finding code, command and sandbox snippet it gives is the one the skill has, run as written, and every reference it has is linked; the user guides' examples read as they say and name only real flags, their links reach pages and headings that exist in both languages, their commands and the README's run as written from the archive, and the archive they name is this version (ADR 0007, 0014, 0028, 0029)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_skill_md.py]}
-    proved_by: [docs/evidence/2026-09-15-skill-md-archive-and-agents.md, docs/evidence/2026-09-16-agents-with-the-grown-skill.md, docs/evidence/2026-09-16-agents-after-the-redesign.md, docs/evidence/2026-09-17-agents-with-the-flag-table.md, docs/evidence/2026-09-17-a-description-of-200-characters.md]
+    proved_by: [docs/evidence/2026-09-15-skill-md-archive-and-agents.md, docs/evidence/2026-09-16-agents-with-the-grown-skill.md, docs/evidence/2026-09-16-agents-after-the-redesign.md, docs/evidence/2026-09-17-agents-with-the-flag-table.md, docs/evidence/2026-09-17-a-description-of-200-characters.md, docs/evidence/2026-09-17-user-guides-hold.md]

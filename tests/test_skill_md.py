@@ -15,6 +15,8 @@ import shlex
 import shutil
 import subprocess
 import sys
+import textwrap
+import unicodedata
 import zipfile
 
 import pytest
@@ -285,20 +287,39 @@ process.stdout.write(JSON.stringify(sandbox.out));
 
 # --- the user guides ---------------------------------------------------------------------
 
-GUIDES = {lang: (ROOT / "docs" / "guide" / (lang + ".md")).read_text(encoding="utf-8") for lang in ("th", "en")}
+GUIDE = ROOT / "docs" / "guide"
+PAGES = ("install", "scenarios", "command-line", "troubleshooting")
+GUIDES = {
+    lang: {"home": (GUIDE / (lang + ".md")).read_text(encoding="utf-8"),
+           **{page: (GUIDE / lang / (page + ".md")).read_text(encoding="utf-8") for page in PAGES}}
+    for lang in ("th", "en")
+}
+README = (ROOT / "README.md").read_text(encoding="utf-8")
+PROMPTS = {lang: (ROOT / name).read_text(encoding="utf-8") for lang, name in (("en", "PROMPT.md"), ("th", "PROMPT.th.md"))}
+# lines that run another program — an installer, a version check — whose flags are not ours
+OTHER_PROGRAMS = re.compile(r"^.*(?:\bnpx skills|\bgh skill|\bgemini skills|--version).*$", re.M)
+
+
+def _slug(heading: str) -> str:
+    """The anchor GitHub gives a heading: lower case, letters, marks, digits, `-` and `_`
+    kept, spaces to `-` (github-slugger)."""
+    kept = "".join(c for c in heading.strip().lower()
+                   if c in " -_" or unicodedata.category(c)[0] in "LMN")
+    return kept.replace(" ", "-")
 
 
 def test_the_user_guides_say_what_the_skill_does():
-    """docs/guide/th.md and en.md, linked from the README: every example the reader types is
-    read by the grill command as the guide says — grill only with the phrase, the words after it
-    as written — every flag they name is a flag, and both cover the same thirteen scenarios."""
-    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    """docs/guide/th.md and en.md and their pages, linked from the README: every example the
+    reader types is read by the grill command as the guide says — grill only with the phrase,
+    the words after it as written — every flag they name is a flag, and both cover the same
+    thirteen scenarios."""
     for lang in GUIDES:
-        assert f"https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/{lang}.md" in readme
+        assert f"https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/{lang}.md" in README
     shapes = []
-    for lang, text in GUIDES.items():
-        assert _flags(text) <= _flags(b.USAGE) | _flags(pf.USAGE) | _flags(gr.USAGE), lang
-        scenarios = re.findall(r"^## (?:Scenario|สถานการณ์ที่) (\d+)", text, re.M)
+    for lang, pages in GUIDES.items():
+        text = "\n".join(pages.values())
+        assert _flags(OTHER_PROGRAMS.sub("", text)) <= _flags(b.USAGE) | _flags(pf.USAGE) | _flags(gr.USAGE), lang
+        scenarios = re.findall(r"^## (?:Scenario|สถานการณ์ที่) (\d+)", pages["scenarios"], re.M)
         assert scenarios == [str(n) for n in range(1, 14)], lang
         prompts = [" ".join(block.split()) for block in re.findall(r"```text\n(.*?)```", text, re.S)]
         grilled = []
@@ -318,3 +339,89 @@ def test_the_user_guides_say_what_the_skill_does():
         shapes.append(sorted(grilled))
     assert shapes[0] == shapes[1], "the same grill examples in both languages"
     assert shapes[0] == sorted([[], ["from", "save_to"], ["from", "save_to"], ["from", "only", "save_to"]])
+
+
+def test_the_user_guides_link_to_what_is_there_in_both_languages():
+    """A link between guide pages reaches a page and a heading that exist, and the Thai and
+    English guides have the same pages with the same sections, so neither falls behind."""
+    for lang, pages in GUIDES.items():
+        for page, text in pages.items():
+            here = GUIDE / (lang + ".md") if page == "home" else GUIDE / lang / (page + ".md")
+            prose = re.sub(r"^( *)```.*?^\1```", "", text, flags=re.S | re.M)
+            for target, anchor in re.findall(r"\]\((?!https?://)([^)#\s]*)(?:#([^)\s]+))?\)", prose):
+                path = (here.parent / target).resolve() if target else here
+                assert path.is_file(), (here.name, target)
+                if anchor:
+                    headings = re.findall(r"^#{1,6} (.+)$", path.read_text(encoding="utf-8"), re.M)
+                    assert anchor in {_slug(h) for h in headings}, (lang, page, target, anchor)
+    for page in GUIDES["th"]:
+        th, en = (re.findall(r"^(#{2,3}) ", GUIDES[lang][page], re.M) for lang in ("th", "en"))
+        assert th == en, page
+
+
+def test_the_command_line_guide_runs_as_written_from_the_download(unpacked, tmp_path):
+    """Every command the README and the command-line pages give runs from the release
+    archive, unpacked as the guide says, and succeeds; the Node.js line gives the same file."""
+    shutil.copytree(unpacked, tmp_path / "thai-docx")
+    home = tmp_path / "home"
+    env = {**os.environ, "HOME": str(home), "USERPROFILE": str(home)}
+    for text in (README, GUIDES["en"]["command-line"], GUIDES["th"]["command-line"]):
+        markdown = re.search(r"```markdown\n(.*?)```", GUIDES["th"]["command-line"], re.S).group(1)
+        (tmp_path / "report.md").write_text(textwrap.dedent(markdown), encoding="utf-8")
+        blocks = re.findall(r"^( *)```sh\n(.*?)^\1```", text, re.S | re.M)
+        commands = [shlex.split(line, comments=True) for _, block in blocks for line in block.splitlines()]
+        commands = [c for c in commands if c and c[0] in ("python3", "node") and len(c) > 2 and "thai_docx" in c[1]]
+        assert commands, "the page gives commands"
+        python_build = None
+        for argv in commands:
+            runtime = argv[0]
+            if runtime == "node" and not shutil.which("node"):
+                continue
+            argv[0] = sys.executable if runtime == "python3" else runtime
+            done = subprocess.run(argv, cwd=tmp_path, capture_output=True, text=True, timeout=60, env=env)
+            assert done.returncode == 0 and json.loads(done.stdout)["ok"] and done.stderr == "", (argv[1:], done.stdout)
+            if argv[2] != "build":
+                continue
+            this = (argv[3:], (tmp_path / argv[4]).read_bytes())
+            if runtime == "python3":
+                python_build = this
+            else:  # a Node.js line says it gives the file of the Python line before it
+                assert this == python_build, "both runtimes give the same file"
+        shutil.rmtree(home, ignore_errors=True)
+
+
+def test_the_markdown_the_guides_show_builds(unpacked, tmp_path):
+    """Every Markdown example in the scenarios, in both languages, builds with no error and no
+    warning: what the guide says Markdown can hold, it can."""
+    shutil.copy(FIXTURES / "pixel.png", tmp_path / "chart.png")
+    examples = [block for pages in GUIDES.values() for block in
+                re.findall(r"^( *)```markdown\n(.*?)^\1```", pages["scenarios"], re.S | re.M)]
+    assert len(examples) == 4
+    for n, (indent, block) in enumerate(examples):
+        (tmp_path / f"{n}.md").write_text("\n".join(line[len(indent):] for line in block.splitlines()) + "\n", encoding="utf-8")
+        done = _run([sys.executable, str(unpacked / "scripts" / "thai_docx"), "build", f"{n}.md", f"{n}.docx"], tmp_path)
+        result = json.loads(done.stdout)
+        assert done.returncode == 0 and result["ok"] and result["warnings"] == [], (n, done.stdout)
+
+
+def test_the_archive_the_readme_and_guides_name_is_this_version():
+    """The README and the install pages name the release archive by its version; a release
+    that bumps SKILL.md without them sends readers to a file that is not the latest."""
+    version = re.search(r'^\s*version: "([^"]+)"', SKILL_MD, re.M).group(1)
+    texts = [README, *PROMPTS.values()] + [text for pages in GUIDES.values() for text in pages.values()]
+    named = {v for text in texts for v in re.findall(r"thai-docx-(\d+\.\d+\.\d+)\.zip", text)}
+    assert named == {version}, named
+
+
+def test_the_prompts_for_chat_apps_give_the_same_rules():
+    """PROMPT.md and its step-by-step Thai page PROMPT.th.md hand a chat app the same five rules:
+    read SKILL.md, build with the bundled command and no document library, keep the Thai text as
+    written, give the file, ask only on thai-docx grill. Each links the other."""
+    en = PROMPTS["en"].split("\n---\n", 1)[1]
+    th = re.search(r"```text\n(.*?)```", PROMPTS["th"], re.S).group(1)
+    for said in (en, th):
+        assert "thai-docx/SKILL.md" in said and "python-docx" in said and "thai-docx grill" in said
+        assert "python3 <skill>/scripts/thai_docx build doc.md doc.docx" in said
+        assert re.findall(r"^[1-5]\. ", said, re.M) == ["1. ", "2. ", "3. ", "4. ", "5. "]
+        assert _flags(said) <= _flags(b.USAGE)
+    assert "(PROMPT.th.md)" in PROMPTS["en"] and "(PROMPT.md)" in PROMPTS["th"]
