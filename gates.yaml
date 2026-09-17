@@ -116,4 +116,4 @@ gates:
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_skill_md.py]}
-    proved_by: [docs/evidence/2026-09-15-skill-md-archive-and-agents.md, docs/evidence/2026-09-16-agents-with-the-grown-skill.md, docs/evidence/2026-09-16-agents-after-the-redesign.md]
+    proved_by: [docs/evidence/2026-09-15-skill-md-archive-and-agents.md, docs/evidence/2026-09-16-agents-with-the-grown-skill.md, docs/evidence/2026-09-16-agents-after-the-redesign.md, docs/evidence/2026-09-17-agents-with-the-flag-table.md]

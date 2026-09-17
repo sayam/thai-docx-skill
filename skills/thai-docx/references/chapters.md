@@ -60,28 +60,34 @@ Table: ผู้ตอบแบบสอบถาม
   each once; any may be left out. Out of order stops the build with the line. Write the
   comments exactly so, in lower case, never inside a list or quotation — a warning names
   any that is read as an ordinary comment.
-- **Pages:** every `#` starts a new page (a section). Page numbers show only with
-  `--page-numbers` (e.g. `--page-numbers bottom-center`). The cover has no page number; front
-  pages count ก ข ค (`--front-page-numbers lower-roman`, `upper-roman` or `decimal` for
-  i ii iii, I II III, 1 2 3); the chapters restart at 1 and the rest go on from there.
-  With `--page-numbers --no-page-number-first`, the first page of every section has none.
-- **Chapters:** in `chapters`, `#` reads "บทที่ 1 บทนำ" (`--chapter-label`); add
-  `--heading-numbers` for 1.1, 1.1.1.
-- **Appendices:** in `appendices`, `#` reads "ภาคผนวก ก แบบสอบถาม" (`--appendix-label`;
-  `--appendix-numbers upper-letters`, `decimal` or `upper-roman` for A, 1, I); with
-  `--heading-numbers`, `##` reads ก.1. Headings in the cover, `front` and `back` have no
-  number.
+- **Pages:** every `#` starts a new page (a section). The cover has no page number; front
+  pages count ก ข ค; the chapters restart at 1 and the rest go on from there. Page numbers
+  show only when the build is given them (below).
+- **Chapters:** in `chapters`, `#` reads "บทที่ 1 บทนำ" — the comment alone does this; a
+  request for "บทที่ 1" or numbered chapters needs no flag.
+- **Appendices:** in `appendices`, `#` reads "ภาคผนวก ก แบบสอบถาม". Headings in the cover,
+  `front` and `back` have no number.
 - **Captions:** `Table:` just before a table and `Figure:` just after an image alone in its
   paragraph become "ตารางที่ 1-1 …" and "รูปที่ 1-1 …" in a chapter, "ตารางที่ ก-1 …" in
-  an appendix, "ตารางที่ 1 …" elsewhere or with no region comments (`--table-label`,
-  `--figure-label`). Leave a blank line between a caption and its image or table.
-  Anywhere else they stay text, with a warning.
-- **A chapter heading on two lines:** `--chapter-title-on-new-line` puts "บทที่ 1" on its
-  own line and the chapter's title under it, in the chapters and the appendices; the lists
-  still read it as one line. Without the flag the number and the title share a line.
+  an appendix, "ตารางที่ 1 …" elsewhere or with no region comments. Leave a blank line
+  between a caption and its image or table. Anywhere else they stay text, with a warning.
 - **Lists:** `<!-- toc -->`, `<!-- list-of-tables -->`, `<!-- list-of-figures -->` fill in
   when Word opens the file; write the heading above each yourself. Do not add `--toc` as
   well: it puts a second table of contents on the cover, and the build warns so. A flag
   whose region or caption the document lacks is warned about too — pass the warning on.
-- **Flags:** ก ข ค front pages, "ภาคผนวก ก" and Arabic digits are the defaults; add
-  `--front-page-numbers`, `--appendix-numbers` or `--thai-digits` only when asked.
+
+## Flags — only for words the user said
+
+Everything above is the default. Add a flag only when the user's request asks for what its
+row names, in those words or plainly the same; a request that names none of them gets none.
+
+| the user asks for | flag |
+|---|---|
+| page numbers | `--page-numbers bottom-center` (or `top-center`, or `--page-numbers` for top right) |
+| no number on the first page of each section | `--no-page-number-first`, with `--page-numbers` |
+| front pages numbered i ii iii, I II III or 1 2 3 | `--front-page-numbers lower-roman`, `upper-roman` or `decimal` |
+| numbered sub-headings: 1.1, 1.1.1 (and ก.1 in appendices) | `--heading-numbers` |
+| appendices lettered A B C, numbered 1 2 3 or I II III | `--appendix-numbers upper-letters`, `decimal` or `upper-roman` |
+| another word than บทที่, ภาคผนวก, ตารางที่ or รูปที่ | `--chapter-label`, `--appendix-label`, `--table-label`, `--figure-label` |
+| the chapter title on its own line under "บทที่ 1" | `--chapter-title-on-new-line` |
+| Thai digits (๑ ๒ ๓) in page, heading and caption numbers | `--thai-digits` |
