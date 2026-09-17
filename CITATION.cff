@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+title: >-
+  thai-docx — an Agent Skill for Word documents with Thai text that render correctly
+message: >-
+  If you use this software, please cite it using the metadata below.
+type: software
+authors:
+  - family-names: Sriphua
+    given-names: Sayam
+version: 0.1.0
+date-released: '2026-09-17'
+repository-code: https://github.com/sayam/thai-docx-skill
+url: https://github.com/sayam/thai-docx-skill
+abstract: >-
+  An Agent Skill that makes Word (.docx) documents with Thai or mixed
+  Thai–English text render correctly: no spelling squiggles under every Thai
+  word, Thai lines that wrap inside words, working bullets and bold. The agent
+  writes Markdown; one bundled command builds the document and checks it
+  without changing a character of the content. Two zero-dependency
+  implementations, Python and JavaScript, produce byte-identical files, and a
+  checker reports the five causes of broken Thai in any .docx.
+keywords:
+  - Thai
+  - docx
+  - WordprocessingML
+  - Office Open XML
+  - Markdown
+  - Agent Skills
+  - AI agents
+license: MIT
