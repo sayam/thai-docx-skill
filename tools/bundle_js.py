@@ -19,6 +19,9 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SKILL = ROOT / "skills" / "thai-docx"
 OUT = SKILL / "scripts" / "thai_docx.js"
+# what the bundle hands a caller, as `module.exports` and as `ThaiDocx`
+API = ("VERSION", "buildDocument", "checkDocument", "buildText", "checkBytes", "parseMarkdown", "plainText", "parseArgs", "pyDumps",
+       "DEFAULTS", "SETTINGS", "QUESTIONS", "cliMain")
 
 
 def bundle() -> str:
@@ -48,10 +51,11 @@ def bundle() -> str:
         '"use strict";\n'
         "const VERSION = " + json.dumps(version) + ";\n"
         + body
-        + "\nconst api = { VERSION, buildDocument, checkDocument, buildText, checkBytes, parseMarkdown, plainText, parseArgs, pyDumps, DEFAULTS, SETTINGS, QUESTIONS, cliMain };\n"
+        + "\nconst api = { " + ", ".join(API) + " };\n"
         'if (typeof module !== "undefined" && module.exports) module.exports = api;\n'
         "root.ThaiDocx = api;\n"
-        'if (typeof require !== "undefined" && typeof module !== "undefined" && require.main === module) process.exitCode = cliMain(process.argv.slice(2));\n'
+        'if (typeof require !== "undefined" && typeof module !== "undefined" && require.main === module) '
+        "process.exitCode = cliMain(process.argv.slice(2));\n"
         '})(typeof globalThis !== "undefined" ? globalThis : this);\n'
     )
 

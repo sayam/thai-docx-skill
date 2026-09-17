@@ -273,7 +273,8 @@ const sandbox = vm.createContext({ TextEncoder, TextDecoder });
 vm.runInContext(fs.readFileSync(bundle, "utf8").replace(/^#!.*\\n/, ""), sandbox);
 sandbox.markdown = "# รายงาน\\n\\nข้อความ**ตัวหนา**ภาษาไทย\\n\\n![แผนภูมิ](chart.png)\\n";
 sandbox.pngBytes = new Uint8Array(fs.readFileSync(png));
-vm.runInContext("var docxBytes; " + SNIPPET.replace("const report", "docxBytes = bytes; const report") + "; this.out = { result, n: bytes && bytes.length, report };", sandbox);
+vm.runInContext("var docxBytes; " + SNIPPET.replace("const report", "docxBytes = bytes; const report")
+  + "; this.out = { result, n: bytes && bytes.length, report };", sandbox);
 process.stdout.write(JSON.stringify(sandbox.out));
 """.replace("SNIPPET", json.dumps(snippet))
     done = subprocess.run(

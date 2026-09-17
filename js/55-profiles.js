@@ -290,7 +290,7 @@ function profileFind(name) {
     const p = path.join(directory, name + ".json");
     try {
       if (fs.statSync(p).isFile()) return [where, p];
-    } catch (e) {
+    } catch {
       // not there
     }
   }
@@ -338,10 +338,10 @@ function profileListing() {
   const out = [];
   const seen = new Set();
   for (const [where, directory] of profileDirectories()) {
-    let names = [];
+    let names;
     try {
       names = fs.readdirSync(directory).filter((n) => n.endsWith(".json")).sort();
-    } catch (e) {
+    } catch {
       names = [];
     }
     for (const file of names) {
@@ -479,10 +479,10 @@ function profileRun(argv) {
     if (name === null) name = String(data.id === undefined || data.id === null ? path.basename(source, ".json") : data.id);
     data.id = name; // profileTarget judges the name
     const p = profileTarget(name, project);
-    let existed = false;
+    let existed;
     try {
       existed = fs.statSync(p).isFile();
-    } catch (e) {
+    } catch {
       existed = false;
     }
     profileWrite(data, p);

@@ -90,7 +90,7 @@ const reEmailAutolink = sticky(
 );
 const reAutolink = sticky("<[A-Za-z][A-Za-z0-9.+-]{1,31}:[^<>\\x00-\\x20]*>");
 const reSpnl = sticky(" *(?:\\n *)?");
-const reWhitespaceCharOne = /^[ \t\n\x0b\x0c\r]$/;
+const reWhitespaceCharOne = /^[ \t\n\v\f\r]$/;
 const reFinalSpace = / *$/;
 const reInitialSpace = sticky(" *");
 const reSpaceAtEndOfLine = sticky(" *(?:\\n|$)");
@@ -116,7 +116,7 @@ const reHtmlBlockOpen = [
 ];
 const reHtmlBlockClose = [null, /<\/(?:script|pre|textarea|style)>/i, /-->/, /\?>/, />/, /\]\]>/];
 const reThematicBreak = /^(?:\*[ \t]*){3,}$|^(?:_[ \t]*){3,}$|^(?:-[ \t]*){3,}$/;
-const reMaybeSpecial = /^[#`~*+_=<>0-9$\[|:-]/;
+const reMaybeSpecial = /^[#`~*+_=<>0-9$[|:-]/;
 const reNonSpace = /[^ \t\f\v\r\n]/;
 const reBulletListMarker = /^[*+-]/;
 const reOrderedListMarker = /^([0-9]{1,9})([.)])/;
@@ -350,6 +350,7 @@ class BlockParser {
     }
   }
 
+  // eslint-disable-next-line no-unused-vars -- the signature of commonmark.js and markdown.py, which callers keep
   finalize(block, lineNumber) {
     const above = block.parent;
     block.open = false;
@@ -505,8 +506,8 @@ const CONTINUE = {
     const ln = p.line;
     const indent = p.indent;
     if (c.isFenced) {
-      let closing = null;
-      let lengthOk = false;
+      let closing;
+      let lengthOk;
       if (indent <= 3) {
         const rest = ln.slice(p.nextNonspace);
         if (c.math) {
@@ -1233,7 +1234,7 @@ class InlineParser {
       if (this.peek() === "<") return null;
       const savepos = this.pos;
       let openparens = 0;
-      let c = "";
+      let c;
       for (;;) {
         c = this.peek();
         if (c === "") break;

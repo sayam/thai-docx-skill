@@ -16,9 +16,10 @@ security problem goes to private reporting instead (`.github/SECURITY.md`).
 ```sh
 python3 tools/gates_doctor.py                                   # the gates
 python3 -m pip install --require-hashes -r requirements/dev.txt
-(cd tests/js && npm ci --ignore-scripts)                        # the CommonMark reference
+(cd tests/js && npm ci --ignore-scripts)                        # the CommonMark reference and ESLint
 python3 -m pytest -q tests                                      # the suite
-python3 -m ruff check skills/thai-docx/scripts tools tests      # the lint
+python3 -m ruff check skills/thai-docx/scripts tools tests      # the Python lint
+tests/js/node_modules/.bin/eslint --config tests/js/eslint.config.cjs js   # the JavaScript lint
 python3 -m coverage run -m pytest -q tests && python3 -m coverage combine -q && python3 -m coverage report
 ```
 
@@ -26,8 +27,20 @@ The gates come from [verifiable-gates](https://github.com/sayam/verifiable-gates
 also refuses a `tools/` file that differs from what was installed (`tools/installed.json`).
 
 CI runs `scans`, `commits`, `tests` (at least 97% coverage, branches included) and `lint`
-on every pull request; `main` takes a change only when all four pass, and a contributor's
-pull request also needs a code owner's approval (`.github/CODEOWNERS`, `docs/adr/0018`).
+(the coding standards below) on every pull request; `main` takes a change only when all four
+pass, and a contributor's pull request also needs a code owner's approval (`.github/CODEOWNERS`,
+`docs/adr/0018`).
+
+## Coding standards
+
+- **Python** follows [PEP 8](https://peps.python.org/pep-0008/) as ruff checks it: pycodestyle's
+  errors and warnings (`E`, `W`) with lines of at most 150 characters — where the code already
+  stood — plus pyflakes (`F`) and bugbear (`B`). `ruff.toml` holds the settings.
+- **JavaScript** in `js/` follows ESLint's recommended rules (`@eslint/js`). Each part is linted
+  with the names the other parts give it in the bundle (`tests/js/eslint.config.cjs`). An exception
+  is an `eslint-disable-next-line` comment on that line, with its reason. The generated
+  `scripts/thai_docx.js` is not linted.
+- The `lint` job runs both on every pull request, and fails on any finding.
 
 ## Where things are
 

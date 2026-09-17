@@ -24,7 +24,7 @@ function utf8(s) {
 function fromUtf8(bytes) {
   try {
     return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -522,6 +522,7 @@ const nameClass = (ranges) => "[" + ranges.map(([a, b]) => "\\u" + a.toString(16
 // a name without a colon; expat, reading namespaces, allows one colon between two of these
 const RE_NCNAME = new RegExp(nameClass(XML_NAMES.start) + nameClass(XML_NAMES.char) + "*", "y");
 const RE_S = /[ \t\n]*/y;
+// eslint-disable-next-line no-control-regex -- these are the characters XML 1.0 does not allow
 const RE_INVALID_CHAR = /[\x00-\x08\x0B\x0C\x0E-\x1F￾￿]/;
 
 class XElement {
@@ -933,7 +934,7 @@ function readParts(bytes, report) {
   return parts;
 }
 
-const RE_DECLARED_ENCODING = /^﻿?<\?xml[^>]*?[ \t\r\n]encoding[ \t\r\n]*=[ \t\r\n]*["']([^"']*)["']/;
+const RE_DECLARED_ENCODING = /^\uFEFF?<\?xml[^>]*?[ \t\r\n]encoding[ \t\r\n]*=[ \t\r\n]*["']([^"']*)["']/;
 
 // No declared encoding, or UTF-8: the only XML both implementations read the same way.
 function declaresUtf8(text) {
@@ -1210,7 +1211,7 @@ const reEmailAutolink = sticky(
 );
 const reAutolink = sticky("<[A-Za-z][A-Za-z0-9.+-]{1,31}:[^<>\\x00-\\x20]*>");
 const reSpnl = sticky(" *(?:\\n *)?");
-const reWhitespaceCharOne = /^[ \t\n\x0b\x0c\r]$/;
+const reWhitespaceCharOne = /^[ \t\n\v\f\r]$/;
 const reFinalSpace = / *$/;
 const reInitialSpace = sticky(" *");
 const reSpaceAtEndOfLine = sticky(" *(?:\\n|$)");
@@ -1236,7 +1237,7 @@ const reHtmlBlockOpen = [
 ];
 const reHtmlBlockClose = [null, /<\/(?:script|pre|textarea|style)>/i, /-->/, /\?>/, />/, /\]\]>/];
 const reThematicBreak = /^(?:\*[ \t]*){3,}$|^(?:_[ \t]*){3,}$|^(?:-[ \t]*){3,}$/;
-const reMaybeSpecial = /^[#`~*+_=<>0-9$\[|:-]/;
+const reMaybeSpecial = /^[#`~*+_=<>0-9$[|:-]/;
 const reNonSpace = /[^ \t\f\v\r\n]/;
 const reBulletListMarker = /^[*+-]/;
 const reOrderedListMarker = /^([0-9]{1,9})([.)])/;
@@ -1470,6 +1471,7 @@ class BlockParser {
     }
   }
 
+  // eslint-disable-next-line no-unused-vars -- the signature of commonmark.js and markdown.py, which callers keep
   finalize(block, lineNumber) {
     const above = block.parent;
     block.open = false;
@@ -1625,8 +1627,8 @@ const CONTINUE = {
     const ln = p.line;
     const indent = p.indent;
     if (c.isFenced) {
-      let closing = null;
-      let lengthOk = false;
+      let closing;
+      let lengthOk;
       if (indent <= 3) {
         const rest = ln.slice(p.nextNonspace);
         if (c.math) {
@@ -2353,7 +2355,7 @@ class InlineParser {
       if (this.peek() === "<") return null;
       const savepos = this.pos;
       let openparens = 0;
-      let c = "";
+      let c;
       for (;;) {
         c = this.peek();
         if (c === "") break;
@@ -3099,7 +3101,6 @@ const PAGE_NUMBERS = ["top-right", "top-center", "bottom-center"]; // the first 
 const FRONT_NUMBERS = { "thai-letters": "thaiLetters", "lower-roman": "lowerRoman", "upper-roman": "upperRoman", decimal: "decimal" };
 const APPENDIX_NUMBERS = { "thai-letters": "thaiLetters", "upper-letters": "upperLetter", decimal: "decimal", "upper-roman": "upperRoman" };
 const MIN_TEXT_TWIPS = 1440;
-const LAYERS = { 1: "page and type", 2: "page furniture", 3: "tables", 4: "headings", 5: "thesis structure" };
 // what a document may hold that a setting needs (ADR 0028): the name an entry says in `needs`
 // or `clashes` → why the flag did nothing
 const STRUCTURES = {
@@ -4908,7 +4909,7 @@ function profileFind(name) {
     const p = path.join(directory, name + ".json");
     try {
       if (fs.statSync(p).isFile()) return [where, p];
-    } catch (e) {
+    } catch {
       // not there
     }
   }
@@ -4956,10 +4957,10 @@ function profileListing() {
   const out = [];
   const seen = new Set();
   for (const [where, directory] of profileDirectories()) {
-    let names = [];
+    let names;
     try {
       names = fs.readdirSync(directory).filter((n) => n.endsWith(".json")).sort();
-    } catch (e) {
+    } catch {
       names = [];
     }
     for (const file of names) {
@@ -5097,10 +5098,10 @@ function profileRun(argv) {
     if (name === null) name = String(data.id === undefined || data.id === null ? path.basename(source, ".json") : data.id);
     data.id = name; // profileTarget judges the name
     const p = profileTarget(name, project);
-    let existed = false;
+    let existed;
     try {
       existed = fs.statSync(p).isFile();
-    } catch (e) {
+    } catch {
       existed = false;
     }
     profileWrite(data, p);
@@ -5361,10 +5362,10 @@ function realPath(fs, path, p) {
       continue;
     }
     const candidate = resolved.endsWith(path.sep) ? resolved + part : resolved + path.sep + part;
-    let isLink = false;
+    let isLink;
     try {
       isLink = fs.lstatSync(candidate).isSymbolicLink();
-    } catch (e) {
+    } catch {
       isLink = false;
     }
     if (!isLink || links >= MAX_LINKS) {
@@ -5375,7 +5376,7 @@ function realPath(fs, path, p) {
     let target;
     try {
       target = fs.readlinkSync(candidate);
-    } catch (e) {
+    } catch {
       resolved = candidate;
       continue;
     }
@@ -5459,7 +5460,7 @@ function nodeCheck(argv) {
     } finally {
       fs.closeSync(fd);
     }
-  } catch (e) {
+  } catch {
     bytes = new Uint8Array(0); // judged like any other file that is no zip
   }
   const report = checkBytes(bytes, argv[0]);

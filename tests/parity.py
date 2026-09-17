@@ -80,9 +80,20 @@ FLAG_SETS = [
     ["--size", "1e2"], ["--paper"], ["--indent", "0.5"], ["--indent=1", "--align", "thai"], ["--indent", "0.3333333"],
     ["--indent", "-1"], ["--indent", "5.5"], ["--no-repeat-table-header"], ["--no-repeat-table-header=no", "--toc"],
     ["--header", "ลับ"], ["--footer=บริษัท ตัวอย่าง จำกัด", "--page-numbers", "bottom-center", "--no-page-number-first"],
-    ["--header", "ร่าง & <ห้ามเผยแพร่>", "--footer", "หน้า", "--page-numbers", "top-center"], ["--header="], ["--header", "ก\tข"], ["--footer", "x" * 201],
-    ["--table-size", "14"], ["--table-size=13.5", "--table-widths", "auto"], ["--table-size", "0.5"], ["--table-size", "14pt"], ["--table-widths", "auto"], ["--table-widths=auto", "--landscape"], ["--table-widths", "equal"], ["--table-widths", "fit"], ["--heading-numbers"], ["--heading-numbers", "--thai-digits", "--toc"], ["--heading-numbers=on"], ["--page-numbers", "--no-page-number-first"], ["--no-page-number-first", "--page-numbers", "bottom-center", "--toc"], ["--no-page-number-first"], ["--no-page-number-first=1", "--page-numbers"], ["--paper", "f14"], ["--paper=f14", "--landscape", "--page-numbers", "bottom-center"], ["--paper", "F14"], ["--paper", "folio"], ["--landscape"], ["--landscape", "--paper", "letter", "--margins", "0.5,4,0.5,4"], ["--landscape", "--margins", "3.5,1,3.5,1"], ["--landscape=1"], ["--thai-digits"], ["--thai-digits", "--page-numbers", "bottom-center", "--toc"], ["--thai-digits=yes"], ["--page-numbers", "top-center"], ["--page-numbers=bottom-center", "--toc"], ["--page-numbers=middle"], ["--page-numbers="],
-    ["--page-numbers", "bottom-center", "--page-numbers"], ["--line-spacing", "1.15"], ["--line-spacing=2", "--align", "thai"], ["--line-spacing", "0.9"], ["--line-spacing", "3.5"], ["--line-spacing", "1.3333333"], ["--indent", "4", "--paper", "letter", "--margins", "1,2,1,2"],
+    ["--header", "ร่าง & <ห้ามเผยแพร่>", "--footer", "หน้า", "--page-numbers", "top-center"], ["--header="], ["--header", "ก\tข"],
+    ["--footer", "x" * 201],
+    ["--table-size", "14"], ["--table-size=13.5", "--table-widths", "auto"], ["--table-size", "0.5"], ["--table-size", "14pt"],
+    ["--table-widths", "auto"], ["--table-widths=auto", "--landscape"], ["--table-widths", "equal"], ["--table-widths", "fit"], ["--heading-numbers"],
+    ["--heading-numbers", "--thai-digits", "--toc"], ["--heading-numbers=on"], ["--page-numbers", "--no-page-number-first"],
+    ["--no-page-number-first", "--page-numbers", "bottom-center", "--toc"], ["--no-page-number-first"],
+    ["--no-page-number-first=1", "--page-numbers"], ["--paper", "f14"], ["--paper=f14", "--landscape", "--page-numbers", "bottom-center"],
+    ["--paper", "F14"], ["--paper", "folio"], ["--landscape"], ["--landscape", "--paper", "letter", "--margins", "0.5,4,0.5,4"],
+    ["--landscape", "--margins", "3.5,1,3.5,1"], ["--landscape=1"], ["--thai-digits"], ["--thai-digits", "--page-numbers", "bottom-center", "--toc"],
+    ["--thai-digits=yes"], ["--page-numbers", "top-center"], ["--page-numbers=bottom-center", "--toc"], ["--page-numbers=middle"],
+    ["--page-numbers="],
+    ["--page-numbers", "bottom-center", "--page-numbers"], ["--line-spacing", "1.15"], ["--line-spacing=2", "--align", "thai"],
+    ["--line-spacing", "0.9"], ["--line-spacing", "3.5"], ["--line-spacing", "1.3333333"],
+    ["--indent", "4", "--paper", "letter", "--margins", "1,2,1,2"],
 ]
 
 
@@ -91,26 +102,33 @@ STRUCTURED = [
     "<!-- chapters -->\n\n# บทนำ\n\n## ที่มา\n\nTable: สาเหตุ **หนา**\n\n| ก | ข |\n|---|---|\n| 1 | 2 |\n\n![a](p.png)\n\nFigure: ขั้นตอน\n\n"
     "# ทฤษฎี\n\n### ย่อย\n\nTable:\n\n| ก |\n|---|\n| 1 |\n\n<!-- back -->\n\n# ภาคผนวก ก\n\n![](p.png) ![](p.png)\n\nFigure:\tรูปภาคผนวก\n",
     "<!-- chapters -->\n\n# หนึ่ง\n\n- รายการ\n\n# สอง\n\n```\ncode\n```\n\n<!-- back -->\n\n> อ้างอิง\n",
-    "Table: หนึ่ง\n\n| ก |\n|---|\n| 1 |\n\n# บท\n\nTable: ลอย\n\nข้อความ\n\n![](p.png) ข้อความ\n\nFigure: ลอย\n\n**Table:** ไม่ใช่\n\n| ก |\n|---|\n| 1 |\n",
-    "<!-- chapters -->\n\n# บท\n\n<!-- back -->\n\n# บรรณานุกรม\n\n<!-- appendices -->\n\n# แบบสอบถาม\n\n## ส่วน\n\nTable: ผู้ตอบ\n\n| ก |\n|---|\n| 1 |\n\n"
-    "![](p.png)\n\nFigure: แบบ\n\n" + "".join("# ภาคผนวก %d\n\nTable: ต\n\n| ก |\n|---|\n| 1 |\n\n" % k for k in range(30)) + "<!-- back -->\n\n# ประวัติ\n",
+    "Table: หนึ่ง\n\n| ก |\n|---|\n| 1 |\n\n# บท\n\nTable: ลอย\n\nข้อความ\n\n![](p.png) ข้อความ\n\nFigure: ลอย\n\n"
+    "**Table:** ไม่ใช่\n\n| ก |\n|---|\n| 1 |\n",
+    "<!-- chapters -->\n\n# บท\n\n<!-- back -->\n\n# บรรณานุกรม\n\n<!-- appendices -->\n\n# แบบสอบถาม\n\n"
+    "## ส่วน\n\nTable: ผู้ตอบ\n\n| ก |\n|---|\n| 1 |\n\n"
+    "![](p.png)\n\nFigure: แบบ\n\n" + "".join("# ภาคผนวก %d\n\nTable: ต\n\n| ก |\n|---|\n| 1 |\n\n" % k for k in range(30))
+    + "<!-- back -->\n\n# ประวัติ\n",
     "<!-- appendices -->\n\n# ก\n\n<!-- back -->\n\n<!-- back -->\n", "<!-- back -->\n\n<!-- back -->\n", "<!-- appendices -->\n\n<!-- front -->\n",
-    "<!-- chapter -->\n\n# ก\n\n<!-- Chapters -->\n\n<!-- list of figures -->\n\n<!-- todo -->\n\n<!-- TOC -->\n\n<!-- appendix -->\n\n<!--  backs  -->\n\n<!-- fronts -->\n",
+    "<!-- chapter -->\n\n# ก\n\n<!-- Chapters -->\n\n<!-- list of figures -->\n\n<!-- todo -->\n\n<!-- TOC -->\n\n"
+    "<!-- appendix -->\n\n<!--  backs  -->\n\n<!-- fronts -->\n",
     "- x\n\n  <!-- chapters -->\n\n> <!-- toc -->\n\nก[^1]\n\n[^1]: ข\n\n    <!-- back -->\n",
-    "![](p.png)\nFigure: ติดกัน\n\n![](p.png)  \nFigure: hard\n\n![](p.png) **Figure:** หนา\n\n| ก | ข |\n|---|---|\n| 1 | 2 |\nTable: ต่อท้าย\n\n| ก |\n|---|\nTable: เดี่ยว\n",
+    "![](p.png)\nFigure: ติดกัน\n\n![](p.png)  \nFigure: hard\n\n![](p.png) **Figure:** หนา\n\n"
+    "| ก | ข |\n|---|---|\n| 1 | 2 |\nTable: ต่อท้าย\n\n| ก |\n|---|\nTable: เดี่ยว\n",
     "<!-- back -->\n\n# ก\n\n<!-- front -->\n", "<!-- chapters -->\n<!-- chapters -->\n", "<!-- front -->\n",
     "# ก\n\n<!-- front --> ข้อความ\n\n<!--chapters-->\n\n| ก |\n|---|\n| 1 |\n\n<!-- other -->\n",
 ]
 HEADING_STYLES = [
     'heading-1: font-family: "TH SarabunPSK"; font-size: 20.5pt; color: #1f4e79; font-weight: normal; font-style: italic',
     "heading-2: text-decoration: underline double line-through; text-align: thai-distribute; margin-left: 1.27cm; text-indent: -0.25in",
-    "heading-3: margin-top: 18pt; margin-bottom: 0; line-height: 1.5; page-break-before: always; text-decoration: none\nheading-2: text-align: justify",
+    "heading-3: margin-top: 18pt; margin-bottom: 0; line-height: 1.5; page-break-before: always; text-decoration: none\n"
+    "heading-2: text-align: justify",
     "heading1: font-size: 20pt\nh2: color: #000000\nheading-7: color: #000000\ntitle: x",
     "heading-1: font-family: 'Papyrus'; text-decoration: underline wavy",
     "heading-1: text-indent: 0.3333333cm; margin-left: 10in",
     "heading-1: colour: #FF0000", "heading-1: color: red", "heading-1: font-size: 20", "heading-1: margin-left: -1in",
     "heading-1: margin-left: 10.01in", 'heading-1: font-family: "TH; Sarabun', "heading-1: bold", "heading-1: text-decoration: underline underline",
-    "heading-1: text-decoration: double underline", "heading-1: text-decoration: solid line-through", "heading-1: text-decoration: none underline", "heading-1: line-height: 4", "heading-2: font-weight: Bold",
+    "heading-1: text-decoration: double underline", "heading-1: text-decoration: solid line-through", "heading-1: text-decoration: none underline",
+    "heading-1: line-height: 4", "heading-2: font-weight: Bold",
     "heading-1: font-family: " + "ก" * 65, "heading-1: ; ; font-size: 12pt;",
 ]
 
@@ -127,13 +145,15 @@ def build_cases(start: int, n: int) -> list[dict]:
     cases.append({"text": (FIXTURES / "sample.md").read_text(encoding="utf-8"), "args": []})
     heading = "\n\n# บทที่ 1\n\n## ส่วน\n\n### ย่อย\n\nข้อความ\n"
     for text in STRUCTURED:  # ADR 0021: regions, sections, captions and lists alike in both
-        for args in ([], ["--heading-numbers", "--page-numbers", "bottom-center", "--no-page-number-first"], ["--thai-digits", "--header", "ลับ", "--figure-label", "ภาพที่"],
+        for args in ([], ["--heading-numbers", "--page-numbers", "bottom-center", "--no-page-number-first"],
+                     ["--thai-digits", "--header", "ลับ", "--figure-label", "ภาพที่"],
                      ["--front-page-numbers", "lower-roman", "--appendix-numbers", "upper-letters", "--appendix-label", "Appendix"],
                      ["--front-page-numbers=decimal", "--appendix-numbers", "upper-roman", "--thai-digits", "--heading-numbers"],
                      ["--appendix-numbers", "decimal", "--front-page-numbers", "upper-roman"]):
             cases.append({"text": text, "args": args})
     for front in HEADING_STYLES:  # ADR 0020: the same styles, warnings and refusals in both
-        cases.append({"text": "---\n" + front + "\n---" + heading, "args": rng.choice([[], ["--heading-numbers"], ["--thai-digits", "--heading-numbers"]])})
+        cases.append({"text": "---\n" + front + "\n---" + heading,
+                      "args": rng.choice([[], ["--heading-numbers"], ["--thai-digits", "--heading-numbers"]])})
     return cases
 
 
@@ -184,7 +204,8 @@ def write_zip(entries: list[dict], *, prefix=b"", comment=b"", count_delta=0, si
         local_name = e.get("local_name", e["name"])
         local_extra = e.get("local_extra", b"")
         csize, size = len(e["data"]), e["size"]
-        body += struct.pack("<IHHHHHIIIHH", 0x04034B50, 20, e["flags"] & M16, e["method"] & M16, 0, 33, e["crc"] & M32, csize, size & M32, len(local_name), len(local_extra))
+        body += struct.pack("<IHHHHHIIIHH", 0x04034B50, 20, e["flags"] & M16, e["method"] & M16, 0, 33, e["crc"] & M32, csize, size & M32,
+                            len(local_name), len(local_extra))
         body += local_name + local_extra + e["data"]
         extra, c_csize, c_size, c_offset = e.get("extra", b""), csize, size, offset + e.get("offset_delta", 0)
         if e.get("zip64"):
@@ -193,7 +214,8 @@ def write_zip(entries: list[dict], *, prefix=b"", comment=b"", count_delta=0, si
         comment_e = e.get("comment", b"")
         central += struct.pack(
             "<IHHHHHHIIIHHHHHII", 0x02014B50, 20, 20, e["flags"] & M16, e["method"] & M16, 0, 33, e["crc"] & M32, c_csize & M32, c_size & M32,
-            (len(e["name"]) + e.get("name_len_delta", 0)) & M16, (len(extra) + e.get("extra_len_delta", 0)) & M16, (len(comment_e) + e.get("comment_len_delta", 0)) & M16,
+            (len(e["name"]) + e.get("name_len_delta", 0)) & M16, (len(extra) + e.get("extra_len_delta", 0)) & M16,
+            (len(comment_e) + e.get("comment_len_delta", 0)) & M16,
             0, 0, 0o600 << 16, c_offset & M32,
         )
         central += e["name"] + extra + comment_e
@@ -203,11 +225,13 @@ def write_zip(entries: list[dict], *, prefix=b"", comment=b"", count_delta=0, si
     if zip64:
         record_at = len(out) - len(prefix)
         value = (1 << 53) if big64 else 0
-        out += struct.pack("<IQHHIIQQQQ", 0x06064B50, 44, 45, 45, 0, 0, count, (count + value) & M64, (len(central) + size_delta) & M64, (cd_offset + offset_delta) & M64)
+        out += struct.pack("<IQHHIIQQQQ", 0x06064B50, 44, 45, 45, 0, 0, count, (count + value) & M64, (len(central) + size_delta) & M64,
+                           (cd_offset + offset_delta) & M64)
         out += struct.pack("<IIQI", 0x07064B50, 0, record_at, 1)
         out += struct.pack("<IHHHHIIH", 0x06054B50, 0, 0, 0xFFFF, 0xFFFF, 0xFFFFFFFF, 0xFFFFFFFF, len(comment)) + comment
     else:
-        out += struct.pack("<IHHHHIIH", 0x06054B50, 0, 0, count & 0xFFFF, count & 0xFFFF, (len(central) + size_delta) & 0xFFFFFFFF, (cd_offset + offset_delta) & 0xFFFFFFFF, len(comment)) + comment
+        out += struct.pack("<IHHHHIIH", 0x06054B50, 0, 0, count & 0xFFFF, count & 0xFFFF, (len(central) + size_delta) & 0xFFFFFFFF,
+                           (cd_offset + offset_delta) & 0xFFFFFFFF, len(comment)) + comment
     return bytes(out)
 
 
@@ -241,32 +265,58 @@ def structural_package(rng: random.Random) -> bytes:
     for _ in range(rng.randint(1, 2)):
         e = rng.choice(entries)
         k = rng.randrange(26)
-        if k == 0: kw["prefix"] = rng.choice([b"MZ", b"PK\x03\x04" * 3, bytes(100)])
-        elif k == 1: kw["comment"] = rng.choice([b"x", b"PK\x05\x06" + bytes(18), bytes(300)])
-        elif k == 2: kw["count_delta"] = rng.choice([-1, 1, 65536])
-        elif k == 3: kw["size_delta"] = rng.choice([-1, 1, -46])
-        elif k == 4: kw["offset_delta"] = rng.choice([-1, 1, 1 << 40])
-        elif k == 5: kw["zip64"] = True
-        elif k == 6: kw.update(zip64=True, big64=True)
-        elif k == 7: e["zip64"] = True
-        elif k == 8: e["comment_len_delta"] = rng.choice([1, 4096])
-        elif k == 9: e["extra_len_delta"] = rng.choice([1, 3, 4])
-        elif k == 10: e["extra"] = rng.choice([struct.pack("<HH", 0x5455, 5) + bytes(5), struct.pack("<HH", 1, 8) + bytes(8), struct.pack("<HH", 9, 40)])
-        elif k == 11: e["local_extra"] = rng.choice([struct.pack("<HH", 0x5455, 5) + bytes(5), bytes(3)])
-        elif k == 12: e["local_name"] = e["name"][:-1] + b"X"
-        elif k == 13: e["local_name"] = e["name"] + b"x"
-        elif k == 14: entries.append(dict(e))
-        elif k == 15: e["flags"] |= rng.choice([0x1, 0x8, 0x800])
-        elif k == 16: e["method"] = rng.choice([12, 14, 99, 8 if e["method"] == 0 else 0])
-        elif k == 17: e["size"] += rng.choice([-1, 1])
-        elif k == 18: e["crc"] ^= 1
-        elif k == 19: e["offset_delta"] = rng.choice([-1, 1, 1 << 33])
-        elif k == 20: e["name"] = e["name"].replace(b"word", b"w\xd3rd")
-        elif k == 21: e["name"], e["flags"] = e["name"] + b"\xff", e["flags"] | 0x800
-        elif k == 22: e["name_len_delta"] = rng.choice([-1, 1])
-        elif k == 23: e["data"] = e["data"] + b"\0"
-        elif k == 24: entries.remove(e) if len(entries) > 1 else None
-        else: e["name"] = e["name"].replace(b".xml", b".XML")
+        if k == 0:
+            kw["prefix"] = rng.choice([b"MZ", b"PK\x03\x04" * 3, bytes(100)])
+        elif k == 1:
+            kw["comment"] = rng.choice([b"x", b"PK\x05\x06" + bytes(18), bytes(300)])
+        elif k == 2:
+            kw["count_delta"] = rng.choice([-1, 1, 65536])
+        elif k == 3:
+            kw["size_delta"] = rng.choice([-1, 1, -46])
+        elif k == 4:
+            kw["offset_delta"] = rng.choice([-1, 1, 1 << 40])
+        elif k == 5:
+            kw["zip64"] = True
+        elif k == 6:
+            kw.update(zip64=True, big64=True)
+        elif k == 7:
+            e["zip64"] = True
+        elif k == 8:
+            e["comment_len_delta"] = rng.choice([1, 4096])
+        elif k == 9:
+            e["extra_len_delta"] = rng.choice([1, 3, 4])
+        elif k == 10:
+            e["extra"] = rng.choice([struct.pack("<HH", 0x5455, 5) + bytes(5), struct.pack("<HH", 1, 8) + bytes(8), struct.pack("<HH", 9, 40)])
+        elif k == 11:
+            e["local_extra"] = rng.choice([struct.pack("<HH", 0x5455, 5) + bytes(5), bytes(3)])
+        elif k == 12:
+            e["local_name"] = e["name"][:-1] + b"X"
+        elif k == 13:
+            e["local_name"] = e["name"] + b"x"
+        elif k == 14:
+            entries.append(dict(e))
+        elif k == 15:
+            e["flags"] |= rng.choice([0x1, 0x8, 0x800])
+        elif k == 16:
+            e["method"] = rng.choice([12, 14, 99, 8 if e["method"] == 0 else 0])
+        elif k == 17:
+            e["size"] += rng.choice([-1, 1])
+        elif k == 18:
+            e["crc"] ^= 1
+        elif k == 19:
+            e["offset_delta"] = rng.choice([-1, 1, 1 << 33])
+        elif k == 20:
+            e["name"] = e["name"].replace(b"word", b"w\xd3rd")
+        elif k == 21:
+            e["name"], e["flags"] = e["name"] + b"\xff", e["flags"] | 0x800
+        elif k == 22:
+            e["name_len_delta"] = rng.choice([-1, 1])
+        elif k == 23:
+            e["data"] = e["data"] + b"\0"
+        elif k == 24:
+            entries.remove(e) if len(entries) > 1 else None
+        else:
+            e["name"] = e["name"].replace(b".xml", b".XML")
     return write_zip(entries, **kw)
 
 
@@ -277,10 +327,14 @@ def inflate_package(rng: random.Random) -> bytes:
     stream = bytearray(_deflate(source, rng))
     for _ in range(rng.randint(1, 4)):
         k = rng.randrange(4)
-        if k == 0 and stream: stream[rng.randrange(len(stream))] ^= 1 << rng.randrange(8)
-        elif k == 1 and stream: del stream[rng.randrange(len(stream)):]
-        elif k == 2: stream += bytes(rng.randrange(256) for _ in range(rng.randint(1, 4)))
-        elif k == 3 and len(stream) > 3: stream[rng.randrange(3)] = rng.randrange(256)
+        if k == 0 and stream:
+            stream[rng.randrange(len(stream))] ^= 1 << rng.randrange(8)
+        elif k == 1 and stream:
+            del stream[rng.randrange(len(stream)):]
+        elif k == 2:
+            stream += bytes(rng.randrange(256) for _ in range(rng.randint(1, 4)))
+        elif k == 3 and len(stream) > 3:
+            stream[rng.randrange(3)] = rng.randrange(256)
     d = zlib.decompressobj(-15)
     try:
         out = d.decompress(bytes(stream), 1 << 20)
@@ -349,7 +403,8 @@ XML_ALPHABET = [
     b"]]>", b"<!--", b"-->", b"<![CDATA[", b"<?", b"?>", b"&#", b"&#x", b"&amp;", b"&lt", b"xmlns:", b"xml:",
     b"<!DOCTYPE", b"<?xml ", b"version", b"encoding", b"standalone", b"\xed\xa0\x80", b"\xf4\x90\x80\x80",
     b' xmlns:w="u"', b' xmlns=""', b' xmlns:xml="u"', b' xmlns:a=""', b' xmlns:xmlns="u"', b' xmlns:x="http://www.w3.org/XML/1998/namespace"', b' xmlns="http://www.w3.org/2000/xmlns/"',
-    b' xmlns:xml="http://www.w3.org/XML/1998/namespace"', b' xml:lang="th"', b' xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"', b' a="1"', b' w:val="1"',
+    b' xmlns:xml="http://www.w3.org/XML/1998/namespace"', b' xml:lang="th"',
+    b' xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"', b' a="1"', b' w:val="1"',
     b"&#x10FFFF;", b"&#xD800;", b"&#0;", b"&#65;", b"&#x9;", "ฯ".encode(), "๎".encode(), "·".encode(), "\u0300".encode(),
     "\U00010000".encode(), b"\xef\xbb\xbf", b"\x80", b"\xc0\xaf",
 ]
@@ -420,7 +475,7 @@ def _dynamic_block(lit_lengths: dict[int, int], symbols: list[int]) -> bytes:
     next_code, value = {}, 0
     for length in range(1, max(lit_lengths.values()) + 1):
         next_code[length] = value
-        value = (value + sum(1 for l in lit_lengths.values() if l == length)) << 1
+        value = (value + sum(1 for n in lit_lengths.values() if n == length)) << 1
     codes = {}
     for sym in sorted(lit_lengths):
         length = lit_lengths[sym]
@@ -458,16 +513,21 @@ def named_packages() -> list[tuple[str, bytes, str | None]]:
     return [
         # ADR 0017 rule 9: zlib's strictness, and exactly the declared size
         ("literal/length code incomplete", _with_document_stream(_dynamic_block({_A: 1, _END: 2}, [_A, _A, _END]), zlib.crc32(b"aa"), 2), UNREADABLE),
-        ("literal/length code over-subscribed", _with_document_stream(_dynamic_block({_A: 1, _END: 1, _A + 1: 2}, [_A, _A, _END]), zlib.crc32(b"aa"), 2), UNREADABLE),
-        ("control: the same code complete decodes", _with_document_stream(_dynamic_block({_A: 1, _END: 1}, [_A, _A, _END]), zlib.crc32(b"aa"), 2), NOT_XML),
-        ("control: a single one-bit literal/length code, which zlib allows", _with_document_stream(_dynamic_block({_END: 1}, [_END]), zlib.crc32(b""), 0), NOT_XML),
-        ("inflates short of its declared size, checksum of the padded bytes", _with_document_stream(zlib.compress(b"ab")[2:-4], zlib.crc32(b"ab\0"), 3), UNREADABLE),
+        ("literal/length code over-subscribed",
+         _with_document_stream(_dynamic_block({_A: 1, _END: 1, _A + 1: 2}, [_A, _A, _END]), zlib.crc32(b"aa"), 2), UNREADABLE),
+        ("control: the same code complete decodes", _with_document_stream(_dynamic_block({_A: 1, _END: 1}, [_A, _A, _END]), zlib.crc32(b"aa"), 2),
+         NOT_XML),
+        ("control: a single one-bit literal/length code, which zlib allows",
+         _with_document_stream(_dynamic_block({_END: 1}, [_END]), zlib.crc32(b""), 0), NOT_XML),
+        ("inflates short of its declared size, checksum of the padded bytes",
+         _with_document_stream(zlib.compress(b"ab")[2:-4], zlib.crc32(b"ab\0"), 3), UNREADABLE),
         # XML parts: what expat accepts, reading with namespaces [S31]
         ("the xml prefix bound to another namespace", _with_document_edit(root, root + 'xmlns:xml="urn:x" '), NOT_XML),
         ("another prefix bound to the xml namespace", _with_document_edit(root, root + 'xmlns:x="http://www.w3.org/XML/1998/namespace" '), NOT_XML),
         ("a prefix bound to the xmlns namespace", _with_document_edit(root, root + 'xmlns:y="http://www.w3.org/2000/xmlns/" '), NOT_XML),
         ("the xmlns prefix declared", _with_document_edit(root, root + 'xmlns:xmlns="urn:x" '), NOT_XML),
-        ("control: the xml prefix bound to its own namespace", _with_document_edit(root, root + 'xmlns:xml="http://www.w3.org/XML/1998/namespace" '), None),
+        ("control: the xml prefix bound to its own namespace", _with_document_edit(root, root + 'xmlns:xml="http://www.w3.org/XML/1998/namespace" '),
+         None),
         ("a name with two colons", _with_document_edit("<w:body>", "<w:body><w:a:b/>"), NOT_XML),
         ("a colon in a processing instruction target", _with_document_edit("<w:body>", "<w:body><?a:b x?>"), NOT_XML),
         ("control: a processing instruction", _with_document_edit("<w:body>", "<w:body><?ab x?>"), None),
@@ -475,8 +535,10 @@ def named_packages() -> list[tuple[str, bytes, str | None]]:
         ("U+0E2F in a name: fifth-edition ranges allow it, expat does not", _with_document_edit("<w:body>", "<w:body><w:aฯ/>"), NOT_XML),
         ("control: U+0E01 in a name", _with_document_edit("<w:body>", "<w:body><w:aก/>"), None),
         # read without recursion in both: expat's depth, not a stack's
-        ("control: elements nested 20,000 deep", _with_document_edit("<w:body>", "<w:body>" + "<w:customXml>" * 20000 + "</w:customXml>" * 20000), None),
-        ("elements nested 20,000 deep, then malformed", _with_document_edit("<w:body>", "<w:body>" + "<w:customXml>" * 20000 + "</w:customXml>" * 20000 + "<bad"), NOT_XML),
+        ("control: elements nested 20,000 deep", _with_document_edit("<w:body>", "<w:body>" + "<w:customXml>" * 20000 + "</w:customXml>" * 20000),
+         None),
+        ("elements nested 20,000 deep, then malformed",
+         _with_document_edit("<w:body>", "<w:body>" + "<w:customXml>" * 20000 + "</w:customXml>" * 20000 + "<bad"), NOT_XML),
         ("-- inside a comment", _with_document_edit("<w:body>", "<w:body><!-- a -- b -->"), NOT_XML),
         ("a comment ending --->", _with_document_edit("<w:body>", "<w:body><!-- a --->"), NOT_XML),
     ]

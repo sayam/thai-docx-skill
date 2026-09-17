@@ -216,7 +216,8 @@ def _block(rng: random.Random, depth: int = 0, kinds: list = GFM_KINDS, tame: bo
         n = rng.randint(1, 3)
         head = "| " + " | ".join(_inline(rng).replace("\\|", "").replace("|", "") or "h" for _ in range(n)) + " |"
         delim = "|" + "|".join(rng.choice(["---", ":--", "--:", ":-:"]) for _ in range(n)) + "|"
-        rows = ["| " + " | ".join(_inline(rng).replace("\\|", "").replace("|", "") for _ in range(rng.randint(1, n))) + " |" for _ in range(rng.randint(0, 2))]
+        rows = ["| " + " | ".join(_inline(rng).replace("\\|", "").replace("|", "") for _ in range(rng.randint(1, n))) + " |"
+                for _ in range(rng.randint(0, 2))]
         return [head, delim] + rows
     return [_inline(rng), rng.choice(["", "  "]) + _inline(rng)]
 

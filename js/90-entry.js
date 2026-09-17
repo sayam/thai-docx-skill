@@ -41,10 +41,10 @@ function realPath(fs, path, p) {
       continue;
     }
     const candidate = resolved.endsWith(path.sep) ? resolved + part : resolved + path.sep + part;
-    let isLink = false;
+    let isLink;
     try {
       isLink = fs.lstatSync(candidate).isSymbolicLink();
-    } catch (e) {
+    } catch {
       isLink = false;
     }
     if (!isLink || links >= MAX_LINKS) {
@@ -55,7 +55,7 @@ function realPath(fs, path, p) {
     let target;
     try {
       target = fs.readlinkSync(candidate);
-    } catch (e) {
+    } catch {
       resolved = candidate;
       continue;
     }
@@ -139,7 +139,7 @@ function nodeCheck(argv) {
     } finally {
       fs.closeSync(fd);
     }
-  } catch (e) {
+  } catch {
     bytes = new Uint8Array(0); // judged like any other file that is no zip
   }
   const report = checkBytes(bytes, argv[0]);

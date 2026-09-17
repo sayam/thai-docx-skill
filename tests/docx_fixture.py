@@ -35,7 +35,8 @@ def good() -> dict[str, str]:
         "</Types>",
         "_rels/.rels": XML
         + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"'
+        ' Target="word/document.xml"/>'
         "</Relationships>",
         "word/_rels/document.xml.rels": XML
         + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
@@ -48,7 +49,8 @@ def good() -> dict[str, str]:
         '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>' + run("หัวข้อทดสอบ") + "</w:p>"
         "<w:p>" + run("ข้อความทดสอบ ") + run("ตัวหนา", BOLD_PROPS) + run(" ท้ายประโยค") + "</w:p>"
         '<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr>' + run("รายการ") + "</w:p>"
-        '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="2160" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>'
+        '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
+        '<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="2160" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>'
         "</w:body></w:document>",
         "word/styles.xml": XML
         + f"<w:styles {W}><w:docDefaults><w:rPrDefault><w:rPr>"

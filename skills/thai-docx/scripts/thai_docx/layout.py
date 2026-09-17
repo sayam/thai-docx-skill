@@ -121,7 +121,8 @@ def heading_styles(doc: md.Document) -> tuple[dict[int, dict], list[str]]:
                     else:
                         bad = True
                 if bad or (style and not under):
-                    raise md.Unsupported(line, where + " takes none, or underline and line-through, the underline solid, double, dotted, dashed, wavy or thick")
+                    raise md.Unsupported(line, where + " takes none, or underline and line-through, "
+                                         "the underline solid, double, dotted, dashed, wavy or thick")
                 props["underline"], props["strike"] = (style or "single") if under else None, strike
             elif name == "text-align":
                 if val not in ALIGN:
@@ -158,7 +159,8 @@ def has_thai(text: str) -> bool:
 
 
 THAI_LETTERS = "กขคงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮ"  # as appendices are lettered: no ฃ or ฅ
-ROMAN = ((1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"))
+ROMAN = ((1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"),
+         (1, "I"))
 SECTION_MARK = "\x00"  # between sections in the body; the input can hold no control character
 LIST_FIELDS = {"toc": 'TOC \\o "1-3" \\h \\z \\u', "list-of-tables": 'TOC \\h \\z \\c "Table"', "list-of-figures": 'TOC \\h \\z \\c "Figure"'}
 THAI_DIGITS = str.maketrans("0123456789", "๐๑๒๓๔๕๖๗๘๙")
@@ -279,12 +281,15 @@ def layout(doc: md.Document, opts: dict) -> tuple[list[dict], list[str], list[st
             warnings.append("line " + str(b["line"]) + ": 'Table:' makes a caption only in the paragraph just before a table; kept as text")
             kind = None
         if kind == "figure" and not (i > 0 and _image_only(blocks[i - 1])):
-            warnings.append("line " + str(b["line"]) + ": 'Figure:' makes a caption only in the paragraph just after an image on its own; kept as text")
+            warnings.append("line " + str(b["line"])
+                            + ": 'Figure:' makes a caption only in the paragraph just after an image on its own; kept as text")
             kind = None
         if _figure_in_image_paragraph(b):
-            warnings.append("line " + str(b["line"]) + ": 'Figure:' shares a paragraph with the image above it; leave a blank line between them to make a caption")
+            warnings.append("line " + str(b["line"])
+                            + ": 'Figure:' shares a paragraph with the image above it; leave a blank line between them to make a caption")
         if _table_ends_in_caption(b):
-            warnings.append("line " + str(b["line"]) + ": the table's last row starts with 'Table:'; a caption goes before the table, on its own line")
+            warnings.append("line " + str(b["line"])
+                            + ": the table's last row starts with 'Table:'; a caption goes before the table, on its own line")
         if kind is not None:
             counters[kind] += 1
             chap = ""

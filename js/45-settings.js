@@ -9,7 +9,6 @@ const PAGE_NUMBERS = ["top-right", "top-center", "bottom-center"]; // the first 
 const FRONT_NUMBERS = { "thai-letters": "thaiLetters", "lower-roman": "lowerRoman", "upper-roman": "upperRoman", decimal: "decimal" };
 const APPENDIX_NUMBERS = { "thai-letters": "thaiLetters", "upper-letters": "upperLetter", decimal: "decimal", "upper-roman": "upperRoman" };
 const MIN_TEXT_TWIPS = 1440;
-const LAYERS = { 1: "page and type", 2: "page furniture", 3: "tables", 4: "headings", 5: "thesis structure" };
 // what a document may hold that a setting needs (ADR 0028): the name an entry says in `needs`
 // or `clashes` → why the flag did nothing
 const STRUCTURES = {
