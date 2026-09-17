@@ -1,0 +1,80 @@
+# OpenSSF Scorecard on main, published to api.scorecard.dev so the README badge has a
+# number to show, and uploaded to code scanning so each finding is an alert with its
+# remediation. What the score does and does not measure: see the line under the badge.
+#
+# The publishing API (scorecard-webapp) accepts results only from a workflow shaped like
+# this one, and a run that breaks the shape FAILS instead of publishing:
+#   - no top-level `env:` or `defaults:`, no write permission at the workflow level;
+#   - only the scorecard job holds `id-token: write`;
+#   - that job has no `env:`, `defaults:`, `container:` or `services:`, runs on an
+#     Ubuntu GitHub-hosted runner, and its steps are only `uses:` of actions/checkout,
+#     actions/upload-artifact, github/codeql-action/upload-sarif, ossf/scorecard-action
+#     (or step-security/harden-runner) — no `run:` step.
+# So nothing else goes in this job; put any other work in another workflow.
+#
+# file_mode: git — the default (`archive`) reads the repository through GitHub's source
+# tarball, and that tarball honours .gitattributes `export-ignore`, which here strips
+# .github/, tests/, tools/ and requirements/ (ADR 0018). Scorecard would then see no
+# workflows and no SECURITY.md: Dangerous-Workflow, Token-Permissions and
+# Pinned-Dependencies inconclusive, Security-Policy 0. `git` clones instead: slower, exact.
+#
+# No repo_token: rulesets (the only protection main has) are read with GITHUB_TOKEN;
+# an admin PAT would only add classic branch-protection fields this repository has none of.
+#
+# Pins, each tag resolved to its commit on 2026-09-17 (gh api repos/OWNER/REPO/git/ref/tags/vX):
+#   actions/checkout v7.0.1 ............. 3d3c42e5aac5ba805825da76410c181273ba90b1 (as gates.yml)
+#   ossf/scorecard-action v2.4.4 ........ 2d1146689b8cda280b9bc96326124645441f03bc (runs Scorecard v5.5.0)
+#   actions/upload-artifact v7.0.1 ...... 043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+#   github/codeql-action v4.38.0 ........ b96794f015dfd88f77b49b1c93e0fa7110f94c63 (as codeql.yml)
+# Bumped by hand, together with the other workflows (CONTRIBUTING.md, Dependencies).
+#
+# Gate row: `scorecard-published` in gates.yaml (enforced_by job scorecard).
+
+name: scorecard
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # weekly, Monday 03:17 UTC — Maintained, Vulnerabilities and CII-Best-Practices
+    # change without a push
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  # Runs only on main (push and schedule); Scorecard refuses to publish from a fork or a
+  # pull request. Not a required check: the score is a report, not a gate on merging.
+  scorecard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      # upload the SARIF to code scanning
+      security-events: write
+      # the OIDC token api.scorecard.dev checks before it accepts published results
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+          file_mode: git
+
+      # the raw SARIF on the run page for five days, readable without write access
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: scorecard-sarif
+          path: results.sarif
+          retention-days: 5
+
+      - uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
+        with:
+          sarif_file: results.sarif
