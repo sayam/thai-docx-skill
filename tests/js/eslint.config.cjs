@@ -27,6 +27,8 @@ const WRAPPER = { VERSION: "readonly" }; // declared by the bundler before the p
 // The bundle runs under Node.js and in a sandbox with no modules (ADR 0008), so a part may
 // use only the globals both share; the command line and the profile files are the parts
 // that run only under Node.js, and they alone may reach its names (ADR 0025).
+// a name as a regular expression that matches only itself
+const escapeRegExp = (text) => text.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
 const NODE_ONLY = new Set(["55-profiles.js", "90-entry.js"]);
 const NODE = { require: "readonly", process: "readonly", __dirname: "readonly" };
 
@@ -36,7 +38,7 @@ module.exports = [
     const others = PARTS.filter((n) => n !== name);
     const shared = Object.fromEntries(others.flatMap((n) => declared(n).map((v) => [v, "readonly"])));
     const usedElsewhere = declared(name).filter(
-      (v) => API.includes(v) || others.some((n) => new RegExp("(?<![\\w$])" + v.replace(/\$/g, "\\$") + "(?![\\w$])").test(TEXT[n])),
+      (v) => API.includes(v) || others.some((n) => new RegExp("(?<![\\w$])" + escapeRegExp(v) + "(?![\\w$])").test(TEXT[n])),
     );
     return {
       basePath: ROOT,
@@ -48,7 +50,7 @@ module.exports = [
       },
       rules: {
         // `_` is a value a loop must take and does not use, as in the Python it ports
-        "no-unused-vars": ["error", { varsIgnorePattern: "^(?:" + ["_", ...usedElsewhere].join("|").replace(/\$/g, "\\$") + ")$" }],
+        "no-unused-vars": ["error", { varsIgnorePattern: "^(?:" + ["_", ...usedElsewhere].map(escapeRegExp).join("|") + ")$" }],
       },
     };
   }),

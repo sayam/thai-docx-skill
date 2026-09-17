@@ -11,10 +11,16 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 ### Changed
 
 - `profile save` reports `"replaced"`, as `profile import` already did: true when a profile of
-  that name was there and the save took its place. Both then also carry a warning saying so. The guides warn that `build`, `profile save`
-  and `profile import` replace without asking.
+  that name was there and the save took its place. Both then also carry a warning saying so. The
+  guides warn that `build`, `profile save` and `profile import` replace without asking.
 - The skill's description is 195 characters (was 731), so the skill uploads in the Claude
   apps, which take 200, and ends with the repository's address.
+
+### Fixed
+
+- Reading a profile stops one byte past its 64 KiB limit instead of asking the file's size first,
+  in both implementations. A file that grew between the two, or has no size at all (`/dev/zero`),
+  made the command read without end; it is now refused as larger than 64 KiB.
 
 ## [0.1.0] - 2026-09-17
 

@@ -4921,16 +4921,23 @@ function profileFind(name) {
 
 function profileRead(p) {
   const fs = require("fs");
-  let text;
+  // read at most one byte past the limit, rather than ask the size first: a file that
+  // changes between the two, or has no size (/dev/zero), cannot get past it
+  const raw = new Uint8Array(PROFILE_MAX_BYTES + 1);
+  let n = 0;
   try {
-    if (fs.statSync(p).isFile() && fs.statSync(p).size > PROFILE_MAX_BYTES) {
-      throw new ProfileError(p + ": larger than 64 KiB; a profile is settings");
+    const fd = fs.openSync(p, "r");
+    try {
+      let got;
+      while (n < raw.length && (got = fs.readSync(fd, raw, n, raw.length - n, null)) > 0) n += got;
+    } finally {
+      fs.closeSync(fd);
     }
-    text = fs.readFileSync(p).toString("utf-8");
   } catch (e) {
-    if (e instanceof ProfileError) throw e;
     throw new ProfileError("cannot read " + p + ": " + osError(e));
   }
+  if (n > PROFILE_MAX_BYTES) throw new ProfileError(p + ": larger than 64 KiB; a profile is settings");
+  const text = new TextDecoder("utf-8").decode(raw.subarray(0, n));
   return profileValidate(jsonParsePy(text, p), p);
 }
 
