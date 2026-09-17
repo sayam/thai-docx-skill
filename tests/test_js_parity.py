@@ -58,7 +58,8 @@ def test_bundle_stays_within_the_script_limits():
     source = BUNDLE.read_text(encoding="utf-8")
     assert sorted(set(re.findall(r"require\(\s*\"([^\"]+)\"\s*\)", source))) == ["fs", "os", "path"]
     assert "require(" not in re.sub(r"require\(\s*\"(fs|os|path)\"\s*\)", "", source).replace('typeof require !== "undefined"', "")
-    for forbidden in (r"child_process", r"\beval\(", r"\bFunction\(", r"\bfetch\(", r"XMLHttpRequest", r"WebSocket", r"\bimport\(", r"process\.env", r"\bDate\b", r"Math\.random"):
+    for forbidden in (r"child_process", r"\beval\(", r"\bFunction\(", r"\bfetch\(", r"XMLHttpRequest", r"WebSocket", r"\bimport\(", r"process\.env",
+                      r"\bDate\b", r"Math\.random"):
         hits = [line[:120] for line in source.splitlines() if re.search(forbidden, line) and not line.lstrip().startswith("//")]
         assert not hits, f"{forbidden!r} in the bundle: {hits[:2]}"
 
@@ -87,7 +88,8 @@ def test_check_gives_the_same_report():
     py = [parity.py_check(p) for p in corpus]
     assert py == js, _first_difference(py, js, [p[:80] for p in corpus])
     messages = {f["message"] for r in py for f in r["findings"][:1]}
-    for expected in ("not a zip package", "entry cannot be read (corrupt data or checksum)", "entry name appears more than once", "XML is not well-formed", "XML part is not UTF-8"):
+    for expected in ("not a zip package", "entry cannot be read (corrupt data or checksum)", "entry name appears more than once",
+                     "XML is not well-formed", "XML part is not UTF-8"):
         assert expected in messages, f"the corpus never produced {expected!r}"
     assert sum(1 for r in py if r["ok"]) > 50, "too few sound packages in the corpus"
 
@@ -120,7 +122,8 @@ def test_deep_nesting_is_read_or_refused_the_same_way():
     js = parity.run_js({"op": "ast", "texts": texts})
     py = [parity.py_ast(t) for t in texts]
     assert py == js, _first_difference(py, js, texts)
-    assert {r.get("error", "read") for r in py} == {"read", f"blocks nested more than {limit} deep are not supported", f"inline formatting nested more than {limit} deep is not supported"}
+    assert {r.get("error", "read") for r in py} == {"read", f"blocks nested more than {limit} deep are not supported",
+                                                    f"inline formatting nested more than {limit} deep is not supported"}
     cases = [{"text": t, "args": []} for t in texts]
     built = parity.run_js(parity.js_build_request(cases))
     assert [parity.py_build(c) for c in cases] == built
@@ -185,7 +188,8 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
     out = "out.docx"
     return [
         ["build", "doc/in.md", out],
-        ["build", "doc/in.md", out, "--toc", "--page-numbers", "--hide-spelling-errors", "--align", "thai", "--paper", "letter", "--size", "15", "--margins", "1,1,1,1"],
+        ["build", "doc/in.md", out, "--toc", "--page-numbers", "--hide-spelling-errors", "--align", "thai", "--paper", "letter", "--size", "15",
+         "--margins", "1,1,1,1"],
         ["build", "doc/sub/เอกสาร.md", "ผล.docx", "--font=Sarabun"],
         ["build", "doc/outside.md", out],
         ["build", "doc/outside.md", out, "--allow-dir", "elsewhere"],
@@ -285,7 +289,8 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
         ["build", "thesis/thesis.md", out, "--chapter-title-on-new-line", "--toc"],
         ["build", "doc/in.md", out, "--chapter-title-on-new-line"],  # a document with no regions: the warning
         # flags whose structure the document lacks share a warning per structure (ADR 0028)
-        ["build", "doc/in.md", out, "--chapter-label", "บท", "--appendix-label", "Appendix", "--appendix-numbers", "decimal", "--front-page-numbers", "decimal", "--figure-label", "ภาพ"],
+        ["build", "doc/in.md", out, "--chapter-label", "บท", "--appendix-label", "Appendix", "--appendix-numbers", "decimal", "--front-page-numbers",
+         "decimal", "--figure-label", "ภาพ"],
         ["build", "doc/sub/เอกสาร.md", out, "--table-widths", "auto", "--no-repeat-table-header", "--table-label", "ตาราง"],
         # grill mode is the user's word (ADR 0026): both read the message the same way
         ["grill", "--said", "thai-docx grill"],
@@ -339,7 +344,8 @@ def test_a_writer_defect_is_refused_the_same_way(tmp_path):
     broken = tmp_path / "broken.cjs"
     broken.write_text(source.replace(js_lang, "let LANG = '<w:cs/>';"), encoding="utf-8")
     (tmp_path / "in.md").write_text("ก\n", encoding="utf-8")
-    planted = "import sys; sys.path.insert(0, sys.argv[1]); from thai_docx import writer, parts, __main__; writer.LANG = parts.LANG = '<w:cs/>'; sys.exit(__main__.main(sys.argv[2:]))"
+    planted = ("import sys; sys.path.insert(0, sys.argv[1]); from thai_docx import writer, parts, __main__; "
+               "writer.LANG = parts.LANG = '<w:cs/>'; sys.exit(__main__.main(sys.argv[2:]))")
     args = ["build", "in.md", "out.docx"]
     py = _run([sys.executable, "-c", planted, str(ROOT / "skills/thai-docx/scripts")], args, tmp_path)
     js = _run(["node", str(broken)], args, tmp_path)
@@ -363,7 +369,8 @@ def test_command_line_is_the_same(tmp_path):
     all_flags = runs[1][1]
     assert all_flags[3]["out.docx"] == (parity.GOLDEN / "sample-all-flags.docx").read_bytes()
     thesis = [(a, r) for a, r in runs if a[:2] == ["build", "thesis/thesis.md"]]
-    for (args, run), (_source, _flags, golden, _about) in zip(thesis, list(oracle_set.VARIANTS.values())[1:], strict=False):  # thesis has one more run
+    # thesis has one more run
+    for (args, run), (_source, _flags, golden, _about) in zip(thesis, list(oracle_set.VARIANTS.values())[1:], strict=False):
         assert run[0] == 0 and run[3]["out.docx"] == (parity.GOLDEN / f"{golden}.docx").read_bytes(), args
     assert len(thesis) == 4  # the three golden variants, then --chapter-title-on-new-line
     assert thesis[3][1][3]["out.docx"] not in [(parity.GOLDEN / f"{g}.docx").read_bytes()

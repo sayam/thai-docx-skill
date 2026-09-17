@@ -71,7 +71,8 @@ class Package(Writer):
                 front = "thaiNumbers" if front == "decimal" and self.opts["thai_digits"] else front
                 pg = '<w:pgNumType w:fmt="' + (front if region == "front" else numbers) + '"' + (' w:start="1"' if start else "") + "/>"
             return (
-                "<w:sectPr>" + refs + self.footnote_format() + '<w:pgSz w:w="' + str(pw) + '" w:h="' + str(ph) + '"' + (' w:orient="landscape"' if self.opts["landscape"] else "") + "/>"
+                "<w:sectPr>" + refs + self.footnote_format() + '<w:pgSz w:w="' + str(pw) + '" w:h="' + str(ph) + '"'
+                + (' w:orient="landscape"' if self.opts["landscape"] else "") + "/>"
                 '<w:pgMar w:top="' + str(top) + '" w:right="' + str(right) + '" w:bottom="' + str(bottom) + '" w:left="' + str(left)
                 + '" w:header="720" w:footer="720" w:gutter="0"/>' + pg
                 + ("<w:titlePg/>" if self.title_page() and region != "cover" else "") + "</w:sectPr>"
@@ -97,8 +98,10 @@ class Package(Writer):
 
     def footnotes_xml(self) -> str:
         parts = [
-            '<w:footnote w:type="separator" w:id="-1"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:separator/></w:r></w:p></w:footnote>',
-            '<w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>',
+            '<w:footnote w:type="separator" w:id="-1"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>'
+            '<w:r><w:separator/></w:r></w:p></w:footnote>',
+            '<w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>'
+            '<w:r><w:continuationSeparator/></w:r></w:p></w:footnote>',
         ]
         mark = ('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + LANG + "</w:rPr><w:footnoteRef/></w:r>"
                 "<w:r><w:rPr>" + LANG + "</w:rPr><w:tab/></w:r>")
@@ -130,7 +133,8 @@ class Package(Writer):
             name, rest = self.heading_run(n)
             face = attr(name) if name is not None else ""
             rpr = ("<w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + " w:eastAsia=" + face + "/>" if face else "") + rest
-            num = '<w:numPr><w:ilvl w:val="' + str(n - 1) + '"/><w:numId w:val="' + str(self.heading_num_id()) + '"/></w:numPr>' if n in self.numbered_levels() else ""
+            num = ('<w:numPr><w:ilvl w:val="' + str(n - 1) + '"/><w:numId w:val="' + str(self.heading_num_id()) + '"/></w:numPr>'
+                   if n in self.numbered_levels() else "")
             spacing = '<w:spacing w:before="' + str(p.get("before", 240 if n == 1 else 200)) + '" w:after="' + str(p.get("after", 80)) + '"'
             spacing += (' w:line="' + str(p["line"]) + '" w:lineRule="auto"/>') if "line" in p else "/>"
             ind = ""
@@ -140,7 +144,8 @@ class Package(Writer):
                     ind += (' w:hanging="' + str(-p["first"]) + '"') if p["first"] < 0 else (' w:firstLine="' + str(p["first"]) + '"')
                 ind += "/>"
             return (
-                '<w:style w:type="paragraph" w:styleId="Heading' + str(n) + '"><w:name w:val="heading ' + str(n) + '"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
+                '<w:style w:type="paragraph" w:styleId="Heading' + str(n) + '"><w:name w:val="heading ' + str(n)
+                + '"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
                 "<w:pPr><w:keepNext/><w:keepLines/>" + ("<w:pageBreakBefore/>" if p.get("break") else "") + num + spacing + ind
                 + '<w:jc w:val="' + p.get("jc", "left") + '"/><w:outlineLvl w:val="' + str(n - 1) + '"/></w:pPr>'
                 "<w:rPr>" + rpr + "</w:rPr></w:style>"
@@ -150,7 +155,8 @@ class Package(Writer):
             """A style Word applies itself (a TOC entry, a header): missing from the file, Word
             takes its own template's definition — another font and size — so it is written out."""
             return (
-                '<w:style w:type="paragraph" w:styleId="' + style_id + '"><w:name w:val="' + name + '"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/>'
+                '<w:style w:type="paragraph" w:styleId="' + style_id + '"><w:name w:val="' + name
+                + '"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/>'
                 + ("<w:pPr>" + ppr + "</w:pPr>" if ppr else "")
                 + "<w:rPr><w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>"
                 '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/></w:rPr></w:style>'
@@ -186,14 +192,21 @@ class Package(Writer):
             "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>"
             '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + LANG + "</w:rPr></w:style>"
             + "".join(heading(n) for n in range(1, 7))
-            + '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720"/><w:contextualSpacing/></w:pPr></w:style>'
-            '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720" w:right="720"/></w:pPr><w:rPr><w:i/><w:iCs/></w:rPr></w:style>'
-            '<w:style w:type="paragraph" w:styleId="CodeBlock"><w:name w:val="Code Block"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr><w:rPr><w:rFonts w:ascii="'
-            + CODE_FONT + '" w:hAnsi="' + CODE_FONT + '" w:cs=' + font + '/><w:sz w:val="' + hp(small) + '"/><w:szCs w:val="' + hp(small) + '"/></w:rPr></w:style>'
-            '<w:style w:type="paragraph" w:styleId="FootnoteText"><w:name w:val="footnote text"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:ind w:left="360" w:hanging="360"/></w:pPr><w:rPr><w:sz w:val="'
+            + '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/>'
+            '<w:pPr><w:ind w:left="720"/><w:contextualSpacing/></w:pPr></w:style>'
+            '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/>'
+            '<w:pPr><w:ind w:left="720" w:right="720"/></w:pPr><w:rPr><w:i/><w:iCs/></w:rPr></w:style>'
+            '<w:style w:type="paragraph" w:styleId="CodeBlock"><w:name w:val="Code Block"/><w:basedOn w:val="Normal"/>'
+            '<w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr><w:rPr><w:rFonts w:ascii="'
+            + CODE_FONT + '" w:hAnsi="' + CODE_FONT + '" w:cs=' + font + '/><w:sz w:val="' + hp(small) + '"/><w:szCs w:val="' + hp(small)
+            + '"/></w:rPr></w:style>'
+            '<w:style w:type="paragraph" w:styleId="FootnoteText"><w:name w:val="footnote text"/><w:basedOn w:val="Normal"/>'
+            '<w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:ind w:left="360" w:hanging="360"/></w:pPr><w:rPr><w:sz w:val="'
             + hp(small) + '"/><w:szCs w:val="' + hp(small) + '"/></w:rPr></w:style>'
-            '<w:style w:type="character" w:styleId="FootnoteReference"><w:name w:val="footnote reference"/><w:rPr><w:vertAlign w:val="superscript"/></w:rPr></w:style>'
-            '<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:rFonts w:ascii=' + font + " w:hAnsi=" + font + " w:cs=" + font + '/><w:color w:val="0563C1"/><w:u w:val="single"/></w:rPr></w:style>'
+            '<w:style w:type="character" w:styleId="FootnoteReference"><w:name w:val="footnote reference"/>'
+            '<w:rPr><w:vertAlign w:val="superscript"/></w:rPr></w:style>'
+            '<w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:rFonts w:ascii=' + font + " w:hAnsi=" + font
+            + " w:cs=" + font + '/><w:color w:val="0563C1"/><w:u w:val="single"/></w:rPr></w:style>'
             + applied +
             "</w:styles>"
         )
@@ -211,23 +224,24 @@ class Package(Writer):
         level_font = ("<w:rPr><w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + "/>"
                       '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + LANG + "</w:rPr>")
 
-        def heading_font(l: int) -> str:
+        def heading_font(ilvl: int) -> str:
             """A heading level's number is drawn as its heading is — "บทที่ 1" at Heading 1's size,
             not the body's — naming the font all the same; levels past Heading 6 have none."""
-            if l >= len(HEADING_LOOK):
+            if ilvl >= len(HEADING_LOOK):
                 return level_font
-            name, rest = self.heading_run(l + 1)
+            name, rest = self.heading_run(ilvl + 1)
             face = attr(name) if name is not None else font
             return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + LANG + "</w:rPr>"
         bullet = "".join(
-            '<w:lvl w:ilvl="' + str(l) + '"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/>'
-            '<w:pPr><w:ind w:left="' + str(720 * (l + 1)) + '" w:hanging="360"/></w:pPr>' + level_font + "</w:lvl>"
-            for l in range(9)
+            '<w:lvl w:ilvl="' + str(ilvl) + '"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/>'
+            '<w:pPr><w:ind w:left="' + str(720 * (ilvl + 1)) + '" w:hanging="360"/></w:pPr>' + level_font + "</w:lvl>"
+            for ilvl in range(9)
         )
         decimal = "".join(
-            '<w:lvl w:ilvl="' + str(l) + '"><w:start w:val="1"/><w:numFmt w:val="' + fmt + '"/><w:lvlText w:val="%' + str(l + 1) + '."/><w:lvlJc w:val="left"/>'
-            '<w:pPr><w:ind w:left="' + str(720 * (l + 1)) + '" w:hanging="360"/></w:pPr>' + level_font + "</w:lvl>"
-            for l in range(9)
+            '<w:lvl w:ilvl="' + str(ilvl) + '"><w:start w:val="1"/><w:numFmt w:val="' + fmt + '"/><w:lvlText w:val="%' + str(ilvl + 1)
+            + '."/><w:lvlJc w:val="left"/>'
+            '<w:pPr><w:ind w:left="' + str(720 * (ilvl + 1)) + '" w:hanging="360"/></w:pPr>' + level_font + "</w:lvl>"
+            for ilvl in range(9)
         )
         nums = '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>' + "".join(
             '<w:num w:numId="' + str(nid) + '"><w:abstractNumId w:val="1"/><w:lvlOverride w:ilvl="' + str(min(level, 8))
@@ -238,16 +252,16 @@ class Package(Writer):
         levels_on = self.numbered_levels()
         if levels_on:
             # "1." for a # heading — "บทที่ 1" with chapters — then "1.1", "1.1.1" ... followed by a space, no hanging indent
-            def lvl_text(l: int) -> str:
-                if l == 0:
+            def lvl_text(ilvl: int) -> str:
+                if ilvl == 0:
                     return self.opts["chapter_label"] + " %1" if self.has_chapters else "%1."
-                return ".".join("%" + str(k + 1) for k in range(l + 1))
+                return ".".join("%" + str(k + 1) for k in range(ilvl + 1))
 
             levels = "".join(
-                '<w:lvl w:ilvl="' + str(l) + '"><w:start w:val="1"/><w:numFmt w:val="' + fmt + '"/>'
-                + ('<w:pStyle w:val="Heading' + str(l + 1) + '"/>' if l + 1 in levels_on else "")
-                + '<w:suff w:val="space"/><w:lvlText w:val=' + attr(lvl_text(l)) + '/><w:lvlJc w:val="left"/>' + heading_font(l) + "</w:lvl>"
-                for l in range(9)
+                '<w:lvl w:ilvl="' + str(ilvl) + '"><w:start w:val="1"/><w:numFmt w:val="' + fmt + '"/>'
+                + ('<w:pStyle w:val="Heading' + str(ilvl + 1) + '"/>' if ilvl + 1 in levels_on else "")
+                + '<w:suff w:val="space"/><w:lvlText w:val=' + attr(lvl_text(ilvl)) + '/><w:lvlJc w:val="left"/>' + heading_font(ilvl) + "</w:lvl>"
+                for ilvl in range(9)
             )
             headings = '<w:abstractNum w:abstractNumId="2"><w:multiLevelType w:val="multilevel"/>' + levels + "</w:abstractNum>"
             nums += '<w:num w:numId="' + str(self.heading_num_id()) + '"><w:abstractNumId w:val="2"/></w:num>'
@@ -256,10 +270,11 @@ class Package(Writer):
             first = APPENDIX_NUMBERS[self.opts["appendix_numbers"]]
             first = "thaiNumbers" if first == "decimal" and self.opts["thai_digits"] else first
             headings += '<w:abstractNum w:abstractNumId="3"><w:multiLevelType w:val="multilevel"/>' + "".join(
-                '<w:lvl w:ilvl="' + str(l) + '"><w:start w:val="1"/><w:numFmt w:val="' + (first if l == 0 else fmt) + '"/>'
-                + '<w:suff w:val="space"/><w:lvlText w:val=' + attr(self.opts["appendix_label"] + " %1" if l == 0 else ".".join("%" + str(k + 1) for k in range(l + 1)))
-                + '/><w:lvlJc w:val="left"/>' + heading_font(l) + "</w:lvl>"
-                for l in range(9)
+                '<w:lvl w:ilvl="' + str(ilvl) + '"><w:start w:val="1"/><w:numFmt w:val="' + (first if ilvl == 0 else fmt) + '"/>'
+                + '<w:suff w:val="space"/><w:lvlText w:val='
+                + attr(self.opts["appendix_label"] + " %1" if ilvl == 0 else ".".join("%" + str(k + 1) for k in range(ilvl + 1)))
+                + '/><w:lvlJc w:val="left"/>' + heading_font(ilvl) + "</w:lvl>"
+                for ilvl in range(9)
             ) + "</w:abstractNum>"
             nums += '<w:num w:numId="' + str(self.heading_num_id() + 1) + '"><w:abstractNumId w:val="3"/></w:num>'
         return (
@@ -366,7 +381,8 @@ class Package(Writer):
             for n, first in (("1", False), ("2", True)) if self.plain_page_part() else (("1", False),):
                 overrides.append(("/word/" + kind + n + ".xml", "application/vnd.openxmlformats-officedocument.wordprocessingml." + kind + "+xml"))
                 page_parts.append(("word/" + kind + n + ".xml", self.page_part_xml(kind, first)))
-        defaults = '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'
+        defaults = ('<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+                    '<Default Extension="xml" ContentType="application/xml"/>')
         for ext in sorted({name.rsplit(".", 1)[1] for name, _ in self.media}):
             defaults += '<Default Extension="' + ext + '" ContentType="image/' + ext + '"/>'
         parts: list[tuple[str, str | bytes]] = [
@@ -374,7 +390,8 @@ class Package(Writer):
              + "".join('<Override PartName="' + p + '" ContentType="' + ct + '"/>' for p, ct in overrides) + "</Types>"),
             ("_rels/.rels", XML + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
              '<Relationship Id="rId1" Type="' + REL + 'officeDocument" Target="word/document.xml"/>'
-             '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>'
+             '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties"'
+             ' Target="docProps/core.xml"/>'
              "</Relationships>"),
             ("docProps/core.xml", self.core_xml()),
             ("word/document.xml", document),
@@ -386,7 +403,8 @@ class Package(Writer):
             parts.append(("word/footnotes.xml", footnotes))
         parts.extend(page_parts)
         parts.append(("word/_rels/document.xml.rels", XML + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-                      + "".join('<Relationship Id="' + rid + '" Type="' + kind + '" Target=' + attr(target) + (' TargetMode="External"/>' if ext else "/>")
+                      + "".join('<Relationship Id="' + rid + '" Type="' + kind + '" Target=' + attr(target)
+                                + (' TargetMode="External"/>' if ext else "/>")
                                 for rid, kind, target, ext in self.rels)
                       + "</Relationships>"))
         parts.extend(self.media)

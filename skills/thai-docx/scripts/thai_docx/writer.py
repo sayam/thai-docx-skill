@@ -147,7 +147,8 @@ class Writer:
                 out.append('<w:r><w:rPr><w:rFonts w:ascii="' + SYMBOL_FONT + '" w:hAnsi="' + SYMBOL_FONT + '" w:cs="' + SYMBOL_FONT + '"/>'
                            + LANG + '</w:rPr><w:t xml:space="preserve">' + mark + "</w:t></w:r>")
             elif t == "footnote_ref":
-                out.append('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + LANG + '</w:rPr><w:footnoteReference w:id="' + str(n["id"]) + '"/></w:r>')
+                out.append('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + LANG + '</w:rPr><w:footnoteReference w:id="' + str(n["id"])
+                           + '"/></w:r>')
             elif t == "image":
                 out.append(self.image(n))
             i += 1
@@ -182,7 +183,8 @@ class Writer:
             '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
             '<pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="Picture ' + k + '"/><pic:cNvPicPr/></pic:nvPicPr>'
             '<pic:blipFill><a:blip r:embed="' + rid + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
-            '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + str(cx) + '" cy="' + str(cy) + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
+            '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + str(cx) + '" cy="' + str(cy)
+            + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
             "</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>"
         )
 
@@ -356,8 +358,10 @@ class Writer:
             for ci, cell in enumerate(row):
                 jc = b["aligns"][ci]
                 # no space after: the body's 6 pt would leave every row taller than its text
-                ppr = ('<w:pStyle w:val="TableText"/>' if self.opts["table_size"] is not None else "") + '<w:spacing w:after="0"/>' + ('<w:jc w:val="' + jc + '"/>' if jc in ("center", "right") else "")
-                cells.append('<w:tc><w:tcPr><w:tcW w:w="' + str(widths[ci]) + '" w:type="dxa"/></w:tcPr>' + self.paragraph(cell, None, ppr, ri == 0) + "</w:tc>")
+                ppr = (('<w:pStyle w:val="TableText"/>' if self.opts["table_size"] is not None else "") + '<w:spacing w:after="0"/>'
+                       + ('<w:jc w:val="' + jc + '"/>' if jc in ("center", "right") else ""))
+                cells.append('<w:tc><w:tcPr><w:tcW w:w="' + str(widths[ci]) + '" w:type="dxa"/></w:tcPr>' + self.paragraph(cell, None, ppr, ri == 0)
+                             + "</w:tc>")
             trpr = "<w:trPr><w:tblHeader/></w:trPr>" if ri == 0 and self.opts["repeat_table_header"] else ""
             rows.append("<w:tr>" + trpr + "".join(cells) + "</w:tr>")
         return (
@@ -373,7 +377,10 @@ class Writer:
         """A field paragraph, and — for a list of contents, tables or figures — the entries
         it already holds between `separate` and `end`, one paragraph each (ADR 0027).
         The field opens in the first entry and closes in the last, as Word writes it."""
-        char = lambda kind: "<w:r><w:rPr>" + LANG + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>'
+
+        def char(kind: str) -> str:
+            return "<w:r><w:rPr>" + LANG + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>'
+
         instruction = "<w:r><w:rPr>" + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
         if not entries:
             return "<w:p><w:pPr>" + ppr + "</w:pPr>" + char("begin") + instruction + char("separate") + char("end") + "</w:p>"

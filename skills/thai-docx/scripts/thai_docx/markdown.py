@@ -1256,7 +1256,8 @@ class InlineParser:
                         opener_found = True
                         break
                 else:
-                    odd_match = (closer.can_open or opener.can_close) and closer.origdelims % 3 != 0 and (opener.origdelims + closer.origdelims) % 3 == 0
+                    odd_match = ((closer.can_open or opener.can_close) and closer.origdelims % 3 != 0
+                                 and (opener.origdelims + closer.origdelims) % 3 == 0)
                     if opener.cc == closer.cc and opener.can_open and not odd_match:
                         opener_found = True
                         break
@@ -2011,7 +2012,8 @@ def _blocks(bp: BlockParser, node: Node, doc: Document) -> list[dict]:
             else:
                 meant = _meant_directive(body)
                 if meant and d and d.group(1) == meant:
-                    bp.warnings.append(f"line {child.line}: <!-- {meant} --> works only at the top level, not inside a list, quotation or footnote; read as a comment")
+                    bp.warnings.append(f"line {child.line}: <!-- {meant} --> works only at the top level, "
+                                       "not inside a list, quotation or footnote; read as a comment")
                 elif meant:
                     bp.warnings.append(f"line {child.line}: {body} is read as a comment; the comment that works is <!-- {meant} -->")
         elif t == "code_block":

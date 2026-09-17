@@ -60,7 +60,9 @@ def test_sample_matches_golden_bytes(tmp_path, name, source, flags):
     code, result = run_cli(source, out, *flags)
     assert code == 0 and result["ok"], result
     golden = (GOLDEN / f"{name}.docx").read_bytes()
-    assert out.read_bytes() == golden, "output differs from the committed golden — a deliberate change regenerates the golden and says so in the commit"
+    assert out.read_bytes() == golden, (
+        "output differs from the committed golden — a deliberate change regenerates the golden and says so in the commit"
+    )
     assert result["sha256"] == hashlib.sha256(golden).hexdigest()
 
 
@@ -165,7 +167,8 @@ def test_image_is_scaled_to_the_text_width(tmp_path):
 
 
 def test_jpeg_dimensions_are_read_from_sof():
-    jpeg = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00" + b"\xff\xc0\x00\x11\x08\x00\x20\x00\x40\x03\x01\x22\x00\x02\x11\x01\x03\x11\x01" + b"\xff\xd9"
+    jpeg = (b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
+            + b"\xff\xc0\x00\x11\x08\x00\x20\x00\x40\x03\x01\x22\x00\x02\x11\x01\x03\x11\x01" + b"\xff\xd9")
     assert wr._image_size(jpeg) == ("jpeg", 64, 32)
 
 
@@ -182,7 +185,9 @@ def test_defaults_are_announced_and_flags_change_the_package(tmp_path):
     assert result["settings"] == {
         "font": "TH Sarabun New", "size_pt": 16, "paper": "a4", "landscape": False,
         "margins_in": {"top": 1.0, "right": 1.0, "bottom": 1.0, "left": 1.5},
-        "first_line_indent_in": 0.0, "line_spacing": 1.0, "align": "left", "toc": False, "heading_numbers": False, "page_numbers": False, "page_number_on_first": True, "header": None, "footer": None, "thai_digits": False, "hide_spelling_errors": False, "repeat_table_header": True, "table_widths": "equal", "table_size_pt": None,
+        "first_line_indent_in": 0.0, "line_spacing": 1.0, "align": "left", "toc": False, "heading_numbers": False, "page_numbers": False,
+        "page_number_on_first": True, "header": None, "footer": None, "thai_digits": False, "hide_spelling_errors": False,
+        "repeat_table_header": True, "table_widths": "equal", "table_size_pt": None,
         "chapter_label": "บทที่", "table_label": "ตารางที่", "figure_label": "รูปที่",
         "front_page_numbers": "thai-letters", "appendix_label": "ภาคผนวก", "appendix_numbers": "thai-letters",
         "chapter_title_on_new_line": False,
@@ -323,8 +328,10 @@ def test_front_matter_heading_styles_become_the_word_heading_styles(tmp_path):
     text = (
         "---\n"
         "title: รายงาน\n"
-        'heading-1: font-family: "TH SarabunPSK"; font-size: 20.5pt; color: #1f4e79; font-weight: normal; font-style: italic; text-align: center; page-break-before: always\n'
-        "heading-2: text-decoration: underline double line-through; margin-left: 1.27cm; text-indent: -0.25in; margin-top: 18pt; margin-bottom: 0; line-height: 1.5\n"
+        'heading-1: font-family: "TH SarabunPSK"; font-size: 20.5pt; color: #1f4e79; font-weight: normal; font-style: italic; '
+        "text-align: center; page-break-before: always\n"
+        "heading-2: text-decoration: underline double line-through; margin-left: 1.27cm; text-indent: -0.25in; "
+        "margin-top: 18pt; margin-bottom: 0; line-height: 1.5\n"
         "heading-3: text-decoration: wavy underline; text-indent: 0.5in; text-align: thai-distribute\n"
         "---\n\n# บทที่ 1\n\n## ส่วน\n\n### ย่อย\n\n#### ไม่ได้ตั้ง\n"
     )
@@ -364,7 +371,8 @@ def test_front_matter_heading_styles_refuse_what_they_do_not_know_and_warn_on_ne
         assert not out.exists()
     result, _ = build(tmp_path, "---\nheading1: font-size: 20pt\nh2: color: #000000\nheading-7: x\nauthor: ก\n---\n\n# ก\n")
     assert result["ok"] and [w["message"] for w in result["warnings"]] == [
-        f"line {n}: front matter key '{k}' is not used; heading styles are heading-1 to heading-6" for n, k in ((2, "heading1"), (3, "h2"), (4, "heading-7"))
+        f"line {n}: front matter key '{k}' is not used; heading styles are heading-1 to heading-6"
+        for n, k in ((2, "heading1"), (3, "h2"), (4, "heading-7"))
     ]
     result, _ = build(tmp_path, "---\nheading-1: font-family: Papyrus\n---\n\n# ก\n")
     assert result["ok"] and [w["code"] for w in result["warnings"]] == ["font"], "a font with no Thai glyphs warns, as --font does"
@@ -511,8 +519,10 @@ def test_appendices_are_lettered_and_front_pages_take_the_chosen_numbers(tmp_pat
         ([], "thaiLetters", "ภาคผนวก %1", "thaiLetters", ["ตารางที่ ก-1 ผู้ตอบ", "ตารางที่ ข-1 ชุดที่ 1"]),
         (["--front-page-numbers", "lower-roman", "--appendix-numbers", "upper-letters", "--appendix-label", "Appendix"],
          "lowerRoman", "Appendix %1", "upperLetter", ["ตารางที่ A-1 ผู้ตอบ", "ตารางที่ B-1 ชุดที่ 1"]),
-        (["--front-page-numbers=upper-roman", "--appendix-numbers", "upper-roman"], "upperRoman", "ภาคผนวก %1", "upperRoman", ["ตารางที่ I-1 ผู้ตอบ", "ตารางที่ II-1 ชุดที่ 1"]),
-        (["--front-page-numbers", "decimal", "--appendix-numbers", "decimal", "--thai-digits"], "thaiNumbers", "ภาคผนวก %1", "thaiNumbers", ["ตารางที่ ๑-๑ ผู้ตอบ", "ตารางที่ ๒-๑ ชุดที่ 1"]),
+        (["--front-page-numbers=upper-roman", "--appendix-numbers", "upper-roman"], "upperRoman", "ภาคผนวก %1", "upperRoman",
+         ["ตารางที่ I-1 ผู้ตอบ", "ตารางที่ II-1 ชุดที่ 1"]),
+        (["--front-page-numbers", "decimal", "--appendix-numbers", "decimal", "--thai-digits"], "thaiNumbers", "ภาคผนวก %1", "thaiNumbers",
+         ["ตารางที่ ๑-๑ ผู้ตอบ", "ตารางที่ ๒-๑ ชุดที่ 1"]),
     )
     for flags, front, label, appendix_fmt, captions in cases:
         opts, _, _ = b.parse_args(flags + ["--heading-numbers", "in.md", "out.docx"])
@@ -524,13 +534,16 @@ def test_appendices_are_lettered_and_front_pages_take_the_chosen_numbers(tmp_pat
         assert re.findall(r"<w:pgNumType[^>]*/>", doc)[0] == f'<w:pgNumType w:fmt="{front}" w:start="1"/>'
         assert len(_sections(doc)) == 6  # บทคัดย่อ, บทนำ, บรรณานุกรม, แบบสอบถาม, ข้อมูลดิบ, ประวัติผู้เขียน
         appendix = numbering.split('<w:abstractNum w:abstractNumId="3">', 1)[1].split("</w:abstractNum>", 1)[0]
-        assert appendix.startswith(f'<w:multiLevelType w:val="multilevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="{appendix_fmt}"/><w:suff w:val="space"/><w:lvlText w:val="{label}"/>')
+        assert appendix.startswith(f'<w:multiLevelType w:val="multilevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="{appendix_fmt}"/>'
+                                   f'<w:suff w:val="space"/><w:lvlText w:val="{label}"/>')
         assert "pStyle" not in appendix, "set on each appendix heading, so Heading 1 stays the chapters'"
         # no numbered list here: the headings' list is numId 2, the appendices' 3
-        assert doc.count('<w:numPr><w:ilvl w:val="0"/><w:numId w:val="3"/></w:numPr>') == 2 and '<w:numPr><w:ilvl w:val="1"/><w:numId w:val="3"/></w:numPr>' in doc
+        assert doc.count('<w:numPr><w:ilvl w:val="0"/><w:numId w:val="3"/></w:numPr>') == 2
+        assert '<w:numPr><w:ilvl w:val="1"/><w:numId w:val="3"/></w:numPr>' in doc
         assert doc.count('<w:pStyle w:val="Heading1"/><w:numPr><w:numId w:val="0"/></w:numPr>') == 3  # บทคัดย่อ, บรรณานุกรม, ประวัติผู้เขียน
         assert [t for t in fi.docx_text(parts, 0) if t.startswith("ตารางที่")] == captions
-    assert lo.number_text(27, "upper-letters", False) == "AA" and lo.number_text(3, "thai-letters", False) == "ค" and lo.number_text(14, "upper-roman", False) == "XIV"
+    assert lo.number_text(27, "upper-letters", False) == "AA" and lo.number_text(3, "thai-letters", False) == "ค"
+    assert lo.number_text(14, "upper-roman", False) == "XIV"
     for text, line, message in (
         ("<!-- front -->\n\n# ก\n\n<!-- appendices -->\n\n# ข\n\n<!-- chapters -->\n", 9, "the regions go front, chapters, back, appendices, back"),
         ("<!-- back -->\n\n# ก\n\n<!-- back -->\n", 5, "a second <!-- back --> comes only after <!-- appendices -->"),
@@ -628,7 +641,8 @@ def _page_parts(out) -> dict[str, str]:
 
 
 def test_header_and_footer_text_share_their_place_with_the_page_number(tmp_path):
-    centre = '<w:pPr><w:pStyle w:val="{}"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + wr.LANG + '</w:rPr><w:t xml:space="preserve">{}</w:t></w:r></w:p>'
+    centre = ('<w:pPr><w:pStyle w:val="{}"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + wr.LANG
+              + '</w:rPr><w:t xml:space="preserve">{}</w:t></w:r></w:p>')
     # text alone: one part, no number
     opts, _, _ = b.parse_args(["--header", "ลับ & <ด่วน>", "in.md", "out.docx"])
     result, out = build(tmp_path, "ก", **opts)
@@ -652,7 +666,8 @@ def test_header_and_footer_text_share_their_place_with_the_page_number(tmp_path)
     result, out = build(tmp_path, "ก", **opts)
     parts = _page_parts(out)
     assert result["ok"] and sorted(parts) == ["word/footer1.xml", "word/footer2.xml", "word/header1.xml", "word/header2.xml"]
-    assert " PAGE " in parts["word/header1.xml"] and parts["word/header2.xml"].endswith('<w:p><w:pPr><w:pStyle w:val="Header"/></w:pPr></w:p></w:hdr>')
+    assert " PAGE " in parts["word/header1.xml"]
+    assert parts["word/header2.xml"].endswith('<w:p><w:pPr><w:pStyle w:val="Header"/></w:pPr></w:p></w:hdr>')
     assert parts["word/footer1.xml"] == parts["word/footer2.xml"] and centre.format("Footer", "สำนักงาน") in parts["word/footer2.xml"]
     for bad in (["--header", ""], ["--footer", "ก\tข"], ["--header", "x" * 201], ["--footer", "a​b"]):
         with pytest.raises(b.BuildError, match="takes text of 1 to 200 characters on one line"):
@@ -671,7 +686,8 @@ def test_first_page_can_go_without_its_number(tmp_path):
         assert sect.startswith(f'<w:sectPr><w:{kind}Reference w:type="default" r:id="rId1"/><w:{kind}Reference w:type="first" r:id="rId2"/>')
         assert sect.endswith("<w:titlePg/></w:sectPr>")
         assert f'Id="rId2" Type="{wr.REL}{kind}" Target="{kind}2.xml"' in rels and f'PartName="/word/{kind}2.xml"' in types
-        assert " PAGE " in numbered and "PAGE" not in first and first.endswith(f"<w:p><w:pPr><w:pStyle w:val=\"{kind.capitalize()}\"/></w:pPr></w:p></w:{tag}>")
+        assert " PAGE " in numbered and "PAGE" not in first
+        assert first.endswith(f"<w:p><w:pPr><w:pStyle w:val=\"{kind.capitalize()}\"/></w:pPr></w:p></w:{tag}>")
     # without the flag, one part and no title page — the goldens keep their bytes
     opts, _, _ = b.parse_args(["--page-numbers", "in.md", "out.docx"])
     _, out = build(tmp_path, "ก", **opts)
@@ -792,7 +808,8 @@ def test_thai_distributed_leaves_a_paragraph_without_thai_alone(tmp_path):
             has_thai = lo.has_thai(said_text)
             assert (jc == []) is has_thai, (jc, said_text[:40])
             assert len(jc) <= 1, "a paragraph that sets its own alignment keeps it: " + said_text[:40]
-        # the reference, a list item, two left table cells (the right column keeps its own) — and with Latin labels the caption, the heading and an entry for each
+        # the reference, a list item, two left table cells (the right column keeps its own) — and with Latin labels
+        # the caption, the heading and an entry for each
         assert sum(1 for jc, t in said if t and jc == ["left"]) == latin_lines, flags
     # left alignment is untouched by the rule
     plain, out2 = build(tmp_path, text)
@@ -845,7 +862,8 @@ def test_every_generated_run_names_the_font(tmp_path):
         assert len(levels) == 9
         # level 1 is Heading 1 as the front matter set it: its font, size, colour, underline
         psk = '<w:rFonts w:ascii="TH SarabunPSK" w:hAnsi="TH SarabunPSK" w:cs="TH SarabunPSK"/>'
-        assert levels[0] == "<w:rPr>" + psk + '<w:b/><w:bCs/><w:color w:val="1F4E79"/><w:sz w:val="44"/><w:szCs w:val="44"/><w:u w:val="single"/>' + wr.LANG + "</w:rPr>"
+        assert levels[0] == ("<w:rPr>" + psk + '<w:b/><w:bCs/><w:color w:val="1F4E79"/><w:sz w:val="44"/><w:szCs w:val="44"/><w:u w:val="single"/>'
+                             + wr.LANG + "</w:rPr>")
         assert heading1 == psk.replace("/>", ' w:eastAsia="TH SarabunPSK"/>') + levels[0][len("<w:rPr>") + len(psk):-len(wr.LANG + "</w:rPr>")]
         # level 2 is the built-in Heading 2 in the document's font: 18 pt, bold
         assert levels[1] == "<w:rPr>" + font + '<w:b/><w:bCs/><w:sz w:val="36"/><w:szCs w:val="36"/>' + wr.LANG + "</w:rPr>"

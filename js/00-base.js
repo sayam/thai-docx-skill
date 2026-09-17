@@ -11,7 +11,7 @@ function utf8(s) {
 function fromUtf8(bytes) {
   try {
     return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
-  } catch (e) {
+  } catch {
     return null;
   }
 }

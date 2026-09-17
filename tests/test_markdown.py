@@ -76,7 +76,8 @@ def test_code_span_keeps_markup_and_strips_one_padding_space():
 
 
 def test_escapes_and_entities():
-    assert inl(r"\*not\* &amp; &#169; &copy; &bogus; \\") == [(r"*not* & © © &bogus; \ ", "", None)][:1] or inl(r"\*not\* &amp; &#169; &copy; &bogus; \\")[0][0].startswith("*not* & © © &bogus;")
+    assert (inl(r"\*not\* &amp; &#169; &copy; &bogus; \\") == [(r"*not* & © © &bogus; \ ", "", None)][:1]
+            or inl(r"\*not\* &amp; &#169; &copy; &bogus; \\")[0][0].startswith("*not* & © © &bogus;"))
 
 
 def test_links_inline_reference_collapsed_shortcut():

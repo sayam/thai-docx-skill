@@ -102,10 +102,17 @@ gates:
     enforced_by: {job: tests, tests: [tests/test_settings.py]}
     proved_by: docs/evidence/2026-09-16-settings-registry.md
   - id: python-lints-clean
-    title: Pyflakes and bugbear find nothing in the skill's Python, the tools or the tests (ruff.toml)
+    title: PEP 8 as pycodestyle's errors and warnings read it, lines of at most 150 characters, pyflakes and bugbear find nothing in the skill's Python, the tools or the tests (ruff.toml)
     kind: job
     severity: blocking
     enforced_by: {job: lint}
+    proved_by: docs/evidence/2026-09-17-coding-standards.md
+  - id: javascript-lints-clean
+    title: ESLint's recommended rules find nothing in js/*.js, each part read with the names the others give it in the bundle (tests/js/eslint.config.cjs)
+    kind: step
+    severity: blocking
+    enforced_by: {job: lint, step: eslint}
+    proved_by: docs/evidence/2026-09-17-coding-standards.md
   - id: suite-covers-the-skill
     title: The suite reaches at least 97% of the branches of the skill's Python, command-line runs included (.coveragerc)
     kind: job

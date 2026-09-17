@@ -1,8 +1,12 @@
-# Lint for correctness, not style (gate python-lints-clean): pyflakes (F) for names and
-# imports that are wrong, bugbear (B) for constructs that are likely bugs. The skill promises
-# Python 3.11 (ADR 0008).
+# The coding standard is PEP 8, as ruff's pycodestyle rules check it: its errors (E) and
+# warnings (W), with lines of at most 150 characters. 150 is where the code already stood on
+# 2026-09-17: 99% of its non-blank lines fit, and 84 did not; PEP 8's 79 would have rewrapped
+# 3,928 lines and its 99 another 863. On top of the style (gate python-lints-clean): pyflakes
+# (F) for names and imports that are wrong, and bugbear (B) for constructs that are likely
+# bugs. The skill promises Python 3.11 (ADR 0008).
 target-version = "py311"
+line-length = 150
 extend-exclude = ["tests/js/node_modules", ".local", ".venv"]
 
 [lint]
-select = ["F", "B"]
+select = ["E", "W", "F", "B"]

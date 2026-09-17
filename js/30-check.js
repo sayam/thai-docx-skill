@@ -113,7 +113,7 @@ function readParts(bytes, report) {
   return parts;
 }
 
-const RE_DECLARED_ENCODING = /^﻿?<\?xml[^>]*?[ \t\r\n]encoding[ \t\r\n]*=[ \t\r\n]*["']([^"']*)["']/;
+const RE_DECLARED_ENCODING = /^\uFEFF?<\?xml[^>]*?[ \t\r\n]encoding[ \t\r\n]*=[ \t\r\n]*["']([^"']*)["']/;
 
 // No declared encoding, or UTF-8: the only XML both implementations read the same way.
 function declaresUtf8(text) {

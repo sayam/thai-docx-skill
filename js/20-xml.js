@@ -15,6 +15,7 @@ const nameClass = (ranges) => "[" + ranges.map(([a, b]) => "\\u" + a.toString(16
 // a name without a colon; expat, reading namespaces, allows one colon between two of these
 const RE_NCNAME = new RegExp(nameClass(XML_NAMES.start) + nameClass(XML_NAMES.char) + "*", "y");
 const RE_S = /[ \t\n]*/y;
+// eslint-disable-next-line no-control-regex -- these are the characters XML 1.0 does not allow
 const RE_INVALID_CHAR = /[\x00-\x08\x0B\x0C\x0E-\x1F￾￿]/;
 
 class XElement {
