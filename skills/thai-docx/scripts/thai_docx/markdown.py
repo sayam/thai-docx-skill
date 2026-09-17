@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-FileCopyrightText: 2014 John MacFarlane
+# SPDX-License-Identifier: MIT AND BSD-2-Clause
 """Markdown → a small block/inline tree, for the dialect ADR 0022 accepts.
 
 The block and inline parsers are a port of commonmark.js 0.31.2, the CommonMark

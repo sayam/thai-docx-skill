@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Sayam Sriphua
+// SPDX-License-Identifier: MIT
 // Grill mode is the user's word, not the agent's choice (ADR 0026, restated by 0029) — the
 // port of thai_docx/grill.py. The agent hands the command the user's own message; the
 // command, not the model, says which mode the build is in — and, in grill mode, which

@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Sayam Sriphua
+// SPDX-License-Identifier: MIT
 // thai-docx — settings: the port of scripts/thai_docx/settings.py. Every setting is one
 // entry, and the defaults, the usage line, the parser, the reported settings and the flags
 // a profile may hold are derived from the entries (ADR 0028). A test holds these entries

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Sayam Sriphua
+// SPDX-FileCopyrightText: 2014 John MacFarlane
+// SPDX-License-Identifier: MIT AND BSD-2-Clause
 // thai-docx — markdown: the JavaScript port of scripts/thai_docx/markdown.py, itself
 // a port of commonmark.js 0.31.2 (BSD-2-Clause; LICENSES/commonmark.js.txt). Kept
 // line for line with the Python file; ADR 0015 is the character model both follow.

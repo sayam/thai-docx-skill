@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """Grill mode is the user's word, not the agent's choice (ADR 0026, restated by 0029).
 
 The skill's instructions cannot stop a model from choosing the interview for the user —

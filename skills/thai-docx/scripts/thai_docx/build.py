@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """`thai_docx build IN.md OUT.docx [flags]` — Markdown to a .docx that passes
 `thai_docx check`, with the content unchanged (ADR 0023) and the same bytes on
 every run and in both implementations (ADR 0008).

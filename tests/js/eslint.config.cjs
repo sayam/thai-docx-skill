@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Sayam Sriphua
+// SPDX-License-Identifier: MIT
 // ESLint over js/*.js, the sources of skills/thai-docx/scripts/thai_docx.js: the rules
 // @eslint/js calls recommended, and nothing else. Run it from the repository root:
 //   tests/js/node_modules/.bin/eslint --config tests/js/eslint.config.cjs js

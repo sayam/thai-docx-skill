@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """Independent readings of the same Markdown, to hold the parser to its references.
 
 Two reference implementations judge it, each on the dialect it defines:

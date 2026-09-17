@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """The Markdown dialect of ADR 0022, one construct at a time — and the line number
 on everything outside it. Uses the parser directly; the build tests cover the XML.
 """

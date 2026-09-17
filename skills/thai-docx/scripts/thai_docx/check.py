@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """`thai_docx check FILE.docx` — report, by number, every cause in ADR 0004 the file
 still carries, plus the two things ADR 0005 and 0011 make the checker refuse.
 

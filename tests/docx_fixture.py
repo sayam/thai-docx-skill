@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """A minimal, correct WordprocessingML package for the checker's tests.
 
 `good()` returns the parts of a document that carries none of the five causes of

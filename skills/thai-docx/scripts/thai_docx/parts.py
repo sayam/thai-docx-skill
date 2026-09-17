@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """The package around the body: document.xml's sections, styles, numbering, settings,
 footnotes, headers and footers, core properties, content types and relationships.
 """

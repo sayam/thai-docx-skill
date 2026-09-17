@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Sayam Sriphua
+// SPDX-License-Identifier: MIT
 // thai-docx — build: the port of scripts/thai_docx/build.py — the flow, and nothing else (ADR 0028).
 
 // `line N: …` messages in line order; messages on one line keep theirs.

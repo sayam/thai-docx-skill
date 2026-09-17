@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """Grill mode is the user's word (ADR 0026, 0029): the mode comes from the message the user
 typed, read by the script, not from what a model makes of the request — and so do the
 profile it starts from, the name it saves to, and what each answer means against them."""

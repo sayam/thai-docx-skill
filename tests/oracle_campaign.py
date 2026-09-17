@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """The large oracle campaigns behind tests/test_oracle.py, run by hand:
 
     python3 tests/oracle_campaign.py core 0 50000

@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """The settings of a build, in one registry (ADR 0028).
 
 Every setting is one entry: its flag, its kind, its default, the layer it belongs to, how

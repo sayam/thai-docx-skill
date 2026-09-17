@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """SKILL.md tells the agent the truth (ADR 0007, 0014, 0026): it passes the Agent
 Skills validator, stays within its ceiling, and every default, flag, finding code,
 command and snippet it gives is the one the skill has — run from the archive a user

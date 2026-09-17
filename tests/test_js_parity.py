@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """The JavaScript implementation matches the Python one (ADR 0008): the same
 reading of Markdown, the same .docx bytes, the same checker report on sound and
 damaged packages (ADR 0017), and the same command line — output, exit code and

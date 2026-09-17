@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """The fidelity reference (ADR 0023): the text every paragraph of the package must hold,
 built from the Markdown, and the text the package does hold, read back from its XML.
 """

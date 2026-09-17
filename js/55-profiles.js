@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Sayam Sriphua
+// SPDX-License-Identifier: MIT
 // thai-docx — profiles: the JavaScript port of scripts/thai_docx/profiles.py. A profile
 // holds settings and nothing else; its values are checked by turning them into the
 // build's own flags (ADR 0024), and reads and writes stay inside the profile

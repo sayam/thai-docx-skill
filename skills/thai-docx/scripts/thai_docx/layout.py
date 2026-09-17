@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: 2026 Sayam Sriphua
+# SPDX-License-Identifier: MIT
 """What the parsed document declares, before a byte is written: heading styles from the
 front matter (ADR 0020), and the regions, sections, captions and lists of ADR 0021 and 0027.
 

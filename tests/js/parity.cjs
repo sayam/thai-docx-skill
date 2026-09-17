@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: 2026 Sayam Sriphua
+// SPDX-License-Identifier: MIT
 // The JavaScript implementation, driven the way tests/test_js_parity.py drives the
 // Python one, so the two can be compared. Reads one JSON request on stdin:
 //   {"op": "ast",   "texts": [...]}
