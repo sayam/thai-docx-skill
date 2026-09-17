@@ -95,6 +95,12 @@ gates:
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_profiles.py]}
     proved_by: docs/evidence/2026-09-16-profiles-are-data.md
+  - id: python-stays-within-the-script-limits
+    title: The skill's Python imports only a named list of standard modules, reaches no environment, process or network through os, and builds no code from strings, read from its source (ADR 0025 limits 1, 2 and 6)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_script_limits.py]}
+    proved_by: docs/evidence/2026-09-17-python-script-limits.md
   - id: settings-in-one-registry
     title: Every setting is one registry entry, the same in both implementations, and the parser, the defaults, the reported settings, the flags a profile holds and the settings reference are derived from it — each example there changing its own setting — and a flag is said to have changed nothing exactly when it changed no byte (ADR 0028)
     kind: test
