@@ -70,6 +70,18 @@ def test_skill_passes_the_agent_skills_validator(unpacked):
     assert validate(unpacked) == []
 
 
+def test_description_fits_the_claude_apps_upload():
+    """The specification allows 1024 characters; the Claude apps' upload allows 200. The
+    grill sentence stays whole: without "use this skill" Haiku asked questions of its own,
+    or cut the phrase off the message it passed to the script
+    (docs/evidence/2026-09-17-a-description-of-200-characters.md). So does the way back
+    to the repository."""
+    description = re.search(r"^description: (.+)$", SKILL_MD.split("---", 2)[1], re.M).group(1)
+    assert len(description) <= 200, len(description)
+    assert 'the user\'s message says "thai-docx grill", use this skill to ask its fixed questions' in description
+    assert description.endswith(" https://github.com/sayam/thai-docx-skill")
+
+
 def test_skill_md_stays_within_its_ceiling():
     """Every client loads the whole body when the skill activates, on every model (ADR
     0007): under the specification's 500 lines, and a byte ceiling that makes growth a
