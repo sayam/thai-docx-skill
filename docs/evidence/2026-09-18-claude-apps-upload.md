@@ -12,7 +12,7 @@ maintainer on 2026-09-18.
 | step | result |
 |---|---|
 | choosing `thai-docx-0.1.1.zip` (583.8 kB) | accepted; the form said a .zip must hold a SKILL.md, and it read this one |
-| the preview | name `thai-docx` and the description as plain text, the repository's address at its end shown but not as a link |
+| the preview | name `thai-docx` and the description as plain text, the repository's address at its end not yet a link |
 | **Save** | a security scan ran on save; no finding stopped it |
 | the skill afterwards | listed under **Created by you**, marked New, switch on, `Contents · 29` — the 29 files of the archive, SKILL.md rendered with License, Compatibility, Author and Version 0.1.1 |
 
@@ -22,8 +22,20 @@ maintainer on 2026-09-18.
   records what the upload did instead of saying it was not tried.
 - The README's install table no longer says "not tried yet" for Claude on the web.
 
+## The skill's page afterwards (claude.ai on the web, same day)
+
+- The description is shown in full, and the repository's address at its end **is** a link there,
+  though not in the upload preview.
+- There are two **⋮** menus, the same on the web and in the desktop app (checked in both): the one
+  in the skills list holds Turn off and Remove; the one on the skill's own page holds Try in chat,
+  Edit with Claude, Rename, **Replace**, Duplicate, Download and Remove. `Replace` takes a new zip:
+  that is how a reader updates an installed copy, and the guides now say so. `Edit with Claude`
+  opens a chat with "Help me edit the thai-docx skill using skill-creator" — an edit in place, not
+  a way to install a release.
+- The skill also reached this computer through the account's skills sync
+  (`~/.claude/skills/synced/…/thai-docx`, version 0.1.1), which is where Claude Code and Cursor
+  read it.
+
 ## Not proved here
 
 - Building a document in that app: the upload was the question here.
-- Whether any client shows the address in the description as a link; in this preview it is plain
-  text.
