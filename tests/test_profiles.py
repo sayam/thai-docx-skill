@@ -122,6 +122,9 @@ def test_a_profile_is_refused_when_it_is_not_data_the_build_takes(home):
     assert run("profile", "show", "p.json")["error"].endswith(": not JSON")
     (home / "big.json").write_text('{"schema": 1, "settings": {}, "version": "' + "x" * 70000 + '"}', encoding="utf-8")
     assert "larger than 64 KiB" in run("profile", "show", "big.json")["error"]
+    if pathlib.Path("/dev/zero").exists():
+        # a file with no size is read only up to the limit, never to the end
+        assert "larger than 64 KiB" in run("profile", "show", "/dev/zero")["error"]
     assert "no profile named 'ghost'" in run("profile", "show", "ghost")["error"]
     for name in ("../escape", "a/b", "", ".hidden", "x" * 65):
         assert "is not a name" in run("profile", "save", name, "--size", "14")["error"], name

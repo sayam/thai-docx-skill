@@ -281,6 +281,7 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
         ["profile", "import", "bad-json.json"],
         ["profile", "import", "bad-shape.json"],
         ["profile", "show", "big.json"],
+        *([["profile", "show", "/dev/zero"]] if os.path.exists("/dev/zero") else []),  # no size: read only to the limit
         ["profile", "import", "loose.json", "--name", "a/b"],
         ["profile", "import", "sneaky.json"],
         ["build", "doc/in.md", out, "--profile", "report"],

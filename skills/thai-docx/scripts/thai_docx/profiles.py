@@ -150,12 +150,17 @@ def find(name: str) -> tuple[str, pathlib.Path]:
 
 
 def read(path: pathlib.Path) -> dict:
+    # read at most one byte past the limit, rather than ask the size first: a file that
+    # changes between the two, or has no size (/dev/zero), cannot get past it
     try:
-        if path.is_file() and path.stat().st_size > MAX_BYTES:
-            raise ProfileError(str(path) + ": larger than 64 KiB; a profile is settings")
-        text = path.read_text(encoding="utf-8")
+        with path.open("rb") as f:
+            raw = f.read(MAX_BYTES + 1)
     except OSError as exc:
         raise ProfileError("cannot read " + str(path) + ": " + b.os_error(exc)) from None
+    if len(raw) > MAX_BYTES:
+        raise ProfileError(str(path) + ": larger than 64 KiB; a profile is settings")
+    try:
+        text = raw.decode("utf-8")
     except ValueError:
         raise ProfileError(str(path) + ": not UTF-8 text") from None
     try:
