@@ -342,6 +342,17 @@ installs nothing: thai-docx needs neither.
 - **A JavaScript sandbox with no shell:** load `scripts/thai_docx.js` and call
   `ThaiDocx.buildDocument`. [references/sandbox.md](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/sandbox.md)
 
+## Check the download
+
+Optional. If you have the [GitHub CLI](https://cli.github.com/), check that the zip is the one the
+project's release workflow built:
+
+```sh
+gh attestation verify thai-docx-0.1.0.zip --repo sayam/thai-docx-skill
+```
+
+It says the verification succeeded, or fails for any other file.
+
 ## Update or remove
 
 - **Update:** delete the old `thai-docx` folder, then unzip the new zip the same way. In the Claude

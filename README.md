@@ -86,12 +86,20 @@ Docs, LibreOffice Writer and WPS Writer. Changes are listed in
   see [Fix a problem](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en/troubleshooting.md).
 - A security problem: report it privately, as
   [SECURITY.md](https://github.com/sayam/thai-docx-skill/blob/main/.github/SECURITY.md) says.
+- Verify a download: `gh attestation verify thai-docx-0.1.0.zip --repo sayam/thai-docx-skill`
+  ([how, and how to rebuild it byte for byte](https://github.com/sayam/thai-docx-skill/blob/main/.github/SECURITY.md#verify-a-release)).
 
 ## Contributing
 
 Changes are welcome through pull requests. A clone carries the tests, the decision records and the
 gates every pull request must pass; how to run them is in
 [CONTRIBUTING.md](https://github.com/sayam/thai-docx-skill/blob/main/.github/CONTRIBUTING.md).
+Everyone who takes part follows the
+[code of conduct](https://github.com/sayam/thai-docx-skill/blob/main/CODE_OF_CONDUCT.md). How the
+project is run: [GOVERNANCE.md](https://github.com/sayam/thai-docx-skill/blob/main/GOVERNANCE.md)
+and [ROADMAP.md](https://github.com/sayam/thai-docx-skill/blob/main/ROADMAP.md). How it is built
+and why it is safe to run: [architecture](https://github.com/sayam/thai-docx-skill/blob/main/docs/architecture.md)
+and [assurance case](https://github.com/sayam/thai-docx-skill/blob/main/docs/assurance-case.md).
 To cite the skill, use
 [CITATION.cff](https://github.com/sayam/thai-docx-skill/blob/main/CITATION.cff).
 
