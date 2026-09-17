@@ -3,6 +3,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/sayam/thai-docx-skill/gates.yml?branch=main&label=CI)](https://github.com/sayam/thai-docx-skill/actions/workflows/gates.yml)
 [![Release](https://img.shields.io/github/v/release/sayam/thai-docx-skill)](https://github.com/sayam/thai-docx-skill/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/sayam/thai-docx-skill/blob/main/LICENSE)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/sayam/thai-docx-skill/badge)](https://scorecard.dev/viewer/?uri=github.com/sayam/thai-docx-skill)
 
 An Agent Skill that makes Word files with Thai text render correctly, in Claude, ChatGPT, Codex, Copilot and more.
 
@@ -79,6 +80,11 @@ Each one, step by step, with the words to type:
 Version 0.1.0. Files are checked in Word 365 for Windows (the reference), Word for macOS, Google
 Docs, LibreOffice Writer and WPS Writer. Changes are listed in
 [CHANGELOG.md](https://github.com/sayam/thai-docx-skill/blob/main/CHANGELOG.md).
+
+The OpenSSF Scorecard badge is an automated reading of this repository's settings, workflows and
+releases, not of the skill's code or tests. It stays below 10 by design for a project with one
+maintainer: no second reviewer, no contributors from other organisations, versions bumped by hand
+rather than by a bot, and no score for Maintained until the repository is 90 days old.
 
 ## Get help
 
