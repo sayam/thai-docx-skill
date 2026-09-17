@@ -84,13 +84,13 @@ Claude makes the file. Download it from the chat.
 
    ```sh
    mkdir -p ~/.claude/skills
-   unzip thai-docx-0.1.0.zip -d ~/.claude/skills
+   unzip thai-docx-0.1.1.zip -d ~/.claude/skills
    ```
 
    On Windows, in PowerShell:
 
    ```powershell
-   Expand-Archive thai-docx-0.1.0.zip -DestinationPath $HOME\.claude\skills
+   Expand-Archive thai-docx-0.1.1.zip -DestinationPath $HOME\.claude\skills
    ```
 
 3. Check that the file `~/.claude/skills/thai-docx/SKILL.md` exists.
@@ -179,7 +179,7 @@ Codex.
 
    ```sh
    mkdir -p ~/.agents/skills
-   unzip thai-docx-0.1.0.zip -d ~/.agents/skills
+   unzip thai-docx-0.1.1.zip -d ~/.agents/skills
    ```
 
    For one project only, unzip it into that project's `.agents/skills` folder.
@@ -348,7 +348,7 @@ Optional. If you have the [GitHub CLI](https://cli.github.com/), check that the 
 project's release workflow built:
 
 ```sh
-gh attestation verify thai-docx-0.1.0.zip --repo sayam/thai-docx-skill
+gh attestation verify thai-docx-0.1.1.zip --repo sayam/thai-docx-skill
 ```
 
 It says the verification succeeded, or fails for any other file.
