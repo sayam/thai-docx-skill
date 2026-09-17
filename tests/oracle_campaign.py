@@ -29,7 +29,7 @@ def core(start: int, count: int) -> dict:
     for batch_start in range(start, start + count, BATCH):
         seeds = range(batch_start, min(batch_start + BATCH, start + count))
         texts = [oracle.generate_core(s) for s in seeds]
-        for seed, text, ref in zip(seeds, texts, oracle.cm_canon_many(texts)):
+        for seed, text, ref in zip(seeds, texts, oracle.cm_canon_many(texts), strict=True):
             try:
                 doc = md.parse(text)
             except md.Unsupported as exc:

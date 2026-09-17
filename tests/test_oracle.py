@@ -34,7 +34,7 @@ def test_core_dialect_matches_commonmark_js():
     texts = [oracle.generate_core(seed) for seed in range(CORE_DOCS)]
     refs = oracle.cm_canon_many(texts)
     unexplained, unjustified = [], []
-    for seed, (text, ref) in enumerate(zip(texts, refs)):
+    for seed, (text, ref) in enumerate(zip(texts, refs, strict=True)):
         assert not isinstance(ref, dict), f"seed {seed}: commonmark.js failed: {ref}"
         try:
             doc = md.parse(text)

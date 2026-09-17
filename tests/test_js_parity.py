@@ -37,7 +37,7 @@ def _node():
 
 
 def _first_difference(py: list, js: list, inputs: list) -> str:
-    for i, (a, b) in enumerate(zip(py, js)):
+    for i, (a, b) in enumerate(zip(py, js, strict=False)):  # lengths may differ; the caller compares them
         if a != b:
             return f"case {i}: input {inputs[i]!r:.300}\n python: {str(a):.600}\n     js: {str(b):.600}"
     return f"lengths differ: {len(py)} and {len(js)}"
@@ -98,7 +98,7 @@ def test_check_decides_each_named_rule_the_same():
     named = parity.named_packages()
     js = parity.run_js({"op": "check", "packages": [base64.b64encode(p).decode() for _, p, _ in named]})
     assert len(js) == len(named)
-    for (what, package, expected), from_js in zip(named, js):
+    for (what, package, expected), from_js in zip(named, js, strict=True):
         py = parity.py_check(package)
         assert (py["findings"][0]["message"] if py["findings"] else None) == expected, f"{what}: python says {py['findings'][:1]}"
         assert py == from_js, f"{what}:\n python: {py}\n     js: {from_js}"
@@ -363,7 +363,7 @@ def test_command_line_is_the_same(tmp_path):
     all_flags = runs[1][1]
     assert all_flags[3]["out.docx"] == (parity.GOLDEN / "sample-all-flags.docx").read_bytes()
     thesis = [(a, r) for a, r in runs if a[:2] == ["build", "thesis/thesis.md"]]
-    for (args, run), (_source, _flags, golden, _about) in zip(thesis, list(oracle_set.VARIANTS.values())[1:]):
+    for (args, run), (_source, _flags, golden, _about) in zip(thesis, list(oracle_set.VARIANTS.values())[1:], strict=False):  # thesis has one more run
         assert run[0] == 0 and run[3]["out.docx"] == (parity.GOLDEN / f"{golden}.docx").read_bytes(), args
     assert len(thesis) == 4  # the three golden variants, then --chapter-title-on-new-line
     assert thesis[3][1][3]["out.docx"] not in [(parity.GOLDEN / f"{g}.docx").read_bytes()

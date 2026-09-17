@@ -1,0 +1,8 @@
+# Lint for correctness, not style (gate python-lints-clean): pyflakes (F) for names and
+# imports that are wrong, bugbear (B) for constructs that are likely bugs. The skill promises
+# Python 3.11 (ADR 0008).
+target-version = "py311"
+extend-exclude = ["tests/js/node_modules", ".local", ".venv"]
+
+[lint]
+select = ["F", "B"]

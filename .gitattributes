@@ -13,6 +13,8 @@
 /.gitignore export-ignore
 /gates.yaml export-ignore
 /scaffold.json export-ignore
+/ruff.toml export-ignore
+/.coveragerc export-ignore
 /SOURCES.md export-ignore
 
 # The generated bundle is diffed as text but not counted as hand-written code.

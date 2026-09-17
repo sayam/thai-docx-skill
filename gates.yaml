@@ -101,6 +101,16 @@ gates:
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_settings.py]}
     proved_by: docs/evidence/2026-09-16-settings-registry.md
+  - id: python-lints-clean
+    title: Pyflakes and bugbear find nothing in the skill's Python, the tools or the tests (ruff.toml)
+    kind: job
+    severity: blocking
+    enforced_by: {job: lint}
+  - id: suite-covers-the-skill
+    title: The suite reaches at least 97% of the branches of the skill's Python, command-line runs included (.coveragerc)
+    kind: job
+    severity: blocking
+    enforced_by: {job: tests}
   - id: skill-md-tells-the-truth
     title: SKILL.md passes the Agent Skills validator from the downloaded archive, stays under its ceiling, and every default, flag, finding code, command and sandbox snippet it gives is the one the skill has, run as written, and every reference it has is linked; the user guides' examples read as they say and name only real flags (ADR 0007, 0014, 0028, 0029)
     kind: test

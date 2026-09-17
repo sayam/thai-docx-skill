@@ -191,7 +191,7 @@ def _block(rng: random.Random, depth: int = 0, kinds: list = GFM_KINDS, tame: bo
         return [_inline(rng), rng.choice(["===", "---", "  --", "= ="])]
     if kind in ("list", "olist", "task"):
         lines = []
-        for k in range(rng.randint(1, 3)):
+        for _ in range(rng.randint(1, 3)):
             marker = rng.choice(["-", "*", "+"]) if kind != "olist" else rng.choice(["1.", "2.", "3)", "10."])
             pad = " " if tame else rng.choice([" ", "  ", "   ", "     "])
             head = marker + pad + (rng.choice(["[ ] ", "[x] ", "[X] ", "[ ]", "[y] "]) if kind == "task" else "")
