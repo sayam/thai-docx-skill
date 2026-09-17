@@ -359,8 +359,41 @@ It says the verification succeeded, or fails for any other file.
 
 ## Update or remove
 
-- **Update:** delete the old `thai-docx` folder, then unzip the new zip the same way. In the Claude
-  apps or ChatGPT, replace the skill there with the new zip.
-- **Which version you have:** `version` near the top of `thai-docx/SKILL.md`.
-- **Remove:** delete the `thai-docx` folder, or the skill in the app. Your profiles stay in
-  `~/.thai-docx/profiles/` until you delete them.
+A new release does not reach a copy you already installed. Update the copy the way you installed
+it.
+
+**Which version you have**
+
+- Open `thai-docx/SKILL.md` and read `version` near the top — in the Claude apps, the skill's
+  **Contents** tab shows the same file, with License, Compatibility, Author and Version above it.
+  The **Overview** tab shows no version: the description there is the `description` line of
+  SKILL.md, which is written for the assistant, not the sentence under About on the project's
+  GitHub page.
+- Or ask your assistant: *what version of the thai-docx skill do you have?*
+- The newest version is on the [releases page](https://github.com/sayam/thai-docx-skill/releases/latest).
+
+**Update**
+
+| how you installed it | how to update |
+|---|---|
+| the Claude apps (upload) | **Customize > Skills**, open thai-docx — its own page, not the list — then **⋮ > Replace** and choose the new zip. The security scan runs again. (**Edit with Claude** in the same menu opens a chat that rewrites the skill with `skill-creator`; it does not take a zip.) |
+| a folder you unzipped (Claude Code, Codex, Copilot, Cursor, no AI) | delete the old `thai-docx` folder, then unzip the new zip in its place. Unzipping over the old one leaves files that the new version no longer has. |
+| `gh skill install` | run the same command again; it takes the latest release. |
+| `npx skills add` | run the same command again; it takes the current `main`. |
+| a clone of the repository | `git pull` in the clone. |
+
+**Two things that surprise people**
+
+- **A skill uploaded in the Claude apps syncs to this computer.** Claude Code, and anything else
+  that reads Claude's synced skills folder, then uses that copy — so updating in the app updates
+  them too. You do not have to unzip it again.
+- **A clone wins over an installed copy.** If your editor has the repository itself open as a
+  project, it reads `skills/thai-docx` from that clone, however old it is. `git pull` there.
+
+**Remove**
+
+Delete the `thai-docx` folder, or, in the Claude apps, **⋮ > Remove**. The **⋮** in the skills
+list holds **Turn off**, which keeps the skill but stops it being used, and **Remove**; the skill's
+own page holds the rest, including **Download**, which gives you back the zip. Your profiles stay
+in
+`~/.thai-docx/profiles/` until you delete them.
