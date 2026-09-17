@@ -26,9 +26,9 @@ python3 -m coverage run -m pytest -q tests && python3 -m coverage combine -q && 
 The gates come from [verifiable-gates](https://github.com/sayam/verifiable-gates). The doctor
 also refuses a `tools/` file that differs from what was installed (`tools/installed.json`).
 
-CI runs `scans`, `commits`, `tests` (at least 97% coverage, branches included) and `lint`
-(the coding standards below) on every pull request; `main` takes a change only when all four
-pass, and a contributor's pull request also needs a code owner's approval (`.github/CODEOWNERS`,
+CI runs `scans`, `commits`, `tests` (at least 97% coverage, branches included), `lint` (the
+coding standards below) and `deps` (the dependencies below) on every pull request; `main` takes a
+change only when all five pass, and a contributor's pull request also needs a code owner's approval (`.github/CODEOWNERS`,
 `docs/adr/0018`).
 
 ## Coding standards
@@ -41,6 +41,36 @@ pass, and a contributor's pull request also needs a code owner's approval (`.git
   is an `eslint-disable-next-line` comment on that line, with its reason. The generated
   `scripts/thai_docx.js` is not linted.
 - The `lint` job runs both on every pull request, and fails on any finding.
+
+## Dependencies
+
+- **At run time: none.** The skill uses the Python standard library, or one JavaScript file that
+  needs only `TextEncoder` and `TextDecoder` (`docs/adr/0008`). A change that adds a run-time
+  dependency is a change of design and needs a decision record first.
+- **For development** (tests, lint, coverage, the CommonMark reference): a tool is taken only if it
+  has an OSI-approved licence compatible with MIT and is actively maintained.
+- **How they are obtained:** Python tools only through `requirements/dev.txt` with
+  `--require-hashes` (its header says how to refresh a hash); npm packages only through
+  `tests/js/package-lock.json` with `npm ci --ignore-scripts`; GitHub Actions only pinned by commit
+  SHA, and container images only by digest, with the version in a comment. The gates
+  `ci-tools-hash-pinned` and `actions-sha-pinned` refuse anything else.
+- **How they are updated:** by hand, in a pull request of its own that names the new version and
+  its hash. No bot opens update pull requests; Dependabot alerts are on and are read.
+- **How they are checked:** the `deps` job checks every push and pull request against the OSV
+  database for known vulnerabilities and malicious packages, and a finding fails it. `deps` is
+  required before merge.
+- **Thresholds:** a known vulnerability of high or critical severity in a dependency is fixed
+  within 7 days, medium within 30 days, low at the next update. A licence finding is fixed by
+  removing the dependency.
+- **No release** is made while a finding is open: the release workflow runs the same check on
+  the tag.
+
+## Static analysis
+
+CodeQL's security-extended queries run on every pull request and push to `main` and weekly
+(`.github/workflows/codeql.yml`). A pull request with an open alert of **medium security severity
+or higher** cannot merge. Lower alerts are triaged within 30 days. An alert is dismissed only with
+a written reason why it is not exploitable here; the reason stays on the alert.
 
 ## Where things are
 

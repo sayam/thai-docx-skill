@@ -43,6 +43,12 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
         working-directory: tests/js
       - run: python3 -m pytest -q tests
+      # no release while a development dependency has a known vulnerability (CONTRIBUTING, Dependencies)
+      - name: osv-scanner
+        uses: docker://ghcr.io/google/osv-scanner-action@sha256:71ad04ab2f8798be47870f9b18817ad317c2f8f2f97aa6726ba10d5578bc174a # v2.6.0
+        with:
+          entrypoint: osv-scanner
+          args: scan source --lockfile=requirements.txt:requirements/dev.txt --lockfile=tests/js/package-lock.json
 
   release-archive:
     needs: release-check

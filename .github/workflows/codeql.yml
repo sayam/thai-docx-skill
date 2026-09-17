@@ -1,0 +1,35 @@
+# Code scanning for the vulnerability classes of Python, JavaScript and GitHub Actions, as a
+# job in a file rather than a switch in the settings (gate sast-codeql). CodeQL does not fail
+# the job on an alert: alerts show on the pull request and are fixed or dismissed with a reason
+# before merge (CONTRIBUTING.md, Static analysis). The generated bundle is analysed as shipped.
+
+name: codeql
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  codeql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
+        with:
+          languages: python, javascript-typescript, actions
+          queries: security-extended
+          config: |
+            paths-ignore:
+              - tests/js/node_modules
+      - uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
