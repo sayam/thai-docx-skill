@@ -8,13 +8,15 @@ Every app takes the same file: `thai-docx-<version>.zip` from the
 
 ## What works where
 
-The **tried** row says whether the maintainer has run thai-docx in that app. Apps not tried yet
-are described from their makers' documentation, as read on 17 September 2026; if something there does not work,
-please [open an issue](https://github.com/sayam/thai-docx-skill/issues).
+The first two rows say what the maintainer has done in that app: **installed** it, and **made a
+file** with it. Everything else in the table, and every app not tried, is from the makers'
+documentation, as read on 17 September 2026; if something there does not work, please
+[open an issue](https://github.com/sayam/thai-docx-skill/issues).
 
 | | Claude apps | Claude Code | ChatGPT | Codex | Gemini app | coding agents | no AI |
 |---|---|---|---|---|---|---|---|
-| tried | yes | yes | not yet | not yet | not yet | not yet | yes |
+| installed | yes | yes | not yet | not yet | not yet | not yet | yes |
+| made a file | not yet | yes | not yet | not yet | not yet | not yet | yes |
 | make a file (scenarios 1–4, 6, 7) | yes | yes | yes | yes | yes | yes | yes |
 | questions first (5, 11) | as a message | click choices | depends on the app | depends on the app | depends on the app | depends on the app | — |
 | profiles kept (8–12) | no: keep the `.json` file | yes | no: keep the `.json` file | yes | no: keep the `.json` file | yes, except cloud agents | yes |

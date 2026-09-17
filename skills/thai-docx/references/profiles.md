@@ -18,8 +18,10 @@ thai_docx profile import FILE.json [--name NAME] [--project]
 thai_docx build IN.md OUT.docx --profile NAME|PATH [flags]
 ```
 
-Each prints one JSON line, as `build` does: `"ok"`, the `"path"` written or read, the
-`"settings"`, and `"sha256"` — the same profile gives the same sha256 in both runtimes.
+Each prints one JSON line beginning `"ok"`. `save`, `show` and `import` add the `"path"` written
+or read, the `"settings"` and the `"sha256"` — the same profile gives the same sha256 in both
+runtimes — and `"replaced"`, with a `"warnings"` line, when the file took the place of one.
+`list` gives `"profiles"`; `export` gives the `"path"` written and `"share"`.
 
 ## What to tell the user
 
@@ -39,6 +41,8 @@ Each prints one JSON line, as `build` does: `"ok"`, the `"path"` written or read
   `./.thai-docx/profiles/`, then `~/.thai-docx/profiles/`, then the skill's own.
 - **`save` and `import` write** to `~/.thai-docx/profiles/` — with `--project`, to
   `./.thai-docx/profiles/`. Nowhere else; a name is a name, never a path.
+- **A profile file is read only up to 64 KiB**; a larger one is refused with "larger than 64 KiB;
+  a profile is settings" (ADR 0030).
 - **Precedence:** the defaults, then the profile, then the flags typed after it. A flag can
   only add to a profile; `--default SETTING[,SETTING]` after `--profile` or `--from` takes
   settings out of it first, back to their defaults.

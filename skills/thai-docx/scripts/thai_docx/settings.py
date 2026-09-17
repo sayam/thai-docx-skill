@@ -103,7 +103,7 @@ SETTINGS: tuple[dict, ...] = (
     {"key": "page_number_on_first", "flag": "--no-page-number-first", "kind": "off", "default": True, "layer": 2,
      "needs": "page_numbers",
      "report": ("page_number_on_first", "value"),
-     "doc": ("page number on page 1", "shown", "`--no-page-number-first` (with `--page-numbers`)")},
+     "doc": ("page number on the first page of each section", "shown", "`--no-page-number-first` (with `--page-numbers`)")},
     {"key": "header", "flag": "--header", "kind": "option", "default": None, "layer": 2,  # centred at the top of every page
      "read": ("text", 200, "\t\n"), "takes": "text of 1 to 200 characters on one line", "usage": "TEXT",
      "report": ("header", "value"),

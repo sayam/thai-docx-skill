@@ -28,7 +28,7 @@ The header and footer, and how Word draws the numbers it generates.
 | setting | default | flag |
 |---|---|---|
 | page numbers | none | `--page-numbers` (top right), `--page-numbers top-center` or `--page-numbers bottom-center` |
-| page number on page 1 | shown | `--no-page-number-first` (with `--page-numbers`) |
+| page number on the first page of each section | shown | `--no-page-number-first` (with `--page-numbers`) |
 | header text | none | `--header "ลับ"` (centred, above a page number there) |
 | footer text | none | `--footer "TEXT"` (centred, above a page number there) |
 | page, list and footnote numbers | 1 2 3 | `--thai-digits` (๑ ๒ ๓; the text itself is never changed) |

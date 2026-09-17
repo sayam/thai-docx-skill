@@ -8,6 +8,13 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ## [Unreleased]
 
+### Changed
+
+- What the agent reads says what the code does: SKILL.md counts comments among the HTML the build
+  takes, `references/profiles.md` gives each profile command's JSON line and the 64 KiB a profile
+  file may reach, and the settings reference says `--no-page-number-first` is about the first page
+  of each section, not only page 1.
+
 ## [0.1.1] - 2026-09-18
 
 The documents the skill builds are byte for byte those of 0.1.0 (the goldens are unchanged), so the

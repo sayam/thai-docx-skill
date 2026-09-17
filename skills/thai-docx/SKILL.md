@@ -29,7 +29,7 @@ bundled command writes every attribute Thai needs. Your part is the Markdown.
 
 1. **Write the Markdown** to a UTF-8 file, e.g. `report.md` — CommonMark with GitHub's
    tables, strikethrough, task lists and footnotes; local PNG or JPEG images; no HTML
-   beyond `<br>`, `<sup>`, `<sub>`, `<u>`, `<kbd>`. What else stops the build:
+   beyond `<br>`, `<sup>`, `<sub>`, `<u>`, `<kbd>` and comments. What else stops the build:
    [references/markdown.md](references/markdown.md). A Markdown file the user gave you is
    used as it is.
 2. **Run the build** with the first runtime you have:
