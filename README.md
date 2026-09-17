@@ -48,6 +48,9 @@ Python 3.11+ or Node.js is enough; nothing is installed and nothing reaches the 
 
 ## Develop the skill
 
+How to contribute, and what a pull request carries: `.github/CONTRIBUTING.md`. Security
+reports: `.github/SECURITY.md`. To cite the skill: `CITATION.cff`.
+
 A clone or a fork carries everything: the tests, the decision records and the gates
 from [verifiable-gates](https://github.com/sayam/verifiable-gates). They travel with
 anyone who works on the skill because a pull request is held to them:

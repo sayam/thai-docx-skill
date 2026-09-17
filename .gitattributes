@@ -16,6 +16,7 @@
 /ruff.toml export-ignore
 /.coveragerc export-ignore
 /SOURCES.md export-ignore
+/CITATION.cff export-ignore
 
 # The generated bundle is diffed as text but not counted as hand-written code.
 /skills/thai-docx/scripts/thai_docx.js linguist-generated=true
