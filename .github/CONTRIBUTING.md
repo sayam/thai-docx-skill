@@ -19,11 +19,32 @@ python3 -m pip install --require-hashes -r requirements/dev.txt
 (cd tests/js && npm ci --ignore-scripts)                        # the CommonMark reference
 python3 -m pytest -q tests                                      # the suite
 python3 -m ruff check skills/thai-docx/scripts tools tests      # the lint
+python3 -m coverage run -m pytest -q tests && python3 -m coverage combine -q && python3 -m coverage report
 ```
 
-CI runs `scans`, `commits`, `tests` (under coverage, at least 97% of branches) and `lint`
+The gates come from [verifiable-gates](https://github.com/sayam/verifiable-gates). The doctor
+also refuses a `tools/` file that differs from what was installed (`tools/installed.json`).
+
+CI runs `scans`, `commits`, `tests` (at least 97% coverage, branches included) and `lint`
 on every pull request; `main` takes a change only when all four pass, and a contributor's
 pull request also needs a code owner's approval (`.github/CODEOWNERS`, `docs/adr/0018`).
+
+## Where things are
+
+- `skills/thai-docx/` — the skill itself; the only part that ships
+- `js/` — the sources of `scripts/thai_docx.js`; `python3 tools/bundle_js.py` builds it
+- `tests/` — the suite; `gates.yaml` names the gate each test file holds
+- `docs/guide/` — the user guides, in Thai and English
+- `docs/adr/` — the decision records; `docs/adr/README.md` is their index
+- `docs/evidence/` — what each gate was seen to catch
+- `docs/handoff/` — the diagnosis this skill started from, kept verbatim
+- `docs/templates/decision.md` — the shape of a new record
+- `SOURCES.md` — the sources the records cite, by id
+- `tools/` — verifiable-gates 0.10.0 (Apache-2.0), plus this project's
+  `bundle_js.py`, `gen_settings_docs.py`, `measure_xml_names.py`, `oracle_set.py` and `package_skill.py`
+
+Only `skills/thai-docx/`, the README, the licence, the changelog, `PROMPT.md` and `PROMPT.th.md` reach a user;
+the rest is marked `export-ignore` (`docs/adr/0018`).
 
 ## What a pull request carries
 
@@ -44,12 +65,29 @@ pull request also needs a code owner's approval (`.github/CODEOWNERS`, `docs/adr
 - **SKILL.md stays small.** It must stay under 12,000 bytes; move tables into
   `skills/thai-docx/references/` rather than raise the ceiling, and link every reference.
 - **A record for a decision.** A change of design is an ADR in `docs/adr/`, numbered next
-  without gaps (see the README, "Adding a decision"); a record is restated by a new one, never
+  without gaps (below, "Add a decision"); a record is restated by a new one, never
   edited into something else.
 - **Evidence for a new gate.** A gate in `gates.yaml` names the file in `docs/evidence/` that
   shows its planted defects red.
 - **Synthetic content only** in fixtures, evidence and examples — no real people, documents or
   institutions.
+
+## Add a decision
+
+1. Copy `docs/templates/decision.md` to `docs/adr/NNNN-short-slug.md`, taking the next number —
+   no gaps, no repeats.
+2. Add its row to `docs/adr/README.md`. The doctor is red until you do.
+3. Give every outside source it leans on a row in `SOURCES.md` and cite it by id, as `[S1]`.
+4. A record that replaces an older one says `Supersedes: NNNN`, and the older one gets
+   `Superseded by: NNNN` — the doctor reads both sides.
+
+## Before a release
+
+`python3 tools/oracle_set.py OUT_DIR` writes the documents to open in the five office
+applications — each variant once per application, named `<variant>-<application>.docx`, byte for
+byte the goldens — and `CHECKLIST.md` to tick (`docs/adr/0012`). Word 365 for Windows is the
+reference. `python3 tools/package_skill.py --tag vX.Y.Z` must pass, and the suite fails until the
+archive name in the README and the guides (`thai-docx-X.Y.Z.zip`) carries the new version.
 
 ## Commits
 
