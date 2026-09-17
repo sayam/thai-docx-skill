@@ -107,7 +107,8 @@ The most likely and most harmful problems, in order, as assessed on 2026-09-17:
 5. **Deep or huge Markdown** (T4) — resource exhaustion only. Countered by R8, tested.
 6. **A compromised development dependency or action** — cannot reach users' machines (no run-time
    dependencies), but could alter a release. Countered by hash- and SHA-pinning, code owners on
-   workflows, and the dependency check (`deps`, OSV-Scanner) required before merge.
+   workflows, the dependency check (`deps`, OSV-Scanner) required before merge, and CodeQL's
+   security-extended queries, whose alerts of medium severity or higher block a merge.
 
 ## 6. Common weaknesses countered, with evidence
 
@@ -126,7 +127,7 @@ Each gate that holds these tests records the planted defects it was seen to catc
 
 ## 7. Residual risks
 
-- Limits 1–2 and 6 are read from the source in both implementations; reach the source does not
+- Limits 1, 2 and 6 are read from the source in both implementations (ADR 0030); reach the source does not
   spell (`getattr(os, "system")`, a module name built at run time) is still left to review.
 - `xml.etree.ElementTree` (expat) is used on untrusted input; DOCTYPE is refused first, and size is
   capped, but a new expat weakness would reach the checker.

@@ -8,7 +8,7 @@ file that is gone, a repeated number or a gap in the numbering is red.
 |---|---|---|---|
 | 0001 | [Record every decision, where it came from, and its sources](0001-record-decisions-and-their-sources.md) | 2026-09-14 | accepted |
 | 0002 | [One public repository per skill, with the skill in `skills/thai-docx/`](0002-one-public-repository-per-skill.md) | 2026-09-15 | accepted |
-| 0003 | [License everything under MIT, and ship the notice inside the skill](0003-license-under-mit.md) | 2026-09-15 | accepted |
+| 0003 | [License everything under MIT, and ship the notice inside the skill](0003-license-under-mit.md) | 2026-09-15 | superseded by 0031 |
 | 0004 | [Thai in .docx is complex script: five causes every output must avoid](0004-thai-is-complex-script-five-causes.md) | 2026-09-15 | accepted |
 | 0005 | [Fix rendering with format attributes, never by changing content](0005-fix-rendering-with-attributes-never-content.md) | 2026-09-15 | superseded by 0016 |
 | 0006 | [Use the skill whenever the document will contain Thai, and only then](0006-use-the-skill-when-the-document-contains-thai.md) | 2026-09-15 | accepted |
@@ -30,8 +30,10 @@ file that is gone, a repeated number or a gap in the numbering is red.
 | 0022 | [What Markdown v0.1 accepts, and what stops the build (restated)](0022-markdown-accepted-restated.md) | 2026-09-16 | accepted |
 | 0023 | [Fix rendering with format attributes, never by changing content (restated with captions)](0023-fidelity-transformations-restated-again.md) | 2026-09-16 | accepted |
 | 0024 | [Profiles are data: settings a user saves, exports and imports](0024-profiles-are-data-saved-and-shared.md) | 2026-09-16 | accepted |
-| 0025 | [Bundled scripts run with the agent's rights: the limits, restated for profiles](0025-script-limits-restated-for-profiles.md) | 2026-09-16 | accepted |
+| 0025 | [Bundled scripts run with the agent's rights: the limits, restated for profiles](0025-script-limits-restated-for-profiles.md) | 2026-09-16 | superseded by 0030 |
 | 0026 | [Two modes, and the script decides which: grill is the user's word, read (restated)](0026-grill-is-the-users-word-read-by-the-script.md) | 2026-09-16 | superseded by 0029 |
 | 0027 | [Generated matter carries what an application would otherwise supply: list entries, and a font on every run](0027-lists-carry-entries-and-runs-name-their-font.md) | 2026-09-16 | accepted |
 | 0028 | [Settings live in one registry, grouped by what they need; everything else is derived from it](0028-settings-in-one-registry-grouped-by-what-they-need.md) | 2026-09-16 | accepted |
 | 0029 | [Grill from a profile and save as another: the interview is data, read by the script (restated)](0029-grill-from-a-profile-save-as-another.md) | 2026-09-16 | accepted |
+| 0030 | [Bundled scripts run with the agent's rights: the limits, restated with both implementations read by tests](0030-script-limits-read-by-tests-in-both-implementations.md) | 2026-09-18 | accepted |
+| 0031 | [MIT, with every exception named in the file that carries it (restated)](0031-mit-with-the-exceptions-each-file-names.md) | 2026-09-18 | accepted |

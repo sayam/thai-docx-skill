@@ -64,7 +64,7 @@ restored and its hashes checked. The control run after the last row: 59 passed.
 
 | # | planted defect | file | red |
 |---|---|---|---|
-| 0 | run without `<w:cs/>` (cause 2) | `js/50-build.js` | writer defect, build, command line |
+| 0 | run without `<w:cs/>` (cause 2) | `js/50-build.js` (split by ADR 0028; today `js/53-build.js`) | writer defect, build, command line |
 | 1 | a space for a soft break between Thai characters | `js/40-markdown.js` | Markdown, build, command line |
 | 2 | zip date field differs | `js/10-zip.js` | writer defect, build, command line |
 | 3 | a duplicate entry name accepted | `js/30-check.js` | check |
@@ -97,9 +97,9 @@ restored and its hashes checked. The control run after the last row: 59 passed.
 | 30 | no inline nesting limit in table cells | `thai_docx/markdown.py` | deep nesting |
 | 31 | no inline nesting limit in table cells | `js/40-markdown.js` | deep nesting |
 | 32 | first-line indent never reaches the body | `thai_docx/build.py` | build, command line, `test_build` indent |
-| 33 | indent reaches quotes, lists and footnotes | `js/50-build.js` | build, command line |
+| 33 | indent reaches quotes, lists and footnotes | `js/50-build.js` (split by ADR 0028; today `js/53-build.js`) | build, command line |
 | 34 | indent reaches quotes, lists and footnotes | `thai_docx/build.py` | build, command line, `test_build` indent |
-| 35 | an indent may leave no room for text | `js/50-build.js` | build, command line |
+| 35 | an indent may leave no room for text | `js/50-build.js` (split by ADR 0028; today `js/53-build.js`) | build, command line |
 | 36 | an indent element written with no indent | `thai_docx/build.py` | goldens, build, command line, nesting, writer defect |
 | 37 | committed bundle one byte stale | `thai_docx.js` | bundle built from sources |
 | 38 | `require("child_process")` in the sources | `js/90-entry.js` | script limits |

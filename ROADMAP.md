@@ -18,8 +18,9 @@ not a promise; each item becomes a decision record when it is taken up.
 
 **Reach more users**
 
-- Try the skill in the applications the user guide lists as "not tried yet" — the Claude apps,
-  ChatGPT, Codex, the Gemini app, Copilot, Cursor — and mark each as tried or record what fails.
+- Try the skill in the applications the user guide lists as "not tried yet" — ChatGPT, Codex, the
+  Gemini app, Copilot, Cursor — and mark each as tried or record what fails. The Claude apps were
+  tried on 2026-09-18; building a document in them is still to do.
 - Keep the release archive installable by the common installers (`npx skills add`, `gh skill install`).
 - Submit the skill to curated skill lists by hand (ADR 0014).
 
@@ -27,8 +28,9 @@ not a promise; each item becomes a decision record when it is taken up.
 
 - Keep code scanning (CodeQL), the dependency check (OSV-Scanner) and OpenSSF Scorecard running
   in CI, and bump every pinned tool by hand.
-- An assurance case and a recorded security review.
-- OpenSSF Best Practices: passing, then silver as far as a one-maintainer project can go.
+- Keep the assurance case current, and record a security review done by a person.
+- OpenSSF Best Practices: passing (reached 2026-09-18), then silver as far as a one-maintainer
+  project can go.
 
 **Markdown and documents** (as users ask)
 

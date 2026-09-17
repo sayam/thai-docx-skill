@@ -30,8 +30,10 @@ else in the repository is needed at run time ([ADR 0002](adr/0002-one-public-rep
 | Python or JavaScript scripts | parse, lay out, write, pack, check, compare; read the Markdown, images and profiles; write the output and profile files (limits: ADR 0025) |
 | file system | the Markdown file's tree, `--allow-dir` directories, `~/.thai-docx/profiles/`, `./.thai-docx/profiles/`, the output path |
 | office application (Word, LibreOffice, Google Docs, WPS) | opens the .docx; updates fields when the reader asks |
-| contributor and maintainer | propose, review and merge changes through pull requests held to the gates |
-| CI (`gates.yml`) | runs scans, commit lint, the suite under coverage, and lint on every push and pull request |
+| contributor and maintainer | propose, review and merge changes through pull requests held to the gates (`scans`, `commits`, `tests`, `lint`, `deps`, and CodeQL's code-scanning results) |
+| CI (`gates.yml`) | runs scans, commit lint, the suite under coverage, lint and the dependency check (`deps`, OSV-Scanner) on every push and pull request |
+| code scanning (`codeql.yml`) | CodeQL's security-extended queries for Python, JavaScript and workflows, on every push, pull request and weekly |
+| project score (`scorecard.yml`) | OpenSSF Scorecard on `main`, published for the README badge |
 | release workflow (`release.yml`) | re-checks the tag, packs the skill folder, attests it with GitHub's OIDC identity (Sigstore), verifies, attaches |
 | Zenodo | archives the source of each release and assigns a DOI |
 
@@ -99,4 +101,4 @@ Markdown ──parse──▶ blocks ──lay out──▶ sections, numbering 
 | `tests/` | the suite; `tests/js` holds the CommonMark reference for the parser tests |
 | `gates.yaml`, `tools/` | verifiable-gates: each gate, its test or scanner, its evidence |
 | `docs/adr/`, `docs/evidence/`, `SOURCES.md` | decisions, what each gate was seen to catch, outside sources |
-| `.github/workflows/` | `gates.yml` (scans, commits, tests, lint), `release.yml` (check, pack, attest, attach) |
+| `.github/workflows/` | `gates.yml` (scans, commits, tests, lint, deps), `codeql.yml`, `scorecard.yml`, `release.yml` (check, pack, attest, attach) |
