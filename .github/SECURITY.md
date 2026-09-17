@@ -15,10 +15,61 @@ channel; no address is published here.
   **90 days** after the report unless we agree otherwise with you.
 - Credit in the release notes and the advisory, if you want it.
 
+## Security contact
+
+Sayam Sriphua ([@sayam](https://github.com/sayam)), the maintainer, receives every private report.
+
 ## Supported versions
 
-The latest release receives fixes. Download a tagged release archive rather than
-using `main`.
+Only the latest release is supported, until the next release is published. Support means bug and
+security fixes, released as a new version; fixes are not back-ported to older versions, so a release
+stops receiving security updates when the next one comes out. Download a tagged release archive
+rather than using `main`.
+
+## How fixed vulnerabilities are published
+
+Each confirmed vulnerability is published as a GitHub Security Advisory on this repository, naming
+the affected and the fixed versions and crediting the reporter, and is listed under `### Security`
+in `CHANGELOG.md` for the release that fixes it. If a vulnerability in a component the project uses
+is found not to affect thai-docx, an OpenVEX statement saying so is published in the repository.
+
+## Verify a release
+
+Each release archive is built from its tag by the `release` workflow and carries a signed
+build-provenance attestation (Sigstore, with GitHub's OIDC identity — no signing key is stored
+anywhere). Check a download before you install it:
+
+```sh
+gh attestation verify thai-docx-<version>.zip --repo sayam/thai-docx-skill \
+  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml
+```
+
+It fails for any file the workflow did not build. The identity to expect: certificate issuer
+`https://token.actions.githubusercontent.com`, signer workflow
+`sayam/thai-docx-skill/.github/workflows/release.yml`, source ref `refs/tags/v<version>`.
+
+You can also rebuild the archive and compare. From a clone at the tag, on a checkout without
+line-ending conversion:
+
+```sh
+git checkout v<version>
+python3 tools/package_skill.py thai-docx-<version>.zip
+sha256sum thai-docx-<version>.zip
+```
+
+The SHA-256 equals that of the attached archive: entries are stored, in path order, with fixed dates
+and modes.
+
+## Secrets and credentials
+
+- The project keeps no long-lived secrets. CI uses only the per-job `GITHUB_TOKEN`, with the
+  permissions each workflow declares, and GitHub's OIDC identity for signing.
+- Repository and environment secrets are not used; adding one requires changing this policy first,
+  in a pull request.
+- Accounts with write access use two-factor authentication.
+- Secret scanning with push protection is enabled on the repository.
+- A leaked credential is revoked and rotated at once, and the incident is recorded in an advisory
+  or an issue.
 
 ## Scope
 

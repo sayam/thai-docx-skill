@@ -298,7 +298,7 @@ GUIDES = {
 README = (ROOT / "README.md").read_text(encoding="utf-8")
 PROMPTS = {lang: (ROOT / name).read_text(encoding="utf-8") for lang, name in (("en", "PROMPT.md"), ("th", "PROMPT.th.md"))}
 # lines that run another program — an installer, a version check — whose flags are not ours
-OTHER_PROGRAMS = re.compile(r"^.*(?:\bnpx skills|\bgh skill|\bgemini skills|--version).*$", re.M)
+OTHER_PROGRAMS = re.compile(r"^.*(?:\bnpx skills|\bgh skill|\bgh attestation|\bgemini skills|--version).*$", re.M)
 
 
 def _slug(heading: str) -> str:

@@ -334,6 +334,17 @@ thai-docx ไม่ต้องใช้ทั้งสองอย่าง
 - **sandbox JavaScript ที่ไม่มี shell:** โหลด `scripts/thai_docx.js` แล้วเรียก `ThaiDocx.buildDocument`
   [references/sandbox.md](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/sandbox.md)
 
+## ตรวจไฟล์ที่ดาวน์โหลด
+
+ไม่ทำก็ได้ ถ้ามี [GitHub CLI](https://cli.github.com/) ตรวจได้ว่าไฟล์ zip เป็นไฟล์ที่ระบบ release
+ของโปรเจกต์สร้างจริง
+
+```sh
+gh attestation verify thai-docx-0.1.0.zip --repo sayam/thai-docx-skill
+```
+
+ถ้าถูกต้องจะขึ้นว่าตรวจผ่าน ถ้าเป็นไฟล์อื่นจะไม่ผ่าน
+
 ## อัปเดตหรือลบสกิล
 
 - **อัปเดต:** ลบโฟลเดอร์ `thai-docx` เก่าก่อน แล้วแตกไฟล์ zip ใหม่แบบเดิม
