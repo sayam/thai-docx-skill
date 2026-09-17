@@ -8,13 +8,23 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-18
+
+The documents the skill builds are byte for byte those of 0.1.0 (the goldens are unchanged), so the
+checks of ADR 0012 in the office applications carry over.
+
 ### Changed
 
+- SKILL.md and `references/chapters.md`: the optional thesis flags are named only by the words a
+  user says for them, and a message that begins with the skill's name keeps those words when it is
+  passed to the grill command.
 - `profile save` reports `"replaced"`, as `profile import` already did: true when a profile of
   that name was there and the save took its place. Both then also carry a warning saying so. The
   guides warn that `build`, `profile save` and `profile import` replace without asking.
 - The skill's description is 195 characters (was 731), so the skill uploads in the Claude
   apps, which take 200, and ends with the repository's address.
+- Every source file of the skill opens with SPDX copyright and licence lines; the two files ported
+  from commonmark.js name BSD-2-Clause and its author too.
 
 ### Fixed
 

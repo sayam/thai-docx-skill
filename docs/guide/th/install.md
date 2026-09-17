@@ -81,13 +81,13 @@ Claude จะสร้างไฟล์ให้ กดดาวน์โหล
 
    ```sh
    mkdir -p ~/.claude/skills
-   unzip thai-docx-0.1.0.zip -d ~/.claude/skills
+   unzip thai-docx-0.1.1.zip -d ~/.claude/skills
    ```
 
    บน Windows ใช้ PowerShell
 
    ```powershell
-   Expand-Archive thai-docx-0.1.0.zip -DestinationPath $HOME\.claude\skills
+   Expand-Archive thai-docx-0.1.1.zip -DestinationPath $HOME\.claude\skills
    ```
 
 3. ตรวจว่ามีไฟล์ `~/.claude/skills/thai-docx/SKILL.md`
@@ -174,7 +174,7 @@ Claude จะสร้างไฟล์ให้ กดดาวน์โหล
 
    ```sh
    mkdir -p ~/.agents/skills
-   unzip thai-docx-0.1.0.zip -d ~/.agents/skills
+   unzip thai-docx-0.1.1.zip -d ~/.agents/skills
    ```
 
    ถ้าใช้โปรเจกต์เดียว ให้แตกไว้ในโฟลเดอร์ `.agents/skills` ของโปรเจกต์นั้น
@@ -340,7 +340,7 @@ thai-docx ไม่ต้องใช้ทั้งสองอย่าง
 ของโปรเจกต์สร้างจริง
 
 ```sh
-gh attestation verify thai-docx-0.1.0.zip --repo sayam/thai-docx-skill
+gh attestation verify thai-docx-0.1.1.zip --repo sayam/thai-docx-skill
 ```
 
 ถ้าถูกต้องจะขึ้นว่าตรวจผ่าน ถ้าเป็นไฟล์อื่นจะไม่ผ่าน

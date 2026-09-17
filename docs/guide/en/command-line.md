@@ -21,7 +21,7 @@ the Word file. Every command on this page was run as written.
    folder. You get a folder `thai-docx`.
 
    ```sh
-   unzip thai-docx-0.1.0.zip
+   unzip thai-docx-0.1.1.zip
    ```
 
 Nothing else is installed, and nothing uses the internet.
