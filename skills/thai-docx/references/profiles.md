@@ -23,7 +23,9 @@ Each prints one JSON line, as `build` does: `"ok"`, the `"path"` written or read
 
 ## What to tell the user
 
-- **Saving:** say the name, where it was written, and that `--profile NAME` uses it.
+- **Saving:** say the name, where it was written, and that `--profile NAME` uses it. When
+  `"replaced"` is true (`save` or `import`), pass on its warning: it replaced the profile of that
+  name.
 - **Sharing:** `profile export` writes one JSON file; the user sends it by any means. The
   other person runs `profile import FILE.json`. `"share"` in the output is that sentence.
 - **Building:** a build that used a profile reports it under `"profile"`; say the name, and

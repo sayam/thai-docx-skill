@@ -63,6 +63,8 @@
    `"warnings"` (คำเตือน) ไม่หยุดการสร้างไฟล์ แต่ควรอ่าน เช่น ฟอนต์ไม่มีตัวอักษรไทย
    หรือการตั้งค่าที่ไม่มีผล
 
+   **ระวัง:** `build` เขียนทับ `report.docx` ที่มีอยู่แล้วโดยไม่ถาม ถ้าอยากเก็บไฟล์เดิม ให้ใช้ชื่อใหม่
+
 ## เปลี่ยนการตั้งค่า
 
 ใส่ตัวเลือก (flag) ต่อท้ายชื่อไฟล์
@@ -123,6 +125,9 @@ python3 thai-docx/scripts/thai_docx profile save thesis-v2 --from thesis --defau
 python3 thai-docx/scripts/thai_docx profile export thesis thesis.json
 python3 thai-docx/scripts/thai_docx profile import thesis.json --name school-thesis
 ```
+
+**ระวัง:** `profile save` และ `profile import` เขียนทับโปรไฟล์ชื่อเดียวกันโดยไม่ถาม
+ถ้าเขียนทับ บรรทัดที่พิมพ์ออกมาจะมี `"replaced": true` และคำเตือน
 
 โปรไฟล์อยู่ที่ `~/.thai-docx/profiles/` หรือ `.thai-docx/profiles/` ในโปรเจกต์ โปรไฟล์ของโปรเจกต์ชนะโปรไฟล์ชื่อเดียวกัน
 เป็นไฟล์ JSON เล็ก ๆ ที่มีแค่การตั้งค่า

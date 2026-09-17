@@ -259,6 +259,13 @@ def main(argv: list[str]) -> int:
     return 0
 
 
+def _replacing(result: dict) -> dict:
+    """A save or import that took the place of a profile says so where the user will hear it."""
+    if result["replaced"]:
+        result["warnings"] = ["replaced the profile " + result["name"] + " that was there before"]
+    return result
+
+
 def run(argv: list[str]) -> dict:
     if not argv:
         raise ProfileError(USAGE)
@@ -282,9 +289,10 @@ def run(argv: list[str]) -> dict:
             raise ProfileError(exc.what) from None
         profile = {"schema": SCHEMA, "id": name, "settings": settings_of(opts)}
         path = target(name, project)
+        existed = path.is_file()
         write(profile, path)
-        return {"ok": True, "name": name, "where": "project" if project else "home", "path": str(path),
-                "settings": profile["settings"], "sha256": digest(profile["settings"])}
+        return _replacing({"ok": True, "name": name, "where": "project" if project else "home", "path": str(path),
+                           "replaced": existed, "settings": profile["settings"], "sha256": digest(profile["settings"])})
     if command == "export" and 1 <= len(rest) <= 2:
         data, _where, path = load(rest[0])
         out = pathlib.Path(rest[1]) if len(rest) == 2 else pathlib.Path(path.stem + ".json")
@@ -305,8 +313,8 @@ def run(argv: list[str]) -> dict:
         path = target(name, project)
         existed = path.is_file()
         write(data, path)
-        return {"ok": True, "name": name, "where": "project" if project else "home", "path": str(path),
-                "replaced": existed, "settings": data["settings"], "sha256": digest(data["settings"])}
+        return _replacing({"ok": True, "name": name, "where": "project" if project else "home", "path": str(path),
+                           "replaced": existed, "settings": data["settings"], "sha256": digest(data["settings"])})
     raise ProfileError(USAGE)
 
 

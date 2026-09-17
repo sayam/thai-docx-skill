@@ -10,6 +10,9 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Changed
 
+- `profile save` reports `"replaced"`, as `profile import` already did: true when a profile of
+  that name was there and the save took its place. Both then also carry a warning saying so. The guides warn that `build`, `profile save`
+  and `profile import` replace without asking.
 - The skill's description is 195 characters (was 731), so the skill uploads in the Claude
   apps, which take 200, and ends with the repository's address.
 

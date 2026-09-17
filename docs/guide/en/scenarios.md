@@ -288,6 +288,11 @@ Where the profile goes:
 
 A profile name uses letters, digits, `-` or `_`, with no spaces.
 
+Good to know:
+
+- Saving under a name you already use replaces that profile. To keep the old one, give the new
+  profile another name.
+
 ## Scenario 9: use a saved profile
 
 1. Name the profile in your request. In a chat app, attach its `.json` file too.
