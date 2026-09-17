@@ -130,6 +130,17 @@ gates:
     kind: job
     severity: advisory
     enforced_by: {job: codeql}
+  - id: scorecard-published
+    title: OpenSSF Scorecard reads main from a git clone (not the export-ignore tarball) weekly and on every push to main, publishes to api.scorecard.dev for the badge and uploads its findings to code scanning; the score is a report, not a merge gate
+    kind: job
+    severity: watched
+    enforced_by: {job: scorecard}
+    watched_by:
+      who: the maintainer
+      within_days: 7
+      cadence: weekly, the platform's cron, and every push to main
+      how: >-
+        The run page is the record and GitHub e-mails the workflow's author when a scheduled run fails; a publish the API refuses fails the run. Code scanning lists each check below 10 as an alert.
   - id: suite-covers-the-skill
     title: The suite reaches at least 97% of the branches of the skill's Python, command-line runs included (.coveragerc)
     kind: job
