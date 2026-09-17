@@ -17,7 +17,7 @@ footnotes.
 - **Math:** `$…$` and `$$…$$` stay literal LaTeX in code formatting, with a warning.
 - **Front matter:** only flat `key: value` lines between `---` lines at the very top;
   `title` and `author` become the document properties, `heading-1` … `heading-6` style
-  the headings ([Heading styles](#heading-styles)), and other keys are ignored. Any
+  the headings ([heading-styles.md](heading-styles.md)), and other keys are ignored. Any
   other shape (lists, nesting) is read as ordinary Markdown text.
 
 A line break inside a paragraph between two Thai characters joins them with no

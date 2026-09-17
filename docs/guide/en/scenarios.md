@@ -252,7 +252,8 @@ More you can ask for:
 Good to know:
 
 - What comes before the first marker is the cover. Every `#` heading starts a new page.
-- The markers go in this order, each once: front, chapters, back, appendices, back. Out of order,
+- The markers go in this order, each at most once: front, chapters, back, appendices, and back
+  again. Out of order,
   the build stops and names the line.
 - Front pages are numbered ก ข ค only when you ask for page numbers.
 - Outside a chapter, captions read "ตารางที่ 1".
