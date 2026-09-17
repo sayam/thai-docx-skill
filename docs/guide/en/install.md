@@ -14,7 +14,7 @@ please [open an issue](https://github.com/sayam/thai-docx-skill/issues).
 
 | | Claude apps | Claude Code | ChatGPT | Codex | Gemini app | coding agents | no AI |
 |---|---|---|---|---|---|---|---|
-| tried | not yet | yes | not yet | not yet | not yet | not yet | yes |
+| tried | yes | yes | not yet | not yet | not yet | not yet | yes |
 | make a file (scenarios 1–4, 6, 7) | yes | yes | yes | yes | yes | yes | yes |
 | questions first (5, 11) | as a message | click choices | depends on the app | depends on the app | depends on the app | depends on the app | — |
 | profiles kept (8–12) | no: keep the `.json` file | yes | no: keep the `.json` file | yes | no: keep the `.json` file | yes, except cloud agents | yes |
@@ -46,8 +46,10 @@ Outlook use it too.
 4. Choose the zip file. thai-docx appears in your list of skills.
 5. Make sure its switch is on.
 
-Not tried yet. Claude's help page gives skill descriptions a limit of 200 characters: version
-0.1.0's is longer, later versions fit. If the upload is refused, please
+Tried on 18 September 2026 with `thai-docx-0.1.1.zip`: the upload was accepted, a security scan
+ran on save, and the skill appeared under **Created by you** with its switch on. Claude's help page
+gives skill descriptions a limit of 200 characters, which version 0.1.0's exceeded; 0.1.1 and later
+fit. If an upload is refused, please
 [open an issue](https://github.com/sayam/thai-docx-skill/issues) with the message.
 
 **Start**

@@ -25,7 +25,7 @@ Thai documents with an AI assistant, and it also works on its own at the command
 
    | app | do this |
    |---|---|
-   | Claude (web, desktop) | turn on code execution, then **Customize > Skills > + > Create skill > Upload a skill** and choose the zip (not tried yet) |
+   | Claude (web, desktop) | turn on code execution, then **Customize > Skills > + > Create skill > Upload a skill** and choose the zip |
    | Claude Code | `mkdir -p ~/.claude/skills && unzip thai-docx-0.1.1.zip -d ~/.claude/skills` |
    | Codex, ChatGPT desktop app | `mkdir -p ~/.agents/skills && unzip thai-docx-0.1.1.zip -d ~/.agents/skills` |
    | ChatGPT Business, Enterprise, Edu | **Plugins > Skills > Create > Upload from your computer** |
