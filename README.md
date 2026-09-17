@@ -4,6 +4,8 @@
 [![Release](https://img.shields.io/github/v/release/sayam/thai-docx-skill)](https://github.com/sayam/thai-docx-skill/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/sayam/thai-docx-skill/blob/main/LICENSE)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/sayam/thai-docx-skill/badge)](https://scorecard.dev/viewer/?uri=github.com/sayam/thai-docx-skill)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14687/badge)](https://www.bestpractices.dev/projects/14687)
+[![DOI 10.5281/zenodo.22815936](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22815936-blue)](https://doi.org/10.5281/zenodo.22815936)
 
 An Agent Skill that makes Word files with Thai text render correctly, in Claude, ChatGPT, Codex, Copilot and more.
 
@@ -106,7 +108,9 @@ project is run: [GOVERNANCE.md](https://github.com/sayam/thai-docx-skill/blob/ma
 and [ROADMAP.md](https://github.com/sayam/thai-docx-skill/blob/main/ROADMAP.md). How it is built
 and why it is safe to run: [architecture](https://github.com/sayam/thai-docx-skill/blob/main/docs/architecture.md)
 and [assurance case](https://github.com/sayam/thai-docx-skill/blob/main/docs/assurance-case.md).
-To cite the skill, use
+To cite the skill: archived on Zenodo as
+[doi:10.5281/zenodo.22815936](https://doi.org/10.5281/zenodo.22815936), which resolves to the
+latest version (each release also gets a DOI of its own); the metadata is in
 [CITATION.cff](https://github.com/sayam/thai-docx-skill/blob/main/CITATION.cff).
 
 ## License
