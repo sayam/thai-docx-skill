@@ -1,6 +1,6 @@
 # What a download of this repository carries — GitHub's "Download ZIP", the source
 # archives of a release, `git archive` — is the skill, its license, the README, the
-# changelog and PROMPT.md (ADR 0018).
+# changelog, PROMPT.md and PROMPT.th.md (ADR 0018).
 # A clone or a fork carries everything: the gates, tests and records travel with
 # anyone who develops the skill, and a pull request is held to them in CI.
 /.github export-ignore
