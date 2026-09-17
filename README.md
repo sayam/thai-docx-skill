@@ -15,6 +15,10 @@ for Windows as the reference; `CHANGELOG.md` lists what it does.
 
 ## Use the skill
 
+**Step-by-step guides, every scenario from a plain request to editing a saved profile:**
+[ภาษาไทย](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/th.md) ·
+[English](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en.md)
+
 You need only `skills/thai-docx/`. Nothing else in this repository is loaded by an
 agent, and none of it is needed to run the skill.
 

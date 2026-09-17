@@ -87,6 +87,8 @@ Docs, LibreOffice Writer and WPS Writer (ADR 0012; `docs/evidence/2026-09-16-off
   contents beside `<!-- toc -->`.
 - `references/settings.md`: every setting, its default and an example flag, generated from
   the settings registry.
+- Step-by-step user guides for thirteen scenarios, from a plain request to editing a saved
+  profile, in Thai and English (`docs/guide/`, linked from the README).
 - The number Word draws for a heading — "บทที่ 1", "1.1", "ภาคผนวก ก" — takes its heading's
   size, font, weight and colour, including what the front matter's `heading-n` sets.
 - `--align thai` spreads Thai lines only: a paragraph with no Thai stays left-aligned, and the

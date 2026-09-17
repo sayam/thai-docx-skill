@@ -269,3 +269,40 @@ process.stdout.write(JSON.stringify(sandbox.out));
     out = json.loads(done.stdout or "{}")
     assert done.returncode == 0 and out.get("result", {}).get("ok") and out["n"] > 0, done.stdout + done.stderr
     assert out["report"]["ok"] and out["report"]["findings"] == []
+
+
+# --- the user guides ---------------------------------------------------------------------
+
+GUIDES = {lang: (ROOT / "docs" / "guide" / (lang + ".md")).read_text(encoding="utf-8") for lang in ("th", "en")}
+
+
+def test_the_user_guides_say_what_the_skill_does():
+    """docs/guide/th.md and en.md, linked from the README: every example the reader types is
+    read by the grill command as the guide says — grill only with the phrase, the words after it
+    as written — every flag they name is a flag, and both cover the same thirteen scenarios."""
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    for lang in GUIDES:
+        assert f"https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/{lang}.md" in readme
+    shapes = []
+    for lang, text in GUIDES.items():
+        assert _flags(text) <= _flags(b.USAGE) | _flags(pf.USAGE) | _flags(gr.USAGE), lang
+        scenarios = re.findall(r"^## (?:Scenario|สถานการณ์ที่) (\d+)", text, re.M)
+        assert scenarios == [str(n) for n in range(1, 14)], lang
+        prompts = [" ".join(block.split()) for block in re.findall(r"```text\n(.*?)```", text, re.S)]
+        grilled = []
+        for prompt in prompts:
+            if gr.mode(prompt) != "grill":
+                assert "thai-docx grill" not in prompt.lower(), prompt
+                continue
+            parts = gr.parts(prompt)
+            said = gr.plain(prompt)
+            assert ("from" in parts) is (" from " in said or " จาก " in said), prompt
+            assert ("save_to" in parts) is (" save to " in said or "บันทึกเป็น" in said), prompt
+            assert ("only" in parts) is (" only " in said or "เฉพาะ" in said), prompt
+            if "only" in parts:
+                keys = [q["key"] for q in __import__("thai_docx.settings", fromlist=["QUESTIONS"]).QUESTIONS]
+                assert all(k in keys for k in parts["only"].split(",")), prompt
+            grilled.append(sorted(parts))
+        shapes.append(sorted(grilled))
+    assert shapes[0] == shapes[1], "the same grill examples in both languages"
+    assert shapes[0] == sorted([[], ["from", "save_to"], ["from", "save_to"], ["from", "only", "save_to"]])
