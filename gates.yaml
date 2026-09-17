@@ -94,7 +94,7 @@ gates:
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_profiles.py]}
-    proved_by: docs/evidence/2026-09-16-profiles-are-data.md
+    proved_by: [docs/evidence/2026-09-16-profiles-are-data.md, docs/evidence/2026-09-17-profile-save-says-it-replaced.md]
   - id: python-stays-within-the-script-limits
     title: The skill's Python imports only a named list of standard modules, reaches no environment, process or network through os, and builds no code from strings, read from its source (ADR 0025 limits 1, 2 and 6)
     kind: test

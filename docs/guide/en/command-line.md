@@ -64,6 +64,9 @@ replace `python3` with `py`.
    `"warnings"` never stop the build, but read them: a font with no Thai letters, or a setting
    that changed nothing.
 
+   **Careful:** `build` replaces `report.docx` if it already exists, without asking. Use a new
+   name to keep the old file.
+
 ## Change the settings
 
 Add flags after the file names:
@@ -124,6 +127,9 @@ python3 thai-docx/scripts/thai_docx profile save thesis-v2 --from thesis --defau
 python3 thai-docx/scripts/thai_docx profile export thesis thesis.json
 python3 thai-docx/scripts/thai_docx profile import thesis.json --name school-thesis
 ```
+
+**Careful:** `profile save` and `profile import` replace a profile of the same name without
+asking. When they did, the line they print says `"replaced": true` and has a warning.
 
 Profiles live in `~/.thai-docx/profiles/`, or `.thai-docx/profiles/` in a project; a project
 profile wins over one of the same name. A profile is a small JSON file of settings, nothing

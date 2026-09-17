@@ -4931,6 +4931,15 @@ function profileRead(p) {
   return profileValidate(jsonParsePy(text, p), p);
 }
 
+function profileIsFile(p) {
+  const fs = require("fs");
+  try {
+    return fs.statSync(p).isFile();
+  } catch {
+    return false;
+  }
+}
+
 function profileWrite(profile, p) {
   const fs = require("fs");
   const path = require("path");
@@ -5041,9 +5050,14 @@ function profileWithout(settings, keys) {
   return out;
 }
 
+// A save or import that took the place of a profile says so where the user will hear it.
+function profileReplacing(result) {
+  if (result.replaced) result.warnings = ["replaced the profile " + result.name + " that was there before"];
+  return result;
+}
+
 function profileRun(argv) {
   const path = require("path");
-  const fs = require("fs");
   if (!argv.length) throw new ProfileError(PROFILE_USAGE);
   const command = argv[0];
   let rest = argv.slice(1);
@@ -5073,8 +5087,10 @@ function profileRun(argv) {
     }
     const profile = { schema: PROFILE_SCHEMA, id: name, settings: profileSettingsOf(opts) };
     const p = profileTarget(name, project);
+    const existed = profileIsFile(p);
     profileWrite(profile, p);
-    return { ok: true, name, where: project ? "project" : "home", path: p, settings: profile.settings, sha256: profileDigest(profile.settings) };
+    return profileReplacing({ ok: true, name, where: project ? "project" : "home", path: p, replaced: existed,
+      settings: profile.settings, sha256: profileDigest(profile.settings) });
   }
   if (command === "export" && rest.length >= 1 && rest.length <= 2) {
     const [, p] = profileFind(rest[0]);
@@ -5098,15 +5114,10 @@ function profileRun(argv) {
     if (name === null) name = String(data.id === undefined || data.id === null ? path.basename(source, ".json") : data.id);
     data.id = name; // profileTarget judges the name
     const p = profileTarget(name, project);
-    let existed;
-    try {
-      existed = fs.statSync(p).isFile();
-    } catch {
-      existed = false;
-    }
+    const existed = profileIsFile(p);
     profileWrite(data, p);
-    return { ok: true, name, where: project ? "project" : "home", path: p, replaced: existed,
-      settings: data.settings, sha256: profileDigest(data.settings) };
+    return profileReplacing({ ok: true, name, where: project ? "project" : "home", path: p, replaced: existed,
+      settings: data.settings, sha256: profileDigest(data.settings) });
   }
   throw new ProfileError(PROFILE_USAGE);
 }

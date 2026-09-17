@@ -55,6 +55,7 @@ def test_save_show_export_import_and_build_with_a_profile(home):
                 "--page-numbers", "bottom-center", "--thai-digits")
     path = pathlib.Path(saved["path"])
     assert saved["ok"] and saved["where"] == "home" and path == home / "home" / ".thai-docx" / "profiles" / "thesis.json"
+    assert saved["replaced"] is False and "warnings" not in saved
     assert path.read_text(encoding="utf-8") == p.canonical({"id": "thesis", "schema": 1, "settings": saved["settings"]})
     assert saved["settings"] == {"size": 15, "line_spacing": 1.5, "align": "thai", "page_numbers": "bottom-center", "thai_digits": True}
 
@@ -72,7 +73,7 @@ def test_save_show_export_import_and_build_with_a_profile(home):
     imported = run("profile", "import", str(home / "share" / "thesis.json"), "--name", "from-a-friend", cwd=other)
     assert imported["ok"] and imported["replaced"] is False and imported["sha256"] == saved["sha256"]
     again = run("profile", "import", str(home / "share" / "thesis.json"), "--name", "from-a-friend", cwd=other)
-    assert again["replaced"] is True
+    assert again["replaced"] is True and again["warnings"] == ["replaced the profile from-a-friend that was there before"]
     assert json.loads(pathlib.Path(imported["path"]).read_text(encoding="utf-8"))["id"] == "from-a-friend"
 
     (home / "in.md").write_text("ก\n", encoding="utf-8")
@@ -85,7 +86,10 @@ def test_save_show_export_import_and_build_with_a_profile(home):
 
 
 def test_the_project_comes_before_the_home_and_a_path_before_both(home):
-    run("profile", "save", "house", "--size", "14")
+    assert run("profile", "save", "house", "--size", "15")["replaced"] is False
+    # saving under a name already used replaces that profile, and says so
+    again = run("profile", "save", "house", "--size", "14")
+    assert again["replaced"] is True and again["warnings"] == ["replaced the profile house that was there before"]
     run("profile", "save", "house", "--size", "16", "--project")
     listed = run("profile", "list")["profiles"]
     assert [(r["name"], r["where"], r["used"]) for r in listed] == [("house", "project", True), ("house", "home", False)]
