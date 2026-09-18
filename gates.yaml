@@ -89,7 +89,7 @@ gates:
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_grill.py]}
-    proved_by: [docs/evidence/2026-09-16-grill-is-the-users-word.md, docs/evidence/2026-09-16-grill-from-a-profile.md]
+    proved_by: [docs/evidence/2026-09-16-grill-is-the-users-word.md, docs/evidence/2026-09-16-grill-from-a-profile.md, docs/evidence/2026-09-18-grill-reads-one-message-one-way.md]
   - id: profiles-are-data
     title: A profile holds only settings a flag could set, checked as flags are; it is found in the project, the home or the skill in that order; saving, exporting and importing stay inside the profile directories, and both implementations write the same bytes (ADR 0024, 0025)
     kind: test

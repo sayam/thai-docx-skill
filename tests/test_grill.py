@@ -134,6 +134,29 @@ def test_a_message_the_command_did_not_see_is_no_message():
         assert run(*args)["error"] == g.USAGE, args
 
 
+def test_the_phrase_is_read_with_a_space_between_the_two_words():
+    """ADR 0026: the name's two words may be joined by `-`, `_` or a space, in any case."""
+    for said in ("thai-docx grill", "thai_docx grill", "thai docx grill", "Thai Docx Grill",
+                 "/thai-docx grill", "ขอ THAI DOCX\tGRILL หน่อย"):
+        assert run("grill", "--said", said)["mode"] == "grill", said
+    # what the phrase is not: the words joined by anything else, or not joined at all
+    # a run of whitespace is one space (plain), so a tab or two spaces still read as the phrase
+    assert run("grill", "--said", "thai\tdocx  grill")["mode"] == "grill"
+    for said in ("thai.docx grill", "thaidocx grill", "docx grill", "thai docxgrill"):
+        assert run("grill", "--said", said)["mode"] == "build", said
+    # the words after the phrase are still read from where the phrase ends, whichever
+    # way the two words were joined: `from report` names the profile to start from
+    assert g.parts("thai docx grill from report") == {"from": "report"}
+    assert g.parts("thai-docx grill from report") == {"from": "report"}
+
+
+def test_the_cap_counts_characters_not_units_of_storage():
+    """ADR 0029 says 20,000 characters. A character outside the BMP is one character, so a
+    message of 10,000 of them and the phrase is under the cap in both implementations."""
+    assert run("grill", "--said", "\U0001F600" * 10000 + " thai-docx grill")["mode"] == "grill"
+    assert run("grill", "--said", "\U0001F600" * g.MAX_CHARS + " thai-docx grill")["mode"] == "build"
+
+
 def test_a_very_long_message_is_read_to_its_cap():
     """A message is read to 20,000 characters, as any other input has its bound."""
     assert run("grill", "--said", "ก" * g.MAX_CHARS + " thai-docx grill")["mode"] == "build"

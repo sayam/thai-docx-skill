@@ -302,6 +302,9 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
         ["grill", "--said", ""],
         ["grill", "--said", "ก" * 20050 + " thai-docx grill"],
         ["grill", "--said", "THAİ-DOCX GRILL"],  # a letter no ASCII fold touches: neither mode changes
+        ["grill", "--said", "thai docx grill from report"],  # the two words joined by a space
+        # a character outside the BMP is one character in both, not two (ADR 0029's cap)
+        ["grill", "--said", "\U0001F600" * 10000 + " thai-docx grill"],
         ["grill"],
         ["grill", "--message", "thai-docx grill"],
         # grill from a profile, save as another (ADR 0029), and --default

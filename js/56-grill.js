@@ -6,7 +6,10 @@
 // questions to ask, which choice each setting holds now, and what every choice means.
 
 const GRILL_USAGE = "usage: thai_docx grill --said \"the user's own message, word for word\"";
-const GRILL_PHRASE = "thai-docx grill";
+// grillFold reads `_` as `-`; the space is the third way ADR 0026 lets the two words of
+// the name be joined, and it cannot be folded — a space is what separates the phrase's
+// own words — so the pattern allows it there and nowhere else.
+const GRILL_PHRASE = /thai[- ]docx grill/;
 const GRILL_MAX_CHARS = 20000;
 // the words that may follow the phrase (ADR 0029): part → [English, Thai]
 const GRILL_PARTS = { from: ["from", "จาก"], save_to: ["save to", "บันทึกเป็น"], only: ["only", "เฉพาะ"] };
@@ -55,14 +58,15 @@ function grillLanguage(message) {
 }
 
 function grillMode(message) {
-  return grillPlain(message).includes(GRILL_PHRASE) ? "grill" : "build";
+  return GRILL_PHRASE.test(grillPlain(message)) ? "grill" : "build";
 }
 
 // `from`, `save to` and `only`, read from the words directly after the phrase, as the user
 // wrote them; the first word that is none of them ends the reading.
 function grillParts(message) {
   const joined = grillWords(message).join(" ");
-  let rest = joined.slice(grillPlain(message).indexOf(GRILL_PHRASE) + GRILL_PHRASE.length).split(" ");
+  const here = GRILL_PHRASE.exec(grillPlain(message));
+  let rest = joined.slice(here.index + here[0].length).split(" ");
   if (rest.length && rest[0] === "") rest = rest.slice(1);
   const found = {};
   let i = 0;
@@ -146,7 +150,10 @@ function grillQuestions(now, lang, only, saveTo) {
 function grillRun(argv) {
   if (argv.length !== 2 || argv[0] !== "--said") return { ok: false, error: GRILL_USAGE };
   let message = argv[1];
-  if (message.length > GRILL_MAX_CHARS) message = message.slice(0, GRILL_MAX_CHARS);
+  // characters, not units of storage: a character outside the BMP is two UTF-16 units
+  // and one character, and Python counts it as one (ADR 0029, ADR 0008)
+  const said = [...message];
+  if (said.length > GRILL_MAX_CHARS) message = said.slice(0, GRILL_MAX_CHARS).join("");
   if (grillMode(message) !== "grill") {
     return { ok: true, mode: "build",
              next: "build at once with the announced defaults; ask nothing first" };

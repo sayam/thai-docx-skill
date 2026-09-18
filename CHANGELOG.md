@@ -17,6 +17,14 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   ways — against GitHub and against the file it is about to attach — and attaches nothing if a
   tampered archive passes either.
 
+### Fixed
+
+- `grill` reads one message one way. The JavaScript counted the 20,000-character cap in UTF-16
+  units, so a message with 10,000 emoji and the phrase `thai-docx grill` started the interview in
+  Python and skipped it in JavaScript; it now counts characters, as ADR 0029 says and ADR 0008
+  requires. And the phrase is read with a space between the two words of the name
+  (`thai docx grill`), which ADR 0026 has always allowed and the code never did.
+
 ### Changed
 
 - What the agent reads says what the code does: SKILL.md counts comments among the HTML the build
