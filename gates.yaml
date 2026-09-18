@@ -32,11 +32,11 @@ gates:
     severity: blocking
     enforced_by: {job: commits}
   - id: docx-checker-proven-two-way
-    title: The checker names each of the five causes (ADR 0004), invisible text and misordered properties on a planted violation, passes a clean package, and refuses DOCTYPE and oversized packages
+    title: The checker names each of the five causes (ADR 0004), invisible text and misordered properties on a planted violation in any part that holds text a reader sees — body, comments, footnotes, endnotes, headers, footers — passes a clean package, and refuses DOCTYPE and oversized packages
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_check.py]}
-    proved_by: docs/evidence/2026-09-15-checker-red-evidence.md
+    proved_by: [docs/evidence/2026-09-15-checker-red-evidence.md, docs/evidence/2026-09-18-a-comment-is-text-the-reader-sees.md]
   - id: markdown-dialect-proven
     title: The parser accepts exactly the Markdown ADR 0022 names — each construct on a fixture — and stops with a line number on anything outside it
     kind: test
@@ -56,7 +56,7 @@ gates:
     enforced_by: {job: tests, tests: [tests/test_oracle.py]}
     proved_by: docs/evidence/2026-09-15-parser-held-to-references.md
   - id: javascript-matches-python
-    title: The JavaScript file reads Markdown, writes .docx bytes, reports on sound and damaged packages and answers on the command line exactly as the Python package does (ADR 0008, 0017), stays within the script limits (ADR 0011), and is the bundle its committed sources build
+    title: The JavaScript file reads Markdown, writes .docx bytes, reports on sound and damaged packages and answers on the command line exactly as the Python package does (ADR 0008, 0017), stays within the script limits (ADR 0030), and is the bundle its committed sources build
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_js_parity.py]}
@@ -97,7 +97,7 @@ gates:
     enforced_by: {job: tests, tests: [tests/test_profiles.py]}
     proved_by: [docs/evidence/2026-09-16-profiles-are-data.md, docs/evidence/2026-09-17-profile-save-says-it-replaced.md]
   - id: python-stays-within-the-script-limits
-    title: The skill's Python imports only a named list of standard modules, reaches no environment, process or network through os, and builds no code from strings, read from its source (ADR 0025 limits 1, 2 and 6)
+    title: The skill's Python imports only a named list of standard modules, reaches no environment, process or network through os, and builds no code from strings, read from its source (ADR 0030 limits 1, 2 and 6)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_script_limits.py]}
@@ -109,7 +109,7 @@ gates:
     enforced_by: {job: tests, tests: [tests/test_settings.py]}
     proved_by: docs/evidence/2026-09-16-settings-registry.md
   - id: sources-name-their-licence
-    title: Every source file of the project — the skill's Python and JavaScript, the tests and this project's own tools — opens with its SPDX copyright and licence lines, the commonmark.js ports naming BSD-2-Clause and their author too, and the bundle states its parts' lines once (ADR 0003)
+    title: Every source file of the project — the skill's Python and JavaScript, the tests and this project's own tools — opens with its SPDX copyright and licence lines, the commonmark.js ports naming BSD-2-Clause and their author too, and the bundle states its parts' lines once (ADR 0031)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_licensing.py]}

@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
 """Every source file of this project says, in its first lines, whose it is and under which
-licence (ADR 0003), as SPDX tags a tool can read: the skill's Python and JavaScript, the
+licence (ADR 0031), as SPDX tags a tool can read: the skill's Python and JavaScript, the
 tests and this project's own tools. Whoever writes a file names themself: one or more
 `SPDX-FileCopyrightText` lines, any holder, then the licence. The two files that port
 commonmark.js name its BSD-2-Clause licence and its author as well. The bundle drops each

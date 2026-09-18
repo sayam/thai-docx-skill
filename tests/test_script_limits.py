@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
-"""The Python package stays within the script limits (ADR 0025 §1, §2 and §6), read from its
+"""The Python package stays within the script limits (ADR 0030 §1, §2 and §6), read from its
 source rather than taken on review: it imports only a named list of standard modules, reaches
 no process, environment or network through `os`, and builds no code from strings. The
 JavaScript file is held to the same limits in `test_js_parity.py`.

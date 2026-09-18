@@ -19,6 +19,16 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Fixed
 
+- Every page that states a rule now points at the record in force. ADR 0025 and 0003 were
+  superseded by 0030 and 0031 on 2026-09-18, and the assurance case, the architecture page,
+  CONTRIBUTING, the roadmap, three gate titles, both implementations and the tests still cited
+  them — including the message a user reads when an image lies outside the Markdown's tree. The
+  section numbers were mapped, not substituted: 0011's §6 and §7 are 0030's §8 and §9. Evidence
+  records and past changelog entries keep the names they were written with.
+- `check` reads the comments. `word/comments.xml` was not among the parts it walked, so a Thai run
+  with no complex-script marks inside a comment passed as clean. Word draws a comment beside the
+  page and its spelling checker reads it, so it has the same fault as the body. Nothing this skill
+  builds is affected — it writes no comments — but a file from another program can carry them.
 - An image must be whole. A PNG whose pixels never arrived — a signature and an IHDR and nothing
   else, as a stopped copy or download leaves — was embedded and the build reported success. A PNG
   now has to end with its IEND chunk and a JPEG with its end-of-image marker, or the build refuses

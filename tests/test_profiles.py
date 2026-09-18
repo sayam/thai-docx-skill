@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 """Profiles (ADR 0024): settings saved as data, used again, exported and imported —
 holding nothing a command line could not, and never read or written outside the profile
-directories of ADR 0025."""
+directories of ADR 0030."""
 
 from __future__ import annotations
 

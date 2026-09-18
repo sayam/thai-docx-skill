@@ -9,7 +9,7 @@ the package (writer.py, parts.py), pack it, check it (check.py), compare it with
 Markdown (fidelity.py), report. The output is written only when the package passes the
 checker and the fidelity check; otherwise nothing is written and the JSON line says why.
 Standard library only; reads the Markdown file and the images it names, writes one file
-(ADR 0025).
+(ADR 0030).
 
 Byte stability: zip entries are *stored*, not deflated — deflate output differs
 between zlib builds. No clock, host name or user name enters any part. Escaping,
@@ -132,7 +132,7 @@ def real_path(path: str) -> str:
     """The path as the file system walks it: each component's symbolic link
     followed, `..` taken from what is already resolved. A component that does not
     exist, or a link past the fortieth, stays as written. js/90-entry.js walks it
-    the same way, so both implementations judge ADR 0011 §4 on the same file."""
+    the same way, so both implementations judge ADR 0030 §4 on the same file."""
     if not os.path.isabs(path):
         path = os.getcwd() + os.sep + path
     root, pending = _split_root(path)
@@ -176,7 +176,7 @@ def image_reader(md_dir: str, allow_dirs: list[str]):
     def read(src: str) -> tuple[str, bytes]:
         path = real_path(src if os.path.isabs(src) else md_dir + os.sep + src)
         if not any(_inside(path, root) for root in roots):
-            raise BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0011 §4)")
+            raise BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)")
         try:
             with open(path, "rb") as f:
                 return path, f.read()

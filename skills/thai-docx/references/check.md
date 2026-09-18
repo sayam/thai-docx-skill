@@ -18,5 +18,9 @@ unsafe). Explain each finding by its code, in the user's language:
 | `order` | formatting properties in an order the schema does not allow | a setting silently ignored, e.g. bold or size not applied |
 | `package`, `doctype`, `size` | the file is damaged, not a Word document, or refused as unsafe (exit 2) | the file may not open at all |
 
+The check reads every part of the package that holds text a reader sees: the body, the
+comments, the footnotes and endnotes, and each header and footer. A finding names the part
+it is in, so say which one when the answer is not the body.
+
 This version reports; it does not repair. If the user wants the document fixed and
 has its content, rebuild it from Markdown with this skill.

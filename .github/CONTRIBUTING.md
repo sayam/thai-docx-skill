@@ -137,7 +137,7 @@ review looks at:
    holds.
 4. **The goldens.** Unchanged, or changed on purpose with the parts named and a request to open the
    files in Word 365 for Windows.
-5. **The limits of ADR 0025.** No network, subprocess, `eval`, environment read or new write path;
+5. **The limits of ADR 0030.** No network, subprocess, `eval`, environment read or new write path;
    input from a user, an agent or a file is checked against an allowlist before use. A change that
    moves a boundary updates `docs/assurance-case.md`.
 6. **What the agent reads.** SKILL.md and `references/` stay true (the tests say so) and SKILL.md
