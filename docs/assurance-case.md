@@ -136,6 +136,7 @@ Each gate that holds these tests records the planted defects it was seen to catc
 
 ## 8. Keeping this current
 
-A change to ADR 0025 or 0017, a new input type, or a new command updates this page in the same pull
+A change to ADR 0030 or 0017, a new input type, or a new command updates this page in the same pull
 request, and the security review (`docs/evidence/*-security-review.md`) is repeated at least once a
-year or before a release that changes a boundary.
+year or before a release that changes a boundary. The last one was
+[2026-09-18](evidence/2026-09-18-security-review.md), on 0.1.1: every requirement held, no finding.

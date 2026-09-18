@@ -28,7 +28,8 @@ not a promise; each item becomes a decision record when it is taken up.
 
 - Keep code scanning (CodeQL), the dependency check (OSV-Scanner) and OpenSSF Scorecard running
   in CI, and bump every pinned tool by hand.
-- Keep the assurance case current, and record a security review done by a person.
+- Keep the assurance case current, and repeat the security review each year or at a boundary
+  change (the last is `docs/evidence/2026-09-18-security-review.md`).
 - OpenSSF Best Practices: passing (reached 2026-09-18), then silver as far as a one-maintainer
   project can go.
 
