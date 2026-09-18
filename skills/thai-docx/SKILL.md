@@ -23,7 +23,7 @@ bundled command writes every attribute Thai needs. Your part is the Markdown.
 - Do not add spaces between Thai words, and never add zero-width characters
   (U+200B, U+200C, U+200D, U+2060, U+FEFF). Write Thai as a Thai reader writes it.
 - Never change the user's wording to get a build through.
-- Documents with no Thai text are not for this skill.
+- A document with no Thai in it needs nothing this skill adds; build one only if asked to.
 
 ## Build a document (default: no questions)
 
@@ -79,7 +79,8 @@ document gives nothing to act on, is a warning, not an error.
 You do not choose this mode and an argument you were invoked with is not the user's word.
 Before asking anything, give the script the user's own message — all of it, word for word.
 If the message begins with this skill's name and words after it, those words are part of the
-message: pass them, never only what follows them. Then obey the script's answer:
+message: pass them, never only what follows them. The script reads the first 20,000 characters
+and says in `warnings` when it read fewer than the message holds. Then obey the script's answer:
 
 ```sh
 python3 <skill>/scripts/thai_docx grill --said "ช่วยทำไฟล์ word ให้หน่อย"

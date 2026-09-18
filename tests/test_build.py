@@ -193,6 +193,27 @@ def test_an_image_too_large_to_carry_is_the_users_problem_not_a_defect(tmp_path)
     assert b.main([str(src), str(out)]) == 2
 
 
+def test_the_build_names_what_it_did_not_write(tmp_path):
+    """Four things a document can lose without a word being changed: a picture no reader can
+    see, an outline with a level missing, a link definition nobody used, and a caption written
+    in Thai where the prefix has to be English. None refuses the build; each is said."""
+    shutil.copy(FIXTURES / "pixel.png", tmp_path / "p.png")
+
+    def only(text, **kw):
+        return [w["message"] for w in build(tmp_path, text, **kw)[0]["warnings"]]
+
+    assert "has no text between the brackets" in only("ไทย\n\n![](p.png)")[0]
+    assert only("ไทย\n\n![ผังงาน](p.png)") == []
+    assert "a heading of level 3 follows one of level 1" in only("# หนึ่ง\n\n### สาม\n\nย่อ")[0]
+    assert only("# หนึ่ง\n\n## สอง\n\n### สาม\n\nย่อ") == []
+    assert "the link definition [unused] is never used" in only("ไทย\n\n[unused]: https://x.example")[0]
+    assert only("ไทย [ที่นี่][u]\n\n[u]: https://x.example") == []
+    said = only("ตาราง: ผลการสำรวจ\n\n| ก | ข |\n|---|---|\n| 1 | 2 |")
+    assert "a caption is written 'Table:' in English" in said[0], said
+    # the same words away from a table stay ordinary text, with nothing said
+    assert only("ตาราง: ผลการสำรวจ\n\nย่อหน้า") == []
+
+
 def test_image_is_scaled_to_the_text_width(tmp_path):
     shutil.copy(FIXTURES / "pixel.png", tmp_path / "p.png")
     _, out = build(tmp_path, "![a](p.png)", margins=(1, 3.5, 1, 3.5))
@@ -440,7 +461,7 @@ Table: สาเหตุ
 |---|---|
 | 1 | 2 |
 
-![](p.png)
+![ผังงาน](p.png)
 
 Figure: ขั้นตอน
 
@@ -599,7 +620,7 @@ def test_comments_and_captions_meant_but_not_taken_are_warned_about_never_droppe
         "<!-- chapter -->\n\n<!-- Chapters -->\n\n<!-- list of figures -->\n\n<!-- appendix -->\n\n"
         "<!-- todo -->\n\n<!-- note: ตรวจอีกครั้ง -->\n\n"  # ordinary comments stay quiet
         "- รายการ\n\n  <!-- toc -->\n\n"
-        "![](p.png)\nFigure: ติดกัน\n\n"
+        "![ผังงาน](p.png)\nFigure: ติดกัน\n\n"
         "| ก | ข |\n|---|---|\n| 1 | 2 |\nTable: ต่อท้าย\n"
     )
     result, out = build(tmp_path, text)
@@ -636,7 +657,7 @@ def test_region_comments_and_captions_refuse_or_warn_with_their_line(tmp_path):
         result, _ = build(tmp_path, text)
         assert result.get("line") == line and message in result["error"], result
     shutil.copy(FIXTURES / "pixel.png", tmp_path / "p.png")
-    result, _ = build(tmp_path, "Table: ลอย\n\nข้อความ\n\n![](p.png) และข้อความ\n\nFigure: ลอย\n")
+    result, _ = build(tmp_path, "Table: ลอย\n\nข้อความ\n\n![ผังงาน](p.png) และข้อความ\n\nFigure: ลอย\n")
     assert result["ok"] and [w["message"] for w in result["warnings"]] == [
         "line 1: 'Table:' makes a caption only in the paragraph just before a table; kept as text",
         "line 7: 'Figure:' makes a caption only in the paragraph just after an image on its own; kept as text",

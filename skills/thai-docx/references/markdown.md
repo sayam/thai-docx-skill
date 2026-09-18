@@ -23,5 +23,11 @@ footnotes.
 A line break inside a paragraph between two Thai characters joins them with no
 space, so wrapping long Thai lines in the Markdown is safe.
 
+What the build warns about rather than refuses: an image with nothing between the brackets
+of `![]`, a heading level skipped, a link definition nobody refers to, and a paragraph that
+opens with `ตาราง:` or `รูป:` where a caption would go — the prefix is `Table:` or `Figure:`,
+in English, in every language. Entities (`&nbsp;`, `&amp;`) are resolved by CommonMark, so
+`&nbsp;` becomes one non-breaking space in the document, not seven characters.
+
 Anything else stops the build and names the line, and so do blocks or formatting nested
 more than 100 deep. Nothing is dropped silently.

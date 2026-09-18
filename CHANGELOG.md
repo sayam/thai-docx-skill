@@ -17,8 +17,20 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   ways — against GitHub and against the file it is about to attach — and attaches nothing if a
   tampered archive passes either.
 
+### Added
+
+- The build names what it did not write, without refusing anything: an image with nothing between
+  the brackets of `![]`, a heading level skipped, a link definition nobody refers to, and a
+  paragraph opening with `ตาราง:` or `รูป:` where a caption would go. `grill` says when a message
+  was read only to its 20,000-character cap, so an agent can tell that answer from a user who never
+  asked for the interview. No document's bytes change.
+
 ### Fixed
 
+- SKILL.md said documents with no Thai are not for this skill, while `build` builds them; it now
+  says such a document needs nothing the skill adds, and to build one only if asked. Both
+  troubleshooting pages said the trigger phrase needs a hyphen, which stopped being true when the
+  space spelling was fixed earlier the same day.
 - Every page that states a rule now points at the record in force. ADR 0025 and 0003 were
   superseded by 0030 and 0031 on 2026-09-18, and the assurance case, the architecture page,
   CONTRIBUTING, the roadmap, three gate titles, both implementations and the tests still cited

@@ -16,7 +16,7 @@ explicitly (ADR 0015), and every position is a code point.
 
 The tree handed to the writer is plain dicts:
 
-  block  {"t": "heading", "level": n, "inlines": [...]}
+  block  {"t": "heading", "level": n, "inlines": [...], "line": n}
          {"t": "paragraph", "inlines": [...]}
          {"t": "code", "lines": [...], "info": str, "math": bool}
          {"t": "quote", "blocks": [...]}
@@ -309,6 +309,8 @@ class BlockParser:
         self.all_closed = True
         self.last_matched_container = self.doc
         self.refmap: dict[str, tuple[str, str]] = {}
+        self.ref_lines: dict[str, tuple[int, str]] = {}  # label → its line and the label as written
+        self.refs_used: set[str] = set()      # labels some link or image actually referred to
         self.footnote_defs: dict[str, Node] = {}
         self.last_line_length = 0
         self.warnings: list[str] = []
@@ -1430,8 +1432,10 @@ class InlineParser:
             if n == 0:
                 self.pos = savepos
             if reflabel:
-                link = self.refmap.get(normalize_label(reflabel[1:-1]))
+                label = normalize_label(reflabel[1:-1])
+                link = self.refmap.get(label)
                 if link is not None:
+                    self.bp.refs_used.add(label)
                     dest, title = link
                     matched = True
         if matched:
@@ -1610,6 +1614,7 @@ class InlineParser:
             return 0
         if normlabel not in refmap:
             refmap[normlabel] = (dest, "" if title is None or title is _UNDEFINED else title)
+            self.bp.ref_lines[normlabel] = (self.line_at(startpos), rawlabel[1:-1])
         return self.pos - startpos
 
 
@@ -1787,6 +1792,13 @@ def parse(text: str) -> Document:
     if unreferenced:
         fn = bp.footnote_defs[unreferenced[0]]
         raise Unsupported(fn.line, f"footnote [^{fn.label}] is defined but never referenced; nothing may be dropped silently (ADR 0005)")
+    # a link definition nobody refers to is dropped by CommonMark itself. This project promises
+    # that nothing goes silently (references/markdown.md), so it is named — a warning, not a
+    # refusal, because unlike a footnote it takes no room in the document either way.
+    for label, (line, written) in bp.ref_lines.items():
+        if label not in bp.refs_used:
+            bp.warnings.append("line " + str(line) + ": the link definition [" + written
+                               + "] is never used; it is not written into the document")
     doc.warnings = sorted(bp.warnings, key=lambda m: int(m.split(":")[0].split()[1]))
     return doc
 
@@ -2002,7 +2014,7 @@ def _blocks(bp: BlockParser, node: Node, doc: Document) -> list[dict]:
     for child in node.children():
         t = child.type
         if t == "heading":
-            out.append({"t": "heading", "level": child.level, "inlines": _inlines(bp, child, doc)})
+            out.append({"t": "heading", "level": child.level, "inlines": _inlines(bp, child, doc), "line": child.line})
         elif t == "paragraph":
             out.append({"t": "paragraph", "inlines": _inlines(bp, child, doc), "line": child.line})
         elif t == "html_block":
