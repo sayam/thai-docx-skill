@@ -128,5 +128,6 @@ node <skill>/scripts/thai_docx.js check file.docx
 ```
 
 Explain each finding by its code, in the user's language:
-[references/check.md](references/check.md). This reports; it does not repair — rebuild from
-Markdown with this skill if the user has the content.
+[references/check.md](references/check.md). If the user has the content, rebuilding from Markdown
+with this skill fixes everything. If they do not, `repair IN.docx OUT.docx` writes a new file with
+two of the findings gone and the rest reported: [references/repair.md](references/repair.md).

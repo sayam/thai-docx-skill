@@ -253,6 +253,13 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
         ["check", "not-a-zip.docx"],
         ["check", "huge.docx"],
         ["check", "missing.docx"],
+        # repair: the same file out of both, or the same refusal (ADR 0032, 0008)
+        ["repair", "legacy.docx", "repaired.docx"],
+        ["repair", "sample-default.docx", "clean.docx"],   # nothing to repair: nothing written
+        ["repair", "not-a-zip.docx", "nope.docx"],
+        ["repair", "missing.docx", "nope.docx"],
+        ["repair", "legacy.docx"],                          # one path is not two
+        ["repair", "legacy.docx", "dir.md"],                # a path that cannot be written
         ["check", "doc"],
         ["check"],
         ["check", "a.docx", "b.docx"],

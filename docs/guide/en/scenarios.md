@@ -417,5 +417,6 @@ does not work.
 
 3. The assistant explains each problem and what it does to the file.
 
-The skill **checks; it does not repair**. If you have the content, make a new file with scenario 1
-or 2.
+The skill can repair two of the seven faults — the compatibility mode and proofing switched off —
+with `repair` at the command line; the marks a Thai run needs are not among them yet. If you have
+the content, making a new file with scenario 1 or 2 fixes everything.

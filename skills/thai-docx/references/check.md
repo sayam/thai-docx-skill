@@ -24,5 +24,6 @@ The check reads every part of the package that holds text a reader sees: the bod
 comments, the footnotes and endnotes, and each header and footer. A finding names the part
 it is in, so say which one when the answer is not the body.
 
-This version reports; it does not repair. If the user wants the document fixed and
-has its content, rebuild it from Markdown with this skill.
+This reports. To fix a file whose content the user does not have, `repair` writes a new one
+with findings `1` and `3` gone and the rest reported — [repair.md](repair.md). When they do
+have the content, rebuilding from Markdown fixes everything, and is the better move.
