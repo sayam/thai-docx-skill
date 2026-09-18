@@ -38,3 +38,4 @@ file that is gone, a repeated number or a gap in the numbering is red.
 | 0030 | [Bundled scripts run with the agent's rights: the limits, restated with both implementations read by tests](0030-script-limits-read-by-tests-in-both-implementations.md) | 2026-09-18 | accepted |
 | 0031 | [MIT, with every exception named in the file that carries it (restated)](0031-mit-with-the-exceptions-each-file-names.md) | 2026-09-18 | accepted |
 | 0032 | [Repair rewrites the attributes that break Thai, never the text](0032-repair-rewrites-attributes-never-the-text.md) | 2026-09-18 | accepted |
+| 0033 | [The task-list box is a square in a text font, not a symbol only Windows has](0033-the-task-box-is-a-square-in-a-text-font.md) | 2026-09-19 | accepted |

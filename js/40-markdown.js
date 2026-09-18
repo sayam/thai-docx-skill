@@ -1982,7 +1982,7 @@ function inlineText(inlines) {
   for (const n of inlines) {
     if (n.t === "text") parts.push(n.s);
     else if (n.t === "hardbreak") parts.push("\n");
-    else if (n.t === "task") parts.push(n.checked ? "☑ " : "☐ ");
+    else if (n.t === "task") parts.push(n.checked ? "■ " : "□ ");
   }
   return parts.join("");
 }

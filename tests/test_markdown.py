@@ -231,7 +231,7 @@ def test_task_marker_follows_github(text, task):
 
 def test_task_marker_leaves_block_syntax_as_text_and_can_head_a_table():
     doc = md.parse("- [ ] > q")
-    assert md.plain_text(doc.blocks) == ["☐ > q"]
+    assert md.plain_text(doc.blocks) == ["□ > q"]
     doc = md.parse("- [x] | a | b |\n  |---|---|")
     item = doc.blocks[0]["items"][0]
     assert item[0]["inlines"] == [{"t": "task", "checked": True}] and item[1]["t"] == "table"
@@ -339,7 +339,7 @@ def test_task_items():
     first = [i[0]["inlines"][0] for i in doc.blocks[0]["items"]]
     assert first[:3] == [{"t": "task", "checked": False}, {"t": "task", "checked": True}, {"t": "task", "checked": True}]
     assert first[3]["s"] == "[y] not a task"
-    assert md.plain_text(doc.blocks[0]["items"][0]) == ["☐ open"]
+    assert md.plain_text(doc.blocks[0]["items"][0]) == ["□ open"]
 
 
 def test_table_alignment_escaped_pipe_and_padding():
@@ -373,7 +373,7 @@ def test_html_comment_block_is_dropped():
 
 def test_plain_text_orders_everything_the_docx_must_carry():
     doc = md.parse("# h\n\np  \nq\n\n- [x] t\n\n| a |\n|---|\n| b |\n\n> z\n\n```\nc\n```")
-    assert md.plain_text(doc.blocks) == ["h", "p\nq", "☑ t", "a", "b", "z", "c"]
+    assert md.plain_text(doc.blocks) == ["h", "p\nq", "■ t", "a", "b", "z", "c"]
 
 
 def test_nesting_past_the_limit_stops_with_its_line():

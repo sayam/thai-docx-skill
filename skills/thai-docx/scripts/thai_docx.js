@@ -3300,7 +3300,7 @@ function inlineText(inlines) {
   for (const n of inlines) {
     if (n.t === "text") parts.push(n.s);
     else if (n.t === "hardbreak") parts.push("\n");
-    else if (n.t === "task") parts.push(n.checked ? "☑ " : "☐ ");
+    else if (n.t === "task") parts.push(n.checked ? "■ " : "□ ");
   }
   return parts.join("");
 }
@@ -3961,7 +3961,12 @@ function captionText(c) {
 // the same bytes (ADR 0008).
 
 const CODE_FONT = "Consolas";
-const SYMBOL_FONT = "Segoe UI Symbol";
+// The box a task list draws, and the font that has it. Not ☐/☑ in Segoe UI Symbol: those
+// characters live only in symbol fonts, and the one Windows has is on no other machine, so the
+// box vanished everywhere else (ADR 0033). A white and a black square are in every ordinary
+// text font, and Arial is on Windows and macOS and is what fontconfig gives for Arial on Linux.
+const SYMBOL_FONT = "Arial";
+const BOX = "□ ", BOX_CHECKED = "■ ";
 const NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 const REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
 const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
@@ -4092,7 +4097,7 @@ class Writer {
       if (t === "text") out.push(this.textRun(n, bold));
       else if (t === "hardbreak") out.push("<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>");
       else if (t === "task") {
-        const mark = n.checked ? "☑ " : "☐ ";
+        const mark = n.checked ? BOX_CHECKED : BOX;
         out.push('<w:r><w:rPr><w:rFonts w:ascii="' + SYMBOL_FONT + '" w:hAnsi="' + SYMBOL_FONT + '" w:cs="' + SYMBOL_FONT + '"/>' +
           LANG + '</w:rPr><w:t xml:space="preserve">' + mark + "</w:t></w:r>");
       } else if (t === "footnote_ref") {

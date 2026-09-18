@@ -17,6 +17,14 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   ways — against GitHub and against the file it is about to attach — and attaches nothing if a
   tampered archive passes either.
 
+### Changed
+
+- The task-list box is now `□` and, when checked, `■`, in Arial (ADR 0033). It was `☐`/`☑` in Segoe
+  UI Symbol — a Microsoft font, so on every machine without it the box was drawn as **nothing**, in
+  every reader, which the WPS re-check found. No font carrying `☐` is present on Windows, macOS and
+  Linux alike, so the characters had to change rather than the font name alone. **The bytes of a
+  document with a task list change**, and the goldens were regenerated.
+
 ### Added
 
 - WPS Writer re-checked (11.1.0.11723): both fixes of 0.1.0 hold there, the three lists fill on

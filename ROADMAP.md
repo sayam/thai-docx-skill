@@ -43,9 +43,10 @@ before a hard break no longer spreads under `--align thai`, and a heading's numb
 heading's own size, font and weight — and the three lists fill on open. What WPS draws its own way
 is recorded as a difference: the chapter label through a legacy code page, SARA AM's placement, and
 a new one, the numbering value 1 drawn as ๕ under `--thai-digits`. The check also found something
-that **is** ours: the task-list boxes are written in Segoe UI Symbol, which no Linux machine has, so
-they draw as nothing outside Windows. Naming a font that exists where a document will be read is a
-decision waiting on the maintainer, beside the other two.
+that **was** ours: the task-list boxes were written in Segoe UI Symbol, which no Linux machine has,
+so they drew as nothing outside Windows. Fixed by ADR 0033 — `□` and `■` in Arial — which changes
+the bytes of any document with a task list, so the five applications of ADR 0012 are due a look
+before the next release.
 
 ## Will do
 
