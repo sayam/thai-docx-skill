@@ -102,6 +102,15 @@ def build_text(text: str, opts: dict, read_image) -> tuple[dict, bytes | None]:
         sha256=hashlib.sha256(data).hexdigest(),
         bytes=len(data),
     )
+    # `size` is not a defect in the builder: it says the images the user asked for do not fit
+    # in a .docx. SKILL.md reads exit 1 as "a defect in this skill; do not retry", so this
+    # leaves by the other door — `error`, exit 2, the door for input a user can change.
+    too_big = next((f for f in findings if f["code"] == "size"), None)
+    if too_big is not None:
+        result["findings"] = [f for f in findings if f is not too_big]
+        result["error"] = ("the document does not fit in a .docx — " + too_big["message"].replace("; refused", "")
+                           + "; images are what makes a document this large, so use smaller ones")
+        return result, None
     return result, (None if findings else data)
 
 

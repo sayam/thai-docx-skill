@@ -58,6 +58,16 @@ function buildText(text, opts, readImage) {
     sha256: sha256Hex(data),
     bytes: data.length,
   };
+  // `size` is not a defect in the builder: it says the images the user asked for do not fit
+  // in a .docx. SKILL.md reads exit 1 as "a defect in this skill; do not retry", so this
+  // leaves by the other door — `error`, exit 2, the door for input a user can change.
+  const tooBig = findings.find((f) => f.code === "size");
+  if (tooBig) {
+    outcome.findings = findings.filter((f) => f !== tooBig);
+    outcome.error = "the document does not fit in a .docx — " + tooBig.message.replace("; refused", "")
+      + "; images are what makes a document this large, so use smaller ones";
+    return [outcome, null];
+  }
   return [outcome, findings.length ? null : data];
 }
 

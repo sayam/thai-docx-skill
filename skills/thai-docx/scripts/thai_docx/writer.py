@@ -42,9 +42,13 @@ def attr(s: str) -> str:
 def _image_size(data: bytes) -> tuple[str, int, int]:
     if len(data) >= 24 and data[:8] == b"\x89PNG\r\n\x1a\n" and data[12:16] == b"IHDR":
         wpx, hpx = struct.unpack(">II", data[16:24])
-        if wpx and hpx:
-            return "png", wpx, hpx
-        raise BuildError("image has no width or height")
+        if not (wpx and hpx):
+            raise BuildError("image has no width or height")
+        # a signature and an IHDR say how big the picture is, not that its pixels arrived;
+        # a copy or a download that stopped has both, and Word draws a blank frame for it
+        if data[-8:-4] != b"IEND":
+            raise BuildError("image stops partway: a PNG ends with its IEND chunk and this one does not")
+        return "png", wpx, hpx
     if data[:3] == b"\xff\xd8\xff":
         i = 2
         while i + 9 <= len(data):
@@ -59,9 +63,11 @@ def _image_size(data: bytes) -> tuple[str, int, int]:
             if marker in (0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF):
                 hpx = (data[i + 5] << 8) | data[i + 6]
                 wpx = (data[i + 7] << 8) | data[i + 8]
-                if wpx and hpx:
-                    return "jpeg", wpx, hpx
-                raise BuildError("image has no width or height")
+                if not (wpx and hpx):
+                    raise BuildError("image has no width or height")
+                if data[-2:] != b"\xff\xd9":
+                    raise BuildError("image stops partway: a JPEG ends with its end-of-image marker and this one does not")
+                return "jpeg", wpx, hpx
             if length < 2:
                 break
             i += 2 + length

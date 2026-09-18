@@ -30,8 +30,14 @@ function imageSize(data) {
   if (data.length >= 24 && sig.every((v, i) => data[i] === v) && data[12] === 0x49 && data[13] === 0x48 && data[14] === 0x44 && data[15] === 0x52) {
     const wpx = rd32be(data, 16);
     const hpx = rd32be(data, 20);
-    if (wpx && hpx) return ["png", wpx, hpx];
-    throw new BuildError("image has no width or height");
+    if (!(wpx && hpx)) throw new BuildError("image has no width or height");
+    // a signature and an IHDR say how big the picture is, not that its pixels arrived;
+    // a copy or a download that stopped has both, and Word draws a blank frame for it
+    const end = data.length;
+    if (!(data[end - 8] === 0x49 && data[end - 7] === 0x45 && data[end - 6] === 0x4e && data[end - 5] === 0x44)) {
+      throw new BuildError("image stops partway: a PNG ends with its IEND chunk and this one does not");
+    }
+    return ["png", wpx, hpx];
   }
   if (data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) {
     let i = 2;
@@ -49,8 +55,11 @@ function imageSize(data) {
       if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
         const hpx = (data[i + 5] << 8) | data[i + 6];
         const wpx = (data[i + 7] << 8) | data[i + 8];
-        if (wpx && hpx) return ["jpeg", wpx, hpx];
-        throw new BuildError("image has no width or height");
+        if (!(wpx && hpx)) throw new BuildError("image has no width or height");
+        if (!(data[data.length - 2] === 0xff && data[data.length - 1] === 0xd9)) {
+          throw new BuildError("image stops partway: a JPEG ends with its end-of-image marker and this one does not");
+        }
+        return ["jpeg", wpx, hpx];
       }
       if (length < 2) break;
       i += 2 + length;
