@@ -55,8 +55,14 @@ gates:
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_oracle.py]}
     proved_by: docs/evidence/2026-09-15-parser-held-to-references.md
+  - id: deflate-is-defined-not-borrowed
+    title: The compressor is this project's own, defined so that both implementations write the same bytes, and what it writes inflates back through zlib and through the skill's own reader (ADR 0008, 0032)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_deflate.py]}
+    proved_by: docs/evidence/2026-09-19-a-deflate-of-our-own.md
   - id: repack-keeps-what-it-did-not-write
-    title: A package written back with nothing replaced is the same bytes, and a package with one part rewritten keeps every other entry's compressed bytes, method, checksum and date, in both implementations (ADR 0032, 0008)
+    title: A package written back with nothing replaced is the same bytes; a package with one part rewritten compresses that part with this project's own deflate and keeps every other entry's compressed bytes, method, checksum and date, in both implementations (ADR 0032, 0008)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_repack.py]}

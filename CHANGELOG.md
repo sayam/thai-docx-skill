@@ -28,10 +28,12 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 - The font a run without one is given: `--font` if you name it, else the complex-script font the
   document already uses most — counting only fonts known to carry Thai — else this skill's default.
   The choice comes back in `warnings`.
-- **A repaired file is larger.** The parts it rewrites are stored, not compressed, because both
-  implementations must write the same bytes. A python-docx file of 36 KB comes back as 382 KB,
-  almost all of it one 349 KB styles part that used to deflate to 12 KB. Opening it in Word and
-  saving compresses it again. A deflate of this project's own is the next piece of work.
+- A deflate of this project's own, so a repaired file is about the size it was. The parts a repair
+  rewrites could not be compressed by a library — no two promise the same bytes, and ADR 0008 says
+  both implementations must agree — so they were stored, and a python-docx file of 36,810 bytes came
+  back as 381,937. `deflate` fixes every choice a compressor is free to make, in both
+  implementations, and that file now comes back as 39,437. It reaches 4.1% on the styles part that
+  caused the growth, against zlib's 3.5%.
 - A package can be written back as it came. `package.repack` (and `repackZip` in JavaScript) writes
   the entries in the order they had, copying the compressed bytes of every entry it was not asked to
   replace — method, checksum, sizes, date, "version made by" and attributes kept — and storing only

@@ -34,8 +34,9 @@ def test_a_package_written_back_unchanged_is_the_same_bytes(path):
     assert pk.repack(b, pk.entries(b), {}) == b
 
 
-def test_a_rewritten_part_is_stored_and_the_rest_keeps_its_compression():
-    """What a repair does: one part rewritten, every other entry's compressed bytes copied."""
+def test_a_rewritten_part_is_compressed_and_the_rest_keeps_its_own_bytes():
+    """What a repair does: one part rewritten and compressed by this project's own deflate,
+    every other entry's compressed bytes copied without being touched."""
     src = ROOT / "tests" / "fixtures" / "legacy-python-docx-default.docx"
     b = src.read_bytes()
     before = pk.entries(b)
@@ -45,7 +46,8 @@ def test_a_rewritten_part_is_stored_and_the_rest_keeps_its_compression():
     after = {e.name: e for e in pk.entries(out)}
     assert list(after) == [e.name for e in before], "the order of the entries is the order it was"
     rewritten = after["word/document.xml"]
-    assert rewritten.method == 0 and rewritten.file_size == len(new_xml)
+    assert rewritten.method == 8 and rewritten.file_size == len(new_xml)
+    assert rewritten.compress_size < rewritten.file_size
     assert pk.read(out, rewritten) == new_xml
     for e in before:
         if e.name != "word/document.xml":
@@ -68,6 +70,10 @@ def test_storing_everything_is_what_repair_must_not_do():
     kept = pk.repack(b, ents, {})
     assert len(stored) > 20 * len(kept)
     assert len(kept) == len(b)
+    # and with the largest part rewritten, the file stays about the size it was
+    styles = next(e for e in ents if e.name == "word/styles.xml")
+    again = pk.repack(b, ents, {"word/styles.xml": pk.read(b, styles)})
+    assert len(again) < 1.3 * len(b), (len(again), len(b))
 
 
 def test_repacking_a_repacked_package_changes_nothing():

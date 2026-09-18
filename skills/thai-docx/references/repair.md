@@ -25,11 +25,10 @@ in `remaining`. A file whose only findings are those is not written at all.
 complex-script font the document already uses most — counting only fonts known to carry Thai —
 else this skill's own default. The choice comes back in `warnings`; read it out to the user.
 
-**The file grows.** A part this rewrites is stored, not compressed, because two implementations
-must write the same bytes and no two compressors promise that. A document whose styles part is
-large grows a great deal: a python-docx file of 36 KB comes back as 382 KB, all of it the 349 KB
-styles part that used to deflate to 12 KB. Tell the user the file is bigger and that opening it
-in Word and saving compresses it again.
+**The file is about the size it was.** The parts this rewrites are compressed again, by a
+deflate this project wrote so that both implementations produce the same bytes; a python-docx
+file of 36,810 bytes comes back as 39,437. A part is stored instead when compressing would not
+make it smaller.
 
 ## What it never does
 

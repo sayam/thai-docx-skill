@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import errno
 import zlib
+
+from .deflate import deflate
 from typing import NamedTuple
 
 _OS_ERRORS = {
@@ -85,13 +87,13 @@ def raw(b: bytes, e: Entry) -> bytes:
 
 
 def repack(b: bytes, ents: list[Entry], replace: dict[str, bytes]) -> bytes:
-    """The package again, in the order it had: an entry named in `replace` is written anew
-    and **stored**, every other entry keeps the bytes it already had — its method, its
-    checksum, its sizes and its date (ADR 0032).
+    """The package again, in the order it had: an entry named in `replace` is written anew,
+    every other entry keeps the bytes it already had — its method, its checksum, its sizes and
+    its date (ADR 0032).
 
-    Stored, not deflated, for the reason ADR 0008 gives: two implementations must write the
-    same bytes, and no two deflate libraries promise that. What a repair rewrites is XML of a
-    few tens of kilobytes; what it leaves alone — the images — keeps its compression.
+    A rewritten entry is compressed by `deflate`, this project's own, which both
+    implementations run to the same bytes by construction (ADR 0008); it is stored when
+    compressing it would make it larger, as it would for an image that is already compressed.
     """
     unknown = [name for name in replace if name not in {e.name for e in ents}]
     if unknown:
@@ -101,8 +103,11 @@ def repack(b: bytes, ents: list[Entry], replace: dict[str, bytes]) -> bytes:
     for e in ents:
         if e.name in replace:
             data = replace[e.name]
-            flags, method, crc = e.flags & 0x800, 0, zlib.crc32(data)
-            payload, sizes = data, (len(data), len(data))
+            packed = deflate(data)
+            smaller = len(packed) < len(data)
+            flags, method, crc = e.flags & 0x800, (8 if smaller else 0), zlib.crc32(data)
+            payload = packed if smaller else data
+            sizes = (len(payload), len(data))
         else:
             flags, method, crc = e.flags & 0x800, e.method, e.crc
             payload, sizes = raw(b, e), (e.compress_size, e.file_size)

@@ -156,9 +156,8 @@ complex-script twins. A word split across two runs, invisible characters and mis
 properties are listed under `"remaining"` instead. The report also names the font it wrote
 where a run named none; `--font "Sarabun"` chooses it yourself.
 
-The new file is **bigger** — the parts it rewrites are stored uncompressed, so a document with a
-large styles part can grow several times over. Opening it in Word and saving compresses it
-again. When you have the Markdown, rebuilding fixes everything and keeps the file small.
+The new file is about the size of the old one. When you have the Markdown, rebuilding fixes
+everything, including the three faults repair leaves alone.
 
 ## Ask the questions yourself
 
