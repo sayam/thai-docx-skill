@@ -159,6 +159,40 @@ def test_remote_and_non_image_files_are_refused(tmp_path):
     assert "No such file" in build(tmp_path, "![a](missing.png)")[0]["error"]
 
 
+def test_an_image_that_stops_partway_is_refused(tmp_path):
+    """A PNG's signature and IHDR say nothing about whether the pixels arrived: a download
+    or a copy that stopped has both, and Word shows a blank frame or nothing at all."""
+    whole = (FIXTURES / "pixel.png").read_bytes()
+    (tmp_path / "cut.png").write_bytes(whole[:24])          # signature and IHDR, no pixels
+    (tmp_path / "half.png").write_bytes(whole[:len(whole) - 12])  # pixels, no end
+    # the JPEG of test_jpeg_dimensions_are_read_from_sof, without its end-of-image marker
+    (tmp_path / "cut.jpg").write_bytes(
+        b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
+        + b"\xff\xc0\x00\x11\x08\x00\x20\x00\x40\x03\x01\x22\x00\x02\x11\x01\x03\x11\x01")
+    for name in ("cut.png", "half.png", "cut.jpg"):
+        result = build(tmp_path, "![a](" + name + ")")[0]
+        assert "stops partway" in result.get("error", ""), (name, result)
+    # the whole file still builds
+    shutil.copy(FIXTURES / "pixel.png", tmp_path / "p.png")
+    assert build(tmp_path, "![a](p.png)")[0]["ok"]
+
+
+def test_an_image_too_large_to_carry_is_the_users_problem_not_a_defect(tmp_path):
+    """exit 1 tells the agent the skill is broken and not to retry (SKILL.md). A photo
+    bigger than the package may hold is the user's input, so it is an error: exit 2."""
+    whole = (FIXTURES / "pixel.png").read_bytes()
+    # a valid PNG with a very large chunk of its own before IEND
+    big = whole[:-12] + b"\x00" * (33 * 1024 * 1024) + whole[-12:]
+    (tmp_path / "big.png").write_bytes(big)
+    src = tmp_path / "in.md"
+    src.write_text("ภาพใหญ่ ![a](big.png)", encoding="utf-8")
+    out = tmp_path / "out.docx"
+    result = b.build(src, out, dict(b.DEFAULTS), [])
+    assert "error" in result and not result.get("findings"), result
+    assert "does not fit in a .docx" in result["error"] and not out.exists()
+    assert b.main([str(src), str(out)]) == 2
+
+
 def test_image_is_scaled_to_the_text_width(tmp_path):
     shutil.copy(FIXTURES / "pixel.png", tmp_path / "p.png")
     _, out = build(tmp_path, "![a](p.png)", margins=(1, 3.5, 1, 3.5))

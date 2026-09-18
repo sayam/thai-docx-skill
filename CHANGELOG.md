@@ -19,6 +19,15 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Fixed
 
+- An image must be whole. A PNG whose pixels never arrived — a signature and an IHDR and nothing
+  else, as a stopped copy or download leaves — was embedded and the build reported success. A PNG
+  now has to end with its IEND chunk and a JPEG with its end-of-image marker, or the build refuses
+  with exit 2.
+- An image too large to carry is the user's input, not a defect in this skill. A valid photograph
+  that pushed the package past the size a .docx may be here left `build` through the `findings`
+  path, which SKILL.md reads as "a defect in this skill; do not retry" — so a user with a scan in
+  their thesis was sent to the issue tracker. It is now an `error` with exit 2, which is the door
+  for input a user can change, and matches what `check` already did for the same finding.
 - `grill` reads one message one way. The JavaScript counted the 20,000-character cap in UTF-16
   units, so a message with 10,000 emoji and the phrase `thai-docx grill` started the interview in
   Python and skipped it in JavaScript; it now counts characters, as ADR 0029 says and ADR 0008
