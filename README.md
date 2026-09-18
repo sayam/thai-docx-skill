@@ -17,6 +17,14 @@ AI assistant writes the content as Markdown and one bundled command builds the W
 none of those faults and without changing a character of your text. It is for anyone who writes
 Thai documents with an AI assistant, and it also works on its own at the command line.
 
+**Do you need this?** If you type Thai in Word yourself, Word marks it as Thai while you type and
+the faults above do not appear. Everywhere else they do. A file written by a program — a library, a
+script, or an AI assistant asked for a `.docx` — comes out with Thai marked as Latin. Word does not
+fix it afterwards: opening such a file and saving it rewrites every run as English and still leaves
+the Thai unmarked, whether a person or an assistant working inside Word makes the edit
+([measured](docs/evidence/2026-09-18-word-does-not-repair-what-it-opens.md)). thai-docx builds the
+file right in the first place, and checks one that another program produced.
+
 ## Quick start
 
 1. **Download** `thai-docx-0.1.1.zip` from the
