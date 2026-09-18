@@ -20,7 +20,7 @@ not a promise; each item becomes a decision record when it is taken up.
 
 - Try the skill in the applications the user guide lists as "not tried yet" — ChatGPT, Codex, the
   Gemini app, Copilot, Cursor — and mark each as tried or record what fails. The Claude apps were
-  tried on 2026-09-18; building a document in them is still to do.
+  done on 2026-09-18, install and build.
 - Keep the release archive installable by the common installers (`npx skills add`, `gh skill install`).
 - Submit the skill to curated skill lists by hand (ADR 0014).
 

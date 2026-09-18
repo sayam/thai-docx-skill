@@ -16,7 +16,7 @@ documentation, as read on 17 September 2026; if something there does not work, p
 | | Claude apps | Claude Code | ChatGPT | Codex | Gemini app | coding agents | no AI |
 |---|---|---|---|---|---|---|---|
 | installed | yes | yes | not yet | not yet | not yet | not yet | yes |
-| made a file | not yet | yes | not yet | not yet | not yet | not yet | yes |
+| made a file | yes | yes | not yet | not yet | not yet | not yet | yes |
 | make a file (scenarios 1–4, 6, 7) | yes | yes | yes | yes | yes | yes | yes |
 | questions first (5, 11) | as a message | click choices | depends on the app | depends on the app | depends on the app | depends on the app | — |
 | profiles kept (8–12) | no: keep the `.json` file | yes | no: keep the `.json` file | yes | no: keep the `.json` file | yes, except cloud agents | yes |
@@ -49,9 +49,10 @@ Outlook use it too.
 5. Make sure its switch is on.
 
 Tried on 18 September 2026 with `thai-docx-0.1.1.zip`: the upload was accepted, a security scan
-ran on save, and the skill appeared under **Created by you** with its switch on. Claude's help page
-gives skill descriptions a limit of 200 characters, which version 0.1.0's exceeded; 0.1.1 and later
-fit. If an upload is refused, please
+ran on save, and the skill appeared under **Created by you** with its switch on. Asked for a Thai
+document in a chat, Claude ran the skill, built the file and gave it back, and the file opened
+correctly in Word 365 for Windows. Claude's help page gives skill descriptions a limit of 200
+characters, which version 0.1.0's exceeded; 0.1.1 and later fit. If an upload is refused, please
 [open an issue](https://github.com/sayam/thai-docx-skill/issues) with the message.
 
 **Start**

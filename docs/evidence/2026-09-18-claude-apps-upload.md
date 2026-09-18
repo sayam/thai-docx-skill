@@ -36,6 +36,22 @@ maintainer on 2026-09-18.
   (`~/.claude/skills/synced/…/thai-docx`, version 0.1.1), which is where Claude Code and Cursor
   read it.
 
-## Not proved here
+## Building a document in the app (same day)
 
-- Building a document in that app: the upload was the question here.
+Asked in a chat, with no other instruction than the request, Claude loaded the skill and built the
+file. The trace of the turn reads: *Ran skill: thai-docx · Read settings reference and check
+runtimes · Generate Thai markdown from artifact data · Build the Thai Word document · Copy the
+document to outputs · Shared files*. The reply named the settings the build reports — TH Sarabun
+New 16 pt, A4 portrait, margins 1 in with 1.5 in at the left, no table of contents, no page numbers
+— and said there were no warnings; the .docx came back in the chat.
+
+The maintainer opened that file in Word 365 for Windows (the reference application, ADR 0012) in a
+Windows 10 virtual machine: 27 pages, Thai throughout with no spelling squiggles, headings in
+TH Sarabun New at their own size, tables laid out as asked. The document itself is the
+maintainer's own work material and is not kept here; what it proves is recorded, not its content
+(ADR 0025 §10: this repository carries synthetic content only).
+
+So the guides' **made a file** row says yes for the Claude apps, and the "you get the file:
+download it in the chat" cell is now observed rather than read from the documentation.
+
+## Not proved here
