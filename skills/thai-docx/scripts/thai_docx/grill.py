@@ -158,11 +158,18 @@ def run(argv: list[str]) -> dict:
     if len(argv) != 2 or argv[0] != "--said":
         return {"ok": False, "error": USAGE}
     message = argv[1]
-    if len(message) > MAX_CHARS:
+    cut = len(message) - MAX_CHARS
+    if cut > 0:
+        # the cap is a decision (ADR 0029), but a cap that says nothing is a trap: the phrase
+        # may be in the part that was dropped, and the agent would read "build" as the answer
         message = message[:MAX_CHARS]
     if mode(message) != "grill":
-        return {"ok": True, "mode": "build",
-                "next": "build at once with the announced defaults; ask nothing first"}
+        answer = {"ok": True, "mode": "build",
+                  "next": "build at once with the announced defaults; ask nothing first"}
+        if cut > 0:
+            answer["warnings"] = ["the message was read to its first " + str(MAX_CHARS) + " characters; "
+                                  + str(cut) + " were not read, and the phrase may be among them"]
+        return answer
     try:
         found = parts(message)
         start, now = None, dict(st.DEFAULTS)

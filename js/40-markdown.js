@@ -249,6 +249,8 @@ class BlockParser {
     this.allClosed = true;
     this.lastMatchedContainer = this.doc;
     this.refmap = new Map();
+    this.refLines = new Map();  // label → [the line its definition is on, the label as written]
+    this.refsUsed = new Set();  // labels some link or image actually referred to
     this.footnoteDefs = new Map();
     this.lastLineLength = 0;
     this.warnings = [];
@@ -1319,8 +1321,10 @@ class InlineParser {
       else if (!opener.bracketAfter) reflabel = this.subject.slice(opener.index, startpos);
       if (n === 0) this.pos = savepos;
       if (reflabel) {
-        const link = this.refmap.get(normalizeLabel(reflabel.slice(1, -1)));
+        const label = normalizeLabel(reflabel.slice(1, -1));
+        const link = this.refmap.get(label);
         if (link !== undefined) {
+          this.bp.refsUsed.add(label);
           [dest, title] = link;
           matched = true;
         }
@@ -1517,7 +1521,10 @@ class InlineParser {
       this.pos = startpos;
       return 0;
     }
-    if (!refmap.has(normlabel)) refmap.set(normlabel, [dest, title === null || title === UNDEFINED ? "" : title]);
+    if (!refmap.has(normlabel)) {
+      refmap.set(normlabel, [dest, title === null || title === UNDEFINED ? "" : title]);
+      this.bp.refLines.set(normlabel, [this.lineAt(startpos), rawlabel.slice(1, -1)]);
+    }
     return this.pos - startpos;
   }
 }
@@ -1694,6 +1701,15 @@ function parseMarkdown(text) {
   for (const [label, fn] of bp.footnoteDefs) {
     if (!doc.footnotes.has(label)) {
       throw new Unsupported(fn.line, "footnote [^" + fn.label + "] is defined but never referenced; nothing may be dropped silently (ADR 0005)");
+    }
+  }
+  // a link definition nobody refers to is dropped by CommonMark itself. This project promises
+  // that nothing goes silently (references/markdown.md), so it is named — a warning, not a
+  // refusal, because unlike a footnote it takes no room in the document either way.
+  for (const [label, [line, written]] of bp.refLines) {
+    if (!bp.refsUsed.has(label)) {
+      bp.warnings.push("line " + line + ": the link definition [" + written
+        + "] is never used; it is not written into the document");
     }
   }
   doc.warnings = bp.warnings
@@ -1899,7 +1915,7 @@ function toBlocks(bp, node, doc) {
   for (const child of node.children()) {
     const t = child.type;
     if (t === "heading") {
-      out.push({ t: "heading", level: child.level, inlines: toInlines(bp, child, doc) });
+      out.push({ t: "heading", level: child.level, inlines: toInlines(bp, child, doc), line: child.line });
     } else if (t === "paragraph") {
       out.push({ t: "paragraph", inlines: toInlines(bp, child, doc), line: child.line });
     } else if (t === "html_block") {

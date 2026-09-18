@@ -1370,6 +1370,8 @@ class BlockParser {
     this.allClosed = true;
     this.lastMatchedContainer = this.doc;
     this.refmap = new Map();
+    this.refLines = new Map();  // label → [the line its definition is on, the label as written]
+    this.refsUsed = new Set();  // labels some link or image actually referred to
     this.footnoteDefs = new Map();
     this.lastLineLength = 0;
     this.warnings = [];
@@ -2440,8 +2442,10 @@ class InlineParser {
       else if (!opener.bracketAfter) reflabel = this.subject.slice(opener.index, startpos);
       if (n === 0) this.pos = savepos;
       if (reflabel) {
-        const link = this.refmap.get(normalizeLabel(reflabel.slice(1, -1)));
+        const label = normalizeLabel(reflabel.slice(1, -1));
+        const link = this.refmap.get(label);
         if (link !== undefined) {
+          this.bp.refsUsed.add(label);
           [dest, title] = link;
           matched = true;
         }
@@ -2638,7 +2642,10 @@ class InlineParser {
       this.pos = startpos;
       return 0;
     }
-    if (!refmap.has(normlabel)) refmap.set(normlabel, [dest, title === null || title === UNDEFINED ? "" : title]);
+    if (!refmap.has(normlabel)) {
+      refmap.set(normlabel, [dest, title === null || title === UNDEFINED ? "" : title]);
+      this.bp.refLines.set(normlabel, [this.lineAt(startpos), rawlabel.slice(1, -1)]);
+    }
     return this.pos - startpos;
   }
 }
@@ -2815,6 +2822,15 @@ function parseMarkdown(text) {
   for (const [label, fn] of bp.footnoteDefs) {
     if (!doc.footnotes.has(label)) {
       throw new Unsupported(fn.line, "footnote [^" + fn.label + "] is defined but never referenced; nothing may be dropped silently (ADR 0005)");
+    }
+  }
+  // a link definition nobody refers to is dropped by CommonMark itself. This project promises
+  // that nothing goes silently (references/markdown.md), so it is named — a warning, not a
+  // refusal, because unlike a footnote it takes no room in the document either way.
+  for (const [label, [line, written]] of bp.refLines) {
+    if (!bp.refsUsed.has(label)) {
+      bp.warnings.push("line " + line + ": the link definition [" + written
+        + "] is never used; it is not written into the document");
     }
   }
   doc.warnings = bp.warnings
@@ -3020,7 +3036,7 @@ function toBlocks(bp, node, doc) {
   for (const child of node.children()) {
     const t = child.type;
     if (t === "heading") {
-      out.push({ t: "heading", level: child.level, inlines: toInlines(bp, child, doc) });
+      out.push({ t: "heading", level: child.level, inlines: toInlines(bp, child, doc), line: child.line });
     } else if (t === "paragraph") {
       out.push({ t: "paragraph", inlines: toInlines(bp, child, doc), line: child.line });
     } else if (t === "html_block") {
@@ -3535,6 +3551,10 @@ function numberText(n, fmt, thai) {
 const SECTION_MARK = "\x00"; // between sections in the body; the input can hold no control character
 const LIST_FIELDS = { toc: 'TOC \\o "1-3" \\h \\z \\u', "list-of-tables": 'TOC \\h \\z \\c "Table"', "list-of-figures": 'TOC \\h \\z \\c "Figure"' };
 const CAPTION_PREFIX = { table: "Table:", figure: "Figure:" };
+// What a Thai writer reaches for instead. These make no caption — the prefix is one word,
+// written in English, so one rule holds in both languages — but a paragraph that opens with
+// one of them where a caption would go is a mistake worth naming (ADR 0021).
+const THAI_CAPTION_PREFIX = { table: ["ตาราง:", "ตารางที่:"], figure: ["รูป:", "รูปที่:", "ภาพ:", "ภาพที่:"] };
 const PLAIN_KEYS = ["link", "code", "b", "i", "strike", "u", "sup", "sub"];
 const thaiDigits = (s) => s.replace(/[0-9]/g, (d) => "๐๑๒๓๔๕๖๗๘๙"[Number(d)]);
 
@@ -3579,6 +3599,19 @@ function tableEndsInCaption(b) {
   return last[0].length > 0 && captionKind({ t: "paragraph", inlines: last[0] }) === "table" && !last.slice(1).some((cell) => cell.length);
 }
 
+function thaiCaptionKind(b) {
+  if (b.t !== "paragraph" || !b.inlines.length) return null;
+  const first = b.inlines[0];
+  if (first.t !== "text" || PLAIN_KEYS.some((k) => first[k])) return null;
+  for (const kind of Object.keys(THAI_CAPTION_PREFIX)) {
+    for (const prefix of THAI_CAPTION_PREFIX[kind]) {
+      const s = first.s;
+      if (s.startsWith(prefix) && (s.length === prefix.length || s[prefix.length] === " " || s[prefix.length] === "\t")) return kind;
+    }
+  }
+  return null;
+}
+
 function imageOnly(b) {
   return b.t === "paragraph" && b.inlines.some((n) => n.t === "image") &&
     b.inlines.every((n) => n.t === "image" || (n.t === "text" && !stripChars(n.s, " \t")));
@@ -3613,6 +3646,7 @@ function layout(doc, opts) {
   let chapter = 0;
   let appendix = 0;
   let counters = { table: 0, figure: 0 };
+  let lastLevel = 0;  // the heading level before this one: a jump leaves a gap in the outline
   const blocks = doc.blocks;
   blocks.forEach((b, i) => {
     if (b.t === "directive" && REGIONS.includes(b.name)) {
@@ -3640,6 +3674,19 @@ function layout(doc, opts) {
         item.number = opts.appendix_label + " " + numberText(appendix, opts.appendix_numbers, opts.thai_digits);
       }
     }
+    for (const n of b.inlines || []) {
+      if (n.t === "image" && !stripChars(n.alt, " \t")) {
+        warnings.push("line " + b.line + ": the image '" + n.src
+          + "' has no text between the brackets of ![]; a reader who cannot see it is told nothing");
+      }
+    }
+    if (b.t === "heading") {
+      if (b.level > lastLevel + 1 && lastLevel) {
+        warnings.push("line " + b.line + ": a heading of level " + b.level + " follows one of level "
+          + lastLevel + "; the contents and a screen reader read the levels in order");
+      }
+      lastLevel = b.level;
+    }
     let kind = captionKind(b);
     if (kind === "table" && !(i + 1 < blocks.length && blocks[i + 1].t === "table")) {
       warnings.push("line " + b.line + ": 'Table:' makes a caption only in the paragraph just before a table; kept as text");
@@ -3651,6 +3698,15 @@ function layout(doc, opts) {
     }
     if (figureInImageParagraph(b)) {
       warnings.push("line " + b.line + ": 'Figure:' shares a paragraph with the image above it; leave a blank line between them to make a caption");
+    }
+    if (kind === null) {
+      const thai = thaiCaptionKind(b);
+      const inPlace = (thai === "table" && i + 1 < blocks.length && blocks[i + 1].t === "table") ||
+        (thai === "figure" && i > 0 && imageOnly(blocks[i - 1]));
+      if (inPlace) {
+        warnings.push("line " + b.line + ": a caption is written '" + CAPTION_PREFIX[thai]
+          + "' in English, in every language; this paragraph is kept as text");
+      }
     }
     if (tableEndsInCaption(b)) {
       warnings.push("line " + b.line + ": the table's last row starts with 'Table:'; a caption goes before the table, on its own line");
@@ -5317,10 +5373,18 @@ function grillRun(argv) {
   // characters, not units of storage: a character outside the BMP is two UTF-16 units
   // and one character, and Python counts it as one (ADR 0029, ADR 0008)
   const said = [...message];
-  if (said.length > GRILL_MAX_CHARS) message = said.slice(0, GRILL_MAX_CHARS).join("");
+  const cut = said.length - GRILL_MAX_CHARS;
+  // the cap is a decision (ADR 0029), but a cap that says nothing is a trap: the phrase may be
+  // in the part that was dropped, and the agent would read "build" as the answer
+  if (cut > 0) message = said.slice(0, GRILL_MAX_CHARS).join("");
   if (grillMode(message) !== "grill") {
-    return { ok: true, mode: "build",
-             next: "build at once with the announced defaults; ask nothing first" };
+    const answer = { ok: true, mode: "build",
+                     next: "build at once with the announced defaults; ask nothing first" };
+    if (cut > 0) {
+      answer.warnings = ["the message was read to its first " + GRILL_MAX_CHARS + " characters; "
+        + cut + " were not read, and the phrase may be among them"];
+    }
+    return answer;
   }
   let found, start = null, now = { ...DEFAULTS }, saveTo = null, only = null;
   try {

@@ -167,6 +167,10 @@ SECTION_MARK = "\x00"  # between sections in the body; the input can hold no con
 LIST_FIELDS = {"toc": 'TOC \\o "1-3" \\h \\z \\u', "list-of-tables": 'TOC \\h \\z \\c "Table"', "list-of-figures": 'TOC \\h \\z \\c "Figure"'}
 THAI_DIGITS = str.maketrans("0123456789", "๐๑๒๓๔๕๖๗๘๙")
 CAPTION_PREFIX = {"table": "Table:", "figure": "Figure:"}
+# What a Thai writer reaches for instead. These make no caption — the prefix is one word,
+# written in English, so one rule holds in both languages — but a paragraph that opens with
+# one of them where a caption would go is a mistake worth naming (ADR 0021).
+THAI_CAPTION_PREFIX = {"table": ("ตาราง:", "ตารางที่:"), "figure": ("รูป:", "รูปที่:", "ภาพ:", "ภาพที่:")}
 PLAIN_KEYS = ("link", "code", "b", "i", "strike", "u", "sup", "sub")
 
 
@@ -231,6 +235,21 @@ def _table_ends_in_caption(b: dict) -> bool:
     return bool(first) and _caption_kind({"t": "paragraph", "inlines": first}) == "table" and not any(rest)
 
 
+def _thai_caption_kind(b: dict) -> str | None:
+    """"table" or "figure" for a paragraph that opens with the Thai words for them."""
+    if b["t"] != "paragraph" or not b["inlines"]:
+        return None
+    first = b["inlines"][0]
+    if first["t"] != "text" or any(first.get(k) for k in PLAIN_KEYS):
+        return None
+    for kind, prefixes in THAI_CAPTION_PREFIX.items():
+        for prefix in prefixes:
+            s = first["s"]
+            if s.startswith(prefix) and (len(s) == len(prefix) or s[len(prefix)] in " \t"):
+                return kind
+    return None
+
+
 def _image_only(b: dict) -> bool:
     return b["t"] == "paragraph" and any(n["t"] == "image" for n in b["inlines"]) and all(
         n["t"] == "image" or (n["t"] == "text" and not n["s"].strip(" \t")) for n in b["inlines"])
@@ -257,6 +276,7 @@ def layout(doc: md.Document, opts: dict) -> tuple[list[dict], list[str], list[st
     warnings: list[str] = []
     region, pending, has_content, chapter, appendix = "cover", None, False, 0, 0
     counters = {"table": 0, "figure": 0}
+    last_level = 0  # the heading level before this one: a jump leaves a gap in the outline
     blocks = doc.blocks
     for i, b in enumerate(blocks):
         if b["t"] == "directive" and b["name"] in REGIONS:
@@ -278,6 +298,16 @@ def layout(doc: md.Document, opts: dict) -> tuple[list[dict], list[str], list[st
             elif region == "appendices":
                 appendix += 1
                 item["number"] = opts["appendix_label"] + " " + number_text(appendix, opts["appendix_numbers"], opts["thai_digits"])
+        for n in b.get("inlines", []):
+            if n["t"] == "image" and not n["alt"].strip():
+                warnings.append("line " + str(b["line"]) + ": the image '" + n["src"]
+                                + "' has no text between the brackets of ![]; a reader who cannot see it is told nothing")
+        if b["t"] == "heading":
+            if b["level"] > last_level + 1 and last_level:
+                warnings.append("line " + str(b["line"]) + ": a heading of level " + str(b["level"])
+                                + " follows one of level " + str(last_level)
+                                + "; the contents and a screen reader read the levels in order")
+            last_level = b["level"]
         kind = _caption_kind(b)
         if kind == "table" and not (i + 1 < len(blocks) and blocks[i + 1]["t"] == "table"):
             warnings.append("line " + str(b["line"]) + ": 'Table:' makes a caption only in the paragraph just before a table; kept as text")
@@ -289,6 +319,13 @@ def layout(doc: md.Document, opts: dict) -> tuple[list[dict], list[str], list[st
         if _figure_in_image_paragraph(b):
             warnings.append("line " + str(b["line"])
                             + ": 'Figure:' shares a paragraph with the image above it; leave a blank line between them to make a caption")
+        if kind is None:
+            thai = _thai_caption_kind(b)
+            in_place = (thai == "table" and i + 1 < len(blocks) and blocks[i + 1]["t"] == "table") or (
+                thai == "figure" and i > 0 and _image_only(blocks[i - 1]))
+            if in_place:
+                warnings.append("line " + str(b["line"]) + ": a caption is written '" + CAPTION_PREFIX[thai]
+                                + "' in English, in every language; this paragraph is kept as text")
         if _table_ends_in_caption(b):
             warnings.append("line " + str(b["line"])
                             + ": the table's last row starts with 'Table:'; a caption goes before the table, on its own line")

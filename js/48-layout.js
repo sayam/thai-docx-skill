@@ -166,6 +166,10 @@ function numberText(n, fmt, thai) {
 const SECTION_MARK = "\x00"; // between sections in the body; the input can hold no control character
 const LIST_FIELDS = { toc: 'TOC \\o "1-3" \\h \\z \\u', "list-of-tables": 'TOC \\h \\z \\c "Table"', "list-of-figures": 'TOC \\h \\z \\c "Figure"' };
 const CAPTION_PREFIX = { table: "Table:", figure: "Figure:" };
+// What a Thai writer reaches for instead. These make no caption — the prefix is one word,
+// written in English, so one rule holds in both languages — but a paragraph that opens with
+// one of them where a caption would go is a mistake worth naming (ADR 0021).
+const THAI_CAPTION_PREFIX = { table: ["ตาราง:", "ตารางที่:"], figure: ["รูป:", "รูปที่:", "ภาพ:", "ภาพที่:"] };
 const PLAIN_KEYS = ["link", "code", "b", "i", "strike", "u", "sup", "sub"];
 const thaiDigits = (s) => s.replace(/[0-9]/g, (d) => "๐๑๒๓๔๕๖๗๘๙"[Number(d)]);
 
@@ -210,6 +214,19 @@ function tableEndsInCaption(b) {
   return last[0].length > 0 && captionKind({ t: "paragraph", inlines: last[0] }) === "table" && !last.slice(1).some((cell) => cell.length);
 }
 
+function thaiCaptionKind(b) {
+  if (b.t !== "paragraph" || !b.inlines.length) return null;
+  const first = b.inlines[0];
+  if (first.t !== "text" || PLAIN_KEYS.some((k) => first[k])) return null;
+  for (const kind of Object.keys(THAI_CAPTION_PREFIX)) {
+    for (const prefix of THAI_CAPTION_PREFIX[kind]) {
+      const s = first.s;
+      if (s.startsWith(prefix) && (s.length === prefix.length || s[prefix.length] === " " || s[prefix.length] === "\t")) return kind;
+    }
+  }
+  return null;
+}
+
 function imageOnly(b) {
   return b.t === "paragraph" && b.inlines.some((n) => n.t === "image") &&
     b.inlines.every((n) => n.t === "image" || (n.t === "text" && !stripChars(n.s, " \t")));
@@ -244,6 +261,7 @@ function layout(doc, opts) {
   let chapter = 0;
   let appendix = 0;
   let counters = { table: 0, figure: 0 };
+  let lastLevel = 0;  // the heading level before this one: a jump leaves a gap in the outline
   const blocks = doc.blocks;
   blocks.forEach((b, i) => {
     if (b.t === "directive" && REGIONS.includes(b.name)) {
@@ -271,6 +289,19 @@ function layout(doc, opts) {
         item.number = opts.appendix_label + " " + numberText(appendix, opts.appendix_numbers, opts.thai_digits);
       }
     }
+    for (const n of b.inlines || []) {
+      if (n.t === "image" && !stripChars(n.alt, " \t")) {
+        warnings.push("line " + b.line + ": the image '" + n.src
+          + "' has no text between the brackets of ![]; a reader who cannot see it is told nothing");
+      }
+    }
+    if (b.t === "heading") {
+      if (b.level > lastLevel + 1 && lastLevel) {
+        warnings.push("line " + b.line + ": a heading of level " + b.level + " follows one of level "
+          + lastLevel + "; the contents and a screen reader read the levels in order");
+      }
+      lastLevel = b.level;
+    }
     let kind = captionKind(b);
     if (kind === "table" && !(i + 1 < blocks.length && blocks[i + 1].t === "table")) {
       warnings.push("line " + b.line + ": 'Table:' makes a caption only in the paragraph just before a table; kept as text");
@@ -282,6 +313,15 @@ function layout(doc, opts) {
     }
     if (figureInImageParagraph(b)) {
       warnings.push("line " + b.line + ": 'Figure:' shares a paragraph with the image above it; leave a blank line between them to make a caption");
+    }
+    if (kind === null) {
+      const thai = thaiCaptionKind(b);
+      const inPlace = (thai === "table" && i + 1 < blocks.length && blocks[i + 1].t === "table") ||
+        (thai === "figure" && i > 0 && imageOnly(blocks[i - 1]));
+      if (inPlace) {
+        warnings.push("line " + b.line + ": a caption is written '" + CAPTION_PREFIX[thai]
+          + "' in English, in every language; this paragraph is kept as text");
+      }
     }
     if (tableEndsInCaption(b)) {
       warnings.push("line " + b.line + ": the table's last row starts with 'Table:'; a caption goes before the table, on its own line");

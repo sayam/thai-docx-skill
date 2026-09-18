@@ -157,8 +157,19 @@ def test_the_cap_counts_characters_not_units_of_storage():
     assert run("grill", "--said", "\U0001F600" * g.MAX_CHARS + " thai-docx grill")["mode"] == "build"
 
 
+def test_a_message_read_only_in_part_says_so():
+    """A cap that says nothing is a trap: the phrase may be in the part that was dropped."""
+    long = run("grill", "--said", "ก" * (g.MAX_CHARS + 5) + " thai-docx grill")
+    assert long["mode"] == "build"
+    assert "20000 characters" in long["warnings"][0] and "21" in long["warnings"][0]
+    assert "warnings" not in run("grill", "--said", "ทำไฟล์ให้หน่อย")
+
+
 def test_a_very_long_message_is_read_to_its_cap():
     """A message is read to 20,000 characters, as any other input has its bound."""
     assert run("grill", "--said", "ก" * g.MAX_CHARS + " thai-docx grill")["mode"] == "build"
     assert run("grill", "--said", "ก" * 10 + " thai-docx grill")["mode"] == "grill"
-    assert g.run(["--said", "x" * 300000]) == {"ok": True, "mode": "build", "next": g.run(["--said", "x"])["next"]}
+    cut = g.run(["--said", "x" * 300000])
+    assert cut["mode"] == "build" and cut["next"] == g.run(["--said", "x"])["next"]
+    assert cut["warnings"] == ["the message was read to its first 20000 characters; "
+                               "280000 were not read, and the phrase may be among them"]

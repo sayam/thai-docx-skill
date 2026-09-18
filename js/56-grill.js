@@ -153,10 +153,18 @@ function grillRun(argv) {
   // characters, not units of storage: a character outside the BMP is two UTF-16 units
   // and one character, and Python counts it as one (ADR 0029, ADR 0008)
   const said = [...message];
-  if (said.length > GRILL_MAX_CHARS) message = said.slice(0, GRILL_MAX_CHARS).join("");
+  const cut = said.length - GRILL_MAX_CHARS;
+  // the cap is a decision (ADR 0029), but a cap that says nothing is a trap: the phrase may be
+  // in the part that was dropped, and the agent would read "build" as the answer
+  if (cut > 0) message = said.slice(0, GRILL_MAX_CHARS).join("");
   if (grillMode(message) !== "grill") {
-    return { ok: true, mode: "build",
-             next: "build at once with the announced defaults; ask nothing first" };
+    const answer = { ok: true, mode: "build",
+                     next: "build at once with the announced defaults; ask nothing first" };
+    if (cut > 0) {
+      answer.warnings = ["the message was read to its first " + GRILL_MAX_CHARS + " characters; "
+        + cut + " were not read, and the phrase may be among them"];
+    }
+    return answer;
   }
   let found, start = null, now = { ...DEFAULTS }, saveTo = null, only = null;
   try {

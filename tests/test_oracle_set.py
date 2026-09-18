@@ -31,7 +31,10 @@ def test_every_variant_for_every_application_is_its_golden(tmp_path):
         # <!-- toc --> writes a second table of contents, and says so (ADR 0028)
         said = [w["message"] for w in r["warnings"]]
         if r["variant"] == "sample-basic":
-            assert said and all("LaTeX" in m for m in said)
+            # the fixture goes from level 2 to level 5 on purpose, to exercise both in one file;
+            # the build says so, and the bytes are the goldens', so the fixture stays as it is
+            assert said and all("LaTeX" in m or "a heading of level 5 follows one of level 2" in m for m in said)
+            assert sum("heading of level" in m for m in said) == 1
         elif r["variant"] == "sample-layout":
             assert said == ["--toc: the document places a table of contents with <!-- toc --> as well, so it now has two"]
         else:
