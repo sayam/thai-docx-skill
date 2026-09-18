@@ -62,10 +62,11 @@ gates:
     enforced_by: {job: tests, tests: [tests/test_js_parity.py]}
     proved_by: docs/evidence/2026-09-15-javascript-matches-python.md
   - id: release-carries-only-the-skill
-    title: A release attaches one archive, built from the tag, holding the skill directory and nothing else, refused unless every stated version is the tag, and attested and verified both ways before it is attached (ADR 0012, 0018)
+    title: A release attaches one archive and its attestation, built from the tag, holding the skill directory and nothing else, refused unless every stated version is the tag, and verified against GitHub and against the attached bundle before either is attached (ADR 0012, 0018)
     kind: job
     severity: blocking
     enforced_by: {job: release-archive}
+    proved_by: docs/evidence/2026-09-18-the-release-carries-its-attestation.md
   - id: release-tag-passes-the-gates
     title: The tag a release is cut from passes the gates and the whole suite on the oldest supported Python before its archive is built (ADR 0012)
     kind: job

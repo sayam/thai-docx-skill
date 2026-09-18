@@ -350,6 +350,14 @@ gh attestation verify thai-docx-0.1.1.zip --repo sayam/thai-docx-skill
 
 ถ้าถูกต้องจะขึ้นว่าตรวจผ่าน ถ้าเป็นไฟล์อื่นจะไม่ผ่าน
 
+คำสั่งนั้นไปถาม GitHub จึงต้องลงชื่อเข้าใช้ด้วย `gh auth login` ก่อน ถ้าหน้ารุ่นมีไฟล์
+`thai-docx-0.1.1.intoto.jsonl` มาด้วย ให้ดาวน์โหลดไฟล์นั้นไว้ข้าง ๆ zip แล้วตรวจกับไฟล์นั้นแทน
+ไม่ต้องมีบัญชี ไม่ต้องต่อเน็ต
+
+```sh
+gh attestation verify thai-docx-0.1.1.zip --bundle thai-docx-0.1.1.intoto.jsonl --repo sayam/thai-docx-skill
+```
+
 ## อัปเดตหรือลบสกิล
 
 รุ่นใหม่ไม่ได้วิ่งไปหาสำเนาที่ติดตั้งไว้แล้วเอง ต้องอัปเดตตามวิธีที่ติดตั้งไว้
