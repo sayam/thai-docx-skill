@@ -55,6 +55,7 @@ DECLARED_ENCODING = re.compile("\ufeff?<\\?xml[^>]*?[ \\t\\r\\n]encoding[ \\t\\r
 class Report:
     def __init__(self, path: str):
         self.path = path
+        self.error: str | None = None  # the path could not be read at all: not about the document
         self.findings: list[dict] = []
         self.warnings: list[dict] = []
         self.counts: dict[str, int] = {}
@@ -69,9 +70,11 @@ class Report:
 
     @property
     def ok(self) -> bool:
-        return not self.findings
+        return self.error is None and not self.findings
 
     def as_dict(self) -> dict:
+        if self.error is not None:
+            return {"ok": False, "file": self.path, "error": self.error}
         return {
             "ok": self.ok,
             "file": self.path,
@@ -274,8 +277,10 @@ def check(path) -> Report:
         try:
             with open(path, "rb") as f:
                 data = f.read(package.MAX_FILE + 1)
-        except OSError:
-            data = b""  # judged like any other file that is no zip
+        except OSError as exc:
+            # a name typed wrong is not a damaged document: `error`, as `build` answers it
+            report.error = "cannot read " + str(path) + ": " + package.os_error(exc)
+            return report
     else:
         report = Report("<bytes>")
         data = path.read(package.MAX_FILE + 1)
@@ -307,6 +312,8 @@ def main(argv: list[str]) -> int:
         return 2
     report = check(argv[0])
     print(json.dumps(report.as_dict(), ensure_ascii=False))
+    if report.error is not None:
+        return 2
     if any(f["code"] in ("package", "doctype", "size") for f in report.findings):
         return 2
     return 0 if report.ok else 1

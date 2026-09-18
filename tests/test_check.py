@@ -198,6 +198,19 @@ def test_not_a_docx(tmp_path):
     assert codes(check(plain)) == {"package"}
 
 
+def test_a_path_that_cannot_be_read_is_not_a_damaged_document(tmp_path):
+    """A name typed wrong and a Word file that will not open are different problems, and
+    only one of them is about the document. `build` has always said which; `check` now does."""
+    missing = check(tmp_path / "no-such.docx")
+    assert missing.findings == [] and "No such file" in missing.error
+    a_directory = check(tmp_path)
+    assert a_directory.findings == [] and "Is a directory" in a_directory.error
+    # a file that opens and is not a zip is still a finding about the document
+    (tmp_path / "x.docx").write_bytes(b"not a zip")
+    assert codes(check(tmp_path / "x.docx")) == {"package"}
+    assert check(tmp_path / "x.docx").as_dict().get("error") is None
+
+
 def test_a_comment_is_text_the_reader_sees(tmp_path):
     """Word draws a comment beside the page and its spelling checker reads it, so a Thai run
     in word/comments.xml needs the same marks as one in the body (ADR 0004)."""

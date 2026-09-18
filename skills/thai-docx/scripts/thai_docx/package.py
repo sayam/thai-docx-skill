@@ -7,8 +7,22 @@ the same verdict from both implementations and from every Python release.
 
 from __future__ import annotations
 
+import errno
 import zlib
 from typing import NamedTuple
+
+_OS_ERRORS = {
+    errno.ENOENT: "No such file or directory",
+    errno.EACCES: "Permission denied",
+    errno.EISDIR: "Is a directory",
+    errno.ENOTDIR: "Not a directory",
+}
+
+
+def os_error(exc: OSError) -> str:
+    """The reason a path could not be read, in the same words in both implementations."""
+    return _OS_ERRORS.get(exc.errno, "cannot be read")
+
 
 MAX_FILE = 64 * 1024 * 1024
 LIMIT_64 = 1 << 53

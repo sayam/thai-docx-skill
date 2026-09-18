@@ -34,6 +34,7 @@ function isThai(ch) {
 class Report {
   constructor(label) {
     this.path = label;
+    this.error = null;  // the path could not be read at all: not about the document
     this.findings = [];
     this.warnings = [];
     this.counts = {};
@@ -50,10 +51,11 @@ class Report {
   }
 
   get ok() {
-    return this.findings.length === 0;
+    return this.error === null && this.findings.length === 0;
   }
 
   asDict() {
+    if (this.error !== null) return { ok: false, file: this.path, error: this.error };
     return { ok: this.ok, file: this.path, counts: this.counts, findings: this.findings, warnings: this.warnings };
   }
 }

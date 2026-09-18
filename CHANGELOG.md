@@ -27,6 +27,11 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Fixed
 
+- `check` says when it is the path that is wrong. A file that does not exist, or a directory,
+  answered `findings: [{"code": "package", "message": "not a zip package"}]` — so a user who
+  mistyped a name was sent looking for a damaged Word file. It now answers `error: cannot read …:
+  No such file or directory`, with no findings, as `build` has always done. A file that opens and
+  is not a zip is still a finding about the document.
 - SKILL.md said documents with no Thai are not for this skill, while `build` builds them; it now
   says such a document needs nothing the skill adds, and to build one only if asked. Both
   troubleshooting pages said the trigger phrase needs a hyphen, which stopped being true when the
