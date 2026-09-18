@@ -101,24 +101,33 @@ def test_the_text_comes_through_character_for_character(tmp_path):
 
 
 def test_every_part_it_did_not_write_keeps_its_bytes(tmp_path):
-    """ADR 0032: everything untouched comes through byte for byte, still compressed. The
-    parts it did write are stored, so they are the ones whose method changed."""
+    """ADR 0032: everything untouched comes through byte for byte, still compressed."""
     src = FIXTURES / "legacy-python-docx-default.docx"
     b = src.read_bytes()
     out = tmp_path / "out.docx"
     assert rp.repair(str(src), str(out))["ok"]
     got = out.read_bytes()
     before = {e.name: e for e in pk.entries(b)}
-    rewritten, kept = 0, 0
+    rewritten = {"word/document.xml", "word/styles.xml", "word/settings.xml", "word/numbering.xml"}
+    kept = 0
     for e in pk.entries(got):
         was = before[e.name]
-        if e.method == 0 and was.method != 0:
-            rewritten += 1
+        if e.name in rewritten:
+            assert pk.raw(got, e) != pk.raw(b, was), e.name
             continue
         kept += 1
         assert pk.raw(got, e) == pk.raw(b, was), e.name
         assert (e.method, e.crc, e.mod) == (was.method, was.crc, was.mod), e.name
-    assert rewritten == 4 and kept == 13, (rewritten, kept)  # document, styles, settings, numbering
+    assert kept == 13, kept
+
+
+def test_the_repaired_file_is_about_the_size_it_was(tmp_path):
+    """The parts it rewrites are compressed, not stored: a repaired document is not many
+    times larger than the one the user handed over."""
+    src = FIXTURES / "legacy-python-docx-default.docx"
+    out = tmp_path / "out.docx"
+    assert rp.repair(str(src), str(out))["ok"]
+    assert out.stat().st_size < 1.2 * src.stat().st_size, (out.stat().st_size, src.stat().st_size)
 
 
 def test_findings_this_version_does_not_repair_are_reported_and_left(tmp_path):

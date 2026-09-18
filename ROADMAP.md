@@ -9,7 +9,7 @@ Four things, decided 2026-09-18.
 
 | | what | where it is decided | state |
 |---|---|---|---|
-| 1 | **Repair a `.docx` this skill did not write** — attributes only, never the text | [ADR 0032](docs/adr/0032-repair-rewrites-attributes-never-the-text.md) | findings 1, 2, 3 and 5 are done; a deflate of this project's own is next, so a repaired file is not many times larger; then the property order and, in v0.3, the split word |
+| 1 | **Repair a `.docx` this skill did not write** — attributes only, never the text | [ADR 0032](docs/adr/0032-repair-rewrites-attributes-never-the-text.md) | findings 1, 2, 3 and 5 are done, and a repaired file is about the size it was; the property order is next, and the split word waits for v0.3 |
 | 2 | **`gh skill install` and `npx skills add`** held by a test, and the difference between them written in the guides | below | to do |
 | 3 | **The attestation attached to the release as a file** | [evidence](docs/evidence/2026-09-18-the-release-carries-its-attestation.md) | done 2026-09-18 |
 | 4 | **WPS Writer re-checked** after the fixes of 0.1.0, and what it still draws its own way recorded | below | to do |

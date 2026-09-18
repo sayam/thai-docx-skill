@@ -55,6 +55,26 @@ if (req.op === "ast") {
       return { crash: String(e && e.stack) };
     }
   });
+} else if (req.op === "deflate") {
+  out = req.cases.map((b64) => {
+    try {
+      const got = T.deflate(new Uint8Array(Buffer.from(b64, "base64")));
+      return { bytes: Buffer.from(got).toString("base64") };
+    } catch (e) {
+      return { crash: String(e && e.stack) };
+    }
+  });
+} else if (req.op === "roundtrip") {
+  // what this project's deflate writes, read back by this project's own inflate
+  out = req.cases.map((b64) => {
+    try {
+      const data = new Uint8Array(Buffer.from(b64, "base64"));
+      const back = T.inflateRaw(T.deflate(data), data.length);
+      return { bytes: Buffer.from(back).toString("base64") };
+    } catch (e) {
+      return { crash: String(e && e.stack) };
+    }
+  });
 } else if (req.op === "check") {
   out = req.packages.map((b64) => {
     try {

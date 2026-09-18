@@ -46,10 +46,10 @@ function packZip(parts) {
   return concatBytes([...chunks, ...central, eocd]);
 }
 
-// The package again, in the order it had: an entry named in `replace` is written anew and
-// **stored**, every other entry keeps the bytes it already had — its method, its checksum,
-// its sizes and its date (ADR 0032). Stored, not deflated, for the reason ADR 0008 gives:
-// two implementations must write the same bytes, and no two deflate libraries promise that.
+// The package again, in the order it had: an entry named in `replace` is written anew, every
+// other entry keeps the bytes it already had — its method, its checksum, its sizes and its
+// date (ADR 0032). A rewritten entry is compressed by this project's own deflate, which both
+// implementations run to the same bytes by construction (ADR 0008).
 function repackZip(b, ents, replace) {
   const names = new Set(ents.map((e) => e.name));
   for (const name of Object.keys(replace)) {
@@ -61,12 +61,17 @@ function repackZip(b, ents, replace) {
   let offset = 0;
   for (const e of ents) {
     const replacing = Object.prototype.hasOwnProperty.call(replace, e.name);
-    const payload = replacing ? replace[e.name] : rawZipEntry(b, e);
+    const fresh = replacing ? replace[e.name] : null;
+    // a rewritten entry is compressed by this project's own deflate, which both
+    // implementations run to the same bytes; stored when compressing would make it larger
+    const packed = replacing ? deflate(fresh) : null;
+    const smaller = replacing && packed.length < fresh.length;
+    const payload = replacing ? (smaller ? packed : fresh) : rawZipEntry(b, e);
     const flags = e.flags & 0x800;
-    const method = replacing ? 0 : e.method;
-    const crc = replacing ? crc32(payload) : e.crc;
+    const method = replacing ? (smaller ? 8 : 0) : e.method;
+    const crc = replacing ? crc32(fresh) : e.crc;
     const csize = replacing ? payload.length : e.compressSize;
-    const usize = replacing ? payload.length : e.fileSize;
+    const usize = replacing ? fresh.length : e.fileSize;
     const fields = [...u16(flags), ...u16(method), ...u32(e.mod), ...u32(crc),
       ...u32(csize), ...u32(usize), ...u16(e.nameBytes.length), ...u16(0)];
     const local = new Uint8Array([...u32(SIG_LOCAL), ...u16(20), ...fields]);
