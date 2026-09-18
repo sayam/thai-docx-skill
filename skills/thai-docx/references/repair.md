@@ -17,9 +17,10 @@ A new file is written; the one given is never touched. Tell the user both paths.
 | `2` | gives every run with text `<w:cs/>` and `<w:lang w:bidi="th-TH"/>`, in schema order |
 | `3` | removes `<w:noProof/>`, wherever in the package it is |
 | `5` | writes the missing twin of `w:sz`, `w:b` and `w:i`; adds a complex-script font to an `w:rFonts` that names only a Latin one; gives a Symbol bullet a font with Thai in it |
+| `order` | puts a run's, a paragraph's and the settings' properties back in the order the schema fixes |
 
-Findings `4` (a word split across two runs), `invisible` and `order` are **reported and left**,
-in `remaining`. A file whose only findings are those is not written at all.
+Findings `4` (a word split across two runs) and `invisible` are **reported and left**, in
+`remaining`. A file whose only findings are those is not written at all.
 
 **The font.** A run that names no complex-script font is given one: what `--font` says, else the
 complex-script font the document already uses most — counting only fonts known to carry Thai —

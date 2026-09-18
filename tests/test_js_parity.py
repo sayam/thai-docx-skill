@@ -171,6 +171,15 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
     for f in ("sample-default.docx", "sample-all-flags.docx"):
         shutil.copy(parity.GOLDEN / f, tmp / f)
     shutil.copy(parity.FIXTURES / "legacy-python-docx-default.docx", tmp / "legacy.docx")
+    # a package whose only fault is the order of a run's properties
+    import zipfile as _zipfile
+    with _zipfile.ZipFile(parity.GOLDEN / "sample-default.docx") as _z:
+        _parts = {n: _z.read(n) for n in _z.namelist()}
+    _parts["word/document.xml"] = _parts["word/document.xml"].replace(
+        b'<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>',
+        b'<w:lang w:val="en-US" w:bidi="th-TH"/><w:cs/>', 1)
+    from thai_docx import package as _package
+    (tmp / "out-of-order.docx").write_bytes(_package.pack(list(_parts.items())))
     shutil.copytree(parity.FIXTURES / "thesis", tmp / "thesis")
     # profiles a run can read: one in the project, one written by hand, one refused (ADR 0024)
     project = tmp / ".thai-docx" / "profiles"
@@ -255,6 +264,7 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
         ["check", "missing.docx"],
         # repair: the same file out of both, or the same refusal (ADR 0032, 0008)
         ["repair", "legacy.docx", "repaired.docx"],
+        ["repair", "out-of-order.docx", "ordered.docx"],   # properties in the wrong order
         ["repair", "sample-default.docx", "clean.docx"],   # nothing to repair: nothing written
         ["repair", "not-a-zip.docx", "nope.docx"],
         ["repair", "missing.docx", "nope.docx"],

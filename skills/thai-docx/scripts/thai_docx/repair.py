@@ -162,6 +162,36 @@ def fix_rpr(inner: bytes, font: bytes, mark_thai: bool) -> tuple[bytes, int, int
     return b"".join(raw for _n, raw in children), two, five
 
 
+def reorder(xml: bytes, element: bytes, order: list[str]) -> tuple[bytes, int]:
+    """Every `element` in the part with its children in the order the schema fixes.
+
+    The elements the schema names are put in that order, **in the places they already
+    occupy**; anything it does not name keeps its own place, because the checker skips those
+    and moving them would change more than the finding asked for. A permutation is the same
+    bytes in a different order, so the part's length never changes and the positions of the
+    other elements hold while this walks them.
+    """
+    rank = {name: i for i, name in enumerate(order)}
+    start = re.compile(rb"<" + element + rb"(?:\s[^<>]*?)?>")
+    count = 0
+    for m in reversed(list(start.finditer(xml))):   # inner elements first: they sit further on
+        inner_end, _element_end = _end_of(xml, m.end(), element)
+        children = _children(xml[m.end():inner_end])
+        known = [(i, c) for i, c in enumerate(children) if c[0].decode()[2:] in rank]
+        if len(known) < 2:
+            continue
+        # a stable sort, so two children of one name keep the order they were written in
+        ordered = sorted(known, key=lambda pair: rank[pair[1][0].decode()[2:]])
+        if [c for _i, c in known] == [c for _i, c in ordered]:
+            continue
+        put = list(children)
+        for (slot, _was), (_at, now) in zip(known, ordered, strict=True):
+            put[slot] = now
+        xml = xml[:m.end()] + b"".join(raw for _n, raw in put) + xml[inner_end:]
+        count += 1
+    return xml, count
+
+
 def _fix_runs(xml: bytes, font: bytes, counts: dict[str, int]) -> bytes:
     """Every run with text marked, every rPr's twins filled in — nested runs included."""
     out, pos = bytearray(), 0
@@ -273,6 +303,20 @@ def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None
             if n:
                 replace[name] = new
                 repaired["3"] = repaired.get("3", 0) + n
+    if "order" in codes:
+        # runs first, then paragraphs: a w:pPr holds a w:rPr, and moving a whole child keeps
+        # the order already put right inside it
+        for name, xml in parts.items():
+            if not (check_mod.TEXT_PARTS.fullmatch(name) or name in ("word/styles.xml", "word/numbering.xml", "word/settings.xml")):
+                continue
+            out, n = replace.get(name, xml), 0
+            for element, table in ((b"w:rPr", ooxml.RPR_ORDER), (b"w:pPr", ooxml.PPR_ORDER),
+                                   (b"w:settings", ooxml.SETTINGS_ORDER)):
+                out, some = reorder(out, element, table)
+                n += some
+            if n:
+                replace[name] = out
+                repaired["order"] = repaired.get("order", 0) + n
     chosen = None
     if codes & {"2", "5"}:
         cs_font, why = complex_script_font(parts, font)
