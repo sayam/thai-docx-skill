@@ -19,6 +19,11 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Added
 
+- `thai_docx repair IN.docx OUT.docx` — the first two repairs of v0.2 (ADR 0032). It declares
+  compatibility mode 15 (finding `1`) and removes `<w:noProof/>` (finding `3`), writes a **new**
+  file, reports every other finding in `remaining`, and refuses to write at all if the text would
+  differ by one character. Findings `2` and `5` — the marks a Thai run needs — are not repaired
+  yet, so most files still come back with findings; every page that mentions repair says so.
 - A package can be written back as it came. `package.repack` (and `repackZip` in JavaScript) writes
   the entries in the order they had, copying the compressed bytes of every entry it was not asked to
   replace — method, checksum, sizes, date, "version made by" and attributes kept — and storing only

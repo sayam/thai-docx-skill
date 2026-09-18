@@ -4,6 +4,7 @@
 
     python3 scripts/thai_docx check   FILE.docx
     python3 scripts/thai_docx build   IN.md OUT.docx [flags]
+    python3 scripts/thai_docx repair  IN.docx OUT.docx
     python3 scripts/thai_docx profile list | show | save | export | import
     python3 scripts/thai_docx grill   --said "the user's own message"
 
@@ -19,9 +20,9 @@ import sys
 if __package__ in (None, ""):
     # `python3 scripts/thai_docx …` runs this file as a script, not a package.
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
-    from thai_docx import build, check, grill, profiles
+    from thai_docx import build, check, grill, profiles, repair
 else:
-    from . import build, check, grill, profiles
+    from . import build, check, grill, profiles, repair
 
 
 def main(argv: list[str]) -> int:
@@ -29,11 +30,14 @@ def main(argv: list[str]) -> int:
         return check.main(argv[1:])
     if argv and argv[0] == "build":
         return build.main(argv[1:])
+    if argv and argv[0] == "repair":
+        return repair.main(argv[1:])
     if argv and argv[0] == "profile":
         return profiles.main(argv[1:])
     if argv and argv[0] == "grill":
         return grill.main(argv[1:])
-    print(json.dumps({"ok": False, "error": "usage: thai_docx check FILE.docx | build IN.md OUT.docx | profile ... | grill --said ..."}))
+    print(json.dumps({"ok": False, "error": "usage: thai_docx check FILE.docx | build IN.md OUT.docx"
+                                               " | repair IN.docx OUT.docx | profile ... | grill --said ..."}))
     return 2
 
 

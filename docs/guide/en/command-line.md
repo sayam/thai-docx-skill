@@ -144,7 +144,16 @@ python3 thai-docx/scripts/thai_docx check report.docx
 Exit code 0: no problems. 1: problems, listed under `"findings"` by code. 2: not a Word file it
 can read, or refused as unsafe. What each code means:
 [references/check.md](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/check.md).
-The check reports; it does not repair.
+The check reports. To fix a file you do not have the content for:
+
+```text
+python3 thai-docx/scripts/thai_docx repair theirs.docx theirs-fixed.docx
+```
+
+It writes a new file — the one you gave is never changed — with two of the seven faults gone
+(the compatibility mode, and proofing switched off) and the rest listed under `"remaining"`.
+The marks a Thai run needs are not among them yet, so most files still come back with
+findings, and the report says which. When you have the Markdown, rebuilding fixes everything.
 
 ## Ask the questions yourself
 
