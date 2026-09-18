@@ -142,6 +142,7 @@ gates:
     kind: job
     severity: watched
     enforced_by: {job: scorecard}
+    proved_by: docs/evidence/2026-09-18-scorecard-alerts-triaged.md
     watched_by:
       who: the maintainer
       within_days: 7
