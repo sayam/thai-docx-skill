@@ -26,7 +26,10 @@ USAGE = 'usage: thai_docx grill --said "the user\'s own message, word for word"'
 # The phrase that turns the interview on. Written with any of - _ or a space between the
 # two words of the skill's name, in any case, anywhere in the message; `/thai-docx grill`
 # holds it too.
-PHRASE = "thai-docx grill"
+# `fold` reads `_` as `-`; the space is the third way ADR 0026 lets the two words of the
+# name be joined, and it cannot be folded — a space is what separates the phrase's own
+# words — so the pattern allows it there and nowhere else.
+PHRASE = re.compile(r"thai[- ]docx grill")
 MAX_CHARS = 20000
 # the words that may follow the phrase (ADR 0029): part → (English, Thai)
 PARTS = {"from": ("from", "จาก"), "save_to": ("save to", "บันทึกเป็น"), "only": ("only", "เฉพาะ")}
@@ -69,14 +72,14 @@ def language(message: str) -> str:
 
 
 def mode(message: str) -> str:
-    return "grill" if PHRASE in plain(message) else "build"
+    return "grill" if PHRASE.search(plain(message)) else "build"
 
 
 def parts(message: str) -> dict:
     """`from`, `save to` and `only`, read from the words directly after the phrase, as the
     user wrote them; the first word that is none of them ends the reading."""
     joined = " ".join(words(message))
-    rest = joined[plain(message).index(PHRASE) + len(PHRASE):].split(" ")
+    rest = joined[PHRASE.search(plain(message)).end():].split(" ")
     if rest and rest[0] == "":
         rest = rest[1:]
     found: dict = {}
