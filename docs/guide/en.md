@@ -6,6 +6,20 @@ a character of your text.
 
 [ภาษาไทย](th.md)
 
+## Do you need this?
+
+| what you are doing | what to use |
+|---|---|
+| typing Thai in Word yourself | Word. It marks Thai as Thai while you type, so the file is already right |
+| asking an AI assistant — in a chat, an editor or a terminal — for a Word file | **thai-docx**. The assistant writes the content, the bundled command builds the file |
+| a program or a script of your own that writes .docx | **thai-docx** at the command line |
+| you already have a Word file that shows red squiggles or breaks lines oddly | **thai-docx** checks it and says what is wrong, whatever made it |
+| hoping Word will repair such a file when you open and save it | it does not. Word rewrites the runs as English and leaves the Thai unmarked — and an assistant working inside Word does the same |
+
+The difference is who wrote the file, and when. Word marks Thai correctly as you type it; almost
+nothing else does, and Word does not go back and fix what it did not type. That is the fault this
+skill exists for.
+
 ## Start here
 
 1. **Install the skill in the app you use.** Follow the steps for your app in
