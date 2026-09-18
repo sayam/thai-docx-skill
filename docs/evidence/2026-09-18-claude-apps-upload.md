@@ -51,6 +51,13 @@ TH Sarabun New at their own size, tables laid out as asked. The document itself 
 maintainer's own work material and is not kept here; what it proves is recorded, not its content
 (ADR 0025 §10: this repository carries synthetic content only).
 
+A second run the same day, on **Claude Haiku 4.5** — the smallest model of the family — asked for
+the same document "with a first-line indent for paragraphs". The reply reported the settings with
+`first-line indent 0.5 นิ้ว` among them, so the model turned the user's words into `--indent 0.5`
+and no other flag; the file opened in Word 365 for Windows with the indent on every body paragraph
+and the rest as before. The skill is therefore not a large-model-only tool in the app, and the
+settings a user asks for in Thai reach the command.
+
 So the guides' **made a file** row says yes for the Claude apps, and the "you get the file:
 download it in the chat" cell is now observed rather than read from the documentation.
 
