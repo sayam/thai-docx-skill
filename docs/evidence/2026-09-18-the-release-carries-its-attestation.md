@@ -56,10 +56,56 @@ evidence records.
 The score is not the reason to do it. The reason is that a person who downloads the zip can now
 check it without a GitHub account, and the file that proves the archive travels with the archive.
 
+## The two existing tags, re-run the same day
+
+The workflow was dispatched for both tags after the change landed.
+
+**v0.1.1 — attached.** [Run 35343227900](https://github.com/sayam/thai-docx-skill/actions/runs/35343227900)
+rebuilt the archive from the tag, attested it, verified it both ways and uploaded both files. The
+release now carries `thai-docx-0.1.1.zip` and `thai-docx-0.1.1.intoto.jsonl`. Downloaded and checked
+from a clean directory, with the workflow named:
+
+```
+$ gh attestation verify thai-docx-0.1.1.zip --bundle thai-docx-0.1.1.intoto.jsonl \
+    --repo sayam/thai-docx-skill \
+    --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml
+$ echo $?
+0
+$ sha256sum thai-docx-0.1.1.zip
+65d5c618bee6412c5b3fdddfa7605070e52231e2224d9b2311034368206e229e
+```
+
+and a byte appended to the archive makes the same command fail:
+`Error: verifying with issuer "sigstore.dev"`.
+
+**v0.1.0 — refused, by a check working as intended.**
+[Run 35343232883](https://github.com/sayam/thai-docx-skill/actions/runs/35343232883) stopped in
+`release-check`, at the OSV-Scanner step:
+
+```
+Total 1 package affected by 1 known vulnerability (0 Critical, 0 High, 1 Medium, 0 Low)
+| https://osv.dev/PYSEC-2026-1845 | 6.8 | PyPI | pytest | 8.4.2 | 9.0.3 | requirements/dev.txt |
+```
+
+The v0.1.0 tag pins `pytest==8.4.2`; `main` and v0.1.1 pin `9.1.1`, so only the old tag is affected,
+and only its development dependency — nothing the skill ships and nothing a user runs. The workflow
+says "no release while a development dependency has a known vulnerability" (CONTRIBUTING,
+*Dependencies*), and it held, on a tag cut before the advisory existed.
+
+That is the right outcome and it is left as it is. Attaching the asset to v0.1.0 would mean either
+skipping the dependency check for one run, or moving the tag to a commit with a newer pin — the
+first weakens the check that just did its job, the second rewrites a published release. Neither is
+worth an asset on a superseded version.
+
+## What it means for the score
+
+Scorecard averages over the last five releases, so with v0.1.1 carrying provenance and v0.1.0 not,
+`signed_releases` lands at `floor((10 + 0) / 2) = 5`, not 10. The next release takes it to
+`floor((10 + 10 + 0) / 3) = 6`, and v0.1.0 falls out of the window once five newer releases exist.
+
 ## Not done
 
-- The asset is not attached to v0.1.0 or v0.1.1 yet; that is a workflow re-run per tag, and it is
-  the owner's to make.
+- No asset on v0.1.0, for the reason above.
 - No `.sigstore.json` and no detached signature: `releasesAreSigned` would add 8 more, but it would
   mean a second signing path to keep correct, and the provenance bundle already carries the
   signature that matters.
