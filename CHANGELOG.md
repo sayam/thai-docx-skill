@@ -8,6 +8,15 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ## [Unreleased]
 
+### Added
+
+- A release carries its own attestation. The build-provenance bundle is attached beside the archive
+  as `thai-docx-<version>.intoto.jsonl`, so the proof travels with the file and a reader can check
+  it offline, with no GitHub account: `gh attestation verify thai-docx-<version>.zip --bundle
+  thai-docx-<version>.intoto.jsonl --repo sayam/thai-docx-skill`. The workflow now verifies both
+  ways — against GitHub and against the file it is about to attach — and attaches nothing if a
+  tampered archive passes either.
+
 ### Changed
 
 - What the agent reads says what the code does: SKILL.md counts comments among the HTML the build

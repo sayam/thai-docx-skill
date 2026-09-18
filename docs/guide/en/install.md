@@ -358,6 +358,14 @@ gh attestation verify thai-docx-0.1.1.zip --repo sayam/thai-docx-skill
 
 It says the verification succeeded, or fails for any other file.
 
+That asks GitHub for the proof, so you need to be signed in with `gh auth login`. If the release
+page also carries `thai-docx-0.1.1.intoto.jsonl`, download it beside the zip and check against it
+instead — no account, no network:
+
+```sh
+gh attestation verify thai-docx-0.1.1.zip --bundle thai-docx-0.1.1.intoto.jsonl --repo sayam/thai-docx-skill
+```
+
 ## Update or remove
 
 A new release does not reach a copy you already installed. Update the copy the way you installed

@@ -4,9 +4,12 @@
 #
 # The archive is built from the tag, refused unless every place that states the
 # version states the tag, attested (so a downloader can check CI built it), verified
-# in both directions, and only then attached:
+# in both directions, and only then attached. The attestation is attached too, so the
+# proof travels with the archive and needs no GitHub account to read:
 #
 #     gh attestation verify thai-docx-<version>.zip --repo sayam/thai-docx-skill
+#     gh attestation verify thai-docx-<version>.zip --bundle thai-docx-<version>.intoto.jsonl \
+#         --repo sayam/thai-docx-skill
 
 name: release
 
@@ -73,26 +76,45 @@ jobs:
           python3 tools/package_skill.py "dist/thai-docx-${TAG#v}.zip"
           python3 -c "import sys, zipfile; n = zipfile.ZipFile(sys.argv[1]).namelist(); assert n and all(x.startswith('thai-docx/') for x in n) and 'thai-docx/SKILL.md' in n, n; print(len(n), 'files')" dist/*.zip
       - name: attest build provenance for the archive
+        id: attest
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: dist/*.zip
+      - name: keep the attestation beside the archive, under the name a verifier expects
+        run: |
+          set -euo pipefail
+          ZIP=$(ls dist/*.zip)
+          # the archive's own base name, so a reader sees which file it belongs to;
+          # .intoto.jsonl because that is the suffix `gh attestation verify --bundle`
+          # and OpenSSF Scorecard's provenance probe both read
+          cp "${{ steps.attest.outputs.bundle-path }}" "${ZIP%.zip}.intoto.jsonl"
+          python3 -c "import json, sys; [json.loads(l) for l in open(sys.argv[1], encoding='utf-8') if l.strip()]; print('bundle is one JSON object per line')" "${ZIP%.zip}.intoto.jsonl"
       - name: verify in both directions before anything is attached
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           ZIP=$(ls dist/*.zip)
+          BUNDLE="${ZIP%.zip}.intoto.jsonl"
           # a fresh attestation can take a moment to be served
           for try in 1 2 3 4 5; do
             if gh attestation verify "$ZIP" --repo "$GITHUB_REPOSITORY"; then break; fi
             [ "$try" = 5 ] && exit 1
             sleep 15
           done
+          # and offline, against the file that is about to be attached: this is what a
+          # reader without a GitHub account can do
+          gh attestation verify "$ZIP" --bundle "$BUNDLE" \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
           cp "$ZIP" tampered.zip && printf 'x' >> tampered.zip
           if gh attestation verify tampered.zip --repo "$GITHUB_REPOSITORY"; then
             echo "a tampered archive verified — the verifier reads nothing"; exit 1
           fi
-      - name: attach the archive to the release
+          if gh attestation verify tampered.zip --bundle "$BUNDLE" --repo "$GITHUB_REPOSITORY"; then
+            echo "a tampered archive verified against the attached bundle"; exit 1
+          fi
+      - name: attach the archive and its attestation to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$TAG" dist/*.zip --clobber
+        run: gh release upload "$TAG" dist/*.zip dist/*.intoto.jsonl --clobber

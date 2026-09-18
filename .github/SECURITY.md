@@ -48,6 +48,19 @@ It fails for any file the workflow did not build. The identity to expect: certif
 `https://token.actions.githubusercontent.com`, signer workflow
 `sayam/thai-docx-skill/.github/workflows/release.yml`, source ref `refs/tags/v<version>`.
 
+That command asks GitHub for the attestation, so it needs `gh auth login`. A release that also
+carries `thai-docx-<version>.intoto.jsonl` can be checked against that file instead, with no
+account and no network:
+
+```sh
+gh attestation verify thai-docx-<version>.zip --bundle thai-docx-<version>.intoto.jsonl \
+  --repo sayam/thai-docx-skill \
+  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml
+```
+
+The release workflow verifies both ways itself, against the very file it is about to attach, and
+attaches nothing if either check passes for a tampered archive.
+
 You can also rebuild the archive and compare. From a clone at the tag, on a checkout without
 line-ending conversion:
 
