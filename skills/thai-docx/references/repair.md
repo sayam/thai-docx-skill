@@ -14,11 +14,22 @@ A new file is written; the one given is never touched. Tell the user both paths.
 | code | what it does |
 |---|---|
 | `1` | declares compatibility mode 15 — sets the one that is there, drops a second one |
+| `2` | gives every run with text `<w:cs/>` and `<w:lang w:bidi="th-TH"/>`, in schema order |
 | `3` | removes `<w:noProof/>`, wherever in the package it is |
+| `5` | writes the missing twin of `w:sz`, `w:b` and `w:i`; adds a complex-script font to an `w:rFonts` that names only a Latin one; gives a Symbol bullet a font with Thai in it |
 
-Every other finding is **reported and left**, in `remaining`. Codes `2` and `5` — the marks a
-Thai run needs, and the complex-script twins — are the common ones, and they are not repaired
-yet, so most files still come back with findings. Say so; do not imply the document is fixed.
+Findings `4` (a word split across two runs), `invisible` and `order` are **reported and left**,
+in `remaining`. A file whose only findings are those is not written at all.
+
+**The font.** A run that names no complex-script font is given one: what `--font` says, else the
+complex-script font the document already uses most — counting only fonts known to carry Thai —
+else this skill's own default. The choice comes back in `warnings`; read it out to the user.
+
+**The file grows.** A part this rewrites is stored, not compressed, because two implementations
+must write the same bytes and no two compressors promise that. A document whose styles part is
+large grows a great deal: a python-docx file of 36 KB comes back as 382 KB, all of it the 349 KB
+styles part that used to deflate to 12 KB. Tell the user the file is bigger and that opening it
+in Word and saving compresses it again.
 
 ## What it never does
 

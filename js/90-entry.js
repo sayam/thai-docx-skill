@@ -155,6 +155,11 @@ function nodeCheck(argv) {
 }
 
 function nodeRepair(argv) {
+  let font = null;
+  if (argv.length === 4 && argv[2] === "--font") {
+    font = argv[3];
+    argv = argv.slice(0, 2);
+  }
   if (argv.length !== 2) {
     process.stdout.write(pyDumps({ ok: false, error: REPAIR_USAGE }) + "\n");
     return 2;
@@ -181,7 +186,7 @@ function nodeRepair(argv) {
   }
   const ents = readZipDirectory(data);
   const parts = new Map(ents.map((e) => [e.name, readZipEntry(data, e)]));
-  const [replace, repaired] = repairParts(parts, before.findings);
+  const [replace, repaired, chosen] = repairParts(parts, before.findings, font);
   if (!replace.size) {
     result.repaired = {};
     result.remaining = before.findings;
@@ -219,7 +224,7 @@ function nodeRepair(argv) {
   result.ok = true;
   result.repaired = repaired;
   result.remaining = after.findings;
-  result.warnings = after.warnings;
+  result.warnings = chosen ? [chosen, ...after.warnings] : after.warnings;
   result.sha256 = sha256Hex(out);
   result.bytes = out.length;
   process.stdout.write(pyDumps(result) + "\n");

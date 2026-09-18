@@ -150,10 +150,15 @@ The check reports. To fix a file you do not have the content for:
 python3 thai-docx/scripts/thai_docx repair theirs.docx theirs-fixed.docx
 ```
 
-It writes a new file — the one you gave is never changed — with two of the seven faults gone
-(the compatibility mode, and proofing switched off) and the rest listed under `"remaining"`.
-The marks a Thai run needs are not among them yet, so most files still come back with
-findings, and the report says which. When you have the Markdown, rebuilding fixes everything.
+It writes a new file — the one you gave is never changed — with four of the seven faults gone:
+the compatibility mode, the marks every Thai run needs, proofing switched off, and the
+complex-script twins. A word split across two runs, invisible characters and misordered
+properties are listed under `"remaining"` instead. The report also names the font it wrote
+where a run named none; `--font "Sarabun"` chooses it yourself.
+
+The new file is **bigger** — the parts it rewrites are stored uncompressed, so a document with a
+large styles part can grow several times over. Opening it in Word and saving compresses it
+again. When you have the Markdown, rebuilding fixes everything and keeps the file small.
 
 ## Ask the questions yourself
 

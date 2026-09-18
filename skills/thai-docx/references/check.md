@@ -25,5 +25,5 @@ comments, the footnotes and endnotes, and each header and footer. A finding name
 it is in, so say which one when the answer is not the body.
 
 This reports. To fix a file whose content the user does not have, `repair` writes a new one
-with findings `1` and `3` gone and the rest reported — [repair.md](repair.md). When they do
-have the content, rebuilding from Markdown fixes everything, and is the better move.
+with findings `1`, `2`, `3` and `5` gone and the rest reported — [repair.md](repair.md). When
+they do have the content, rebuilding from Markdown fixes everything, and is the better move.

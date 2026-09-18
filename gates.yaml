@@ -62,11 +62,11 @@ gates:
     enforced_by: {job: tests, tests: [tests/test_repack.py]}
     proved_by: docs/evidence/2026-09-18-a-package-comes-back-as-it-went-in.md
   - id: repair-changes-only-what-it-names
-    title: Repair writes a new file with findings 1 and 3 gone, reports every other finding, changes no character of the text, keeps every part it did not rewrite byte for byte, refuses a file the checker refuses, and gives the same bytes from both implementations (ADR 0032, 0023, 0008)
+    title: Repair writes a new file with findings 1, 2, 3 and 5 gone and the complex-script font it chose reported, reports every other finding, changes no character of the text, keeps every part it did not rewrite byte for byte, refuses a file the checker refuses, and gives the same bytes from both implementations (ADR 0032, 0023, 0008)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_repair.py]}
-    proved_by: docs/evidence/2026-09-18-repair-sets-the-mode-and-drops-noproof.md
+    proved_by: [docs/evidence/2026-09-18-repair-sets-the-mode-and-drops-noproof.md, docs/evidence/2026-09-18-repair-marks-thai-and-fills-the-twins.md]
   - id: javascript-matches-python
     title: The JavaScript file reads Markdown, writes .docx bytes, reports on sound and damaged packages and answers on the command line exactly as the Python package does (ADR 0008, 0017), stays within the script limits (ADR 0030), and is the bundle its committed sources build
     kind: test
