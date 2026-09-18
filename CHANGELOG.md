@@ -19,6 +19,13 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Added
 
+- The two installers are held by tests, not only by a promise. The archive and the subtree
+  `skills/thai-docx/` that `gh skill install` and `npx skills add` copy must be the same files
+  **and the same bytes**; and the front matter must survive being written again the way
+  `gh skill install` writes it — keys sorted, `metadata` flattened, quotes dropped — so nothing
+  depends on their order, `version` keeps its two dots, and no key inside `metadata` shares a name
+  with a top-level one. Both guides now say which installer gives the release and which gives
+  `main`, with `--pin` and `gh skill preview`.
 - `thai_docx repair IN.docx OUT.docx` — the repairs of v0.2 (ADR 0032). It clears findings `1`
   (compatibility mode 15), `2` (`<w:cs/>` and a Thai `w:lang` on every run with text), `3`
   (`<w:noProof/>` removed), `5` (the complex-script twins, a `w:cs` font, a Thai-capable bullet

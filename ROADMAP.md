@@ -10,7 +10,7 @@ Four things, decided 2026-09-18.
 | | what | where it is decided | state |
 |---|---|---|---|
 | 1 | **Repair a `.docx` this skill did not write** — attributes only, never the text | [ADR 0032](docs/adr/0032-repair-rewrites-attributes-never-the-text.md) | done: findings 1, 2, 3, 5 and the property order, in a file about the size it was; the split word waits for v0.3 and invisible characters are never removed |
-| 2 | **`gh skill install` and `npx skills add`** held by a test, and the difference between them written in the guides | below | to do |
+| 2 | **`gh skill install` and `npx skills add`** held by a test, and the difference between them written in the guides | below | done 2026-09-19 |
 | 3 | **The attestation attached to the release as a file** | [evidence](docs/evidence/2026-09-18-the-release-carries-its-attestation.md) | done 2026-09-18 |
 | 4 | **WPS Writer re-checked** after the fixes of 0.1.0, and what it still draws its own way recorded | below | to do |
 
@@ -32,10 +32,11 @@ Word does not repair a file it did not type — it rewrites every run as English
 
 **The installers.** Both work today. `gh skill install` takes the latest tagged release and rewrites
 SKILL.md's front matter, adding its own provenance keys; `npx skills add` takes the default branch
-and copies the subtree byte for byte. Both deliver the same 29 files the release archive holds. v0.2
-adds a test that the subtree and the archive stay the same set of files, a test that the front
-matter survives being re-serialised with sorted keys and unquoted values, and a line in both guides
-saying which installer gives which version and how `--pin` asks for an exact tag.
+and copies the subtree byte for byte. Both deliver the files the release archive holds — which is
+now a test, along with one that the front matter survives being sorted, flattened and unquoted the
+way an installer writes it. Both guides say which installer gives which version, and give `--pin`
+and `gh skill preview`. What is left is the smoke run after each release, which reaches the network
+and belongs to a dated record rather than to the suite.
 
 **WPS Writer.** Two fixes landed after the last check — the line before a hard break no longer
 spreads letter by letter under `--align thai`, and a heading's number takes the heading's own size,

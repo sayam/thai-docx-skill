@@ -391,6 +391,24 @@ it.
 | `npx skills add` | run the same command again; it takes the current `main`. |
 | a clone of the repository | `git pull` in the clone. |
 
+**The two installers do not give you the same thing**
+
+| | `gh skill install` | `npx skills add` |
+|---|---|---|
+| where the files come from | the **latest tagged release** | the default branch, **`main`** |
+| so you get | the version the release page names | whatever has been merged since |
+| an exact version | `gh skill install … --pin v0.1.1` | — |
+| look before installing | `gh skill preview sayam/thai-docx-skill thai-docx` | — |
+| the files | the same ones the release archive holds | the same ones |
+| SKILL.md | **rewritten**: the keys sorted, `metadata` flattened, quotes dropped, and four keys added that say where it came from (`github-repo`, `github-ref`, `github-path`, `github-tree-sha`) | copied as it is |
+
+Neither is wrong. If you want the version this project tested and wrote about, take the release —
+with `gh skill install`, or by downloading the zip. If you want what is on `main` today, take that,
+and expect the reference pages to be ahead of the last release.
+
+The rewritten front matter is why an installed `SKILL.md` will not match a checksum of ours. The
+line a reader is told to look at, `version`, still says the same thing.
+
 **Two things that surprise people**
 
 - **A skill uploaded in the Claude apps syncs to this computer.** Claude Code, and anything else
