@@ -91,11 +91,11 @@ gates:
     severity: blocking
     enforced_by: {job: release-check}
   - id: skill-archive-is-the-skill
-    title: The archive a user downloads holds exactly skills/thai-docx, gives the same bytes on every run, and SKILL.md, the Python package and the JavaScript file state one version (ADR 0012, 0018)
+    title: The archive a user downloads holds exactly skills/thai-docx — the same names and the same bytes the installers copy — gives the same bytes on every run, states one version in SKILL.md, the Python package and the JavaScript file, and states it in a front matter that survives being sorted, flattened and unquoted as an installer rewrites it (ADR 0012, 0018)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_package_skill.py]}
-    proved_by: docs/evidence/2026-09-15-skill-md-archive-and-agents.md
+    proved_by: [docs/evidence/2026-09-15-skill-md-archive-and-agents.md, docs/evidence/2026-09-19-what-the-installers-give-you.md]
   - id: release-oracle-set-is-the-goldens
     title: The documents a release is opened in — every variant once per application, with a checklist naming each — are byte for byte the goldens the build is held to (ADR 0012)
     kind: test
