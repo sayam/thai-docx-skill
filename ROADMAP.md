@@ -71,6 +71,8 @@ placement) as differences rather than defects, with Word 365 for Windows as the 
   in CI, and bump every pinned tool by hand.
 - Keep the assurance case current, and repeat the security review each year or at a boundary
   change (the last is `docs/evidence/2026-09-18-security-review.md`).
+- Hold the project's own citations: a check that no page stating a rule now points at a record
+  the index marks superseded (the drift of 2026-09-18 was found by a reviewer, not by a gate).
 - OpenSSF Best Practices: passing (reached 2026-09-18), then silver as far as a one-maintainer
   project can go.
 
@@ -82,6 +84,6 @@ placement) as differences rather than defects, with Word 365 for Windows as the 
 ## Will not do
 
 - Accept input other than Markdown, or run with dependencies at run time (ADR 0007, 0008).
-- Reach the network, run other programs, or read settings from environment variables (ADR 0025).
+- Reach the network, run other programs, or read settings from environment variables (ADR 0030).
 - Change a user's wording to make a build pass (ADR 0023).
 - Name or imitate a real institution's template; profiles are for users to make and share.

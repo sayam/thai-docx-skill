@@ -13,8 +13,8 @@ Findings, each with a `code`:
              level uses the Symbol font
     order    a property stands in the wrong place for the schema (Word ignores it)
     invisible  a zero-width character is in the text
-    doctype  an XML part declares a DOCTYPE — refused before parsing (ADR 0011 §7)
-    size     the package would decompress past the cap — refused (ADR 0011 §7)
+    doctype  an XML part declares a DOCTYPE — refused before parsing (ADR 0030 §9)
+    size     the package would decompress past the cap — refused (ADR 0030 §9)
     package  not a WordprocessingML package
 
 Warnings never fail the check; today there is one: a complex-script font the
@@ -22,7 +22,7 @@ checker does not know to carry Thai glyphs (ADR 0026).
 
 Role: decider — exit 0 when there are no findings, 1 when there are, 2 when the
 file could not be examined at all. The output is one JSON line, and never carries
-the document's text (ADR 0011 §6).
+the document's text (ADR 0030 §8).
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ from .ooxml import (
 MAX_PART = 32 * 1024 * 1024
 MAX_TOTAL = 64 * 1024 * 1024
 COMPAT_URI = "http://schemas.microsoft.com/office/word"
-TEXT_PARTS = re.compile(r"word/(document|footnotes|endnotes|header[0-9]*|footer[0-9]*)\.xml")  # fullmatch
+TEXT_PARTS = re.compile(r"word/(document|comments|footnotes|endnotes|header[0-9]*|footer[0-9]*)\.xml")  # fullmatch
 DOCTYPE = re.compile(rb"<!DOCTYPE", re.IGNORECASE)
 DECLARED_ENCODING = re.compile("\ufeff?<\\?xml[^>]*?[ \\t\\r\\n]encoding[ \\t\\r\\n]*=[ \\t\\r\\n]*[\"']([^\"']*)[\"']")
 

@@ -134,7 +134,7 @@ def test_special_characters_are_escaped(tmp_path):
     assert 'Target="https://x.example/?a=1&amp;b=2"' in zipfile.ZipFile(out).read("word/_rels/document.xml.rels").decode()
 
 
-# --- images and the script limits (ADR 0011, 0022) ---
+# --- images and the script limits (ADR 0030, 0022) ---
 
 
 def test_image_outside_the_markdown_directory_is_refused_unless_allowed(tmp_path):

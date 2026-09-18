@@ -4,7 +4,7 @@ Why thai-docx can be trusted to do what it says about security, and nothing more
 security requirements, the threat model and trust boundaries, and the argument — with the tests
 that hold each claim — that secure design principles are applied and common weaknesses are
 countered. The limits themselves are decided in
-[ADR 0025](adr/0025-script-limits-restated-for-profiles.md) and
+[ADR 0030](adr/0030-script-limits-read-by-tests-in-both-implementations.md) and
 [ADR 0017](adr/0017-files-read-by-stated-rules.md); this page ties them together.
 
 ## 1. What is being assured
@@ -18,13 +18,13 @@ application that opens the result, and the development tools under `tools/` (rep
 
 | # | requirement | from |
 |---|---|---|
-| R1 | Make no network connection; start no process; evaluate no code from input or from outside the skill. | ADR 0025 §1–2 |
-| R2 | Write only the output path given, the one profile file a `profile save`/`import` names in the profile directories, and the path given to `profile export`. | ADR 0025 §3 |
-| R3 | Read images only from the Markdown file's tree or a directory named with `--allow-dir`, and only PNG or JPEG by magic bytes. | ADR 0025 §4 |
-| R4 | Read a profile only as JSON of at most 64 KiB that passes the settings schema; a profile is data and can hold nothing a flag could not. | ADR 0025 §5, ADR 0024 |
-| R5 | Read no environment variable except the platform's own lookup of the home directory. | ADR 0025 §6 |
-| R6 | Put no user name, host name, clock or document text into document properties, output or logs. | ADR 0025 §7–8 |
-| R7 | Survive hostile .docx input: refuse DOCTYPE, oversized or malformed packages without exhausting memory or following external references. | ADR 0025 §9, ADR 0017 |
+| R1 | Make no network connection; start no process; evaluate no code from input or from outside the skill. | ADR 0030 §1–2 |
+| R2 | Write only the output path given, the one profile file a `profile save`/`import` names in the profile directories, and the path given to `profile export`. | ADR 0030 §3 |
+| R3 | Read images only from the Markdown file's tree or a directory named with `--allow-dir`, and only PNG or JPEG by magic bytes. | ADR 0030 §4 |
+| R4 | Read a profile only as JSON of at most 64 KiB that passes the settings schema; a profile is data and can hold nothing a flag could not. | ADR 0030 §5, ADR 0024 |
+| R5 | Read no environment variable except the platform's own lookup of the home directory. | ADR 0030 §6 |
+| R6 | Put no user name, host name, clock or document text into document properties, output or logs. | ADR 0030 §7–8 |
+| R7 | Survive hostile .docx input: refuse DOCTYPE, oversized or malformed packages without exhausting memory or following external references. | ADR 0030 §9, ADR 0017 |
 | R8 | Survive hostile Markdown: bounded nesting, no silent drop of content, refusal named by line. | ADR 0022, ADR 0023 |
 
 What users cannot expect: sandboxing (the client's job), confidentiality of documents from the

@@ -513,7 +513,7 @@ function inflateRaw(input, expected) {
 // non-xmlns names; `text` is the text before the first child. Malformed XML — an
 // undefined entity, an unbound prefix, a mismatched or duplicated name, a character
 // XML does not allow — throws, as expat does. A DOCTYPE never reaches here: the
-// checker refuses it on the raw bytes (ADR 0011 §7).
+// checker refuses it on the raw bytes (ADR 0030 §9).
 
 class XmlError extends Error {}
 
@@ -838,7 +838,7 @@ const MAX_PART = 32 * 1024 * 1024;
 const MAX_TOTAL = 64 * 1024 * 1024;
 const MAX_FILE = 64 * 1024 * 1024;
 const COMPAT_URI = "http://schemas.microsoft.com/office/word";
-const TEXT_PARTS = /^word\/(document|footnotes|endnotes|header[0-9]*|footer[0-9]*)\.xml$/;
+const TEXT_PARTS = /^word\/(document|comments|footnotes|endnotes|header[0-9]*|footer[0-9]*)\.xml$/;
 
 function w(tag) {
   return "{" + W + "}" + tag;
@@ -4642,14 +4642,14 @@ function buildText(text, opts, readImage) {
 // thai-docx — profiles: the JavaScript port of scripts/thai_docx/profiles.py. A profile
 // holds settings and nothing else; its values are checked by turning them into the
 // build's own flags (ADR 0024), and reads and writes stay inside the profile
-// directories (ADR 0025).
+// directories (ADR 0030).
 
 const PROFILE_SCHEMA = 1;
 const PROFILE_DIR = ".thai-docx";
 const PROFILE_KEYS = ["schema", "id", "title", "description", "version", "source", "maintainer", "settings"];
 const PROFILE_TEXT_KEYS = ["id", "version", "source", "maintainer"];
 const PROFILE_MAX_TEXT = 200;
-const PROFILE_MAX_BYTES = 64 * 1024; // a profile is settings; anything larger is not one (ADR 0025)
+const PROFILE_MAX_BYTES = 64 * 1024; // a profile is settings; anything larger is not one (ADR 0030)
 // setting → how it is written as a flag, from the registry (ADR 0028); "switch" flags say the value that turns them on
 const PROFILE_FLAGS = Object.fromEntries(SETTINGS.map((s) => [s.key, [s.kind, s.flag]]));
 const FLOAT_SETTINGS = SETTINGS.filter((s) => s.read && (s.read[0] === "number" || s.read[0] === "numbers")).map((s) => s.key); // Python writes these as floats
@@ -5395,7 +5395,7 @@ function parentOf(path, p, root) {
 // The path as the file system walks it — the same walk as real_path() in
 // thai_docx/build.py: each component's symbolic link followed, `..` taken from
 // what is already resolved; a missing component, or a link past the fortieth,
-// stays as written (ADR 0011 §4).
+// stays as written (ADR 0030 §4).
 function realPath(fs, path, p) {
   if (!path.isAbsolute(p)) p = process.cwd() + path.sep + p;
   let [root, parts] = splitRoot(path, p);
@@ -5464,7 +5464,7 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
   const readImage = (src) => {
     const p = realPath(fs, path, path.isAbsolute(src) ? src : mdDir + path.sep + src);
     if (!roots.some((root) => inside(path, p, root))) {
-      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0011 §4)");
+      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)");
     }
     try {
       const b = fs.readFileSync(p);
@@ -5571,7 +5571,7 @@ function buildDocument(markdown, args, images) {
   const table = images || {};
   const readImage = (src) => {
     if (src.split(/[\\/]/).includes("..") || src.startsWith("/") || src.startsWith("\\")) {
-      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0011 §4)");
+      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)");
     }
     if (!Object.prototype.hasOwnProperty.call(table, src)) throw new BuildError("image '" + src + "': No such file or directory");
     return [src, table[src]];

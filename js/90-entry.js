@@ -29,7 +29,7 @@ function parentOf(path, p, root) {
 // The path as the file system walks it — the same walk as real_path() in
 // thai_docx/build.py: each component's symbolic link followed, `..` taken from
 // what is already resolved; a missing component, or a link past the fortieth,
-// stays as written (ADR 0011 §4).
+// stays as written (ADR 0030 §4).
 function realPath(fs, path, p) {
   if (!path.isAbsolute(p)) p = process.cwd() + path.sep + p;
   let [root, parts] = splitRoot(path, p);
@@ -98,7 +98,7 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
   const readImage = (src) => {
     const p = realPath(fs, path, path.isAbsolute(src) ? src : mdDir + path.sep + src);
     if (!roots.some((root) => inside(path, p, root))) {
-      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0011 §4)");
+      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)");
     }
     try {
       const b = fs.readFileSync(p);
@@ -205,7 +205,7 @@ function buildDocument(markdown, args, images) {
   const table = images || {};
   const readImage = (src) => {
     if (src.split(/[\\/]/).includes("..") || src.startsWith("/") || src.startsWith("\\")) {
-      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0011 §4)");
+      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)");
     }
     if (!Object.prototype.hasOwnProperty.call(table, src)) throw new BuildError("image '" + src + "': No such file or directory");
     return [src, table[src]];

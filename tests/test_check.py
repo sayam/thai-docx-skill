@@ -198,6 +198,26 @@ def test_not_a_docx(tmp_path):
     assert codes(check(plain)) == {"package"}
 
 
+def test_a_comment_is_text_the_reader_sees(tmp_path):
+    """Word draws a comment beside the page and its spelling checker reads it, so a Thai run
+    in word/comments.xml needs the same marks as one in the body (ADR 0004)."""
+    parts = good()
+    parts["word/comments.xml"] = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+        '<w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        '<w:comment w:id="1" w:author="a" w:date="2026-01-01T00:00:00Z" w:initials="a">'
+        '<w:p><w:r><w:rPr/><w:t>ภาษาไทยในความเห็น</w:t></w:r></w:p></w:comment></w:comments>'
+    )
+    report = check(written(tmp_path, parts))
+    assert codes(report) == {"2"}
+    assert [f["part"] for f in report.findings] == ["word/comments.xml"]
+    # a comment whose run carries the marks is clean, and its paragraph is counted
+    parts["word/comments.xml"] = parts["word/comments.xml"].replace(
+        "<w:rPr/>", "<w:rPr>" + RUN_PROPS + "</w:rPr>")
+    clean = check(written(tmp_path, parts))
+    assert not clean.findings and clean.counts["paragraphs"] == check(written(tmp_path, good())).counts["paragraphs"] + 1
+
+
 def test_footnotes_are_checked_too(tmp_path):
     parts = good()
     parts["word/footnotes.xml"] = (

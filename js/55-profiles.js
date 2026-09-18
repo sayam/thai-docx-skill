@@ -3,14 +3,14 @@
 // thai-docx — profiles: the JavaScript port of scripts/thai_docx/profiles.py. A profile
 // holds settings and nothing else; its values are checked by turning them into the
 // build's own flags (ADR 0024), and reads and writes stay inside the profile
-// directories (ADR 0025).
+// directories (ADR 0030).
 
 const PROFILE_SCHEMA = 1;
 const PROFILE_DIR = ".thai-docx";
 const PROFILE_KEYS = ["schema", "id", "title", "description", "version", "source", "maintainer", "settings"];
 const PROFILE_TEXT_KEYS = ["id", "version", "source", "maintainer"];
 const PROFILE_MAX_TEXT = 200;
-const PROFILE_MAX_BYTES = 64 * 1024; // a profile is settings; anything larger is not one (ADR 0025)
+const PROFILE_MAX_BYTES = 64 * 1024; // a profile is settings; anything larger is not one (ADR 0030)
 // setting → how it is written as a flag, from the registry (ADR 0028); "switch" flags say the value that turns them on
 const PROFILE_FLAGS = Object.fromEntries(SETTINGS.map((s) => [s.key, [s.kind, s.flag]]));
 const FLOAT_SETTINGS = SETTINGS.filter((s) => s.read && (s.read[0] === "number" || s.read[0] === "numbers")).map((s) => s.key); // Python writes these as floats

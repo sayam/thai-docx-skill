@@ -7,7 +7,7 @@
     python3 scripts/thai_docx profile list | show | save | export | import
     python3 scripts/thai_docx grill   --said "the user's own message"
 
-Standard library only; no network, no subprocesses (ADR 0011).
+Standard library only; no network, no subprocesses (ADR 0030).
 """
 
 from __future__ import annotations

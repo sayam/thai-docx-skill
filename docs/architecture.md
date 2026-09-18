@@ -27,7 +27,7 @@ else in the repository is needed at run time ([ADR 0002](adr/0002-one-public-rep
 | user | asks for a document, answers the interview, keeps and shares profiles, opens the result |
 | AI agent (model) | reads SKILL.md and references, writes the Markdown, runs the commands, reports settings and warnings |
 | client app and its sandbox (Claude, Codex, Copilot, …) | loads the skill folder, runs the commands with the user's or sandbox's rights, asks for approval where it does so |
-| Python or JavaScript scripts | parse, lay out, write, pack, check, compare; read the Markdown, images and profiles; write the output and profile files (limits: ADR 0025) |
+| Python or JavaScript scripts | parse, lay out, write, pack, check, compare; read the Markdown, images and profiles; write the output and profile files (limits: ADR 0030) |
 | file system | the Markdown file's tree, `--allow-dir` directories, `~/.thai-docx/profiles/`, `./.thai-docx/profiles/`, the output path |
 | office application (Word, LibreOffice, Google Docs, WPS) | opens the .docx; updates fields when the reader asks |
 | contributor and maintainer | propose, review and merge changes through pull requests held to the gates (`scans`, `commits`, `tests`, `lint`, `deps`, and CodeQL's code-scanning results) |
@@ -89,7 +89,7 @@ Markdown ──parse──▶ blocks ──lay out──▶ sections, numbering 
 | Same bytes everywhere: same input → same sha256 on every run, machine and runtime | no clock, host or user name in any part; stored zip entries; goldens in `tests/golden`; parity tests ([0008](adr/0008-two-zero-dependency-implementations-byte-identical.md)) |
 | Zero run-time dependencies | Python standard library; one JS file needing only `TextEncoder`/`TextDecoder` |
 | The user's text is never changed | the fidelity check on every build |
-| Limited reach | no network, subprocess or eval; writes only named paths; bounded reads ([0025](adr/0025-script-limits-restated-for-profiles.md)) — see the [assurance case](assurance-case.md) |
+| Limited reach | no network, subprocess or eval; writes only named paths; bounded reads ([0030](adr/0030-script-limits-read-by-tests-in-both-implementations.md)) — see the [assurance case](assurance-case.md) |
 | The script, not the agent, decides the interview | `grill --said` reads the user's words ([0029](adr/0029-grill-from-a-profile-save-as-another.md)) |
 | Documentation matches the code | tests run SKILL.md's commands, the generated settings reference and the user guides |
 

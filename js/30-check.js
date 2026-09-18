@@ -16,7 +16,7 @@ const MAX_PART = 32 * 1024 * 1024;
 const MAX_TOTAL = 64 * 1024 * 1024;
 const MAX_FILE = 64 * 1024 * 1024;
 const COMPAT_URI = "http://schemas.microsoft.com/office/word";
-const TEXT_PARTS = /^word\/(document|footnotes|endnotes|header[0-9]*|footer[0-9]*)\.xml$/;
+const TEXT_PARTS = /^word\/(document|comments|footnotes|endnotes|header[0-9]*|footer[0-9]*)\.xml$/;
 
 function w(tag) {
   return "{" + W + "}" + tag;
