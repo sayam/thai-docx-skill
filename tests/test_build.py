@@ -95,7 +95,7 @@ def test_sample_text_round_trips_paragraph_for_paragraph():
     with zipfile.ZipFile(GOLDEN / "sample-default.docx") as zf:
         parts = {n: zf.read(n) for n in zf.namelist()}
     assert fi.docx_text(parts, len(doc.footnote_order)) == fi.expected_text(doc)
-    assert "☐ งานที่ยังไม่ทำ" in fi.docx_text(parts, 1)
+    assert "□ งานที่ยังไม่ทำ" in fi.docx_text(parts, 1)
 
 
 def test_a_writer_that_drops_a_character_is_refused(tmp_path, monkeypatch):

@@ -175,7 +175,7 @@ def _check_order(el: ET.Element, order: list[str], part: str, report: Report, wh
 
 def _check_rpr_twins(rpr: ET.Element, part: str, report: Report, what: str, thai: bool = True) -> None:
     """`thai` says whether the text this rPr formats holds Thai; the font warning
-    is only worth raising then — a ☐ in Segoe UI Symbol needs no Thai glyphs."""
+    is only worth raising then — a □ in Arial needs no Thai glyphs."""
     fonts = rpr.find(w("rFonts"))
     if fonts is not None:
         latin = any(fonts.get(w(a)) for a in ("ascii", "hAnsi", "asciiTheme", "hAnsiTheme"))

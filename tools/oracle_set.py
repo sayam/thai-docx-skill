@@ -56,7 +56,7 @@ EVERY_APPLICATION = (
     "Tables, links and headings are correct",
     "Footnotes are numbered at the foot of the page",
     "Images stay within the page",
-    "☐ and ☑ show as symbols",
+    "□ and ■ show as squares, not as blank space (ADR 0033)",
 )
 WORD_ONLY = (
     'No "Compatibility Mode" in the title bar',

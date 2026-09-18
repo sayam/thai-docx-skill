@@ -2062,7 +2062,7 @@ def _blocks(bp: BlockParser, node: Node, doc: Document) -> list[dict]:
 
 def plain_text(blocks: list[dict]) -> list[str]:
     """Every paragraph's text, in document order. Hard breaks are newlines; task
-    markers are ☐/☑; images and footnote marks contribute nothing."""
+    markers are □/■ (ADR 0033); images and footnote marks contribute nothing."""
     out: list[str] = []
     for b in blocks:
         t = b["t"]
@@ -2092,5 +2092,5 @@ def inline_text(inlines: list[dict]) -> str:
         elif n["t"] == "hardbreak":
             parts.append("\n")
         elif n["t"] == "task":
-            parts.append("☑ " if n["checked"] else "☐ ")
+            parts.append("■ " if n["checked"] else "□ ")
     return "".join(parts)

@@ -108,10 +108,10 @@ def test_cause_4_runs_around_a_hyperlink_are_not_adjacent(tmp_path):
 
 
 def test_font_warning_only_where_a_run_holds_thai(tmp_path):
-    symbol = '<w:rFonts w:ascii="Segoe UI Symbol" w:hAnsi="Segoe UI Symbol" w:cs="Segoe UI Symbol"/>' + RUN_PROPS
-    parts = replaced(good(), "word/document.xml", run("รายการ"), run("☐ ", symbol) + run("รายการ"))
+    symbol = '<w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>' + RUN_PROPS
+    parts = replaced(good(), "word/document.xml", run("รายการ"), run("□ ", symbol) + run("รายการ"))
     assert check(written(tmp_path, parts)).warnings == []
-    parts = replaced(good(), "word/document.xml", run("รายการ"), run("☐ รายการ", symbol))
+    parts = replaced(good(), "word/document.xml", run("รายการ"), run("□ รายการ", symbol))
     assert [x["code"] for x in check(written(tmp_path, parts)).warnings] == ["font"]
 
 

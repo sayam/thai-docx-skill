@@ -16,7 +16,12 @@ from .layout import LIST_FIELDS, SECTION_MARK, caption_text, has_thai, heading_s
 from .settings import BuildError, half_up, page_size
 
 CODE_FONT = "Consolas"
-SYMBOL_FONT = "Segoe UI Symbol"
+# The box a task list draws, and the font that has it. Not ☐/☑ in Segoe UI Symbol: those
+# characters live only in symbol fonts, and the one Windows has is on no other machine, so the
+# box vanished everywhere else (ADR 0033). A white and a black square are in every ordinary
+# text font, and Arial is on Windows and macOS and is what fontconfig gives for Arial on Linux.
+SYMBOL_FONT = "Arial"
+BOX, BOX_CHECKED = "□ ", "■ "
 NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
 XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
@@ -151,7 +156,7 @@ class Writer:
             elif t == "hardbreak":
                 out.append("<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>")
             elif t == "task":
-                mark = "☑ " if n["checked"] else "☐ "
+                mark = BOX_CHECKED if n["checked"] else BOX
                 out.append('<w:r><w:rPr><w:rFonts w:ascii="' + SYMBOL_FONT + '" w:hAnsi="' + SYMBOL_FONT + '" w:cs="' + SYMBOL_FONT + '"/>'
                            + LANG + '</w:rPr><w:t xml:space="preserve">' + mark + "</w:t></w:r>")
             elif t == "footnote_ref":
