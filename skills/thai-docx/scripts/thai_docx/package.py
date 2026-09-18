@@ -43,6 +43,9 @@ class Entry(NamedTuple):
     compress_size: int
     file_size: int
     header_offset: int
+    mod: int = DOS_DATE << 16  # the DOS time and date as the central record holds them
+    made_by: int = 20         # "version made by": which system wrote the entry
+    attrs: int = 0o600 << 16  # the external attributes the central record carries
 
 
 def _u16(n: int) -> bytes:
@@ -66,6 +69,51 @@ def pack(parts: list[tuple[str, bytes]]) -> bytes:
         central += _u32(SIG_CENTRAL) + _u16(20) + _u16(20) + fields + _u16(0) + _u16(0) + _u16(0) + _u32(0o600 << 16) + _u32(offset) + name_bytes
         offset += len(local) + len(name_bytes) + len(data)
     end = _u32(SIG_END) + _u16(0) + _u16(0) + _u16(len(parts)) + _u16(len(parts)) + _u32(len(central)) + _u32(offset) + _u16(0)
+    return bytes(out + central + end)
+
+
+def raw(b: bytes, e: Entry) -> bytes:
+    """One entry's bytes **as the package holds them** — still compressed, if it is."""
+    h = e.header_offset
+    if _rd(b, h, 4) != SIG_LOCAL:
+        raise PackageError("bad local header")
+    name_len, extra_len = _rd(b, h + 26, 2), _rd(b, h + 28, 2)
+    start = h + 30 + name_len + extra_len
+    if start + e.compress_size > len(b):
+        raise PackageError("entry runs past the end")
+    return b[start : start + e.compress_size]
+
+
+def repack(b: bytes, ents: list[Entry], replace: dict[str, bytes]) -> bytes:
+    """The package again, in the order it had: an entry named in `replace` is written anew
+    and **stored**, every other entry keeps the bytes it already had — its method, its
+    checksum, its sizes and its date (ADR 0032).
+
+    Stored, not deflated, for the reason ADR 0008 gives: two implementations must write the
+    same bytes, and no two deflate libraries promise that. What a repair rewrites is XML of a
+    few tens of kilobytes; what it leaves alone — the images — keeps its compression.
+    """
+    unknown = [name for name in replace if name not in {e.name for e in ents}]
+    if unknown:
+        # a name that is not in the package would leave the file unchanged, quietly
+        raise PackageError("the package has no entry named '" + unknown[0] + "'")
+    out, central, offset = bytearray(), bytearray(), 0
+    for e in ents:
+        if e.name in replace:
+            data = replace[e.name]
+            flags, method, crc = e.flags & 0x800, 0, zlib.crc32(data)
+            payload, sizes = data, (len(data), len(data))
+        else:
+            flags, method, crc = e.flags & 0x800, e.method, e.crc
+            payload, sizes = raw(b, e), (e.compress_size, e.file_size)
+        # _u32(mod) is the entry's DOS time and date, in the two places pack() writes them
+        fields = (_u16(flags) + _u16(method) + _u32(e.mod) + _u32(crc)
+                  + _u32(sizes[0]) + _u32(sizes[1]) + _u16(len(e.name_bytes)) + _u16(0))
+        local = _u32(SIG_LOCAL) + _u16(20) + fields
+        out += local + e.name_bytes + payload
+        central += _u32(SIG_CENTRAL) + _u16(e.made_by) + _u16(20) + fields + _u16(0) + _u16(0) + _u16(0) + _u32(e.attrs) + _u32(offset) + e.name_bytes
+        offset += len(local) + len(e.name_bytes) + len(payload)
+    end = _u32(SIG_END) + _u16(0) + _u16(0) + _u16(len(ents)) + _u16(len(ents)) + _u32(len(central)) + _u32(offset) + _u16(0)
     return bytes(out + central + end)
 
 
@@ -108,6 +156,7 @@ def entries(b: bytes) -> list[Entry]:
         if p + 46 > record or _rd(b, p, 4) != SIG_CENTRAL:
             raise PackageError("bad central directory record")
         flags, method, crc = _rd(b, p + 8, 2), _rd(b, p + 10, 2), _rd(b, p + 16, 4)
+        mod, made_by, attrs = _rd(b, p + 12, 4), _rd(b, p + 4, 2), _rd(b, p + 38, 4)
         compress_size, file_size = _rd(b, p + 20, 4), _rd(b, p + 24, 4)
         name_len, extra_len, comment_len = _rd(b, p + 28, 2), _rd(b, p + 30, 2), _rd(b, p + 32, 2)
         header_offset = _rd(b, p + 42, 4)
@@ -137,7 +186,7 @@ def entries(b: bytes) -> list[Entry]:
                         raise PackageError("zip64 field too short")
                     header_offset, q = _rd(b, q, 8), q + 8
             x += 4 + field_len
-        found.append(Entry(name, name_bytes, flags, method, crc, compress_size, file_size, header_offset + concat))
+        found.append(Entry(name, name_bytes, flags, method, crc, compress_size, file_size, header_offset + concat, mod, made_by, attrs))
         p = extra_end + comment_len
     if p != record or len(found) != count:
         raise PackageError("central directory does not add up")

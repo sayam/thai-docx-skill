@@ -247,6 +247,55 @@ function packZip(parts) {
   return concatBytes([...chunks, ...central, eocd]);
 }
 
+// The package again, in the order it had: an entry named in `replace` is written anew and
+// **stored**, every other entry keeps the bytes it already had — its method, its checksum,
+// its sizes and its date (ADR 0032). Stored, not deflated, for the reason ADR 0008 gives:
+// two implementations must write the same bytes, and no two deflate libraries promise that.
+function repackZip(b, ents, replace) {
+  const names = new Set(ents.map((e) => e.name));
+  for (const name of Object.keys(replace)) {
+    // a name that is not in the package would leave the file unchanged, quietly
+    if (!names.has(name)) throw new ZipError("the package has no entry named '" + name + "'");
+  }
+  const chunks = [];
+  const central = [];
+  let offset = 0;
+  for (const e of ents) {
+    const replacing = Object.prototype.hasOwnProperty.call(replace, e.name);
+    const payload = replacing ? replace[e.name] : rawZipEntry(b, e);
+    const flags = e.flags & 0x800;
+    const method = replacing ? 0 : e.method;
+    const crc = replacing ? crc32(payload) : e.crc;
+    const csize = replacing ? payload.length : e.compressSize;
+    const usize = replacing ? payload.length : e.fileSize;
+    const fields = [...u16(flags), ...u16(method), ...u32(e.mod), ...u32(crc),
+      ...u32(csize), ...u32(usize), ...u16(e.nameBytes.length), ...u16(0)];
+    const local = new Uint8Array([...u32(SIG_LOCAL), ...u16(20), ...fields]);
+    chunks.push(local, e.nameBytes, payload);
+    central.push(new Uint8Array([
+      ...u32(SIG_CENTRAL), ...u16(e.madeBy), ...u16(20), ...fields,
+      ...u16(0), ...u16(0), ...u16(0), ...u32(e.attrs), ...u32(offset),
+    ]), e.nameBytes);
+    offset += local.length + e.nameBytes.length + payload.length;
+  }
+  let cdSize = 0;
+  for (const c of central) cdSize += c.length;
+  const eocd = new Uint8Array([
+    ...u32(SIG_END), ...u16(0), ...u16(0), ...u16(ents.length), ...u16(ents.length),
+    ...u32(cdSize), ...u32(offset), ...u16(0),
+  ]);
+  return concatBytes([...chunks, ...central, eocd]);
+}
+
+// One entry's bytes **as the package holds them** — still compressed, if it is.
+function rawZipEntry(b, e) {
+  const h = e.headerOffset;
+  if (rd(b, h, 4) !== SIG_LOCAL) throw new ZipError("bad local header");
+  const start = h + 30 + rd(b, h + 26, 2) + rd(b, h + 28, 2);
+  if (start + e.compressSize > b.length) throw new ZipError("entry runs past the end");
+  return b.subarray(start, start + e.compressSize);
+}
+
 // --- reading ------------------------------------------------------------------------
 
 // cp437, for entry names written without the UTF-8 flag (as zipfile decodes them)
@@ -308,6 +357,7 @@ function readZipDirectory(b) {
   while (p < record) {
     if (p + 46 > record || rd(b, p, 4) !== SIG_CENTRAL) throw new ZipError("bad central directory record");
     const flags = rd(b, p + 8, 2), method = rd(b, p + 10, 2), crc = rd(b, p + 16, 4);
+    const mod = rd(b, p + 12, 4), madeBy = rd(b, p + 4, 2), attrs = rd(b, p + 38, 4);
     let compressSize = rd(b, p + 20, 4), fileSize = rd(b, p + 24, 4);
     const nameLen = rd(b, p + 28, 2), extraLen = rd(b, p + 30, 2), commentLen = rd(b, p + 32, 2);
     let headerOffset = rd(b, p + 42, 4);
@@ -334,7 +384,7 @@ function readZipDirectory(b) {
       }
       x = fieldEnd;
     }
-    entries.push({ name, nameBytes, flags, method, crc, compressSize, fileSize, headerOffset: headerOffset + concat });
+    entries.push({ name, nameBytes, flags, method, crc, compressSize, fileSize, headerOffset: headerOffset + concat, mod, madeBy, attrs });
     p = extraEnd + commentLen;
   }
   if (p !== record || entries.length !== count) throw new ZipError("central directory does not add up");
@@ -5657,7 +5707,7 @@ function checkDocument(bytes) {
   return JSON.parse(pyDumps(checkBytes(bytes, "<bytes>").asDict()));
 }
 
-const api = { VERSION, buildDocument, checkDocument, buildText, checkBytes, parseMarkdown, plainText, parseArgs, pyDumps, DEFAULTS, SETTINGS, QUESTIONS, cliMain };
+const api = { VERSION, buildDocument, checkDocument, buildText, checkBytes, parseMarkdown, plainText, parseArgs, pyDumps, DEFAULTS, SETTINGS, QUESTIONS, cliMain, readZipDirectory, repackZip };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 root.ThaiDocx = api;
 if (typeof require !== "undefined" && typeof module !== "undefined" && require.main === module) process.exitCode = cliMain(process.argv.slice(2));

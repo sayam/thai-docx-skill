@@ -55,6 +55,12 @@ gates:
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_oracle.py]}
     proved_by: docs/evidence/2026-09-15-parser-held-to-references.md
+  - id: repack-keeps-what-it-did-not-write
+    title: A package written back with nothing replaced is the same bytes, and a package with one part rewritten keeps every other entry's compressed bytes, method, checksum and date, in both implementations (ADR 0032, 0008)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_repack.py]}
+    proved_by: docs/evidence/2026-09-18-a-package-comes-back-as-it-went-in.md
   - id: javascript-matches-python
     title: The JavaScript file reads Markdown, writes .docx bytes, reports on sound and damaged packages and answers on the command line exactly as the Python package does (ADR 0008, 0017), stays within the script limits (ADR 0030), and is the bundle its committed sources build
     kind: test

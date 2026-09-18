@@ -41,6 +41,20 @@ if (req.op === "ast") {
       return { crash: String(e && e.stack) };
     }
   });
+} else if (req.op === "repack") {
+  // the package again, with the named parts rewritten: the bytes, base64
+  out = req.cases.map((c) => {
+    try {
+      const b = new Uint8Array(Buffer.from(c.package, "base64"));
+      const replace = {};
+      for (const [k, v] of Object.entries(c.replace || {})) replace[k] = new Uint8Array(Buffer.from(v, "base64"));
+      const again = T.repackZip(b, T.readZipDirectory(b), replace);
+      return { bytes: Buffer.from(again).toString("base64") };
+    } catch (e) {
+      if (e && e.message !== undefined) return { error: e.message };
+      return { crash: String(e && e.stack) };
+    }
+  });
 } else if (req.op === "check") {
   out = req.packages.map((b64) => {
     try {
