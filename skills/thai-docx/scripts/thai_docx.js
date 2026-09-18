@@ -856,6 +856,7 @@ function isThai(ch) {
 class Report {
   constructor(label) {
     this.path = label;
+    this.error = null;  // the path could not be read at all: not about the document
     this.findings = [];
     this.warnings = [];
     this.counts = {};
@@ -872,10 +873,11 @@ class Report {
   }
 
   get ok() {
-    return this.findings.length === 0;
+    return this.error === null && this.findings.length === 0;
   }
 
   asDict() {
+    if (this.error !== null) return { ok: false, file: this.path, error: this.error };
     return { ok: this.ok, file: this.path, counts: this.counts, findings: this.findings, warnings: this.warnings };
   }
 }
@@ -5571,8 +5573,12 @@ function nodeCheck(argv) {
     } finally {
       fs.closeSync(fd);
     }
-  } catch {
-    bytes = new Uint8Array(0); // judged like any other file that is no zip
+  } catch (e) {
+    // a name typed wrong is not a damaged document: `error`, as `build` answers it
+    const report = new Report(argv[0]);
+    report.error = "cannot read " + argv[0] + ": " + osError(e);
+    process.stdout.write(pyDumps(report.asDict()) + "\n");
+    return 2;
   }
   const report = checkBytes(bytes, argv[0]);
   process.stdout.write(pyDumps(report.asDict()) + "\n");

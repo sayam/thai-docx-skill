@@ -4,8 +4,10 @@ Read this when `thai_docx check` has reported (SKILL.md, Check an existing .docx
 
 ## Codes
 
-Exit 0: no findings. Exit 1: findings. Exit 2: not a readable .docx (or refused as
-unsafe). Explain each finding by its code, in the user's language:
+Exit 0: no findings. Exit 1: findings. Exit 2: the file could not be read, is not a
+.docx, or was refused as unsafe. A path that cannot be read answers with `error`
+("cannot read …: No such file or directory") and no findings — that is a name to fix,
+not a damaged document. Explain each finding by its code, in the user's language:
 
 | code | what is wrong | what the user sees |
 |---|---|---|

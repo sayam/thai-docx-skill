@@ -141,8 +141,12 @@ function nodeCheck(argv) {
     } finally {
       fs.closeSync(fd);
     }
-  } catch {
-    bytes = new Uint8Array(0); // judged like any other file that is no zip
+  } catch (e) {
+    // a name typed wrong is not a damaged document: `error`, as `build` answers it
+    const report = new Report(argv[0]);
+    report.error = "cannot read " + argv[0] + ": " + osError(e);
+    process.stdout.write(pyDumps(report.asDict()) + "\n");
+    return 2;
   }
   const report = checkBytes(bytes, argv[0]);
   process.stdout.write(pyDumps(report.asDict()) + "\n");

@@ -19,7 +19,6 @@ standard library, so the JavaScript port can say exactly the same (ADR 0015).
 
 from __future__ import annotations
 
-import errno
 import hashlib
 import io
 import json
@@ -37,16 +36,7 @@ from .settings import (  # noqa: F401  the names callers know the build's settin
     DEFAULTS, PAPER, USAGE, BuildError, parse_args, settings_json, settings_warnings,
 )
 
-_OS_ERRORS = {
-    errno.ENOENT: "No such file or directory",
-    errno.EACCES: "Permission denied",
-    errno.EISDIR: "Is a directory",
-    errno.ENOTDIR: "Not a directory",
-}
-
-
-def os_error(exc: OSError) -> str:
-    return _OS_ERRORS.get(exc.errno, "cannot be read")
+os_error = package.os_error  # the same words for the same errno in build and check
 
 
 pack = package.pack  # stored entries, fixed metadata (ADR 0017)
