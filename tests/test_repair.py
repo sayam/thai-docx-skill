@@ -7,6 +7,7 @@ every other one.
 
 from __future__ import annotations
 
+import json
 import pathlib
 import zipfile
 
@@ -100,29 +101,81 @@ def test_the_text_comes_through_character_for_character(tmp_path):
 
 
 def test_every_part_it_did_not_write_keeps_its_bytes(tmp_path):
-    """ADR 0032: everything untouched comes through byte for byte, still compressed."""
+    """ADR 0032: everything untouched comes through byte for byte, still compressed. The
+    parts it did write are stored, so they are the ones whose method changed."""
     src = FIXTURES / "legacy-python-docx-default.docx"
     b = src.read_bytes()
     out = tmp_path / "out.docx"
     assert rp.repair(str(src), str(out))["ok"]
     got = out.read_bytes()
     before = {e.name: e for e in pk.entries(b)}
+    rewritten, kept = 0, 0
     for e in pk.entries(got):
-        if e.name == "word/settings.xml":
+        was = before[e.name]
+        if e.method == 0 and was.method != 0:
+            rewritten += 1
             continue
-        assert pk.raw(got, e) == pk.raw(b, before[e.name]), e.name
-        assert (e.method, e.crc) == (before[e.name].method, before[e.name].crc), e.name
+        kept += 1
+        assert pk.raw(got, e) == pk.raw(b, was), e.name
+        assert (e.method, e.crc, e.mod) == (was.method, was.crc, was.mod), e.name
+    assert rewritten == 4 and kept == 13, (rewritten, kept)  # document, styles, settings, numbering
 
 
 def test_findings_this_version_does_not_repair_are_reported_and_left(tmp_path):
-    """A file whose only fault is one this version does not make: nothing is written."""
-    parts = replaced(good(), "word/document.xml", run("ข้อความทดสอบ "), "<w:r><w:rPr/><w:t>ข้อความทดสอบ </w:t></w:r>")
+    """A word split across two runs (code 4) waits for v0.3: nothing is written for it."""
+    parts = replaced(good(), "word/document.xml", run("รายการ"), run("ราย") + run("การ"))
     src = written(tmp_path, parts)
     out = tmp_path / "out.docx"
     result = rp.repair(str(src), str(out))
     assert not result["ok"] and not out.exists()
     assert "nothing here is a repair this version makes" in result["error"]
-    assert "2" in codes(result["remaining"])
+    assert codes(result["remaining"]) == {"4": 1}
+
+
+def test_a_run_with_no_marks_at_all_is_marked(tmp_path):
+    """Code 2, the commonest finding: <w:cs/> and a Thai w:lang, in schema order."""
+    parts = replaced(good(), "word/document.xml", run("ข้อความทดสอบ "), "<w:r><w:t>ข้อความทดสอบ </w:t></w:r>")
+    out = tmp_path / "out.docx"
+    result = rp.repair(str(written(tmp_path, parts)), str(out))
+    assert result["ok"] and result["repaired"] == {"2": 2} and result["remaining"] == []
+    document = parts_of(out)["word/document.xml"]
+    assert b'<w:rPr><w:cs/><w:lang w:bidi="th-TH"/></w:rPr><w:t>' in document
+    assert check(out).findings == []
+
+
+def test_a_latin_property_gets_its_complex_script_twin(tmp_path):
+    parts = replaced(good(), "word/styles.xml", '<w:sz w:val="40"/><w:szCs w:val="40"/>', '<w:sz w:val="40"/>')
+    out = tmp_path / "out.docx"
+    result = rp.repair(str(written(tmp_path, parts)), str(out))
+    assert result["ok"] and result["repaired"] == {"5": 1}
+    assert b'<w:sz w:val="40"/><w:szCs w:val="40"/>' in parts_of(out)["word/styles.xml"]
+
+
+def test_the_font_for_a_run_that_names_none_is_chosen_and_reported(tmp_path):
+    """ADR 0032's order: what the command was given, else the document's own, else ours."""
+    parts = replaced(good(), "word/document.xml", "<w:rPr>", '<w:rPr><w:rFonts w:ascii="Calibri"/>', count=1)
+    src = written(tmp_path, parts)
+    out = tmp_path / "out.docx"
+
+    asked = rp.repair(str(src), str(out), "Noto Sans Thai")
+    assert b'w:cs="Noto Sans Thai"' in parts_of(out)["word/document.xml"]
+    assert "the font the command was given" in asked["warnings"][0]["message"]
+    assert "Noto Sans Thai" in asked["warnings"][0]["message"]
+
+    out.unlink()
+    its_own = rp.repair(str(src), str(out))
+    # the fixture's docDefaults already name TH Sarabun New as the complex-script font
+    assert b'w:cs="TH Sarabun New"' in parts_of(out)["word/document.xml"]
+    assert "the complex-script font this document uses most" in its_own["warnings"][0]["message"]
+
+
+def test_a_symbol_bullet_gets_a_font_with_thai_in_it(tmp_path):
+    parts = replaced(good(), "word/numbering.xml", '<w:rFonts w:ascii="TH Sarabun New" w:hAnsi="TH Sarabun New" w:cs="TH Sarabun New"/>',
+                     '<w:rFonts w:ascii="Symbol" w:hAnsi="Symbol" w:cs="Symbol"/>')
+    out = tmp_path / "out.docx"
+    result = rp.repair(str(written(tmp_path, parts)), str(out))
+    assert result["ok"] and result["repaired"]["5"] >= 1
+    assert b"Symbol" not in parts_of(out)["word/numbering.xml"]
 
 
 def test_a_clean_file_is_left_alone(tmp_path):
@@ -155,10 +208,10 @@ def test_a_file_it_cannot_read_is_refused_not_repaired(tmp_path):
 # --- the command ---------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("argv", [[], ["one.docx"], ["a", "b", "c"]])
-def test_the_command_takes_two_paths(argv, capsys):
+@pytest.mark.parametrize("argv", [[], ["one.docx"], ["a", "b", "c"], ["a", "b", "--font"], ["a", "b", "--size", "14"]])
+def test_the_command_takes_two_paths_and_one_flag(argv, capsys):
     assert rp.main(argv) == 2
-    assert rp.USAGE in capsys.readouterr().out
+    assert json.loads(capsys.readouterr().out)["error"] == rp.USAGE
 
 
 def test_exit_codes_say_what_happened(tmp_path, capsys):
@@ -166,7 +219,9 @@ def test_exit_codes_say_what_happened(tmp_path, capsys):
     clean = replaced(good(), "word/settings.xml", 'w:val="15"', 'w:val="14"')
     assert rp.main([str(written(tmp_path, clean)), str(tmp_path / "a.docx")]) == 0
     capsys.readouterr()
-    assert rp.main([str(FIXTURES / "legacy-python-docx-default.docx"), str(tmp_path / "b.docx")]) == 1
+    four = replaced(good(), "word/document.xml", run("รายการ"), run("ราย") + run("การ"))
+    four = replaced(four, "word/settings.xml", 'w:val="15"', 'w:val="14"')
+    assert rp.main([str(written(tmp_path, four, "four.docx")), str(tmp_path / "b.docx")]) == 1
     capsys.readouterr()
     assert rp.main([str(GOLDEN / "sample-default.docx"), str(tmp_path / "c.docx")]) == 2
 
