@@ -19,6 +19,10 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Added
 
+- WPS Writer re-checked (11.1.0.11723): both fixes of 0.1.0 hold there, the three lists fill on
+  open, and what WPS draws its own way is recorded — including a new one, the numbering value 1
+  drawn as ๕ under `--thai-digits`. The check also found that the task-list boxes `☐` and `☑` are
+  written in Segoe UI Symbol, which no Linux machine has, so they draw as nothing outside Windows.
 - The two installers are held by tests, not only by a promise. The archive and the subtree
   `skills/thai-docx/` that `gh skill install` and `npx skills add` copy must be the same files
   **and the same bytes**; and the front matter must survive being written again the way
