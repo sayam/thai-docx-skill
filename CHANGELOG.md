@@ -19,6 +19,14 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Added
 
+- A package can be written back as it came. `package.repack` (and `repackZip` in JavaScript) writes
+  the entries in the order they had, copying the compressed bytes of every entry it was not asked to
+  replace — method, checksum, sizes, date, "version made by" and attributes kept — and storing only
+  the parts given anew. Every package in this repository, written back with nothing replaced, is
+  byte for byte the file that went in. It is the first step of v0.2's repair (ADR 0032): the
+  builder's packer stores every entry, which would hand a user's own document back about twenty
+  times larger.
+
 - The build names what it did not write, without refusing anything: an image with nothing between
   the brackets of `![]`, a heading level skipped, a link definition nobody refers to, and a
   paragraph opening with `ตาราง:` or `รูป:` where a caption would go. `grill` says when a message

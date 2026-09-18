@@ -25,7 +25,7 @@ OUT = SKILL / "scripts" / "thai_docx.js"
 SPDX = re.compile(r"\A(?://[ ]SPDX-[\w-]+:[ ][^\n]*\n)+")
 # what the bundle hands a caller, as `module.exports` and as `ThaiDocx`
 API = ("VERSION", "buildDocument", "checkDocument", "buildText", "checkBytes", "parseMarkdown", "plainText", "parseArgs", "pyDumps",
-       "DEFAULTS", "SETTINGS", "QUESTIONS", "cliMain")
+       "DEFAULTS", "SETTINGS", "QUESTIONS", "cliMain", "readZipDirectory", "repackZip")
 
 
 def bundle() -> str:
