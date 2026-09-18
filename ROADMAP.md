@@ -12,7 +12,7 @@ Four things, decided 2026-09-18.
 | 1 | **Repair a `.docx` this skill did not write** — attributes only, never the text | [ADR 0032](docs/adr/0032-repair-rewrites-attributes-never-the-text.md) | done: findings 1, 2, 3, 5 and the property order, in a file about the size it was; the split word waits for v0.3 and invisible characters are never removed |
 | 2 | **`gh skill install` and `npx skills add`** held by a test, and the difference between them written in the guides | below | done 2026-09-19 |
 | 3 | **The attestation attached to the release as a file** | [evidence](docs/evidence/2026-09-18-the-release-carries-its-attestation.md) | done 2026-09-18 |
-| 4 | **WPS Writer re-checked** after the fixes of 0.1.0, and what it still draws its own way recorded | below | to do |
+| 4 | **WPS Writer re-checked** after the fixes of 0.1.0, and what it still draws its own way recorded | [evidence](docs/evidence/2026-09-19-wps-writer.md) | done 2026-09-19 |
 
 **Repair.** `thai_docx repair IN.docx OUT.docx` writes a new file, changing only what makes Thai
 render wrongly: findings `1`, `2`, `3`, `5` and `order`. A word split across two runs (`4`) is
@@ -38,11 +38,14 @@ way an installer writes it. Both guides say which installer gives which version,
 and `gh skill preview`. What is left is the smoke run after each release, which reaches the network
 and belongs to a dated record rather than to the suite.
 
-**WPS Writer.** Two fixes landed after the last check — the line before a hard break no longer
-spreads letter by letter under `--align thai`, and a heading's number takes the heading's own size,
-font and weight — and nobody has opened the files in WPS since. The re-check confirms those two,
-and records what WPS draws its own way (chapter numbers through a legacy code page, SARA AM
-placement) as differences rather than defects, with Word 365 for Windows as the reference.
+**WPS Writer.** Re-checked on 2026-09-19 in WPS Writer 11.1.0.11723: both fixes hold — the line
+before a hard break no longer spreads under `--align thai`, and a heading's number takes the
+heading's own size, font and weight — and the three lists fill on open. What WPS draws its own way
+is recorded as a difference: the chapter label through a legacy code page, SARA AM's placement, and
+a new one, the numbering value 1 drawn as ๕ under `--thai-digits`. The check also found something
+that **is** ours: the task-list boxes are written in Segoe UI Symbol, which no Linux machine has, so
+they draw as nothing outside Windows. Naming a font that exists where a document will be read is a
+decision waiting on the maintainer, beside the other two.
 
 ## Will do
 
