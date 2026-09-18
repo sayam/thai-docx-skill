@@ -14,6 +14,7 @@ import zipfile
 import pytest
 
 from docx_fixture import good, pack, replaced, run
+from thai_docx import ooxml
 from thai_docx import package as pk
 from thai_docx import repair as rp
 from thai_docx.check import check
@@ -88,6 +89,39 @@ def test_both_findings_at_once(tmp_path):
     assert result["repaired"] == {"1": 1, "3": 1} and check(out).findings == []
 
 
+def test_properties_out_of_order_are_put_back_in_it(tmp_path):
+    """The schema fixes the order of a run's and a paragraph's properties, and Word ignores
+    one that comes in the wrong place. Repairing it moves nothing else."""
+    parts = replaced(good(), "word/document.xml", '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>',
+                     '<w:lang w:val="en-US" w:bidi="th-TH"/><w:cs/>')
+    src = written(tmp_path, parts)
+    assert codes(check(src).findings) == {"order": 1}
+    out = tmp_path / "out.docx"
+    result = rp.repair(str(src), str(out))
+    assert result["ok"] and result["repaired"] == {"order": 1}
+    assert check(out).findings == []
+
+
+def test_an_element_the_schema_does_not_name_keeps_its_place():
+    """The checker skips an extension element, so moving one would change more than the
+    finding asked for. The ordered ones fill the places they already occupied."""
+    mixed = b'<w:rPr><w:sz w:val="32"/><w:somethingElse/><w:b/></w:rPr>'
+    out, n = rp.reorder(mixed, b"w:rPr", ooxml.RPR_ORDER)
+    assert n == 1
+    assert out == b'<w:rPr><w:b/><w:somethingElse/><w:sz w:val="32"/></w:rPr>'
+
+
+def test_two_children_of_one_name_keep_the_order_they_were_written_in():
+    twice = b'<w:rPr><w:sz w:val="32"/><w:b w:val="1"/><w:b w:val="0"/></w:rPr>'
+    out, _n = rp.reorder(twice, b"w:rPr", ooxml.RPR_ORDER)
+    assert out == b'<w:rPr><w:b w:val="1"/><w:b w:val="0"/><w:sz w:val="32"/></w:rPr>'
+
+
+def test_properties_already_in_order_are_not_touched():
+    right = b'<w:rPr><w:b/><w:sz w:val="32"/></w:rPr>'
+    assert rp.reorder(right, b"w:rPr", ooxml.RPR_ORDER) == (right, 0)
+
+
 # --- what it must not do -------------------------------------------------------------
 
 
@@ -138,7 +172,7 @@ def test_findings_this_version_does_not_repair_are_reported_and_left(tmp_path):
     result = rp.repair(str(src), str(out))
     assert not result["ok"] and not out.exists()
     assert "nothing here is a repair this version makes" in result["error"]
-    assert codes(result["remaining"]) == {"4": 1}
+    assert codes(result["remaining"]) == {"4": 1}  # a split word waits for v0.3
 
 
 def test_a_run_with_no_marks_at_all_is_marked(tmp_path):

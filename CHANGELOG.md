@@ -21,9 +21,11 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 - `thai_docx repair IN.docx OUT.docx` — the repairs of v0.2 (ADR 0032). It clears findings `1`
   (compatibility mode 15), `2` (`<w:cs/>` and a Thai `w:lang` on every run with text), `3`
-  (`<w:noProof/>` removed) and `5` (the complex-script twins, a `w:cs` font, a Thai-capable bullet
-  font), writes a **new** file, reports `4`, `invisible` and `order` in `remaining`, and refuses to
-  write at all if the text would differ by one character. New elements go where the schema puts
+  (`<w:noProof/>` removed), `5` (the complex-script twins, a `w:cs` font, a Thai-capable bullet
+  font) and `order` (a run's, a paragraph's and the settings' properties put back in the order the
+  schema fixes, with anything the schema does not name left where it is). It writes a **new** file,
+  reports `4` and `invisible` in `remaining` — repairing either would change the user's text — and
+  refuses to write at all if the text would differ by one character. New elements go where the schema puts
   them, so a repair never trades one finding for another.
 - The font a run without one is given: `--font` if you name it, else the complex-script font the
   document already uses most — counting only fonts known to carry Thai — else this skill's default.

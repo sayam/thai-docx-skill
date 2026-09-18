@@ -165,6 +165,41 @@ function fixRpr(inner, font, markThai) {
   return [children.map(([, raw]) => raw).join(""), two, five];
 }
 
+// Every `element` in the part with its children in the order the schema fixes.
+//
+// The elements the schema names are put in that order, **in the places they already occupy**;
+// anything it does not name keeps its own place, because the checker skips those and moving
+// them would change more than the finding asked for. A permutation is the same bytes in a
+// different order, so the part's length never changes and the positions of the other elements
+// hold while this walks them.
+function reorder(xml, element, order) {
+  const rank = new Map(order.map((name, i) => [name, i]));
+  const starts = [];
+  const re = new RegExp("<" + element + "(?:\\s[^<>]*?)?>", "g");
+  for (let m = re.exec(xml); m !== null; m = re.exec(xml)) starts.push(m.index + m[0].length);
+  let count = 0;
+  for (let k = starts.length - 1; k >= 0; k--) {  // inner elements first: they sit further on
+    const at = starts[k];
+    const [innerEnd] = endOf(xml, at, element);
+    const children = childrenOf(xml.slice(at, innerEnd));
+    const known = [];
+    for (let i = 0; i < children.length; i++) {
+      if (rank.has(children[i][0].slice(2))) known.push([i, children[i]]);
+    }
+    if (known.length < 2) continue;
+    // a stable sort, so two children of one name keep the order they were written in
+    const ordered = known.map((pair, i) => [pair, i])
+      .sort((a, b) => (rank.get(a[0][1][0].slice(2)) - rank.get(b[0][1][0].slice(2))) || (a[1] - b[1]))
+      .map(([pair]) => pair);
+    if (known.every((pair, i) => pair[1][1] === ordered[i][1][1])) continue;
+    const put = children.slice();
+    for (let i = 0; i < known.length; i++) put[known[i][0]] = ordered[i][1];
+    xml = xml.slice(0, at) + put.map(([, raw]) => raw).join("") + xml.slice(innerEnd);
+    count += 1;
+  }
+  return [xml, count];
+}
+
 function fixRuns(xml, font, counts) {
   let out = "", pos = 0;
   const re = new RegExp(RE_RUN_START.source, "g");
@@ -296,6 +331,25 @@ function repairParts(parts, findings, font) {
       if (n) {
         replace.set(name, utf8(xml));
         repaired["3"] = (repaired["3"] || 0) + n;
+      }
+    }
+  }
+  if (codes.has("order")) {
+    // runs first, then paragraphs: a w:pPr holds a w:rPr, and moving a whole child keeps the
+    // order already put right inside it
+    for (const [name, bytes] of parts) {
+      const mine = TEXT_PARTS.test(name) ||
+        ["word/styles.xml", "word/numbering.xml", "word/settings.xml"].includes(name);
+      if (!mine) continue;
+      let out = fromUtf8(replace.get(name) || bytes), n = 0;
+      for (const [element, table] of [["w:rPr", RPR_ORDER], ["w:pPr", PPR_ORDER], ["w:settings", SETTINGS_ORDER]]) {
+        const [put, some] = reorder(out, element, table);
+        out = put;
+        n += some;
+      }
+      if (n) {
+        replace.set(name, utf8(out));
+        repaired["order"] = (repaired["order"] || 0) + n;
       }
     }
   }

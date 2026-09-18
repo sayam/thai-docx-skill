@@ -417,7 +417,7 @@ does not work.
 
 3. The assistant explains each problem and what it does to the file.
 
-The skill can repair four of the seven faults with `repair` at the command line, including the
-marks every Thai run needs; a split word, invisible characters and misordered properties are
-reported instead. If you have the content, making a new file with scenario 1 or 2 fixes
-everything.
+The skill can repair five of the seven faults with `repair` at the command line, including the
+marks every Thai run needs; a split word and invisible characters are reported instead, because
+fixing either would change your text. If you have the content, making a new file with scenario 1
+or 2 fixes everything.
