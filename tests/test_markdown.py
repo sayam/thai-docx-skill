@@ -387,3 +387,16 @@ def test_nesting_past_the_limit_stops_with_its_line():
     with pytest.raises(md.Unsupported, match="inline formatting nested more than") as e:
         md.parse("ก\n\nข\n\n" + "*ก " * md.MAX_DEPTH + "ข" + " ก*" * md.MAX_DEPTH + "\n")
     assert e.value.line == 5
+
+
+def test_sara_am_written_the_long_way_is_named_and_left_alone():
+    # ADR 0034: ํ+า looks exactly like ำ and no normalisation joins them — NFKC goes the
+    # other way. The build says so and writes what the author typed, character for character.
+    doc = md.parse("การทำงาน\n\nการทํางาน\n")
+    assert [n["s"] for n in doc.blocks[0]["inlines"]] == ["การทำงาน"]
+    assert [n["s"] for n in doc.blocks[1]["inlines"]] == ["การทํางาน"]
+    assert doc.blocks[1]["inlines"][0]["s"] == "การทํางาน"
+    assert len(doc.warnings) == 1
+    assert doc.warnings[0].startswith("line 3: ํ followed by า")
+    assert "ำ" in doc.warnings[0]
+    assert md.parse("การทำงาน\n").warnings == []

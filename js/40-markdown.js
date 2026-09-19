@@ -28,6 +28,8 @@ class Unsupported extends Error {
 const WS = " \t\n\x0b\x0c\r";
 const RE_ZS = /^\p{Zs}$/u;
 const RE_PS = /^[\p{P}\p{S}]$/u;
+// ำ has a compatibility decomposition into these two, and no composition back (ADR 0034)
+const NIKHAHIT = "\u0e4d", SARA_AA = "\u0e32", SARA_AM = "\u0e33";
 
 function isSpaceOrTab(ch) {
   return ch === " " || ch === "\t";
@@ -1685,11 +1687,15 @@ function parseMarkdown(text) {
   if (text.startsWith("﻿")) text = text.slice(1);
   text = text.normalize("NFC");
   const rawLines = text.split("\n");
+  const longSaraAm = [];
   for (let no = 1; no <= rawLines.length; no++) {
     for (const ch of rawLines[no - 1]) {
       const label = forbiddenChar(ch);
       if (label !== null) throw new Unsupported(no, "text contains " + label + "; the build refuses it (ADR 0005, 0015)");
     }
+    // ำ written the long way. No normalisation joins these: NFC leaves them apart and NFKC
+    // takes ำ the other way, into these two. So it is named and left alone (ADR 0034).
+    if (rawLines[no - 1].includes(NIKHAHIT + SARA_AA)) longSaraAm.push(no);
   }
   const lines = text.split("\n");
   const offset = frontMatter(lines, doc);
@@ -1711,6 +1717,11 @@ function parseMarkdown(text) {
       bp.warnings.push("line " + line + ": the link definition [" + written
         + "] is never used; it is not written into the document");
     }
+  }
+  for (const no of longSaraAm) {
+    bp.warnings.push("line " + no + ": " + NIKHAHIT + " followed by " + SARA_AA + " looks like "
+      + SARA_AM + " but is two characters; it is written as it stands and a search for "
+      + SARA_AM + " will not find it");
   }
   doc.warnings = bp.warnings
     .map((m, k) => [parseInt(m.split(":")[0].split(" ")[1], 10), k, m])

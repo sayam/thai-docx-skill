@@ -48,6 +48,13 @@ so they drew as nothing outside Windows. Fixed by ADR 0033 — `□` and `■` i
 the bytes of any document with a task list, so the five applications of ADR 0012 are due a look
 before the next release.
 
+**Two characters that look like one.** ำ typed the long way (`ํ` + `า`) and `&nbsp;` were the two
+questions left over that touch the author's own text. Both are settled by
+[ADR 0034](docs/adr/0034-two-characters-that-look-like-one.md) without changing a byte a document
+carries: the long form gets a build warning naming its line, because no Unicode normalisation joins
+the pair and joining it ourselves would be the build editing a thesis; `&nbsp;` keeps CommonMark's
+reading, which the Markdown reference already states.
+
 ## Will do
 
 **Stay correct where users open the files**

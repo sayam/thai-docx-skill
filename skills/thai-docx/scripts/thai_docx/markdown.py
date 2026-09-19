@@ -64,6 +64,8 @@ class Unsupported(Exception):
 
 ASCII_PUNCT = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 _WS = " \t\n\x0b\x0c\r"
+# ำ has a compatibility decomposition into these two, and no composition back (ADR 0034)
+NIKHAHIT, SARA_AA, SARA_AM = "\u0e4d", "\u0e32", "\u0e33"
 
 
 def is_space_or_tab(ch: str) -> bool:
@@ -1775,11 +1777,16 @@ def parse(text: str) -> Document:
     if text.startswith("\ufeff"):
         text = text[1:]
     text = unicodedata.normalize("NFC", text)
+    long_sara_am: list[int] = []
     for no, ln in enumerate(text.split("\n"), 1):
         for ch in ln:
             label = forbidden_char(ch)
             if label is not None:
                 raise Unsupported(no, f"text contains {label}; the build refuses it (ADR 0005, 0015)")
+        # ำ written the long way. No normalisation joins these: NFC leaves them apart and NFKC
+        # takes ำ the other way, into these two. So it is named and left alone (ADR 0034).
+        if NIKHAHIT + SARA_AA in ln:
+            long_sara_am.append(no)
     lines = text.split("\n")
     offset = _front_matter(lines, doc)
     # front matter lines become blank lines, so every line number stays true
@@ -1799,6 +1806,10 @@ def parse(text: str) -> Document:
         if label not in bp.refs_used:
             bp.warnings.append("line " + str(line) + ": the link definition [" + written
                                + "] is never used; it is not written into the document")
+    for no in long_sara_am:
+        bp.warnings.append("line " + str(no) + ": " + NIKHAHIT + " followed by " + SARA_AA + " looks like "
+                           + SARA_AM + " but is two characters; it is written as it stands and a search for "
+                           + SARA_AM + " will not find it")
     doc.warnings = sorted(bp.warnings, key=lambda m: int(m.split(":")[0].split()[1]))
     return doc
 
