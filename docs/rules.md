@@ -165,10 +165,34 @@ CI เป็นพร็อกซี (XML / fidelity / schema) ไม่ใช�
 
 ---
 
+# ร่องรอย — กฎข้อไหนถูกใช้ที่ไหน
+
+กฎเป็นข้อความที่ใช้ตัดสิน บันทึกการตัดสินใจคือร่องรอยว่ากฎถูกใช้กับเรื่องจริงอย่างไร
+และบันทึกใน `docs/evidence/` คือสิ่งที่เห็นกับตา บันทึกไม่ได้อยู่เหนือกฎ และกฎไม่ได้แทนบันทึก
+
+อ้างได้เฉพาะบันทึกที่ยังมีผล เมื่อบันทึกถูกแทนที่ ต้องย้ายมาอ้างฉบับที่แทน
+
+| กฎ | บันทึกการตัดสินใจ | สิ่งที่เห็นกับตา |
+|---|---|---|
+| 0 ขอบเขต | [0004 ไทยเป็นสคริปต์ซับซ้อน ห้าสาเหตุ](adr/0004-thai-is-complex-script-five-causes.md) · [0006 ใช้เมื่อเอกสารมีไทย](adr/0006-use-the-skill-when-the-document-contains-thai.md) | [ตัวตรวจแดงกับข้อบกพร่องที่ปลูกไว้](evidence/2026-09-15-checker-red-evidence.md) |
+| 1 ใช้ต่อได้ทันที | [0012 พร็อกซีคือ XML ออราเคิลคือห้าแอป](adr/0012-xml-checks-are-the-proxy-office-apps-the-oracle.md) · [0027 เอกสารที่สร้างเองพกสิ่งที่แอปจะเติมให้](adr/0027-lists-carry-entries-and-runs-name-their-font.md) | [ห้าแอป](evidence/2026-09-16-office-check-five-applications.md) · [Word for macOS](evidence/2026-09-17-word-for-macos.md) · [WPS Writer](evidence/2026-09-19-wps-writer.md) · [Word ไม่ repair สิ่งที่เปิด](evidence/2026-09-18-word-does-not-repair-what-it-opens.md) |
+| 2.1 ไม่สร้างปัญหาใหม่ | [0033 กล่องงานเป็นอักษรในฟอนต์ข้อความ](adr/0033-the-task-box-is-a-square-in-a-text-font.md) · [0027](adr/0027-lists-carry-entries-and-runs-name-their-font.md) | [กล่องที่ทุกเครื่องวาดได้](evidence/2026-09-19-a-box-every-reader-can-draw.md) · [ข้อบกพร่องที่ปลูกใน ADR 0027](evidence/2026-09-16-adr-0027-mutations.md) |
+| 2.2 ไม่สร้างมาตรฐานใหม่ | [0021 ภูมิภาค ชื่อตาราง และสารบัญ](adr/0021-regions-sections-captions-and-lists.md) · [0024 โปรไฟล์เป็นข้อมูล](adr/0024-profiles-are-data-saved-and-shared.md) · [0035 เลขที่ build เขียนเอง](adr/0035-numbers-the-build-writes.md) | [โปรไฟล์เป็นข้อมูล](evidence/2026-09-16-profiles-are-data.md) |
+| 2.3 ไม่แทนที่แอป | [0007 Markdown อย่างเดียว คำสั่งเดียว](adr/0007-markdown-in-one-command-builds-and-checks.md) · [0035](adr/0035-numbers-the-build-writes.md) | [หัวข้อภาษาอังกฤษก็คือหัวข้อ](evidence/2026-09-19-an-english-heading-is-a-heading.md) |
+| 3 ไม่แตะข้อความ | [0023 ซ่อมด้วย attribute ไม่แก้เนื้อหา](adr/0023-fidelity-transformations-restated-again.md) · [0032 repair เขียนทับ attribute ไม่ใช่ข้อความ](adr/0032-repair-rewrites-attributes-never-the-text.md) · [0034 สองอักขระที่ดูเหมือนตัวเดียว](adr/0034-two-characters-that-look-like-one.md) | [goldens และข้อบกพร่องที่ปลูกไว้](evidence/2026-09-15-build-goldens-and-mutations.md) · [repair คืนลำดับ property](evidence/2026-09-19-repair-puts-the-properties-back-in-order.md) · [สองอักขระที่ดูเหมือนตัวเดียว](evidence/2026-09-19-two-characters-that-look-like-one.md) |
+| 4 สงสัยแล้วไม่เขียนไฟล์ | [0022 Markdown ที่รับ และสิ่งที่หยุด build](adr/0022-markdown-accepted-restated.md) · [0017 อ่านไฟล์ตามกฎที่ประกาศ](adr/0017-files-read-by-stated-rules.md) | [ภาพต้องทั้งภาพ ไม่งั้นถูกปฏิเสธ](evidence/2026-09-18-an-image-is-whole-or-it-is-refused.md) · [build บอกสิ่งที่ไม่ได้เขียน](evidence/2026-09-18-the-build-names-what-it-did-not-write.md) |
+| 5 ย้อนลำดับกฎ | [0001 บันทึกทุกการตัดสินใจและที่มา](adr/0001-record-decisions-and-their-sources.md) | [หน้าที่ยังใช้อยู่ต้องชี้บันทึกที่ยังมีผล](evidence/2026-09-18-records-point-at-the-record-in-force.md) |
+| 6 ไม่มีสูตรเดียว | [0012](adr/0012-xml-checks-are-the-proxy-office-apps-the-oracle.md) · [0035](adr/0035-numbers-the-build-writes.md) | บันทึกข้อจำกัดของรีลีสใน [`docs/evidence/`](evidence/) และ `references/chapters.md` กับคู่มือทั้งสองภาษา |
+
+---
+
 # Reference translation
 
 **The Thai above governs.** This is here so a reader who has no Thai can follow the same filter;
-where the two differ, the Thai is the rule.
+where the two differ, the Thai is the rule. The table just above this translation
+(ร่องรอย) maps each rule to the decision records that applied it and to what was seen in
+`docs/evidence/`: a record is a trace of a rule in use, never a rule of its own, and only a record
+the index still marks accepted may be cited.
 
 ## Iron rules
 
