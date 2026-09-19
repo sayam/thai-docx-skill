@@ -2074,11 +2074,12 @@ def _blocks(bp: BlockParser, node: Node, doc: Document) -> list[dict]:
 THAI_DIGITS = str.maketrans("0123456789", "๐๑๒๓๔๕๖๗๘๙")
 
 
-def plain_text(blocks: list[dict], numbers_are_text: bool = False) -> list[str]:
+def plain_text(blocks: list[dict], numbers_are_text: bool = False, thai_digits: bool = False) -> list[str]:
     """Every paragraph's text, in document order. Hard breaks are newlines; task markers are
     □/■ (ADR 0033); images and footnote marks contribute nothing. `numbers_are_text` is the
     document whose numbers the build writes rather than the application (ADR 0035): there an
-    ordered list's marker is text, in Thai digits, and comes with the tab after it. Elsewhere
+    ordered list's marker is text, in the document's own digits, and comes with the tab after
+    it. Elsewhere
     the numbering part draws it, as it draws a bullet, and it is not text."""
     out: list[str] = []
     for b in blocks:
@@ -2088,18 +2089,19 @@ def plain_text(blocks: list[dict], numbers_are_text: bool = False) -> list[str]:
         elif t == "code":
             out.extend(b["lines"] or [""])
         elif t == "quote":
-            out.extend(plain_text(b["blocks"], numbers_are_text))
+            out.extend(plain_text(b["blocks"], numbers_are_text, thai_digits))
         elif t == "list":
             for n, item in enumerate(b["items"]):
                 marker = ""
                 if numbers_are_text and b["ordered"] and not (item and item[0]["t"] == "paragraph"
                                                              and item[0]["inlines"] and item[0]["inlines"][0]["t"] == "task"):
-                    marker = str(b["start"] + n).translate(THAI_DIGITS) + ".\t"
+                    number = str(b["start"] + n)
+                    marker = (number.translate(THAI_DIGITS) if thai_digits else number) + ".\t"
                 if not item or item[0]["t"] != "paragraph":
                     out.append(marker)  # the writer gives such an item a paragraph with the marker alone
-                    out.extend(plain_text(item, numbers_are_text))
+                    out.extend(plain_text(item, numbers_are_text, thai_digits))
                     continue
-                lines = plain_text(item, numbers_are_text)
+                lines = plain_text(item, numbers_are_text, thai_digits)
                 out.extend([marker + lines[0]] + lines[1:] if lines else [marker])
         elif t == "table":
             for row in b["rows"]:

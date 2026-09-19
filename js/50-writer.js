@@ -229,11 +229,25 @@ class Writer {
     return "<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>";
   }
 
-  // Thai digits are the one numbering format an application may not have: LibreOffice draws
-  // thaiNumbers as 1, 2, 3 (measured 2026-09-19). Every other format this skill asks for it
-  // draws correctly, so a document without Thai digits keeps real numbering (ADR 0035).
+  // Whether the build writes this document's numbers itself (ADR 0035). One answer for the
+  // whole document, never a number here and a field there: a document that renumbers its
+  // headings but not its captions goes wrong silently the first time a reader inserts a
+  // chapter. Thai digits put it on this side, because LibreOffice draws thaiNumbers as 1, 2, 3;
+  // so do regions, because a caption inside chapters takes its number from a STYLEREF that
+  // LibreOffice answers with the chapter's title.
   numbersAreText() {
-    return this.opts.thai_digits;
+    return this.opts.thai_digits || this.regions.length > 0;
+  }
+
+  // A field and the result the build already knows, between `separate` and `end`.
+  fieldRuns(instr, result, rpr) {
+    return (
+      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>' +
+      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>" +
+      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>' +
+      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>" +
+      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
+    );
   }
 
   // Heading levels the numbering part numbers.
@@ -308,8 +322,17 @@ class Writer {
     const run = (text, rpr) => "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>";
     let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + (c.kind === "figure" ? '<w:jc w:val="center"/>' : "");
     ppr += this.latinJc(ppr, captionText(c));
-    const head = c.label + " " + ((c.chapter ? c.chapter + "-" : "") + c.seq);
     const rest = c.inlines;
+    if (!this.numbersAreText()) {
+      // no regions here, so the number is a SEQ of its own with no chapter and no restart:
+      // a field every one of the five applications counts the same way
+      let plain = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c.label + " ", bold) +
+        this.fieldRuns("SEQ " + c.kind[0].toUpperCase() + c.kind.slice(1) + " \\* ARABIC", c.seq, bold);
+      if (rest.length && rest[0].t === "text") plain += this.inlines([{ ...rest[0], s: " " + rest[0].s }, ...rest.slice(1)]);
+      else if (rest.length) plain += run(" ", "") + this.inlines(rest);
+      return plain + "</w:p>";
+    }
+    const head = c.label + " " + ((c.chapter ? c.chapter + "-" : "") + c.seq);
     if (rest.length && rest[0].t === "text" && isBoldOnly(rest[0])) {
       // the caption opens in bold, as the label does: one run, or two formatted alike (cause 4)
       return "<w:p><w:pPr>" + ppr + "</w:pPr>" + this.inlines([{ ...rest[0], s: head + " " + rest[0].s }, ...rest.slice(1)]) + "</w:p>";

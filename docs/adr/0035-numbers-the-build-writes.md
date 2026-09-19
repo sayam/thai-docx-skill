@@ -53,17 +53,29 @@ draws correctly.
 
 ## Decision
 
-**A number is written as text only where the document needs `thaiNumbers` — that is, under
-`--thai-digits`.** Everywhere else the package numbers the document as it always did, and Word
-goes on renumbering it when a reader inserts a chapter or an item. What is written as text is:
+**One answer for the whole document, never a number here and a field there.** A document that
+renumbers its headings but not its captions goes wrong silently the first time a reader inserts a
+chapter — `ตารางที่ 1-1` sitting in chapter 2, with nothing to say so. That is a worse thing to
+hand someone than a document they must renumber by hand.
+
+**The build writes every number itself when anything in the document needs a format or a field
+the five applications do not agree on.** Two things do:
+
+- **`--thai-digits`**, because `thaiNumbers` is drawn as 1, 2, 3 by LibreOffice;
+- **regions** (`<!-- chapters -->` and the rest), because a caption inside chapters takes its
+  number from `STYLEREF 1 \s`, which LibreOffice answers with the chapter's *title*, and from a
+  `SEQ` whose restart at each chapter it ignores.
+
+**A document with neither keeps the applications' own numbering, whole** — headings, ordered
+lists and captions alike, each renumbering itself as a reader edits, which is what those
+applications are for.
+
+What the build writes, where it writes:
 
 - **a heading's number** — `บทที่ ๑`, `๑.๑`, `๑.๓.๒`, `ภาคผนวก ก`, `A.๑`, `1.` — a run in the
   heading's own paragraph, carrying no run properties, so it takes the heading style's;
 - **an ordered list's marker** — `๑.` and a tab, with the hanging indent the numbering level had;
-- **a caption's number** — `ตารางที่ ๑-๑` — beside its label, in one bold run. **This one is text
-  in every document**, whatever the digits: its `STYLEREF 1 \s` gives the chapter's *title* where
-  Word gives its number, and its `SEQ` ignores the restart at each chapter, so a caption that an
-  application numbers is wrong in LibreOffice however it is spelled.
+- **a caption's number** — `ตารางที่ ๑-๑` — beside its label, in one bold run.
 
 **What the build cannot know stays a field or a format**, because only a laid-out page has it:
 page numbers (`PAGE`, `w:pgNumType`), footnote marks, and the page numbers a table of contents
@@ -83,15 +95,19 @@ to collect something the build still writes: each caption takes a paragraph styl
 `Table Caption` or `Figure Caption`, and the list collects that style with `\t`. LibreOffice reads
 it as its own index-by-style, which is what it is.
 
-## What this gives up, plainly
+## What this gives up, plainly, and where
 
-**In a document with Thai digits, Word no longer renumbers headings or lists**, and in every
-document it no longer renumbers captions. A reader who inserts a chapter, an item or a table
-renumbers by hand from there.
+**In a thesis — anything with regions — and in any document in Thai digits, nothing renumbers
+itself.** A reader who inserts a chapter, a table or a list item renumbers by hand from there,
+and the guide says so rather than letting them find out. The way back is the one the skill was
+built for: change the Markdown and build again, where every number is worked out afresh.
 
-That is the trade, and it is only made where it buys something: a document whose numbers an
-application cannot draw is worse than one a reader must renumber. In every other document
-nothing is given up at all — which is what the first shape of this record got wrong.
+**In a report with neither, nothing is given up at all.** Word numbers it, Word renumbers it, and
+the five applications agree.
+
+The trade is made per document and only where it buys something, because a document whose
+numbers an application cannot draw is worse than one a reader must renumber — and a document
+that renumbers half of itself is worse than both.
 
 ## Why not the alternatives
 

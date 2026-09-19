@@ -251,13 +251,32 @@ class Writer:
         return "<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>"
 
     def numbers_are_text(self) -> bool:
-        """Thai digits are the one numbering format an application may not have: LibreOffice
-        draws `thaiNumbers` as 1, 2, 3, and `custom` it does not read at all — both measured on
-        2026-09-19. Every other format this skill asks for — decimal, ก ข ค, A, I, i — it draws
-        correctly, so a document without Thai digits keeps real numbering and Word goes on
-        renumbering it. A caption's number is text either way: its `STYLEREF` gives the chapter's
-        title instead of its number, whatever the digits (ADR 0035)."""
-        return self.opts["thai_digits"]
+        """Whether the build writes this document's numbers itself, instead of asking the
+        application for them (ADR 0035). It is one answer for the whole document, never a
+        number here and a field there: a document that renumbers its headings but not its
+        captions goes wrong silently the first time a reader inserts a chapter.
+
+        Two things put a document on this side, and both were measured on 2026-09-19:
+
+        - **Thai digits.** LibreOffice draws `thaiNumbers` as 1, 2, 3, and does not read a
+          `custom` format at all. Every other format this skill asks for — decimal, ก ข ค, A,
+          I, i — it draws correctly.
+        - **Regions.** A caption inside chapters takes its number from `STYLEREF 1 \\s`, which
+          LibreOffice answers with the chapter's *title*, and from a `SEQ` whose restart at each
+          chapter it ignores.
+
+        A report with neither keeps the application's own numbering, whole."""
+        return self.opts["thai_digits"] or bool(self.regions)
+
+    def field_runs(self, instr: str, result: str, rpr: str) -> str:
+        """A field and the result the build already knows, between `separate` and `end`."""
+        return (
+            "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>'
+            "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
+            "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>'
+            "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>"
+            "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
+        )
 
     def numbered_levels(self) -> set[int]:
         """Heading levels the numbering part numbers: the chapter level whenever there are
@@ -313,10 +332,11 @@ class Writer:
         return "".join(out)
 
     def caption(self, c: dict, keep_next: bool) -> str:
-        """Label and number, bold, then the caption text. The number is written as text: a
-        STYLEREF and a SEQ field are read differently by different applications — LibreOffice
-        gives the chapter's title where Word gives its number — and a caption a reader cannot
-        trust is worse than one that does not renumber itself (ADR 0035)."""
+        """Label and number, bold, then the caption text. Where the document's numbers are the
+        build's own (ADR 0035) the number is text: a caption inside chapters takes its number
+        from a STYLEREF and a SEQ, and LibreOffice answers the first with the chapter's title
+        and ignores the second's restart. A report with no regions keeps its SEQ field, which
+        every application counts the same way."""
         self.counts["paragraphs"] += 1
         bold = "<w:b/><w:bCs/>"
 
@@ -326,9 +346,19 @@ class Writer:
         ppr = ('<w:pStyle w:val="' + CAPTION_STYLE[c["kind"]] + '"/>' + ("<w:keepNext/>" if keep_next else "")
                + ('<w:jc w:val="center"/>' if c["kind"] == "figure" else ""))
         ppr += self.latin_jc(ppr, caption_text(c))
+        rest = c["inlines"]
+        if not self.numbers_are_text():
+            # no regions here, so the number is a SEQ of its own with no chapter and no restart:
+            # a field every one of the five applications counts the same way
+            out = ("<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c["label"] + " ", bold)
+                   + self.field_runs("SEQ " + c["kind"].capitalize() + " \\* ARABIC", c["seq"], bold))
+            if rest and rest[0]["t"] == "text":
+                out += self.inlines([dict(rest[0], s=" " + rest[0]["s"])] + rest[1:])
+            elif rest:
+                out += run(" ", "") + self.inlines(rest)
+            return out + "</w:p>"
         number = (c["chapter"] + "-" if c["chapter"] else "") + c["seq"]
         head = c["label"] + " " + number
-        rest = c["inlines"]
         if rest and rest[0]["t"] == "text" and _bold_only(rest[0]):
             # the caption opens in bold, as the label does: one run, or two formatted alike (cause 4)
             out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + self.inlines([dict(rest[0], s=head + " " + rest[0]["s"])] + rest[1:])

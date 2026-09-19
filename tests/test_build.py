@@ -513,11 +513,11 @@ def test_regions_make_a_section_of_every_chapter_and_page_before_and_after(tmp_p
     assert '<w:p><w:pPr><w:sectPr>' + sections[0][len("<w:sectPr>"):] + '</w:pPr><w:r>' in doc, "the cover closes in its own text"
     # chapters: "บทที่ n" on #, n.n on ##, written as the heading's own text; headings
     # outside the chapters carry no number at all (ADR 0035)
-    # no Thai digits here, so the numbering part numbers the headings and the lists (ADR 0035)
-    assert set(re.findall(r'w:numFmt w:val="(\w+)"', numbering)) == {"bullet", "decimal"}
-    assert '<w:lvlText w:val="บทที่ %1"/>' in numbering and '<w:lvlText w:val="%1.%2"/>' in numbering
+    # regions put the whole document on the build's own numbers, since a caption inside
+    # chapters is the one number no application but Word gets right (ADR 0035)
+    assert set(re.findall(r'w:numFmt w:val="(\w+)"', numbering)) == {"bullet"}
     said = fi.docx_text(parts, 0)
-    assert "บทนำ" in said and "บทคัดย่อ" in said and "สารบัญ" in said
+    assert "บทที่ 1 บทนำ" in said and "บทคัดย่อ" in said and "สารบัญ" in said
     # directives become fields, and Word is asked to fill them in
     # a list of tables collects a caption style, not the SEQ fields a caption stopped carrying
     assert ' TOC \\o "1-3" \\h \\z \\u ' in doc and ' TOC \\h \\z \\t "Table Caption,1" ' in doc
@@ -602,15 +602,9 @@ def test_appendices_are_lettered_and_front_pages_take_the_chosen_numbers(tmp_pat
         assert re.findall(r"<w:pgNumType[^>]*/>", doc)[0] == f'<w:pgNumType w:fmt="{front}" w:start="1"/>'
         assert len(_sections(doc)) == 6  # บทคัดย่อ, บทนำ, บรรณานุกรม, แบบสอบถาม, ข้อมูลดิบ, ประวัติผู้เขียน
         said = fi.docx_text(parts, 0)
-        if "--thai-digits" in flags:
-            # the numbers are the build's own text, so the package numbers nothing (ADR 0035)
-            assert 'abstractNumId="3"' not in numbering
-            assert [t for t in said if t.startswith(label + " ")] == appendix_headings
-        else:
-            appendix = numbering.split('<w:abstractNum w:abstractNumId="3">', 1)[1].split("</w:abstractNum>", 1)[0]
-            assert appendix.startswith('<w:multiLevelType w:val="multilevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/>'
-                                       f'<w:numFmt w:val="{appendix_fmt}"/>')
-            assert "pStyle" not in appendix, "set on each appendix heading, so Heading 1 stays the chapters'"
+        # every one of these documents has regions, so its numbers are the build's own text
+        assert 'abstractNumId="3"' not in numbering and appendix_fmt
+        assert [t for t in said if t.startswith(label + " ")] == appendix_headings
         assert "บทคัดย่อ" in said and "บรรณานุกรม" in said and "ประวัติผู้เขียน" in said
         assert [t for t in fi.docx_text(parts, 0) if t.startswith("ตารางที่")] == captions
     assert lo.number_text(27, "upper-letters", False) == "AA" and lo.number_text(3, "thai-letters", False) == "ค"
@@ -850,8 +844,7 @@ def test_the_chapter_title_can_start_its_own_line(tmp_path):
     breaks = "<w:r><w:rPr>" + wr.LANG + "</w:rPr><w:br/></w:r>"
     assert doc.count(breaks) == 2, "the chapter and the appendix, not the ## heading"
     text_of = fi.docx_text(parts, 0)
-    # no Thai digits here, so the number is the application's and only the break is the build's
-    assert "\nบทนำ" in text_of and "\nแบบสอบถาม" in text_of and "ที่มา" in text_of
+    assert "บทที่ 1\nบทนำ" in text_of and "ภาคผนวก ก\nแบบสอบถาม" in text_of and "ที่มา" in text_of
     assert "บทที่ 1 บทนำ" in text_of, "the list entry is still one line"
     assert result["counts"]["headings"] == 3, "a heading moved to its own line is still a heading"
     build(tmp_path, text)  # the same document without the flag
