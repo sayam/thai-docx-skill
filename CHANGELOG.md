@@ -80,6 +80,13 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Fixed
 
+- An English heading is aligned like its Thai twin. Under `--align thai`, a paragraph with no Thai
+  in it is given `left` so English does not come out spread across the page — and a heading is a
+  paragraph, so `# Abstract` was given it too, overriding the `text-align: center` its own style
+  carried from `heading-1`. Beside it, `# บทคัดย่อ` was centred. A paragraph whose **style** fixes
+  an alignment now keeps it (Heading1–6 and CodeBlock). Found in WPS Writer, true of every reader,
+  since a paragraph property beats a style property. **The bytes of a document built with
+  `--align thai` change** — they get smaller — and those two goldens were regenerated.
 - `check` says when it is the path that is wrong. A file that does not exist, or a directory,
   answered `findings: [{"code": "package", "message": "not a zip package"}]` — so a user who
   mistyped a name was sent looking for a damaged Word file. It now answers `error: cannot read …:
