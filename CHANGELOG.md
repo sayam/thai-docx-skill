@@ -107,6 +107,15 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   `&nbsp;` keeps CommonMark's reading, which `references/markdown.md` states, and gets no warning.
   No document's bytes change.
 
+- The skill ships one profile, `thesis`, and the document it belongs to. The profile loader has
+  looked in the skill's own directory since ADR 0024 and found nothing there; a user who
+  installed the skill saw rules about บทที่ and ตารางที่ and no example, which reads as a format
+  the skill imposes rather than one it offers. `examples/README.md` says in its first line that
+  it is an example and not a standard, which parts of a document a profile holds and which
+  belong to the Markdown, and what it costs — a document with regions or Thai digits does not
+  renumber itself. Every name in the example is invented; no real institution's format is
+  reproduced.
+
 ### Fixed
 
 - An English heading is aligned like its Thai twin. Under `--align thai`, a paragraph with no Thai
