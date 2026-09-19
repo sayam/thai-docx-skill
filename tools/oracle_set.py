@@ -83,6 +83,7 @@ SHOWS = {
         "Appendix headings read Appendix A, B, C; captions ตารางที่ A-1",
         "Header text on every page above the page number; footer text on every page",
         "Table columns sized by their text; table text 14 pt",
+        "บทคัดย่อ and Abstract, both level 1, are centred alike — an English heading takes its style's alignment (2026-09-19)",
     ),
     "sample-layout": (
         "F14 (8.5 × 13 in) landscape pages; margins 1 in all round; body 15 pt",
