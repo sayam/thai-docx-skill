@@ -12,7 +12,7 @@ import re
 import struct
 
 from . import markdown as md
-from .layout import LIST_FIELDS, SECTION_MARK, caption_text, has_thai, heading_styles, layout, list_entries, number_text
+from .layout import SECTION_MARK, anchor_name, caption_text, has_thai, heading_styles, layout, list_entries, number_text
 from .settings import BuildError, half_up, page_size
 
 def _bold_only(node: dict) -> bool:
@@ -268,23 +268,23 @@ class Writer:
         """The document's own top level, as layout() arranged it: sections apart by
         SECTION_MARK, captions, directives, and headings outside the chapters unnumbered."""
         out = []
-        for item in self.items:
+        for index, item in enumerate(self.items):
             b = item["block"]
             if item.get("new_section"):
                 out.append(SECTION_MARK)
             if "caption" in item:
-                out.append(self.caption(item["caption"], item.get("keep_next", False)))
+                out.append(self.caption(item["caption"], item.get("keep_next", False), self.anchor(index)))
             elif b["t"] == "directive":
-                out.append(self.field(LIST_FIELDS[b["name"]], entries=list_entries(self.items, b["name"])))
+                out.append(self.written_list(list_entries(self.items, b["name"])))
             elif b["t"] == "heading":
                 self.counts["headings"] += 1
                 inlines, lead = self.numbered_heading(item)
-                out.append(self.paragraph(inlines, "Heading" + str(b["level"]), lead=lead))
+                out.append(self.paragraph(inlines, "Heading" + str(b["level"]), lead=self.anchor(index) + lead))
             else:
                 out.append(self.blocks([b], body=True, keep_next=item.get("keep_next", False)))
         return "".join(out)
 
-    def caption(self, c: dict, keep_next: bool) -> str:
+    def caption(self, c: dict, keep_next: bool, anchor: str = "") -> str:
         """Label and number, bold, then the caption text. The number is written as text: a
         STYLEREF and a SEQ field are read differently by different applications — LibreOffice
         gives the chapter's title where Word gives its number — and a caption a reader cannot
@@ -302,9 +302,9 @@ class Writer:
         rest = c["inlines"]
         if rest and rest[0]["t"] == "text" and _bold_only(rest[0]):
             # the caption opens in bold, as the label does: one run, or two formatted alike (cause 4)
-            out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + self.inlines([dict(rest[0], s=head + " " + rest[0]["s"])] + rest[1:])
+            out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + anchor + self.inlines([dict(rest[0], s=head + " " + rest[0]["s"])] + rest[1:])
             return out + "</w:p>"
-        out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(head, bold)
+        out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + anchor + run(head, bold)
         if rest and rest[0]["t"] == "text":
             # the space joins the first text run: a run of its own would sit beside one formatted alike (cause 4)
             out += self.inlines([dict(rest[0], s=" " + rest[0]["s"])] + rest[1:])
@@ -413,25 +413,49 @@ class Writer:
 
     # -- parts --
 
-    def field(self, instr: str, ppr: str = "", entries: list[tuple[int, str]] | None = None) -> str:
-        """A field paragraph, and — for a list of contents, tables or figures — the entries
-        it already holds between `separate` and `end`, one paragraph each (ADR 0027).
-        The field opens in the first entry and closes in the last, as Word writes it."""
+    def field(self, instr: str, ppr: str = "") -> str:
+        """A field paragraph whose result the build does not write: PAGE in a header, and the
+        like. A list of contents, tables or figures is not one of these — see `written_list`."""
 
         def char(kind: str) -> str:
             return "<w:r><w:rPr>" + LANG + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>'
 
         instruction = "<w:r><w:rPr>" + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
+        return "<w:p><w:pPr>" + ppr + "</w:pPr>" + char("begin") + instruction + char("separate") + char("end") + "</w:p>"
+
+    def written_list(self, entries: list[tuple[int, str, str]]) -> str:
+        """A table of contents, tables or figures: one paragraph the build writes per entry,
+        its page number a PAGEREF field pointing at the entry's bookmark (ADR 0035).
+
+        It was a TOC field until 2026-09-19, and a TOC field asks the application to find the
+        entries itself: `\\c "Table"` collects the SEQ fields a caption carries, and when the
+        caption's number became text there was nothing left to collect — LibreOffice emptied
+        both lists the moment a reader updated the fields. Nothing here is collected now. The
+        page number is the one thing only a laid-out page knows, so it stays a field."""
         if not entries:
-            return "<w:p><w:pPr>" + ppr + "</w:pPr>" + char("begin") + instruction + char("separate") + char("end") + "</w:p>"
+            return ""
         self.counts["paragraphs"] += len(entries)
+        tabs = '<w:tabs><w:tab w:val="right" w:leader="dot" w:pos="' + str(self.text_width_twips) + '"/></w:tabs>'
         out = []
-        for i, (level, text) in enumerate(entries):
-            opening = char("begin") + instruction + char("separate") if i == 0 else ""
-            closing = char("end") if i == len(entries) - 1 else ""
-            entry_ppr = '<w:pStyle w:val="TOC' + str(min(level, 3)) + '"/>'
+        for level, text, anchor in entries:
+            entry_ppr = '<w:pStyle w:val="TOC' + str(min(level, 3)) + '"/>' + tabs
             out.append(
-                "<w:p><w:pPr>" + entry_ppr + self.latin_jc(entry_ppr, text) + "</w:pPr>" + opening
-                + "<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + closing + "</w:p>"
+                "<w:p><w:pPr>" + entry_ppr + self.latin_jc(entry_ppr, text) + "</w:pPr>"
+                + '<w:hyperlink w:anchor="' + anchor + '">'
+                + "<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>"
+                # a run with no text needs no complex-script properties: the checker asks for
+                # them where a reader sees Thai, and nothing here is text the reader sees
+                + "<w:r><w:tab/></w:r>"
+                + '<w:r><w:fldChar w:fldCharType="begin"/></w:r>'
+                + '<w:r><w:instrText xml:space="preserve"> PAGEREF ' + anchor + ' \\h </w:instrText></w:r>'
+                + '<w:r><w:fldChar w:fldCharType="separate"/></w:r>'
+                + '<w:r><w:fldChar w:fldCharType="end"/></w:r>'
+                + "</w:hyperlink></w:p>"
             )
         return "".join(out)
+
+    def anchor(self, index: int) -> str:
+        """The bookmark a list entry points at, on the paragraph it names."""
+        name = anchor_name(index)
+        return ('<w:bookmarkStart w:id="' + str(index + 1) + '" w:name="' + name + '"/>'
+                '<w:bookmarkEnd w:id="' + str(index + 1) + '"/>')
