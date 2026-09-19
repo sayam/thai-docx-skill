@@ -65,10 +65,13 @@ def expected_text(doc: md.Document, opts: dict | None = None) -> list[str]:
             out.append(caption_text(item["caption"]))
         elif item["block"]["t"] == "directive" and item["block"]["name"] in LIST_FIELDS:
             out.extend(text for _, text in list_entries(items, item["block"]["name"]))
-        elif item["block"]["t"] == "heading" and "number" in item:
-            # the number is text in the heading's paragraph now, not a number an application draws
+        elif item["block"]["t"] == "heading" and "number" in item and opts["thai_digits"]:
+            # the number is text in the heading's own paragraph, not one an application draws (ADR 0035)
             join = "\n" if opts["chapter_title_on_new_line"] else " "
-            out.extend(item["number"] + join + line for line in md.plain_text([item["block"]], opts["thai_digits"]))
+            out.extend(item["number"] + join + line for line in md.plain_text([item["block"]], True))
+        elif (item["block"]["t"] == "heading" and "number" in item and opts["chapter_title_on_new_line"]):
+            # the application draws the number; the break after it is still the build's
+            out.extend("\n" + line for line in md.plain_text([item["block"]]))
         else:
             out.extend(md.plain_text([item["block"]], opts["thai_digits"]))
     for label in doc.footnote_order:

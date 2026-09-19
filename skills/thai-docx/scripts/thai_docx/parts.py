@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from .layout import CAPTION_STYLE, CAPTION_STYLE_NAME, list_entries
 from .ooxml import W
-from .settings import FRONT_NUMBERS, half_up
+from .settings import APPENDIX_NUMBERS, FRONT_NUMBERS, half_up
 from .writer import CODE_FONT, LANG, NS_R, REL, SECTION_MARK, XML, Writer, attr, esc
 
 
@@ -137,6 +137,8 @@ class Package(Writer):
             rpr = ("<w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + " w:eastAsia=" + face + "/>" if face else "") + rest
             spacing = '<w:spacing w:before="' + str(p.get("before", 240 if n == 1 else 200)) + '" w:after="' + str(p.get("after", 80)) + '"'
             spacing += (' w:line="' + str(p["line"]) + '" w:lineRule="auto"/>') if "line" in p else "/>"
+            num = ('<w:numPr><w:ilvl w:val="' + str(n - 1) + '"/><w:numId w:val="' + str(self.heading_num_id()) + '"/></w:numPr>'
+                   if self.heading_numbering() and n in self.numbered_levels() else "")
             ind = ""
             if "left" in p or "first" in p:
                 ind = "<w:ind" + (' w:left="' + str(p["left"]) + '"' if "left" in p else "")
@@ -146,7 +148,7 @@ class Package(Writer):
             return (
                 '<w:style w:type="paragraph" w:styleId="Heading' + str(n) + '"><w:name w:val="heading ' + str(n)
                 + '"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
-                "<w:pPr><w:keepNext/><w:keepLines/>" + ("<w:pageBreakBefore/>" if p.get("break") else "") + spacing + ind
+                "<w:pPr><w:keepNext/><w:keepLines/>" + ("<w:pageBreakBefore/>" if p.get("break") else "") + num + spacing + ind
                 + '<w:jc w:val="' + p.get("jc", "left") + '"/><w:outlineLvl w:val="' + str(n - 1) + '"/></w:pPr>'
                 "<w:rPr>" + rpr + "</w:rPr></w:style>"
             )
@@ -217,26 +219,89 @@ class Package(Writer):
             "</w:styles>"
         )
 
+    def heading_numbering(self) -> bool:
+        """Whether the package numbers the headings: not where the numbers are the build's own
+        text, and not where no heading takes a number at all."""
+        return not self.numbers_are_text() and any(
+            "number" in item and item["region"] != "appendices" for item in self.items)
+
     def numbering_xml(self) -> str:
-        """Only the bullet list is numbered by the package now: every other marker and number is
-        written into the document as text (ADR 0035), because an application that does not know a
-        format draws it its own way — thaiNumbers as 1, 2, 3 — and then the same file reads
-        differently in two readers."""
+        """The bullet list, and — unless the numbers are the build's own text (ADR 0035) — the
+        ordered lists, the headings and the appendices."""
         font, size = attr(self.opts["font"]), self.opts["size"]
+        fmt = "thaiNumbers" if self.opts["thai_digits"] else "decimal"
         # a level with no font of its own is drawn in the application's default, which need
         # not carry Thai: WPS showed "บทที่ ๑" as Latin letters until every level named one
         half = str(half_up(size * 2))
         level_font = ("<w:rPr><w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + "/>"
                       '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + LANG + "</w:rPr>")
+
+        def heading_font(ilvl: int) -> str:
+            """A heading level's number is drawn as its heading is — "บทที่ 1" at Heading 1's size,
+            not the body's — naming the font all the same; levels past Heading 6 have none."""
+            if ilvl >= len(HEADING_LOOK):
+                return level_font
+            name, rest = self.heading_run(ilvl + 1)
+            face = attr(name) if name is not None else font
+            return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + LANG + "</w:rPr>"
         bullet = "".join(
             '<w:lvl w:ilvl="' + str(ilvl) + '"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/>'
             '<w:pPr><w:ind w:left="' + str(720 * (ilvl + 1)) + '" w:hanging="360"/></w:pPr>' + level_font + "</w:lvl>"
             for ilvl in range(9)
         )
+        decimal = "".join(
+            '<w:lvl w:ilvl="' + str(ilvl) + '"><w:start w:val="1"/><w:numFmt w:val="' + fmt + '"/><w:lvlText w:val="%' + str(ilvl + 1)
+            + '."/><w:lvlJc w:val="left"/>'
+            '<w:pPr><w:ind w:left="' + str(720 * (ilvl + 1)) + '" w:hanging="360"/></w:pPr>' + level_font + "</w:lvl>"
+            for ilvl in range(9)
+        )
+        nums = '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>' + "".join(
+            '<w:num w:numId="' + str(nid) + '"><w:abstractNumId w:val="1"/><w:lvlOverride w:ilvl="' + str(min(level, 8))
+            + '"><w:startOverride w:val="' + str(start) + '"/></w:lvlOverride></w:num>'
+            for nid, start, level in self.nums
+        )
+        if self.numbers_are_text():
+            return (
+                XML + '<w:numbering xmlns:w="' + W + '">'
+                '<w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>' + bullet + "</w:abstractNum>"
+                '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num></w:numbering>'
+            )
+        headings = ""
+        # a list only where a heading takes a number: a label that reaches no heading changes no
+        # byte, and the settings registry says so (ADR 0028)
+        levels_on = self.numbered_levels() if self.heading_numbering() else set()
+        if levels_on:
+            # "1." for a # heading — "บทที่ 1" with chapters — then "1.1", "1.1.1" ... followed by a space, no hanging indent
+            def lvl_text(ilvl: int) -> str:
+                if ilvl == 0:
+                    return self.opts["chapter_label"] + " %1" if self.has_chapters else "%1."
+                return ".".join("%" + str(k + 1) for k in range(ilvl + 1))
+
+            levels = "".join(
+                '<w:lvl w:ilvl="' + str(ilvl) + '"><w:start w:val="1"/><w:numFmt w:val="' + fmt + '"/>'
+                + ('<w:pStyle w:val="Heading' + str(ilvl + 1) + '"/>' if ilvl + 1 in levels_on else "")
+                + '<w:suff w:val="space"/><w:lvlText w:val=' + attr(lvl_text(ilvl)) + '/><w:lvlJc w:val="left"/>' + heading_font(ilvl) + "</w:lvl>"
+                for ilvl in range(9)
+            )
+            headings = '<w:abstractNum w:abstractNumId="2"><w:multiLevelType w:val="multilevel"/>' + levels + "</w:abstractNum>"
+            nums += '<w:num w:numId="' + str(self.heading_num_id()) + '"><w:abstractNumId w:val="2"/></w:num>'
+        if any("number" in item and item["region"] == "appendices" for item in self.items):
+            # "ภาคผนวก ก", then "ก.1", "ก.1.1" with --heading-numbers; set on each heading, linked to no style
+            first = APPENDIX_NUMBERS[self.opts["appendix_numbers"]]
+            first = "thaiNumbers" if first == "decimal" and self.opts["thai_digits"] else first
+            headings += '<w:abstractNum w:abstractNumId="3"><w:multiLevelType w:val="multilevel"/>' + "".join(
+                '<w:lvl w:ilvl="' + str(ilvl) + '"><w:start w:val="1"/><w:numFmt w:val="' + (first if ilvl == 0 else fmt) + '"/>'
+                + '<w:suff w:val="space"/><w:lvlText w:val='
+                + attr(self.opts["appendix_label"] + " %1" if ilvl == 0 else ".".join("%" + str(k + 1) for k in range(ilvl + 1)))
+                + '/><w:lvlJc w:val="left"/>' + heading_font(ilvl) + "</w:lvl>"
+                for ilvl in range(9)
+            ) + "</w:abstractNum>"
+            nums += '<w:num w:numId="' + str(self.heading_num_id() + 1) + '"><w:abstractNumId w:val="3"/></w:num>'
         return (
             XML + '<w:numbering xmlns:w="' + W + '">'
             '<w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>' + bullet + "</w:abstractNum>"
-            '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num></w:numbering>'
+            '<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>' + decimal + "</w:abstractNum>"
+            + headings + nums + "</w:numbering>"
         )
 
     def settings_xml(self) -> str:

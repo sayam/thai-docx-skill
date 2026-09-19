@@ -19,15 +19,20 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Changed
 
-- **Every number this skill can know is written into the document as text, not left to the
-  application to work out (ADR 0035).** A heading's number (`บทที่ ๑`, `๑.๑`, `ภาคผนวก ก`), an
+- **A number this skill can know is written into the document as text where an application cannot
+  draw it (ADR 0035).** Measured against LibreOffice 26.8: `thaiNumbers` is the only numbering
+  format it reads wrongly — it draws 1, 2, 3 — while `ก ข ค`, `A`, `I`, `i` and `1` are all
+  right. So **only a document built with `--thai-digits` carries its heading and list numbers as
+  text**; every other document keeps real numbering, and Word goes on renumbering it. A heading's number (`บทที่ ๑`, `๑.๑`, `ภาคผนวก ก`), an
   ordered list's marker and a caption's number are now runs in the paragraph they belong to.
   LibreOffice Writer drew a thesis's captions as `ตารางที่ บทนำ-ก` — the chapter's *title* where
   Word gives its number, from a `STYLEREF`, and a Thai letter that never restarted, from a `SEQ`
   — and drew `บทที่ 1`, `1.1`, `1.` where Word drew Thai digits, because `thaiNumbers` is a
   format it does not implement. What only a laid-out page knows stays a field: page numbers,
   footnote marks, and the page numbers a list shows after an update. A bullet stays a numbering
-  level, since `•` is written out and every reader drew it. **The three lists stay `TOC` fields**,
+  level, since `•` is written out and every reader drew it. **A caption's number is text in every
+  document**: its `STYLEREF` gives the chapter's title where Word gives its number, and its `SEQ`
+  ignores the restart at each chapter, so no application but Word numbers a caption correctly. **The three lists stay `TOC` fields**,
   which is what an application, and a person who edits the file afterwards, knows how to update —
   but a caption now takes a paragraph style of its own, `Table Caption` or `Figure Caption`, and
   the list collects that style with `\t` instead of the `SEQ` fields a caption stopped carrying.

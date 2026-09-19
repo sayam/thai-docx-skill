@@ -102,6 +102,7 @@ class Writer {
     this.docPr = 0;
     [this.headingProps, this.styleWarnings] = headingStyles(doc);
     [this.items, this.regions, this.layoutWarnings] = layout(doc, opts);
+    this.nums = [];
     this.hasChapters = this.regions.includes("chapters") || this.regions.includes("appendices"); // headings Word numbers by region
     this.counts = { headings: 0, paragraphs: 0, list_items: 0, tables: 0, table_rows: 0, code_blocks: 0, images: 0, footnotes: 0, links: 0 };
     const [pw, ph] = pageSize(opts);
@@ -228,19 +229,49 @@ class Writer {
     return "<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>";
   }
 
+  // Thai digits are the one numbering format an application may not have: LibreOffice draws
+  // thaiNumbers as 1, 2, 3 (measured 2026-09-19). Every other format this skill asks for it
+  // draws correctly, so a document without Thai digits keeps real numbering (ADR 0035).
+  numbersAreText() {
+    return this.opts.thai_digits;
+  }
+
+  // Heading levels the numbering part numbers.
+  numberedLevels() {
+    const rest = this.opts.heading_numbers ? [2, 3, 4, 5, 6] : [];
+    if (this.hasChapters) return new Set([1, ...rest]);
+    return new Set(this.opts.heading_numbers ? [1, ...rest] : []);
+  }
+
+  headingNumId() {
+    return this.nums.length + 2;
+  }
+
   // A heading's inlines and what goes before them: its number, written into the paragraph as
   // text (ADR 0035). The number carries no run properties of its own, so it takes the heading
   // style's. Where the first word is unformatted the number joins its run rather than sitting
   // in one beside it, formatted alike (cause 4).
   numberedHeading(item) {
-    const inlines = item.block.inlines;
-    if (item.number === undefined) return [inlines, ""];
+    const b = item.block;
+    const inlines = b.inlines;
+    if (!this.numbersAreText()) {
+      // the numbering part numbers the heading, through its style or its own list
+      let ppr = "";
+      if (this.regions.length && item.region !== "chapters" && this.numberedLevels().has(b.level)) {
+        // appendices take their own list ("ภาคผนวก ก"); headings in any other region, none
+        ppr = item.region === "appendices"
+          ? '<w:numPr><w:ilvl w:val="' + (b.level - 1) + '"/><w:numId w:val="' + (this.headingNumId() + 1) + '"/></w:numPr>'
+          : '<w:numPr><w:numId w:val="0"/></w:numPr>';
+      }
+      return [inlines, ppr, this.titleBreak(item)];
+    }
+    if (item.number === undefined) return [inlines, "", ""];
     const brk = this.titleBreak(item);
     if (!brk && inlines.length && inlines[0].t === "text" && !isFormatted(inlines[0])) {
-      return [[{ ...inlines[0], s: item.number + " " + inlines[0].s }, ...inlines.slice(1)], ""];
+      return [[{ ...inlines[0], s: item.number + " " + inlines[0].s }, ...inlines.slice(1)], "", ""];
     }
     const text = brk ? item.number : item.number + " ";
-    return [inlines, "<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + brk];
+    return [inlines, "", "<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + brk];
   }
 
   // `body` marks the document's own top level: only its paragraphs take the first-line
@@ -258,8 +289,8 @@ class Writer {
         out.push(this.field(LIST_FIELDS[b.name], "", listEntries(this.items, b.name)));
       } else if (b.t === "heading") {
         this.counts.headings += 1;
-        const [inlines, lead] = this.numberedHeading(item);
-        out.push(this.paragraph(inlines, "Heading" + b.level, "", false, lead));
+        const [inlines, ppr, lead] = this.numberedHeading(item);
+        out.push(this.paragraph(inlines, "Heading" + b.level, ppr, false, lead));
       } else {
         out.push(this.blocks([b], 0, false, true, Boolean(item.keep_next)));
       }
@@ -331,6 +362,12 @@ class Writer {
   // after the marker put it where the numbering put it.
   list(b, level, quote) {
     const out = [];
+    const written = this.numbersAreText();
+    let numId = 0;
+    if (b.ordered && !written) {
+      numId = this.nums.length + 2;
+      this.nums.push([numId, b.start, level]);
+    }
     const indent = '<w:ind w:left="' + 720 * (level + 1) + '" w:hanging="360"/>';
     for (let n = 0; n < b.items.length; n++) {
       const item = b.items[n];
@@ -346,6 +383,8 @@ class Writer {
       let ppr, lead = "";
       if (first.length && first[0].t === "task") {
         ppr = '<w:ind w:left="' + 720 * (level + 1) + '"/>';
+      } else if (b.ordered && !written) {
+        ppr = '<w:numPr><w:ilvl w:val="' + Math.min(level, 8) + '"/><w:numId w:val="' + numId + '"/></w:numPr>';
       } else if (b.ordered) {
         const marker = numberText(b.start + n, "decimal", this.opts.thai_digits) + ".";
         ppr = indent;
