@@ -31,14 +31,39 @@ The maintainer's judgement, and the reason this is a decision and not a note: *a
 looks like that is not usable, and a skill whose output is not usable is the same as no skill at
 all. For work published for other people, what serves the most readers comes first.*
 
+## What was measured, again, on 2026-09-19
+
+The first shape of this record wrote every number as text, in every document. The maintainer
+asked the question that shape could not answer: *a person who edits the .docx afterwards — do
+they renumber by hand?* They do, and that is a real cost, so it is only worth paying where it
+buys something.
+
+A probe document with one heading list per numbering format, converted by LibreOffice 26.8 to
+ODT, says what it reads each format as:
+
+| `w:numFmt` | LibreOffice reads it as |
+|---|---|
+| `thaiNumbers` | `num-format="1"` — **Arabic** |
+| `custom` with `w:format="๑, ๒, ๓, …"` | not read at all; the prefix is lost too |
+| `thaiLetters` | `num-format="ก, ข, ค, ..."` ✓ |
+| `upperLetter`, `upperRoman`, `lowerRoman`, `decimal` | `A`, `I`, `i`, `1` ✓ |
+
+**`thaiNumbers` is the only format it cannot draw.** Everything else this skill asks for, it
+draws correctly.
+
 ## Decision
 
-**Every number the build can know is written into the document as text.** That is:
+**A number is written as text only where the document needs `thaiNumbers` — that is, under
+`--thai-digits`.** Everywhere else the package numbers the document as it always did, and Word
+goes on renumbering it when a reader inserts a chapter or an item. What is written as text is:
 
 - **a heading's number** — `บทที่ ๑`, `๑.๑`, `๑.๓.๒`, `ภาคผนวก ก`, `A.๑`, `1.` — a run in the
   heading's own paragraph, carrying no run properties, so it takes the heading style's;
 - **an ordered list's marker** — `๑.` and a tab, with the hanging indent the numbering level had;
-- **a caption's number** — `ตารางที่ ๑-๑` — beside its label, in one bold run.
+- **a caption's number** — `ตารางที่ ๑-๑` — beside its label, in one bold run. **This one is text
+  in every document**, whatever the digits: its `STYLEREF 1 \s` gives the chapter's *title* where
+  Word gives its number, and its `SEQ` ignores the restart at each chapter, so a caption that an
+  application numbers is wrong in LibreOffice however it is spelled.
 
 **What the build cannot know stays a field or a format**, because only a laid-out page has it:
 page numbers (`PAGE`, `w:pgNumType`), footnote marks, and the page numbers a table of contents
@@ -60,22 +85,21 @@ it as its own index-by-style, which is what it is.
 
 ## What this gives up, plainly
 
-**Word no longer renumbers.** A reader who opens the .docx and inserts a table, a chapter or a
-list item gets no new numbers; the ones around it do not move. Until today Word did that.
+**In a document with Thai digits, Word no longer renumbers headings or lists**, and in every
+document it no longer renumbers captions. A reader who inserts a chapter, an item or a table
+renumbers by hand from there.
 
-This is the trade, and it is the right way round for this skill: the document is built from
-Markdown, and a change belongs in the Markdown, where the build renumbers everything. The reader
-who edits the .docx by hand is the second audience, not the first — and the first audience was
-being handed `ตารางที่ บทนำ-ก`.
+That is the trade, and it is only made where it buys something: a document whose numbers an
+application cannot draw is worse than one a reader must renumber. In every other document
+nothing is given up at all — which is what the first shape of this record got wrong.
 
 ## Why not the alternatives
 
-**Write literal numbers only under `--thai-digits`.** It would keep Word's renumbering where the
-formats work, and it was tempting. Two reasons against: the caption fields are read wrongly by
-LibreOffice whatever the digits are, so captions would have to change anyway; and a document
-whose editing behaviour depends on a formatting flag is harder to explain than one rule that
-always holds. One behaviour, in every document, is worth more than a saved feature in half of
-them.
+**Write literal numbers in every document, for one rule that always holds.** That was the first
+shape of this record, and it was wrong: it took automatic renumbering away from documents that
+never had a problem, to buy a consistency only the maintainer would notice. The rule that
+survives is nearly as short — *the build writes a number the application cannot draw* — and it
+costs nothing where nothing is wrong.
 
 **Keep the fields and record the difference.** That is what ADR 0012 says to do when an
 application draws its own way — and it is right when a reader sees something *different*. Here a

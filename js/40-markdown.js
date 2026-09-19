@@ -1981,28 +1981,25 @@ function thaiDigits(text) {
 // Every paragraph's text, in document order. Hard breaks are newlines; task markers are □/■
 // (ADR 0033); an ordered list's number is text and comes with the tab after it (ADR 0035); a
 // bullet is drawn by the numbering part and is not text.
-function plainText(blocks, thai) {
+function plainText(blocks, numbersAreText) {
   const out = [];
   for (const b of blocks) {
     const t = b.t;
     if (t === "paragraph" || t === "heading") out.push(inlineText(b.inlines));
     else if (t === "code") out.push(...(b.lines.length ? b.lines : [""]));
-    else if (t === "quote") out.push(...plainText(b.blocks, thai));
+    else if (t === "quote") out.push(...plainText(b.blocks, numbersAreText));
     else if (t === "list") {
       for (let n = 0; n < b.items.length; n++) {
         const item = b.items[n];
         const task = item.length && item[0].t === "paragraph" && item[0].inlines.length && item[0].inlines[0].t === "task";
         let marker = "";
-        if (b.ordered && !task) {
-          const number = String(b.start + n);
-          marker = (thai ? thaiDigits(number) : number) + ".\t";
-        }
+        if (numbersAreText && b.ordered && !task) marker = thaiDigits(String(b.start + n)) + ".\t";
         if (!item.length || item[0].t !== "paragraph") {
           out.push(marker);
-          out.push(...plainText(item, thai));
+          out.push(...plainText(item, numbersAreText));
           continue;
         }
-        const lines = plainText(item, thai);
+        const lines = plainText(item, numbersAreText);
         if (lines.length) out.push(marker + lines[0], ...lines.slice(1));
         else out.push(marker);
       }

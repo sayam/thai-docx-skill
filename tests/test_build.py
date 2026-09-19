@@ -398,7 +398,7 @@ def test_front_matter_heading_styles_become_the_word_heading_styles(tmp_path):
     assert result["ok"] and result["findings"] == [] and result["warnings"] == []
     assert "heading-1" not in doc and "SarabunPSK" not in doc, "front matter never enters the body"
     h1, h2, h3 = (_heading_style(styles, n) for n in (1, 2, 3))
-    assert ('<w:pPr><w:keepNext/><w:keepLines/><w:pageBreakBefore/>'
+    assert ('<w:pPr><w:keepNext/><w:keepLines/><w:pageBreakBefore/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="2"/></w:numPr>'
             '<w:spacing w:before="240" w:after="80"/><w:jc w:val="center"/><w:outlineLvl w:val="0"/></w:pPr>') in h1
     assert ('<w:rPr><w:rFonts w:ascii="TH SarabunPSK" w:hAnsi="TH SarabunPSK" w:cs="TH SarabunPSK" w:eastAsia="TH SarabunPSK"/>'
             '<w:i/><w:iCs/><w:color w:val="1F4E79"/><w:sz w:val="41"/><w:szCs w:val="41"/></w:rPr>') in h1, "normal weight drops the built-in bold"
@@ -513,9 +513,11 @@ def test_regions_make_a_section_of_every_chapter_and_page_before_and_after(tmp_p
     assert '<w:p><w:pPr><w:sectPr>' + sections[0][len("<w:sectPr>"):] + '</w:pPr><w:r>' in doc, "the cover closes in its own text"
     # chapters: "บทที่ n" on #, n.n on ##, written as the heading's own text; headings
     # outside the chapters carry no number at all (ADR 0035)
-    assert set(re.findall(r'w:numFmt w:val="(\w+)"', numbering)) == {"bullet"}, "only the bullet list is numbered by the package"
+    # no Thai digits here, so the numbering part numbers the headings and the lists (ADR 0035)
+    assert set(re.findall(r'w:numFmt w:val="(\w+)"', numbering)) == {"bullet", "decimal"}
+    assert '<w:lvlText w:val="บทที่ %1"/>' in numbering and '<w:lvlText w:val="%1.%2"/>' in numbering
     said = fi.docx_text(parts, 0)
-    assert "บทที่ 1 บทนำ" in said and "บทคัดย่อ" in said and "สารบัญ" in said
+    assert "บทนำ" in said and "บทคัดย่อ" in said and "สารบัญ" in said
     # directives become fields, and Word is asked to fill them in
     # a list of tables collects a caption style, not the SEQ fields a caption stopped carrying
     assert ' TOC \\o "1-3" \\h \\z \\u ' in doc and ' TOC \\h \\z \\t "Table Caption,1" ' in doc
@@ -580,17 +582,17 @@ Table: ชุดที่ 1
 
 def test_appendices_are_lettered_and_front_pages_take_the_chosen_numbers(tmp_path):
     cases = (
-        ([], "thaiLetters", "ภาคผนวก", ["ภาคผนวก ก แบบสอบถาม", "ภาคผนวก ข ข้อมูลดิบ"],
+        ([], "thaiLetters", "thaiLetters", "ภาคผนวก", ["ภาคผนวก ก แบบสอบถาม", "ภาคผนวก ข ข้อมูลดิบ"],
          ["ตารางที่ ก-1 ผู้ตอบ", "ตารางที่ ข-1 ชุดที่ 1"]),
         (["--front-page-numbers", "lower-roman", "--appendix-numbers", "upper-letters", "--appendix-label", "Appendix"],
-         "lowerRoman", "Appendix", ["Appendix A แบบสอบถาม", "Appendix B ข้อมูลดิบ"],
+         "lowerRoman", "upperLetter", "Appendix", ["Appendix A แบบสอบถาม", "Appendix B ข้อมูลดิบ"],
          ["ตารางที่ A-1 ผู้ตอบ", "ตารางที่ B-1 ชุดที่ 1"]),
-        (["--front-page-numbers=upper-roman", "--appendix-numbers", "upper-roman"], "upperRoman", "ภาคผนวก",
+        (["--front-page-numbers=upper-roman", "--appendix-numbers", "upper-roman"], "upperRoman", "upperRoman", "ภาคผนวก",
          ["ภาคผนวก I แบบสอบถาม", "ภาคผนวก II ข้อมูลดิบ"], ["ตารางที่ I-1 ผู้ตอบ", "ตารางที่ II-1 ชุดที่ 1"]),
-        (["--front-page-numbers", "decimal", "--appendix-numbers", "decimal", "--thai-digits"], "thaiNumbers", "ภาคผนวก",
+        (["--front-page-numbers", "decimal", "--appendix-numbers", "decimal", "--thai-digits"], "thaiNumbers", "thaiNumbers", "ภาคผนวก",
          ["ภาคผนวก ๑ แบบสอบถาม", "ภาคผนวก ๒ ข้อมูลดิบ"], ["ตารางที่ ๑-๑ ผู้ตอบ", "ตารางที่ ๒-๑ ชุดที่ 1"]),
     )
-    for flags, front, label, appendix_headings, captions in cases:
+    for flags, front, appendix_fmt, label, appendix_headings, captions in cases:
         opts, _, _ = b.parse_args(flags + ["--heading-numbers", "in.md", "out.docx"])
         result, out = build(tmp_path, APPENDICES, **opts)
         with zipfile.ZipFile(out) as zf:
@@ -599,10 +601,16 @@ def test_appendices_are_lettered_and_front_pages_take_the_chosen_numbers(tmp_pat
         assert result["ok"] and result["findings"] == [] and result["warnings"] == [], result
         assert re.findall(r"<w:pgNumType[^>]*/>", doc)[0] == f'<w:pgNumType w:fmt="{front}" w:start="1"/>'
         assert len(_sections(doc)) == 6  # บทคัดย่อ, บทนำ, บรรณานุกรม, แบบสอบถาม, ข้อมูลดิบ, ประวัติผู้เขียน
-        assert "abstractNumId=\"3\"" not in numbering, "an appendix's letter is text now (ADR 0035)"
         said = fi.docx_text(parts, 0)
-        # the two appendices take the label and the chosen letters; their sub-heading takes the first
-        assert [t for t in said if t.startswith(label + " ")] == appendix_headings
+        if "--thai-digits" in flags:
+            # the numbers are the build's own text, so the package numbers nothing (ADR 0035)
+            assert 'abstractNumId="3"' not in numbering
+            assert [t for t in said if t.startswith(label + " ")] == appendix_headings
+        else:
+            appendix = numbering.split('<w:abstractNum w:abstractNumId="3">', 1)[1].split("</w:abstractNum>", 1)[0]
+            assert appendix.startswith('<w:multiLevelType w:val="multilevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/>'
+                                       f'<w:numFmt w:val="{appendix_fmt}"/>')
+            assert "pStyle" not in appendix, "set on each appendix heading, so Heading 1 stays the chapters'"
         assert "บทคัดย่อ" in said and "บรรณานุกรม" in said and "ประวัติผู้เขียน" in said
         assert [t for t in fi.docx_text(parts, 0) if t.startswith("ตารางที่")] == captions
     assert lo.number_text(27, "upper-letters", False) == "AA" and lo.number_text(3, "thai-letters", False) == "ค"
@@ -674,27 +682,33 @@ def test_region_comments_and_captions_refuse_or_warn_with_their_line(tmp_path):
             b.parse_args(bad + ["in.md", "out.docx"])
 
 
-def test_heading_numbers_are_written_into_the_heading_as_text(tmp_path):
-    """ADR 0035: the number is the build's own text, in the heading's own paragraph, so every
-    reader shows the same one — LibreOffice draws thaiNumbers as 1, 2, 3, and drew "1.1" where
-    Word drew "๑.๑". Nothing in the package numbers a heading any more."""
+def test_a_number_is_the_package_s_unless_the_digits_are_thai(tmp_path):
+    """ADR 0035: only `thaiNumbers` is a format an application may not have — LibreOffice draws
+    it as 1, 2, 3 — so a document in Thai digits carries its numbers as text and every other
+    document keeps real numbering, which Word goes on renumbering."""
     text = "# บทนำ\n\n1. ข้อ\n2. ข้อ\n\n## ที่มา\n\n### ย่อย\n\n# บทที่สอง\n\n3. ต่อ\n"
-    for flags, numbers in (([], None),
-                           (["--heading-numbers"], ["1. บทนำ", "1.1 ที่มา", "1.1.1 ย่อย", "2. บทที่สอง"]),
-                           (["--heading-numbers", "--thai-digits"], ["๑. บทนำ", "๑.๑ ที่มา", "๑.๑.๑ ย่อย", "๒. บทที่สอง"])):
-        opts, _, _ = b.parse_args(flags + ["in.md", "out.docx"])
-        result, out = build(tmp_path, text, **opts)
-        with zipfile.ZipFile(out) as zf:
-            doc, styles, numbering = (zf.read(f"word/{n}.xml").decode() for n in ("document", "styles", "numbering"))
-            parts = {n: zf.read(n) for n in zf.namelist()}
-        assert result["ok"] and result["findings"] == [] and result["settings"]["heading_numbers"] is bool(numbers)
-        assert "numPr" not in styles, "no style carries numbering now"
-        assert sorted(re.findall(r'w:abstractNumId="(\d+)"', numbering)) == ["0"], "the bullet list, and nothing else"
-        said = fi.docx_text(parts, 0)
-        if numbers is None:
-            assert [t for t in said if "บทนำ" in t] == ["บทนำ"]
-            continue
-        assert [t for t in said if t.endswith(("บทนำ", "ที่มา", "ย่อย", "บทที่สอง"))] == numbers
+    opts, _, _ = b.parse_args(["--heading-numbers", "in.md", "out.docx"])
+    result, out = build(tmp_path, text, **opts)
+    with zipfile.ZipFile(out) as zf:
+        styles, numbering = (zf.read(f"word/{n}.xml").decode() for n in ("styles", "numbering"))
+        said = fi.docx_text({n: zf.read(n) for n in zf.namelist()}, 0)
+    assert result["ok"] and result["findings"] == []
+    assert '<w:numPr><w:ilvl w:val="0"/><w:numId w:val="4"/></w:numPr>' in styles, "Heading 1 takes the list"
+    assert set(re.findall(r'w:numFmt w:val="(\w+)"', numbering)) == {"bullet", "decimal"}
+    assert [t for t in said if t.endswith(("บทนำ", "ที่มา", "ข้อ"))] == ["บทนำ", "ข้อ", "ข้อ", "ที่มา"], \
+        "the number is the application's, so it is not in the text"
+
+    opts, _, _ = b.parse_args(["--heading-numbers", "--thai-digits", "in.md", "out.docx"])
+    result, out = build(tmp_path, text, **opts)
+    with zipfile.ZipFile(out) as zf:
+        styles, numbering = (zf.read(f"word/{n}.xml").decode() for n in ("styles", "numbering"))
+        said = fi.docx_text({n: zf.read(n) for n in zf.namelist()}, 0)
+    assert result["ok"] and result["findings"] == []
+    assert "numPr" not in styles, "no style carries numbering where the numbers are text"
+    assert set(re.findall(r'w:numFmt w:val="(\w+)"', numbering)) == {"bullet"}
+    assert [t for t in said if t.endswith(("บทนำ", "ที่มา", "ย่อย", "บทที่สอง"))] == [
+        "๑. บทนำ", "๑.๑ ที่มา", "๑.๑.๑ ย่อย", "๒. บทที่สอง"]
+    assert [t for t in said if t.endswith("ข้อ")] == ["๑.\tข้อ", "๒.\tข้อ"]
     with pytest.raises(b.BuildError, match="takes no value"):
         b.parse_args(["--heading-numbers=1", "in.md", "out.docx"])
 
@@ -836,7 +850,8 @@ def test_the_chapter_title_can_start_its_own_line(tmp_path):
     breaks = "<w:r><w:rPr>" + wr.LANG + "</w:rPr><w:br/></w:r>"
     assert doc.count(breaks) == 2, "the chapter and the appendix, not the ## heading"
     text_of = fi.docx_text(parts, 0)
-    assert "บทที่ 1\nบทนำ" in text_of and "ภาคผนวก ก\nแบบสอบถาม" in text_of and "ที่มา" in text_of
+    # no Thai digits here, so the number is the application's and only the break is the build's
+    assert "\nบทนำ" in text_of and "\nแบบสอบถาม" in text_of and "ที่มา" in text_of
     assert "บทที่ 1 บทนำ" in text_of, "the list entry is still one line"
     assert result["counts"]["headings"] == 3, "a heading moved to its own line is still a heading"
     build(tmp_path, text)  # the same document without the flag
@@ -998,12 +1013,13 @@ def test_thai_digits_format_the_numbers_word_generates_and_never_the_text(tmp_pa
         assert ('<w:pgNumType w:fmt="thaiNumbers"/></w:sectPr>' in sect) is thai, "page numbers, in the header and the table of contents"
         assert ('<w:footnotePr><w:numFmt w:val="thaiNumbers"/></w:footnotePr><w:pgSz' in sect) is thai
         assert ('<w:footnotePr><w:numFmt w:val="thaiNumbers"/><w:footnote w:id="-1"/>' in settings) is thai
-        assert numbering.count("w:numFmt") == 9 and numbering.count('w:numFmt w:val="bullet"') == 9
+        # the ordered list's numbering goes when its numbers become text (ADR 0035)
+        assert numbering.count("w:numFmt") == (9 if thai else 18) and numbering.count('w:numFmt w:val="bullet"') == 9
         # the page number and the footnote mark are formats only the application can apply; the
         # list's number is the build's own text, in Thai digits when asked (ADR 0035)
         assert " PAGE " in header and "2567" in doc and "12" in doc, "the text keeps its own digits"
         said = fi.docx_text({n: zipfile.ZipFile(out).read(n) for n in zipfile.ZipFile(out).namelist()}, 1)
-        assert [t for t in said if t.endswith(("หนึ่ง", "สอง"))] == (["๑.\tหนึ่ง", "๒.\tสอง"] if thai else ["1.\tหนึ่ง", "2.\tสอง"])
+        assert [t for t in said if t.endswith(("หนึ่ง", "สอง"))] == (["๑.\tหนึ่ง", "๒.\tสอง"] if thai else ["หนึ่ง", "สอง"])
         assert "ปี 2567 ข้อ 12" in said, "a digit the author typed is never translated"
     _, out = build(tmp_path, "ก", thai_digits=True)
     assert "footnotePr" not in zipfile.ZipFile(out).read("word/document.xml").decode(), "no footnotes, no footnote format"

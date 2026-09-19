@@ -112,6 +112,7 @@ class Writer:
         self.doc_pr = 0
         self.heading_props, self.style_warnings = heading_styles(doc)
         self.items, self.regions, self.layout_warnings = layout(doc, opts)
+        self.nums: list[tuple[int, int, int]] = []  # numId, start, level
         self.has_chapters = "chapters" in self.regions or "appendices" in self.regions  # headings Word numbers by region
         self.counts = {"headings": 0, "paragraphs": 0, "list_items": 0, "tables": 0, "table_rows": 0,
                        "code_blocks": 0, "images": 0, "footnotes": 0, "links": 0}
@@ -249,20 +250,47 @@ class Writer:
             return ""
         return "<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>"
 
-    def numbered_heading(self, item: dict) -> tuple[list[dict], str]:
+    def numbers_are_text(self) -> bool:
+        """Thai digits are the one numbering format an application may not have: LibreOffice
+        draws `thaiNumbers` as 1, 2, 3, and `custom` it does not read at all — both measured on
+        2026-09-19. Every other format this skill asks for — decimal, ก ข ค, A, I, i — it draws
+        correctly, so a document without Thai digits keeps real numbering and Word goes on
+        renumbering it. A caption's number is text either way: its `STYLEREF` gives the chapter's
+        title instead of its number, whatever the digits (ADR 0035)."""
+        return self.opts["thai_digits"]
+
+    def numbered_levels(self) -> set[int]:
+        """Heading levels the numbering part numbers: the chapter level whenever there are
+        chapters, the rest with --heading-numbers."""
+        rest = set(range(2, 7)) if self.opts["heading_numbers"] else set()
+        return ({1} | rest) if self.has_chapters else ({1} | rest if self.opts["heading_numbers"] else set())
+
+    def heading_num_id(self) -> int:
+        """After every ordered list's numId, which the body has handed out by the time styles are written."""
+        return len(self.nums) + 2
+
+    def numbered_heading(self, item: dict) -> tuple[list[dict], str, str]:
         """A heading's inlines and what goes before them: its number, written into the paragraph
         as text (ADR 0035). The number carries no run properties of its own, so it takes the
         heading style's — the size, weight and colour of the words beside it, which is what ADR
         0027 asked a numbering level to repeat. Where the first word is unformatted the number
         joins its run rather than sitting in one beside it, formatted alike (cause 4)."""
-        inlines = item["block"]["inlines"]
+        b, inlines = item["block"], item["block"]["inlines"]
+        if not self.numbers_are_text():
+            # the numbering part numbers the heading, through its style or its own list
+            ppr = ""
+            if self.regions and item["region"] != "chapters" and b["level"] in self.numbered_levels():
+                # appendices take their own list ("ภาคผนวก ก"); headings in any other region, none
+                ppr = ('<w:numPr><w:ilvl w:val="' + str(b["level"] - 1) + '"/><w:numId w:val="' + str(self.heading_num_id() + 1) + '"/></w:numPr>'
+                       if item["region"] == "appendices" else '<w:numPr><w:numId w:val="0"/></w:numPr>')
+            return inlines, ppr, self.title_break(item)
         if "number" not in item:
-            return inlines, ""
+            return inlines, "", ""
         brk = self.title_break(item)
         if not brk and inlines and inlines[0]["t"] == "text" and not _formatted(inlines[0]):
-            return [dict(inlines[0], s=item["number"] + " " + inlines[0]["s"])] + inlines[1:], ""
+            return [dict(inlines[0], s=item["number"] + " " + inlines[0]["s"])] + inlines[1:], "", ""
         text = item["number"] if brk else item["number"] + " "
-        return inlines, ("<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + brk)
+        return inlines, "", ("<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + brk)
 
     def body(self) -> str:
         """The document's own top level, as layout() arranged it: sections apart by
@@ -278,8 +306,8 @@ class Writer:
                 out.append(self.field(LIST_FIELDS[b["name"]], entries=list_entries(self.items, b["name"])))
             elif b["t"] == "heading":
                 self.counts["headings"] += 1
-                inlines, lead = self.numbered_heading(item)
-                out.append(self.paragraph(inlines, "Heading" + str(b["level"]), lead=lead))
+                inlines, ppr, lead = self.numbered_heading(item)
+                out.append(self.paragraph(inlines, "Heading" + str(b["level"]), ppr, lead=lead))
             else:
                 out.append(self.blocks([b], body=True, keep_next=item.get("keep_next", False)))
         return "".join(out)
@@ -349,6 +377,10 @@ class Writer:
         reader may not have — LibreOffice draws thaiNumbers as 1, 2, 3 — and the hanging indent
         and the tab after the marker put it where the numbering put it."""
         ordered, out = b["ordered"], []
+        written = self.numbers_are_text()
+        if ordered and not written:
+            num_id = len(self.nums) + 2
+            self.nums.append((num_id, b["start"], level))
         indent = '<w:ind w:left="' + str(720 * (level + 1)) + '" w:hanging="360"/>'
         for n, item in enumerate(b["items"]):
             self.counts["list_items"] += 1
@@ -358,6 +390,8 @@ class Writer:
                 first, rest = [], item  # the marker still shows on an item that opens with no paragraph
             if first and first[0]["t"] == "task":
                 ppr, lead = '<w:ind w:left="' + str(720 * (level + 1)) + '"/>', ""
+            elif ordered and not written:
+                ppr, lead = '<w:numPr><w:ilvl w:val="' + str(min(level, 8)) + '"/><w:numId w:val="' + str(num_id) + '"/></w:numPr>', ""
             elif ordered:
                 marker = number_text(b["start"] + n, "decimal", self.opts["thai_digits"]) + "."
                 ppr = indent
