@@ -3972,6 +3972,10 @@ function captionText(c) {
 // the same bytes (ADR 0008).
 
 const CODE_FONT = "Consolas";
+// Styles whose own definition fixes the alignment — the styles part writes a <w:jc> into each
+// of them. A paragraph in one of these takes its style's alignment, so latinJc leaves it alone.
+const STYLE_FIXES_ALIGNMENT = new Set(["Heading1", "Heading2", "Heading3", "Heading4", "Heading5", "Heading6", "CodeBlock"]);
+const RE_PSTYLE = /<w:pStyle w:val="([^"]+)"\/>/;
 // The box a task list draws, and the font that has it. Not ☐/☑ in Segoe UI Symbol: those
 // characters live only in symbol fonts, and the one Windows has is on no other machine, so the
 // box vanished everywhere else (ADR 0033). A white and a black square are in every ordinary
@@ -4170,6 +4174,8 @@ class Writer {
   // does not stretch across the page. Alignment only — ADR 0023 stands.
   latinJc(head, text) {
     if (this.opts.align !== "thai" || head.includes("<w:jc ") || !text || hasThai(text)) return "";
+    const style = RE_PSTYLE.exec(head);
+    if (style !== null && STYLE_FIXES_ALIGNMENT.has(style[1])) return "";
     return '<w:jc w:val="left"/>';
   }
 

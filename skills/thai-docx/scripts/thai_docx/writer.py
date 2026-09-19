@@ -16,6 +16,11 @@ from .layout import LIST_FIELDS, SECTION_MARK, caption_text, has_thai, heading_s
 from .settings import BuildError, half_up, page_size
 
 CODE_FONT = "Consolas"
+# Styles whose own definition fixes the alignment — parts.py writes a <w:jc> into each of them.
+# A paragraph in one of these takes its style's alignment, so latin_jc must leave it alone; held
+# by test_the_styles_that_fix_alignment_are_the_ones_named.
+STYLE_FIXES_ALIGNMENT = frozenset({"Heading" + str(n) for n in range(1, 7)} | {"CodeBlock"})
+_PSTYLE = re.compile(r'<w:pStyle w:val="([^"]+)"/>')
 # The box a task list draws, and the font that has it. Not ☐/☑ in Segoe UI Symbol: those
 # characters live only in symbol fonts, and the one Windows has is on no other machine, so the
 # box vanished everywhere else (ADR 0033). A white and a black square are in every ordinary
@@ -212,8 +217,15 @@ class Writer:
         """Thai distributed fills a line by spreading what is on it, which is how Thai is set
         — it has no spaces between words — and not how English is: a paragraph with no Thai in
         it keeps the ordinary left alignment, so "(2024a)" does not come out as "( 2 0 2 4 a)"
-        and a title does not stretch across the page. Alignment only — ADR 0023 stands."""
+        and a title does not stretch across the page. Alignment only — ADR 0023 stands.
+
+        A paragraph whose style already fixes an alignment is left as it is: an English heading
+        under `heading-1: text-align: center` is centred like its Thai twin, and nothing here
+        repeats what CodeBlock's own definition says."""
         if self.opts["align"] != "thai" or "<w:jc " in head or not text or has_thai(text):
+            return ""
+        style = _PSTYLE.search(head)
+        if style is not None and style.group(1) in STYLE_FIXES_ALIGNMENT:
             return ""
         return '<w:jc w:val="left"/>'
 

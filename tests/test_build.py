@@ -840,6 +840,41 @@ def test_a_heading_over_two_lines_reads_as_one_in_the_list(tmp_path):
     assert "บทที่ 1 บทนำ\nเรื่องทั่วไป" not in doc
 
 
+def test_an_english_heading_is_aligned_like_its_thai_twin(tmp_path):
+    """`heading-1: text-align: center` centres every level-1 heading, and a heading with no Thai
+    in it is still a heading. Under --align thai the rule that keeps a Latin paragraph from being
+    spread used to write w:jc="left" onto it, which overrides the style: บทคัดย่อ came out centred
+    and Abstract beside it did not. Found in WPS Writer, 2026-09-19, and true of every reader."""
+    text = ("---\nheading-1: font-size: 20pt; text-align: center\n---\n\n"
+            "# บทคัดย่อ\n\nเนื้อหาภาษาไทย\n\n# Abstract\n\nEnglish only, in this paragraph.\n\n"
+            "```\nprint(\"latin code\")\n```\n")
+    result, out = build(tmp_path, text, align="thai")
+    assert result["ok"] and result["findings"] == []
+    with zipfile.ZipFile(out) as zf:
+        doc = zf.read("word/document.xml").decode()
+        styles = zf.read("word/styles.xml").decode()
+    heading1 = re.search(r'<w:style [^>]*w:styleId="Heading1">.*?</w:style>', styles, re.S).group(0)
+    assert 'w:jc w:val="center"' in heading1, "the style is what the front matter asked for"
+    paras = {"".join(re.findall(r"<w:t[^>]*>([^<]*)</w:t>", p)): re.findall(r'w:jc w:val="(\w+)"', p)
+             for p in re.findall(r"<w:p>.*?</w:p>", doc, re.S)}
+    assert paras["บทคัดย่อ"] == [] and paras["Abstract"] == [], paras
+    assert paras['print("latin code")'] == [], "CodeBlock fixes its own alignment too"
+    assert paras["English only, in this paragraph."] == ["left"], "an ordinary Latin paragraph still keeps it"
+
+
+def test_the_styles_that_fix_alignment_are_the_ones_named(tmp_path):
+    """writer.STYLE_FIXES_ALIGNMENT is what latin_jc trusts; it has to stay the set of styles
+    whose own definition carries a w:jc, or a paragraph is aligned twice or not at all."""
+    result, out = build(tmp_path, "# หัวข้อ\n\nเนื้อหา\n\n```\ncode\n```\n\n> ข้อความ\n\n- ก\n", toc=True)
+    assert result["ok"]
+    with zipfile.ZipFile(out) as zf:
+        styles = zf.read("word/styles.xml").decode()
+    named = {re.search(r'w:styleId="(\w+)"', st).group(1)
+             for st in re.findall(r"<w:style .*?</w:style>", styles, re.S)
+             if "<w:jc " in (re.search(r"<w:pPr>.*?</w:pPr>", st, re.S) or re.match("", "")).group(0)}
+    assert named == set(wr.STYLE_FIXES_ALIGNMENT), named
+
+
 def test_thai_distributed_leaves_a_paragraph_without_thai_alone(tmp_path):
     """--align thai fills a line by spreading what is on it, as Thai is set; a paragraph with
     no Thai in it — an English reference, a Latin caption, a list entry — keeps the ordinary
@@ -849,7 +884,7 @@ def test_thai_distributed_leaves_a_paragraph_without_thai_alone(tmp_path):
     # a Thai label makes every caption Thai; a Latin one leaves a caption, and the entry a
     # list writes for it, with no Thai at all
     latin = "# Introduction\n\n<!-- list-of-tables -->\n\n"
-    for flags, source, latin_lines in ((["--align", "thai"], text, 4), (["--align", "thai", "--table-label", "Table", "--toc"], latin + text, 8)):
+    for flags, source, latin_lines in ((["--align", "thai"], text, 4), (["--align", "thai", "--table-label", "Table", "--toc"], latin + text, 7)):
         opts, _, _ = b.parse_args(flags + ["in.md", "out.docx"])
         result, out = build(tmp_path, source, **opts)
         with zipfile.ZipFile(out) as zf:
@@ -857,17 +892,19 @@ def test_thai_distributed_leaves_a_paragraph_without_thai_alone(tmp_path):
             styles = zf.read("word/styles.xml").decode()
         assert result["ok"] and result["findings"] == []
         assert 'w:val="thaiDistribute"' in styles, "the document's own alignment is unchanged"
-        said = [(re.findall(r'w:jc w:val="(\w+)"', p), "".join(re.findall(r"<w:t[^>]*>([^<]*)</w:t>", p)))
+        said = [(re.findall(r'w:jc w:val="(\w+)"', p), "".join(re.findall(r"<w:t[^>]*>([^<]*)</w:t>", p)),
+                 re.findall(r'<w:pStyle w:val="(\w+)"/>', p))
                 for p in re.findall(r"<w:p>.*?</w:p>", doc, re.S)]
-        for jc, said_text in said:
-            if not said_text:
+        for jc, said_text, style in said:
+            # a style that fixes its own alignment is obeyed, not overridden (Heading1-6, CodeBlock)
+            if not said_text or (style and style[0] in wr.STYLE_FIXES_ALIGNMENT):
                 continue
             has_thai = lo.has_thai(said_text)
             assert (jc == []) is has_thai, (jc, said_text[:40])
             assert len(jc) <= 1, "a paragraph that sets its own alignment keeps it: " + said_text[:40]
         # the reference, a list item, two left table cells (the right column keeps its own) — and with Latin labels
-        # the caption, the heading and an entry for each
-        assert sum(1 for jc, t in said if t and jc == ["left"]) == latin_lines, flags
+        # the caption and an entry for each; the heading takes its style's alignment, not one of its own
+        assert sum(1 for jc, t, _ in said if t and jc == ["left"]) == latin_lines, flags
     # left alignment is untouched by the rule
     plain, out2 = build(tmp_path, text)
     with zipfile.ZipFile(out2) as zf:
