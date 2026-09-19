@@ -31,7 +31,10 @@ bundled command writes every attribute Thai needs. Your part is the Markdown.
    tables, strikethrough, task lists and footnotes; local PNG or JPEG images; no HTML
    beyond `<br>`, `<sup>`, `<sub>`, `<u>`, `<kbd>` and comments. What else stops the build:
    [references/markdown.md](references/markdown.md). A Markdown file the user gave you is
-   used as it is.
+   used as it is. **When the user wants a document of a particular shape** — a letter, a form, a
+   report — and shows you one of their own or describes it, read
+   [references/specs.md](references/specs.md) first: it is everything the format can express, in
+   one page. Match their example, never a form of your own; show the Markdown before building.
 2. **Run the build** with the first runtime you have:
 
    ```sh
