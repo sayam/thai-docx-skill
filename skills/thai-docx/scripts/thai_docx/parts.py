@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from .layout import list_entries
 from .ooxml import W
-from .settings import APPENDIX_NUMBERS, FRONT_NUMBERS, half_up
+from .settings import FRONT_NUMBERS, half_up
 from .writer import CODE_FONT, LANG, NS_R, REL, SECTION_MARK, XML, Writer, attr, esc
 
 
