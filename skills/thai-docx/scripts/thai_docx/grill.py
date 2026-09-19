@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
-"""Grill mode is the user's word, not the agent's choice (ADR 0026, restated by 0029).
+"""Grill mode is the user's word, not the agent's choice (ADR 0029, restating 0026).
 
 The skill's instructions cannot stop a model from choosing the interview for the user —
 a request that lists settings reads like an invitation to ask about them. So the decision
@@ -26,7 +26,7 @@ USAGE = 'usage: thai_docx grill --said "the user\'s own message, word for word"'
 # The phrase that turns the interview on. Written with any of - _ or a space between the
 # two words of the skill's name, in any case, anywhere in the message; `/thai-docx grill`
 # holds it too.
-# `fold` reads `_` as `-`; the space is the third way ADR 0026 lets the two words of the
+# `fold` reads `_` as `-`; the space is the third way ADR 0029 lets the two words of the
 # name be joined, and it cannot be folded — a space is what separates the phrase's own
 # words — so the pattern allows it there and nowhere else.
 PHRASE = re.compile(r"thai[- ]docx grill")

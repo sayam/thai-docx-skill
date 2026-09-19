@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
-"""SKILL.md tells the agent the truth (ADR 0007, 0014, 0026): it passes the Agent
+"""SKILL.md tells the agent the truth (ADR 0007, 0014, 0029): it passes the Agent
 Skills validator, stays within its ceiling, and every default, flag, finding code,
 command and snippet it gives is the one the skill has — run from the archive a user
 downloads, not from this checkout.
@@ -239,7 +239,7 @@ def test_commands_in_skill_md_run_as_written_from_the_download(unpacked, tmp_pat
 
 
 def test_skill_md_sends_the_mode_decision_to_the_script(unpacked, tmp_path):
-    """ADR 0026: SKILL.md does not tell the agent when the interview applies — it tells it
+    """ADR 0029: SKILL.md does not tell the agent when the interview applies — it tells it
     to hand the script the user's message and obey the mode that comes back. The section
     therefore never names the phrase that turns the interview on: only the script knows it."""
     section = SKILL_MD.split("\n## Grill mode", 1)[1].split("\n## ", 1)[0]

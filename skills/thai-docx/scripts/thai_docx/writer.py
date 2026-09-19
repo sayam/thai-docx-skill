@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
 """The body of word/document.xml: paragraphs, runs, tables, images, captions and fields,
-as layout() arranged the document (ADR 0005, 0021, 0027).
+as layout() arranged the document (ADR 0023, 0021, 0027).
 
 `Package` in parts.py adds the package's other parts to this class.
 """

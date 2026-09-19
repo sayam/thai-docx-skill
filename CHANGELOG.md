@@ -10,6 +10,20 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Added
 
+- **The rules this project decides by, written down** (`docs/rules.md`): the scope the skill
+  answers for, what an output must be, what it must never introduce, the contract the five office
+  applications are held to, and the limitations that must be said out loud. The Thai is the rule,
+  in the maintainer's own words; the English below it is a translation marked as one. Its last
+  table is the trace — which decision record applied each rule, and what was seen. GOVERNANCE.md
+  carries the rules at its head and `docs/architecture.md` says the design is one way of meeting
+  them; neither repeats them, because two copies of a deciding text drift.
+- **A gate on the project's own citations** (`live-pages-cite-the-record-in-force`): no page that
+  states a rule now may point at a record the index marks superseded, unless it names the record in
+  force on the same line. Twenty-three files were doing so when it was written — among them two
+  messages a user reads, which named ADR 0005 where 0023 has held since 2026-09-16 — and each was
+  mapped to the record in force, section numbers included. The check is the one ROADMAP.md had been
+  carrying since the drift of 2026-09-18 was found by a reviewer rather than a gate.
+
 - A release carries its own attestation. The build-provenance bundle is attached beside the archive
   as `thai-docx-<version>.intoto.jsonl`, so the proof travels with the file and a reader can check
   it offline, with no GitHub account: `gh attestation verify thai-docx-<version>.zip --bundle

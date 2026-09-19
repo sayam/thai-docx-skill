@@ -327,7 +327,7 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
         ["build", "doc/in.md", out, "--chapter-label", "บท", "--appendix-label", "Appendix", "--appendix-numbers", "decimal", "--front-page-numbers",
          "decimal", "--figure-label", "ภาพ"],
         ["build", "doc/sub/เอกสาร.md", out, "--table-widths", "auto", "--no-repeat-table-header", "--table-label", "ตาราง"],
-        # grill mode is the user's word (ADR 0026): both read the message the same way
+        # grill mode is the user's word (ADR 0029): both read the message the same way
         ["grill", "--said", "thai-docx grill"],
         ["grill", "--said", "ขอ THAI_DOCX\tGRILL หน่อย"],
         ["grill", "--said", "ทำไฟล์ word ให้หน่อย ใส่สารบัญ เลขหน้า บทที่ ตารางที่"],

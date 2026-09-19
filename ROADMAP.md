@@ -83,8 +83,9 @@ reading, which the Markdown reference already states.
   in CI, and bump every pinned tool by hand.
 - Keep the assurance case current, and repeat the security review each year or at a boundary
   change (the last is `docs/evidence/2026-09-18-security-review.md`).
-- Hold the project's own citations: a check that no page stating a rule now points at a record
-  the index marks superseded (the drift of 2026-09-18 was found by a reviewer, not by a gate).
+- Keep the project's own citations held: the gate `live-pages-cite-the-record-in-force` reads
+  every live page for a citation of a record the index marks superseded (built 2026-09-19, after
+  the drift of 2026-09-18 was found by a reviewer and not by a gate).
 - OpenSSF Best Practices: passing (reached 2026-09-18), then silver as far as a one-maintainer
   project can go.
 

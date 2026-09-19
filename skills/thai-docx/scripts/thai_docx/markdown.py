@@ -94,7 +94,7 @@ def normalize_label(label: str) -> str:
 
 def forbidden_char(ch: str) -> str | None:
     """A character this skill refuses in its input: controls, noncharacters and the
-    invisible characters of ADR 0005. Returns a label, or None."""
+    invisible characters of ADR 0023. Returns a label, or None."""
     cp = ord(ch)
     if ch in INVISIBLE:
         return INVISIBLE[ch]
@@ -1782,7 +1782,7 @@ def parse(text: str) -> Document:
         for ch in ln:
             label = forbidden_char(ch)
             if label is not None:
-                raise Unsupported(no, f"text contains {label}; the build refuses it (ADR 0005, 0015)")
+                raise Unsupported(no, f"text contains {label}; the build refuses it (ADR 0023, 0015)")
         # ำ written the long way. No normalisation joins these: NFC leaves them apart and NFKC
         # takes ำ the other way, into these two. So it is named and left alone (ADR 0034).
         if NIKHAHIT + SARA_AA in ln:
@@ -1798,7 +1798,7 @@ def parse(text: str) -> Document:
     unreferenced = [label for label in bp.footnote_defs if label not in doc.footnotes]
     if unreferenced:
         fn = bp.footnote_defs[unreferenced[0]]
-        raise Unsupported(fn.line, f"footnote [^{fn.label}] is defined but never referenced; nothing may be dropped silently (ADR 0005)")
+        raise Unsupported(fn.line, f"footnote [^{fn.label}] is defined but never referenced; nothing may be dropped silently (ADR 0023)")
     # a link definition nobody refers to is dropped by CommonMark itself. This project promises
     # that nothing goes silently (references/markdown.md), so it is named — a warning, not a
     # refusal, because unlike a footnote it takes no room in the document either way.
@@ -2068,7 +2068,7 @@ def _blocks(bp: BlockParser, node: Node, doc: Document) -> list[dict]:
     return out
 
 
-# --- what the .docx must carry (ADR 0005) -------------------------------------
+# --- what the .docx must carry (ADR 0023) -------------------------------------
 
 
 THAI_DIGITS = str.maketrans("0123456789", "๐๑๒๓๔๕๖๗๘๙")

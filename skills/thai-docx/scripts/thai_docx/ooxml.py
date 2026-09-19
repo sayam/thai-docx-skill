@@ -25,7 +25,7 @@ SETTINGS_ORDER: list[str] = _DATA["settings_order"]
 # Invisible characters the builder never adds and the checker always reports.
 INVISIBLE: dict[str, str] = _DATA["invisible"]
 # Fonts known to carry Thai glyphs, lower-cased. A font outside this list is a
-# warning, never a failure (ADR 0026): the list is what the maintainer knows.
+# warning, never a failure (ADR 0029): the list is what the maintainer knows.
 THAI_FONTS = frozenset(_DATA["thai_fonts"])
 
 
