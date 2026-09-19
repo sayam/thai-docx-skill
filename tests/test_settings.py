@@ -179,8 +179,9 @@ def test_flags_that_need_the_same_structure_share_one_warning_and_a_duplicate_is
     said = [w["message"] for w in _built(DOCUMENTS["plain"], all_of_them)["warnings"]]
     assert said == [
         "--no-repeat-table-header changed nothing: the document has no table",
-        "--chapter-label changed nothing: the document has no <!-- chapters --> or <!-- appendices --> comment",
-        "--appendix-label and --appendix-numbers changed nothing: the document has no <!-- appendices --> comment",
+        "--chapter-label changed nothing: no heading carries a chapter number; a # heading under <!-- chapters --> does",
+        "--appendix-label and --appendix-numbers changed nothing: no heading carries an appendix letter;"
+        " a # heading under <!-- appendices --> does",
     ]
     twice = _built(DOCUMENTS["toc comment"], ["--toc"])
     assert [w["message"] for w in twice["warnings"]] == [

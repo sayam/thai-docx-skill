@@ -1969,17 +1969,42 @@ function toBlocks(bp, node, doc) {
   return out;
 }
 
-function plainText(blocks) {
+const THAI_DIGITS = { "0": "\u0e50", "1": "\u0e51", "2": "\u0e52", "3": "\u0e53", "4": "\u0e54",
+  "5": "\u0e55", "6": "\u0e56", "7": "\u0e57", "8": "\u0e58", "9": "\u0e59" };
+
+function thaiDigits(text) {
+  let out = "";
+  for (const ch of text) out += THAI_DIGITS[ch] === undefined ? ch : THAI_DIGITS[ch];
+  return out;
+}
+
+// Every paragraph's text, in document order. Hard breaks are newlines; task markers are □/■
+// (ADR 0033); an ordered list's number is text and comes with the tab after it (ADR 0035); a
+// bullet is drawn by the numbering part and is not text.
+function plainText(blocks, thai) {
   const out = [];
   for (const b of blocks) {
     const t = b.t;
     if (t === "paragraph" || t === "heading") out.push(inlineText(b.inlines));
     else if (t === "code") out.push(...(b.lines.length ? b.lines : [""]));
-    else if (t === "quote") out.push(...plainText(b.blocks));
+    else if (t === "quote") out.push(...plainText(b.blocks, thai));
     else if (t === "list") {
-      for (const item of b.items) {
-        if (!item.length || item[0].t !== "paragraph") out.push("");
-        out.push(...plainText(item));
+      for (let n = 0; n < b.items.length; n++) {
+        const item = b.items[n];
+        const task = item.length && item[0].t === "paragraph" && item[0].inlines.length && item[0].inlines[0].t === "task";
+        let marker = "";
+        if (b.ordered && !task) {
+          const number = String(b.start + n);
+          marker = (thai ? thaiDigits(number) : number) + ".\t";
+        }
+        if (!item.length || item[0].t !== "paragraph") {
+          out.push(marker);
+          out.push(...plainText(item, thai));
+          continue;
+        }
+        const lines = plainText(item, thai);
+        if (lines.length) out.push(marker + lines[0], ...lines.slice(1));
+        else out.push(marker);
       }
     } else if (t === "table") {
       for (const row of b.rows) for (const cell of row) out.push(inlineText(cell));

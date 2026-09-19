@@ -2071,9 +2071,14 @@ def _blocks(bp: BlockParser, node: Node, doc: Document) -> list[dict]:
 # --- what the .docx must carry (ADR 0005) -------------------------------------
 
 
-def plain_text(blocks: list[dict]) -> list[str]:
-    """Every paragraph's text, in document order. Hard breaks are newlines; task
-    markers are □/■ (ADR 0033); images and footnote marks contribute nothing."""
+THAI_DIGITS = str.maketrans("0123456789", "๐๑๒๓๔๕๖๗๘๙")
+
+
+def plain_text(blocks: list[dict], thai_digits: bool = False) -> list[str]:
+    """Every paragraph's text, in document order. Hard breaks are newlines; task markers are
+    □/■ (ADR 0033); an ordered list's number is text and comes with the tab after it (ADR 0035);
+    a bullet is drawn by the numbering part and is not text; images and footnote marks
+    contribute nothing."""
     out: list[str] = []
     for b in blocks:
         t = b["t"]
@@ -2082,12 +2087,20 @@ def plain_text(blocks: list[dict]) -> list[str]:
         elif t == "code":
             out.extend(b["lines"] or [""])
         elif t == "quote":
-            out.extend(plain_text(b["blocks"]))
+            out.extend(plain_text(b["blocks"], thai_digits))
         elif t == "list":
-            for item in b["items"]:
+            for n, item in enumerate(b["items"]):
+                marker = ""
+                if b["ordered"] and not (item and item[0]["t"] == "paragraph"
+                                         and item[0]["inlines"] and item[0]["inlines"][0]["t"] == "task"):
+                    number = str(b["start"] + n)
+                    marker = (number.translate(THAI_DIGITS) if thai_digits else number) + ".\t"
                 if not item or item[0]["t"] != "paragraph":
-                    out.append("")  # the writer gives such an item an empty numbered paragraph
-                out.extend(plain_text(item))
+                    out.append(marker)  # the writer gives such an item a paragraph with the marker alone
+                    out.extend(plain_text(item, thai_digits))
+                    continue
+                lines = plain_text(item, thai_digits)
+                out.extend([marker + lines[0]] + lines[1:] if lines else [marker])
         elif t == "table":
             for row in b["rows"]:
                 for cell in row:

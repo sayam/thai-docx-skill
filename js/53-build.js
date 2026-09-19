@@ -47,6 +47,8 @@ function buildText(text, opts, readImage) {
     ["chapters or appendices", writer.hasChapters],
     ["numbered headings", items.some((item) => item.number !== undefined)],
     ["appendices", writer.regions.includes("appendices")],
+    ["appendix headings", items.some((item) => item.number !== undefined && item.region === "appendices")],
+    ["chapter headings", items.some((item) => item.number !== undefined && item.region === "chapters")],
     ["front", writer.regions.includes("front")],
     ["toc comment", items.some((item) => item.block.t === "directive" && item.block.name === "toc")],
   ].filter(([, there]) => there).map(([name]) => name));

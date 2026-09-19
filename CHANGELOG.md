@@ -19,6 +19,23 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Changed
 
+- **Every number this skill can know is written into the document as text, not left to the
+  application to work out (ADR 0035).** A heading's number (`บทที่ ๑`, `๑.๑`, `ภาคผนวก ก`), an
+  ordered list's marker and a caption's number are now runs in the paragraph they belong to.
+  LibreOffice Writer drew a thesis's captions as `ตารางที่ บทนำ-ก` — the chapter's *title* where
+  Word gives its number, from a `STYLEREF`, and a Thai letter that never restarted, from a `SEQ`
+  — and drew `บทที่ 1`, `1.1`, `1.` where Word drew Thai digits, because `thaiNumbers` is a
+  format it does not implement. What only a laid-out page knows stays a field: page numbers,
+  footnote marks, and the page numbers a list shows after an update. A bullet stays a numbering
+  level, since `•` is written out and every reader drew it. **Word no longer renumbers a
+  document a reader edits by hand** — the trade this buys is a file that reads the same in every
+  application, and a change belongs in the Markdown, where the build renumbers everything.
+  **The bytes of every document change**, and get smaller: the goldens lost about 11%.
+- The table of contents now carries sub-heading numbers too (`1.1 ที่มา`), because the build
+  writes them and so knows them; before, an application that never updated fields showed the
+  heading's words alone.
+- `--chapter-label` and `--appendix-label` say they changed nothing unless a heading actually
+  carries a chapter number or an appendix letter, which is what they always meant.
 - The task-list box is now `□` and, when checked, `■`, in Arial (ADR 0033). It was `☐`/`☑` in Segoe
   UI Symbol — a Microsoft font, so on every machine without it the box was drawn as **nothing**, in
   every reader, which the WPS re-check found. No font carrying `☐` is present on Windows, macOS and

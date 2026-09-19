@@ -70,7 +70,7 @@ For a report or thesis: region comments and `Table:` / `Figure:` captions — [c
 | appendix numbers | ก ข ค | `--appendix-numbers upper-letters` (or `decimal`, `upper-roman`) |
 | chapter title | beside its number | `--chapter-title-on-new-line` (บทที่ 1 on one line, the title under it) |
 
-Without a `<!-- chapters -->` or `<!-- appendices -->` comment, `--chapter-label` changes nothing, and the build says so.
+Without a `#` heading under `<!-- chapters -->`, `--chapter-label` changes nothing, and the build says so.
 
 Without a `Table:` caption, `--table-label` changes nothing, and the build says so.
 
@@ -78,6 +78,6 @@ Without a `Figure:` caption, `--figure-label` changes nothing, and the build say
 
 Without a `<!-- front -->` comment, `--front-page-numbers` changes nothing, and the build says so.
 
-Without an `<!-- appendices -->` comment, `--appendix-label` and `--appendix-numbers` change nothing, and the build says so.
+Without a `#` heading under `<!-- appendices -->`, `--appendix-label` and `--appendix-numbers` change nothing, and the build says so.
 
 Without a `#` heading under `<!-- chapters -->` or `<!-- appendices -->`, `--chapter-title-on-new-line` changes nothing, and the build says so.

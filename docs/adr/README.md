@@ -40,3 +40,4 @@ file that is gone, a repeated number or a gap in the numbering is red.
 | 0032 | [Repair rewrites the attributes that break Thai, never the text](0032-repair-rewrites-attributes-never-the-text.md) | 2026-09-18 | accepted |
 | 0033 | [The task-list box is a square in a text font, not a symbol only Windows has](0033-the-task-box-is-a-square-in-a-text-font.md) | 2026-09-19 | accepted |
 | 0034 | [Two characters that look like one: ำ written long, and `&nbsp;`](0034-two-characters-that-look-like-one.md) | 2026-09-19 | accepted |
+| 0035 | [Every number the build can know is written as text, not left to the application](0035-numbers-the-build-writes.md) | 2026-09-19 | accepted |
