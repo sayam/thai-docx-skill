@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
-"""Grill mode is the user's word (ADR 0026, 0029): the mode comes from the message the user
+"""Grill mode is the user's word (ADR 0029): the mode comes from the message the user
 typed, read by the script, not from what a model makes of the request — and so do the
 profile it starts from, the name it saves to, and what each answer means against them."""
 
@@ -135,7 +135,7 @@ def test_a_message_the_command_did_not_see_is_no_message():
 
 
 def test_the_phrase_is_read_with_a_space_between_the_two_words():
-    """ADR 0026: the name's two words may be joined by `-`, `_` or a space, in any case."""
+    """ADR 0029: the name's two words may be joined by `-`, `_` or a space, in any case."""
     for said in ("thai-docx grill", "thai_docx grill", "thai docx grill", "Thai Docx Grill",
                  "/thai-docx grill", "ขอ THAI DOCX\tGRILL หน่อย"):
         assert run("grill", "--said", said)["mode"] == "grill", said

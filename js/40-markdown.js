@@ -1691,7 +1691,7 @@ function parseMarkdown(text) {
   for (let no = 1; no <= rawLines.length; no++) {
     for (const ch of rawLines[no - 1]) {
       const label = forbiddenChar(ch);
-      if (label !== null) throw new Unsupported(no, "text contains " + label + "; the build refuses it (ADR 0005, 0015)");
+      if (label !== null) throw new Unsupported(no, "text contains " + label + "; the build refuses it (ADR 0023, 0015)");
     }
     // ำ written the long way. No normalisation joins these: NFC leaves them apart and NFKC
     // takes ำ the other way, into these two. So it is named and left alone (ADR 0034).
@@ -1706,7 +1706,7 @@ function parseMarkdown(text) {
   doc.blocks = toBlocks(bp, root, doc);
   for (const [label, fn] of bp.footnoteDefs) {
     if (!doc.footnotes.has(label)) {
-      throw new Unsupported(fn.line, "footnote [^" + fn.label + "] is defined but never referenced; nothing may be dropped silently (ADR 0005)");
+      throw new Unsupported(fn.line, "footnote [^" + fn.label + "] is defined but never referenced; nothing may be dropped silently (ADR 0023)");
     }
   }
   // a link definition nobody refers to is dropped by CommonMark itself. This project promises

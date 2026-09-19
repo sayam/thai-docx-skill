@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
 """The checker, proved in both directions: a clean package passes, and each planted
-violation is reported under its own code (ADR 0004, 0005, 0011; gate
+violation is reported under its own code (ADR 0004, 0023, 0030; gate
 `checkers-proven-two-way`).
 """
 

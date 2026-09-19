@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sayam Sriphua
 // SPDX-License-Identifier: MIT
 // thai-docx — entry: the command line under Node.js, and the ThaiDocx object for a
-// sandbox that runs JavaScript with no file system (ADR 0007, 0008, 0011).
+// sandbox that runs JavaScript with no file system (ADR 0007, 0008, 0030).
 
 const OS_ERRORS = { ENOENT: "No such file or directory", EACCES: "Permission denied", EISDIR: "Is a directory", ENOTDIR: "Not a directory" };
 

@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
 """`thai_docx check FILE.docx` — report, by number, every cause in ADR 0004 the file
-still carries, plus the two things ADR 0005 and 0011 make the checker refuse.
+still carries, plus the two things ADR 0023 and 0030 make the checker refuse.
 
 Findings, each with a `code`:
 
@@ -18,7 +18,7 @@ Findings, each with a `code`:
     package  not a WordprocessingML package
 
 Warnings never fail the check; today there is one: a complex-script font the
-checker does not know to carry Thai glyphs (ADR 0026).
+checker does not know to carry Thai glyphs (ADR 0029).
 
 Role: decider — exit 0 when there are no findings, 1 when there are, 2 when the
 file could not be examined at all. The output is one JSON line, and never carries

@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
-"""`thai_docx build`: faithful to the Markdown (ADR 0005), the same bytes every
+"""`thai_docx build`: faithful to the Markdown (ADR 0023), the same bytes every
 run (ADR 0008), and never a file that fails its own checker (ADR 0007).
 """
 
@@ -87,7 +87,7 @@ def test_docprops_carry_only_front_matter(tmp_path):
     assert zipfile.ZipFile(out).read("docProps/core.xml").decode().endswith("></cp:coreProperties>")
 
 
-# --- fidelity (ADR 0005) ---
+# --- fidelity (ADR 0023) ---
 
 
 def test_sample_text_round_trips_paragraph_for_paragraph():
@@ -234,7 +234,7 @@ def test_unreferenced_footnote_is_refused(tmp_path):
     assert "never referenced" in result["error"]
 
 
-# --- settings (ADR 0026) ---
+# --- settings (ADR 0029) ---
 
 
 def test_defaults_are_announced_and_flags_change_the_package(tmp_path):

@@ -26,7 +26,7 @@ const WRAPPER = { VERSION: "readonly" }; // declared by the bundler before the p
 
 // The bundle runs under Node.js and in a sandbox with no modules (ADR 0008), so a part may
 // use only the globals both share; the command line and the profile files are the parts
-// that run only under Node.js, and they alone may reach its names (ADR 0025).
+// that run only under Node.js, and they alone may reach its names (ADR 0030).
 // a name as a regular expression that matches only itself
 const escapeRegExp = (text) => text.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
 const NODE_ONLY = new Set(["55-profiles.js", "90-entry.js"]);

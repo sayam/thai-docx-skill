@@ -117,7 +117,7 @@ def validate(data, where: str) -> dict:
 
 
 def directories(skill: pathlib.Path | None = None) -> list[tuple[str, pathlib.Path]]:
-    """Where a name is looked for, first match winning (ADR 0024, 0025)."""
+    """Where a name is looked for, first match winning (ADR 0024, 0030)."""
     skill = skill or pathlib.Path(__file__).resolve().parent.parent.parent
     home = os.path.expanduser("~")
     return [

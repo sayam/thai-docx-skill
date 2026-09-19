@@ -202,7 +202,7 @@ function sticky(source, flags) {
 
 // ---- 10-zip.js -------------------------------------------------------------
 // thai-docx — zip: writing stored entries, and reading stored or deflated entries
-// by the rules ADR 0017 numbers, as thai_docx/package.py does (ADR 0008, 0011 §7).
+// by the rules ADR 0017 numbers, as thai_docx/package.py does (ADR 0008, 0030 §9).
 
 class ZipError extends Error {}
 
@@ -1018,7 +1018,7 @@ function parseXml(source) {
 
 // ---- 30-check.js -----------------------------------------------------------
 // thai-docx — check: the JavaScript port of scripts/thai_docx/check.py. Findings,
-// messages, counts and their order match it exactly (ADR 0004, 0005, 0008, 0011).
+// messages, counts and their order match it exactly (ADR 0004, 0023, 0008, 0030).
 
 const OOXML = {"invisible":{"\u200b":"U+200B ZERO WIDTH SPACE","\u200c":"U+200C ZERO WIDTH NON-JOINER","\u200d":"U+200D ZERO WIDTH JOINER","\u2060":"U+2060 WORD JOINER","\ufeff":"U+FEFF ZERO WIDTH NO-BREAK SPACE"},"ppr_order":["pStyle","keepNext","keepLines","pageBreakBefore","framePr","widowControl","numPr","suppressLineNumbers","pBdr","shd","tabs","suppressAutoHyphens","kinsoku","wordWrap","overflowPunct","topLinePunct","autoSpaceDE","autoSpaceDN","bidi","adjustRightInd","snapToGrid","spacing","ind","contextualSpacing","mirrorIndents","suppressOverlap","jc","textDirection","textAlignment","textboxTightWrap","outlineLvl","divId","cnfStyle","rPr","sectPr","pPrChange"],"rpr_order":["rStyle","rFonts","b","bCs","i","iCs","caps","smallCaps","strike","dstrike","outline","shadow","emboss","imprint","noProof","snapToGrid","vanish","webHidden","color","spacing","w","kern","position","sz","szCs","highlight","u","effect","bdr","shd","fitText","vertAlign","rtl","cs","em","lang","eastAsianLayout","specVanish","oMath","rPrChange"],"settings_order":["writeProtection","view","zoom","removePersonalInformation","removeDateAndTime","doNotDisplayPageBoundaries","displayBackgroundShape","printPostScriptOverText","printFractionalCharacterWidth","printFormsData","embedTrueTypeFonts","embedSystemFonts","saveSubsetFonts","saveFormsData","mirrorMargins","alignBordersAndEdges","bordersDoNotSurroundHeader","bordersDoNotSurroundFooter","gutterAtTop","hideSpellingErrors","hideGrammaticalErrors","activeWritingStyle","proofState","formsDesign","attachedTemplate","linkStyles","stylePaneFormatFilter","stylePaneSortMethod","documentType","mailMerge","revisionView","trackRevisions","doNotTrackMoves","doNotTrackFormatting","documentProtection","autoFormatOverride","styleLockTheme","styleLockQFSet","defaultTabStop","autoHyphenation","consecutiveHyphenLimit","hyphenationZone","doNotHyphenateCaps","showEnvelope","summaryLength","clickAndTypeStyle","defaultTableStyle","evenAndOddHeaders","bookFoldRevPrinting","bookFoldPrinting","bookFoldPrintingSheets","drawingGridHorizontalSpacing","drawingGridVerticalSpacing","displayHorizontalDrawingGridEvery","displayVerticalDrawingGridEvery","doNotUseMarginsForDrawingGridOrigin","drawingGridHorizontalOrigin","drawingGridVerticalOrigin","doNotShadeFormData","noPunctuationKerning","characterSpacingControl","printTwoOnOne","strictFirstAndLastChars","noLineBreaksAfter","noLineBreaksBefore","savePreviewPicture","doNotValidateAgainstSchema","saveInvalidXml","ignoreMixedContent","alwaysShowPlaceholderText","doNotDemarcateInvalidXml","saveXmlDataOnly","useXSLTWhenSaving","saveThroughXslt","showXMLTags","alwaysMergeEmptyNamespace","updateFields","hdrShapeDefaults","footnotePr","endnotePr","compat","docVars","rsids","mathPr","attachedSchema","themeFontLang","clrSchemeMapping","doNotIncludeSubdocsInStats","doNotAutoCompressPictures","forceUpgrade","captions","readModeInkLockDown","smartTagType","schemaLibrary","shapeDefaults","doNotEmbedSmartTags","decimalSymbol","listSeparator"],"thai_fonts":["angsana new","angsanaupc","anuphan","arial unicode ms","athiti","ayuthaya","bai jamjuree","browallia new","browalliaupc","chakra petch","charm","charmonman","chonburi","cordia new","cordiaupc","dilleniaupc","eucrosiaupc","fahkwang","freesiaupc","garuda","ibm plex sans thai","ibm plex sans thai looped","irisupc","itim","jasmineupc","k2d","kanit","kinnari","kodchasan","kodchiangupc","koho","krub","krungthep","laksaman","leelawadee","leelawadee ui","libre sarabun","lilyupc","loma","maitree","mali","microsoft sans serif","mitr","niramit","norasi","noto sans thai","noto sans thai looped","noto sans thai ui","noto serif thai","pattaya","pridi","prompt","purisa","sarabun","sathu","sawasdee","segoe ui","silom","sriracha","srisakdi","tahoma","taviraj","th baijam","th chakra petch","th charm of au","th charmonman","th fah kwang","th k2d july8","th kodchasal","th koho","th krub","th mali grade6","th niramit as","th sarabun new","th sarabun psk","th sarabunpsk","th srisakdi","thasadith","thonburi","tlwg typist","tlwg typo","tlwgmono","trirong","umpush","waree"]};
 
@@ -3009,7 +3009,7 @@ function parseMarkdown(text) {
   for (let no = 1; no <= rawLines.length; no++) {
     for (const ch of rawLines[no - 1]) {
       const label = forbiddenChar(ch);
-      if (label !== null) throw new Unsupported(no, "text contains " + label + "; the build refuses it (ADR 0005, 0015)");
+      if (label !== null) throw new Unsupported(no, "text contains " + label + "; the build refuses it (ADR 0023, 0015)");
     }
     // ำ written the long way. No normalisation joins these: NFC leaves them apart and NFKC
     // takes ำ the other way, into these two. So it is named and left alone (ADR 0034).
@@ -3024,7 +3024,7 @@ function parseMarkdown(text) {
   doc.blocks = toBlocks(bp, root, doc);
   for (const [label, fn] of bp.footnoteDefs) {
     if (!doc.footnotes.has(label)) {
-      throw new Unsupported(fn.line, "footnote [^" + fn.label + "] is defined but never referenced; nothing may be dropped silently (ADR 0005)");
+      throw new Unsupported(fn.line, "footnote [^" + fn.label + "] is defined but never referenced; nothing may be dropped silently (ADR 0023)");
     }
   }
   // a link definition nobody refers to is dropped by CommonMark itself. This project promises
@@ -5726,7 +5726,7 @@ function profileValidate(data, where) {
   return data;
 }
 
-// Where a name is looked for, first match winning (ADR 0024, 0025).
+// Where a name is looked for, first match winning (ADR 0024, 0030).
 function profileDirectories() {
   const path = require("path");
   const os = require("os");
@@ -6001,13 +6001,13 @@ function profileExpand(argv) {
 }
 
 // ---- 56-grill.js -----------------------------------------------------------
-// Grill mode is the user's word, not the agent's choice (ADR 0026, restated by 0029) — the
+// Grill mode is the user's word, not the agent's choice (ADR 0029, restating 0026) — the
 // port of thai_docx/grill.py. The agent hands the command the user's own message; the
 // command, not the model, says which mode the build is in — and, in grill mode, which
 // questions to ask, which choice each setting holds now, and what every choice means.
 
 const GRILL_USAGE = "usage: thai_docx grill --said \"the user's own message, word for word\"";
-// grillFold reads `_` as `-`; the space is the third way ADR 0026 lets the two words of
+// grillFold reads `_` as `-`; the space is the third way ADR 0029 lets the two words of
 // the name be joined, and it cannot be folded — a space is what separates the phrase's
 // own words — so the pattern allows it there and nowhere else.
 const GRILL_PHRASE = /thai[- ]docx grill/;
@@ -6212,7 +6212,7 @@ function grillRun(argv) {
 
 // ---- 90-entry.js -----------------------------------------------------------
 // thai-docx — entry: the command line under Node.js, and the ThaiDocx object for a
-// sandbox that runs JavaScript with no file system (ADR 0007, 0008, 0011).
+// sandbox that runs JavaScript with no file system (ADR 0007, 0008, 0030).
 
 const OS_ERRORS = { ENOENT: "No such file or directory", EACCES: "Permission denied", EISDIR: "Is a directory", ENOTDIR: "Not a directory" };
 
