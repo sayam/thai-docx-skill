@@ -65,13 +65,15 @@ def expected_text(doc: md.Document, opts: dict | None = None) -> list[str]:
             out.append(caption_text(item["caption"]))
         elif item["block"]["t"] == "directive" and item["block"]["name"] in LIST_FIELDS:
             out.extend(text for _, text in list_entries(items, item["block"]["name"]))
-        elif opts["chapter_title_on_new_line"] and "number" in item and item["block"]["t"] == "heading":
-            out.extend("\n" + line for line in md.plain_text([item["block"]]))
+        elif item["block"]["t"] == "heading" and "number" in item:
+            # the number is text in the heading's paragraph now, not a number an application draws
+            join = "\n" if opts["chapter_title_on_new_line"] else " "
+            out.extend(item["number"] + join + line for line in md.plain_text([item["block"]], opts["thai_digits"]))
         else:
-            out.extend(md.plain_text([item["block"]]))
+            out.extend(md.plain_text([item["block"]], opts["thai_digits"]))
     for label in doc.footnote_order:
         blocks = doc.footnotes[label]
         if not blocks or blocks[0]["t"] != "paragraph":
             out.append("")
-        out.extend(md.plain_text(blocks))
+        out.extend(md.plain_text(blocks, opts["thai_digits"]))
     return [unicodedata.normalize("NFC", s) for s in out]

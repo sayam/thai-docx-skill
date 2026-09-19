@@ -165,7 +165,7 @@ ROMAN = ((1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC
          (1, "I"))
 SECTION_MARK = "\x00"  # between sections in the body; the input can hold no control character
 LIST_FIELDS = {"toc": 'TOC \\o "1-3" \\h \\z \\u', "list-of-tables": 'TOC \\h \\z \\c "Table"', "list-of-figures": 'TOC \\h \\z \\c "Figure"'}
-THAI_DIGITS = str.maketrans("0123456789", "๐๑๒๓๔๕๖๗๘๙")
+THAI_DIGITS = md.THAI_DIGITS  # the translation lives beside plain_text, which also writes numbers
 CAPTION_PREFIX = {"table": "Table:", "figure": "Figure:"}
 # What a Thai writer reaches for instead. These make no caption — the prefix is one word,
 # written in English, so one rule holds in both languages — but a paragraph that opens with
@@ -276,6 +276,7 @@ def layout(doc: md.Document, opts: dict) -> tuple[list[dict], list[str], list[st
     warnings: list[str] = []
     region, pending, has_content, chapter, appendix = "cover", None, False, 0, 0
     counters = {"table": 0, "figure": 0}
+    sub = [0] * 6  # the counter of each heading level, for the numbers the build writes (ADR 0035)
     last_level = 0  # the heading level before this one: a jump leaves a gap in the outline
     blocks = doc.blocks
     for i, b in enumerate(blocks):
@@ -298,6 +299,12 @@ def layout(doc: md.Document, opts: dict) -> tuple[list[dict], list[str], list[st
             elif region == "appendices":
                 appendix += 1
                 item["number"] = opts["appendix_label"] + " " + number_text(appendix, opts["appendix_numbers"], opts["thai_digits"])
+        if b["t"] == "heading":
+            _count_heading(b["level"], sub)
+            number = _heading_number(b["level"], sub, region if sectioned else "chapters",
+                                     sectioned, chapter, appendix, opts)
+            if number is not None:
+                item["number"] = number
         for n in b.get("inlines", []):
             if n["t"] == "image" and not n["alt"].strip():
                 warnings.append("line " + str(b["line"]) + ": the image '" + n["src"]
@@ -345,6 +352,44 @@ def layout(doc: md.Document, opts: dict) -> tuple[list[dict], list[str], list[st
                 items[-1]["keep_next"] = True
         items.append(item)
     return items, regions, warnings
+
+
+def _count_heading(level: int, sub: list[int]) -> None:
+    """A heading advances its own level's counter and starts the deeper ones again."""
+    sub[level - 1] += 1
+    for k in range(level, len(sub)):
+        sub[k] = 0
+
+
+def _heading_number(level: int, sub: list[int], region: str, sectioned: bool,
+                    chapter: int, appendix: int, opts: dict) -> str | None:
+    """The number a heading carries, or None for a heading that carries none. Written into the
+    document as text rather than left to the application to compute (ADR 0035), so it reads the
+    same in every reader — the shapes are the ones Word's numbering drew before: "บทที่ ๑",
+    "ภาคผนวก ก", "๑.๑", "ก.๑.๑", and "1." for a document with no regions."""
+    if level > 1 and not opts["heading_numbers"]:
+        return None
+    if sectioned and region not in ("chapters", "appendices"):
+        return None
+    thai = opts["thai_digits"]
+    if region == "appendices":
+        if not appendix:
+            return None
+        first = number_text(appendix, opts["appendix_numbers"], thai)
+        label = opts["appendix_label"]
+    elif sectioned:
+        if not chapter:
+            return None
+        first = number_text(chapter, "decimal", thai)
+        label = opts["chapter_label"]
+    else:
+        if not opts["heading_numbers"]:
+            return None
+        first = number_text(sub[0], "decimal", thai)
+        label = None
+    if level == 1:
+        return (label + " " + first) if label is not None else first + "."
+    return ".".join([first] + [number_text(sub[k], "decimal", thai) for k in range(1, level)])
 
 
 LIST_KINDS = {"list-of-tables": "table", "list-of-figures": "figure"}

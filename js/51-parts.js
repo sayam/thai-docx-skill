@@ -128,7 +128,6 @@ class Package extends Writer {
       const [name, rest] = this.headingRun(n);
       const face = name !== null ? attr(name) : "";
       const rpr = (face ? "<w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + " w:eastAsia=" + face + "/>" : "") + rest;
-      const num = this.numberedLevels().has(n) ? '<w:numPr><w:ilvl w:val="' + (n - 1) + '"/><w:numId w:val="' + this.headingNumId() + '"/></w:numPr>' : "";
       let spacing = '<w:spacing w:before="' + (has(p, "before") ? p.before : n === 1 ? 240 : 200) + '" w:after="' + (has(p, "after") ? p.after : 80) + '"';
       spacing += has(p, "line") ? ' w:line="' + p.line + '" w:lineRule="auto"/>' : "/>";
       let ind = "";
@@ -139,7 +138,7 @@ class Package extends Writer {
       }
       return (
         '<w:style w:type="paragraph" w:styleId="Heading' + n + '"><w:name w:val="heading ' + n + '"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>' +
-        "<w:pPr><w:keepNext/><w:keepLines/>" + (p.break ? "<w:pageBreakBefore/>" : "") + num + spacing + ind +
+        "<w:pPr><w:keepNext/><w:keepLines/>" + (p.break ? "<w:pageBreakBefore/>" : "") + spacing + ind +
         '<w:jc w:val="' + (has(p, "jc") ? p.jc : "left") + '"/><w:outlineLvl w:val="' + (n - 1) + '"/></w:pPr>' +
         "<w:rPr>" + rpr + "</w:rPr></w:style>"
       );
@@ -191,70 +190,26 @@ class Package extends Writer {
     );
   }
 
-  // After every ordered list's numId, which the body has handed out by the time styles are written.
-  headingNumId() {
-    return this.nums.length + 2;
-  }
-
+  // Only the bullet list is numbered by the package now: every other marker and number is
+  // written into the document as text (ADR 0035), because an application that does not know a
+  // format draws it its own way — thaiNumbers as 1, 2, 3 — and then the same file reads
+  // differently in two readers.
   numberingXml() {
     const font = attr(this.opts.font);
-    const fmt = this.opts.thai_digits ? "thaiNumbers" : "decimal";
     let bullet = "";
-    let decimal = "";
     // a level with no font of its own is drawn in the application's default, which need not
     // carry Thai: WPS showed "บทที่ ๑" as Latin letters until every level named one
     const half = String(halfUp(this.opts.size * 2));
     const levelFont = "<w:rPr><w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + "/>" +
       '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + LANG + "</w:rPr>";
-    // A heading level's number is drawn as its heading is — "บทที่ 1" at Heading 1's size, not
-    // the body's — naming the font all the same; levels past Heading 6 have none.
-    const headingFont = (l) => {
-      if (l >= HEADING_LOOK.length) return levelFont;
-      const [name, rest] = this.headingRun(l + 1);
-      const face = name !== null ? attr(name) : font;
-      return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + LANG + "</w:rPr>";
-    };
     for (let l = 0; l < 9; l++) {
       bullet += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/>' +
         '<w:pPr><w:ind w:left="' + 720 * (l + 1) + '" w:hanging="360"/></w:pPr>' + levelFont + "</w:lvl>";
-      decimal += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="' + fmt + '"/><w:lvlText w:val="%' + (l + 1) + '."/><w:lvlJc w:val="left"/>' +
-        '<w:pPr><w:ind w:left="' + 720 * (l + 1) + '" w:hanging="360"/></w:pPr>' + levelFont + "</w:lvl>";
-    }
-    let nums = '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>' + this.nums.map(([nid, start, level]) =>
-      '<w:num w:numId="' + nid + '"><w:abstractNumId w:val="1"/><w:lvlOverride w:ilvl="' + Math.min(level, 8) +
-      '"><w:startOverride w:val="' + start + '"/></w:lvlOverride></w:num>').join("");
-    let headings = "";
-    const levelsOn = this.numberedLevels();
-    if (levelsOn.size) {
-      // "1." for a # heading — "บทที่ 1" with chapters — then "1.1", "1.1.1" ... followed by a space, no hanging indent
-      let levels = "";
-      for (let l = 0; l < 9; l++) {
-        const text = l === 0 ? (this.hasChapters ? this.opts.chapter_label + " %1" : "%1.") : Array.from({ length: l + 1 }, (_, k) => "%" + (k + 1)).join(".");
-        levels += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="' + fmt + '"/>' +
-          (levelsOn.has(l + 1) ? '<w:pStyle w:val="Heading' + (l + 1) + '"/>' : "") +
-          '<w:suff w:val="space"/><w:lvlText w:val=' + attr(text) + '/><w:lvlJc w:val="left"/>' + headingFont(l) + "</w:lvl>";
-      }
-      headings = '<w:abstractNum w:abstractNumId="2"><w:multiLevelType w:val="multilevel"/>' + levels + "</w:abstractNum>";
-      nums += '<w:num w:numId="' + this.headingNumId() + '"><w:abstractNumId w:val="2"/></w:num>';
-    }
-    if (this.regions.includes("appendices")) {
-      // "ภาคผนวก ก", then "ก.1", "ก.1.1" with --heading-numbers; set on each heading, linked to no style
-      let first = APPENDIX_NUMBERS[this.opts.appendix_numbers];
-      if (first === "decimal" && this.opts.thai_digits) first = "thaiNumbers";
-      let levels = "";
-      for (let l = 0; l < 9; l++) {
-        const text = l === 0 ? this.opts.appendix_label + " %1" : Array.from({ length: l + 1 }, (_, k) => "%" + (k + 1)).join(".");
-        levels += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="' + (l === 0 ? first : fmt) + '"/>' +
-          '<w:suff w:val="space"/><w:lvlText w:val=' + attr(text) + '/><w:lvlJc w:val="left"/>' + headingFont(l) + "</w:lvl>";
-      }
-      headings += '<w:abstractNum w:abstractNumId="3"><w:multiLevelType w:val="multilevel"/>' + levels + "</w:abstractNum>";
-      nums += '<w:num w:numId="' + (this.headingNumId() + 1) + '"><w:abstractNumId w:val="3"/></w:num>';
     }
     return (
       XML_DECL + '<w:numbering xmlns:w="' + W + '">' +
       '<w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>' + bullet + "</w:abstractNum>" +
-      '<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>' + decimal + "</w:abstractNum>" +
-      headings + nums + "</w:numbering>"
+      '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num></w:numbering>'
     );
   }
 

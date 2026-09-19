@@ -81,6 +81,8 @@ def build_text(text: str, opts: dict, read_image) -> tuple[dict, bytes | None]:
         ("chapters or appendices", writer.has_chapters),
         ("numbered headings", any("number" in item for item in items)),
         ("appendices", "appendices" in writer.regions),
+        ("appendix headings", any("number" in item and item["region"] == "appendices" for item in items)),
+        ("chapter headings", any("number" in item and item["region"] == "chapters" for item in items)),
         ("front", "front" in writer.regions),
         ("toc comment", any(item["block"]["t"] == "directive" and item["block"]["name"] == "toc" for item in items)),
     ) if there}

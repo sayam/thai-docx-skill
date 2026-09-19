@@ -50,14 +50,16 @@ function expectedText(doc, opts) {
     if (item.caption) out.push(captionText(item.caption));
     else if (item.block.t === "directive" && LIST_FIELDS[item.block.name] !== undefined) {
       out.push(...listEntries(items, item.block.name).map(([, text]) => text));
-    } else if (opts.chapter_title_on_new_line && item.number !== undefined && item.block.t === "heading") {
-      out.push(...plainText([item.block]).map((line) => "\n" + line));
-    } else out.push(...plainText([item.block]));
+    } else if (item.block.t === "heading" && item.number !== undefined) {
+      // the number is text in the heading's paragraph now, not a number an application draws
+      const join = opts.chapter_title_on_new_line ? "\n" : " ";
+      out.push(...plainText([item.block], opts.thai_digits).map((line) => item.number + join + line));
+    } else out.push(...plainText([item.block], opts.thai_digits));
   }
   for (const label of doc.footnoteOrder) {
     const blocks = doc.footnotes.get(label);
     if (!blocks.length || blocks[0].t !== "paragraph") out.push("");
-    out.push(...plainText(blocks));
+    out.push(...plainText(blocks, opts.thai_digits));
   }
   return out.map((s) => s.normalize("NFC"));
 }

@@ -3287,17 +3287,42 @@ function toBlocks(bp, node, doc) {
   return out;
 }
 
-function plainText(blocks) {
+const THAI_DIGITS = { "0": "\u0e50", "1": "\u0e51", "2": "\u0e52", "3": "\u0e53", "4": "\u0e54",
+  "5": "\u0e55", "6": "\u0e56", "7": "\u0e57", "8": "\u0e58", "9": "\u0e59" };
+
+function thaiDigits(text) {
+  let out = "";
+  for (const ch of text) out += THAI_DIGITS[ch] === undefined ? ch : THAI_DIGITS[ch];
+  return out;
+}
+
+// Every paragraph's text, in document order. Hard breaks are newlines; task markers are □/■
+// (ADR 0033); an ordered list's number is text and comes with the tab after it (ADR 0035); a
+// bullet is drawn by the numbering part and is not text.
+function plainText(blocks, thai) {
   const out = [];
   for (const b of blocks) {
     const t = b.t;
     if (t === "paragraph" || t === "heading") out.push(inlineText(b.inlines));
     else if (t === "code") out.push(...(b.lines.length ? b.lines : [""]));
-    else if (t === "quote") out.push(...plainText(b.blocks));
+    else if (t === "quote") out.push(...plainText(b.blocks, thai));
     else if (t === "list") {
-      for (const item of b.items) {
-        if (!item.length || item[0].t !== "paragraph") out.push("");
-        out.push(...plainText(item));
+      for (let n = 0; n < b.items.length; n++) {
+        const item = b.items[n];
+        const task = item.length && item[0].t === "paragraph" && item[0].inlines.length && item[0].inlines[0].t === "task";
+        let marker = "";
+        if (b.ordered && !task) {
+          const number = String(b.start + n);
+          marker = (thai ? thaiDigits(number) : number) + ".\t";
+        }
+        if (!item.length || item[0].t !== "paragraph") {
+          out.push(marker);
+          out.push(...plainText(item, thai));
+          continue;
+        }
+        const lines = plainText(item, thai);
+        if (lines.length) out.push(marker + lines[0], ...lines.slice(1));
+        else out.push(marker);
       }
     } else if (t === "table") {
       for (const row of b.rows) for (const cell of row) out.push(inlineText(cell));
@@ -3337,6 +3362,8 @@ const STRUCTURES = {
   "chapters or appendices": "the document has no <!-- chapters --> or <!-- appendices --> comment",
   "numbered headings": "no heading carries a chapter or appendix number; a # heading under <!-- chapters --> or <!-- appendices --> does",
   appendices: "the document has no <!-- appendices --> comment",
+  "appendix headings": "no heading carries an appendix letter; a # heading under <!-- appendices --> does",
+  "chapter headings": "no heading carries a chapter number; a # heading under <!-- chapters --> does",
   front: "the document has no <!-- front --> comment",
 };
 const CLASHES = {
@@ -3382,7 +3409,7 @@ const SETTINGS = [
   { key: "table_size", flag: "--table-size", kind: "option", default: null, layer: 3, // null: the body size
     read: ["points", 1, 400], takes: "a number of points from 1 to 400", usage: "PT", report: ["table_size_pt", "value"] },
   { key: "chapter_label", flag: "--chapter-label", kind: "value", default: "บทที่", layer: 5,
-    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "chapters or appendices", report: ["chapter_label", "value"] },
+    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "chapter headings", report: ["chapter_label", "value"] },
   { key: "table_label", flag: "--table-label", kind: "value", default: "ตารางที่", layer: 5,
     read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "table captions", report: ["table_label", "value"] },
   { key: "figure_label", flag: "--figure-label", kind: "value", default: "รูปที่", layer: 5,
@@ -3390,9 +3417,9 @@ const SETTINGS = [
   { key: "front_page_numbers", flag: "--front-page-numbers", kind: "value", default: "thai-letters", layer: 5,
     read: ["choice", Object.keys(FRONT_NUMBERS)], takes: Object.keys(FRONT_NUMBERS).join(", "), needs: "front", report: ["front_page_numbers", "value"] },
   { key: "appendix_label", flag: "--appendix-label", kind: "value", default: "ภาคผนวก", layer: 5,
-    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "appendices", report: ["appendix_label", "value"] },
+    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "appendix headings", report: ["appendix_label", "value"] },
   { key: "appendix_numbers", flag: "--appendix-numbers", kind: "value", default: "thai-letters", layer: 5,
-    read: ["choice", Object.keys(APPENDIX_NUMBERS)], takes: Object.keys(APPENDIX_NUMBERS).join(", "), needs: "appendices", report: ["appendix_numbers", "value"] },
+    read: ["choice", Object.keys(APPENDIX_NUMBERS)], takes: Object.keys(APPENDIX_NUMBERS).join(", "), needs: "appendix headings", report: ["appendix_numbers", "value"] },
   { key: "chapter_title_on_new_line", flag: "--chapter-title-on-new-line", kind: "switch", default: false, layer: 5,
     needs: "numbered headings", report: ["chapter_title_on_new_line", "value"] },
 ];
@@ -3764,7 +3791,6 @@ const CAPTION_PREFIX = { table: "Table:", figure: "Figure:" };
 // one of them where a caption would go is a mistake worth naming (ADR 0021).
 const THAI_CAPTION_PREFIX = { table: ["ตาราง:", "ตารางที่:"], figure: ["รูป:", "รูปที่:", "ภาพ:", "ภาพที่:"] };
 const PLAIN_KEYS = ["link", "code", "b", "i", "strike", "u", "sup", "sub"];
-const thaiDigits = (s) => s.replace(/[0-9]/g, (d) => "๐๑๒๓๔๕๖๗๘๙"[Number(d)]);
 
 // "table" or "figure" for a paragraph that opens with plain `Table:` or `Figure:`.
 function captionKind(b) {
@@ -3854,6 +3880,7 @@ function layout(doc, opts) {
   let chapter = 0;
   let appendix = 0;
   let counters = { table: 0, figure: 0 };
+  const sub = [0, 0, 0, 0, 0, 0]; // the counter of each heading level (ADR 0035)
   let lastLevel = 0;  // the heading level before this one: a jump leaves a gap in the outline
   const blocks = doc.blocks;
   blocks.forEach((b, i) => {
@@ -3881,6 +3908,11 @@ function layout(doc, opts) {
         appendix += 1;
         item.number = opts.appendix_label + " " + numberText(appendix, opts.appendix_numbers, opts.thai_digits);
       }
+    }
+    if (b.t === "heading") {
+      countHeading(b.level, sub);
+      const number = headingNumber(b.level, sub, sectioned ? region : "chapters", sectioned, chapter, appendix, opts);
+      if (number !== null) item.number = number;
     }
     for (const n of b.inlines || []) {
       if (n.t === "image" && !stripChars(n.alt, " \t")) {
@@ -3934,6 +3966,38 @@ function layout(doc, opts) {
   return [items, regions, warnings];
 }
 
+// A heading advances its own level's counter and starts the deeper ones again.
+function countHeading(level, sub) {
+  sub[level - 1] += 1;
+  for (let k = level; k < sub.length; k++) sub[k] = 0;
+}
+
+// The number a heading carries, or null for a heading that carries none. Written into the
+// document as text rather than left to the application to compute (ADR 0035).
+function headingNumber(level, sub, region, sectioned, chapter, appendix, opts) {
+  if (level > 1 && !opts.heading_numbers) return null;
+  if (sectioned && region !== "chapters" && region !== "appendices") return null;
+  const thai = opts.thai_digits;
+  let first, label;
+  if (region === "appendices") {
+    if (!appendix) return null;
+    first = numberText(appendix, opts.appendix_numbers, thai);
+    label = opts.appendix_label;
+  } else if (sectioned) {
+    if (!chapter) return null;
+    first = numberText(chapter, "decimal", thai);
+    label = opts.chapter_label;
+  } else {
+    if (!opts.heading_numbers) return null;
+    first = numberText(sub[0], "decimal", thai);
+    label = null;
+  }
+  if (level === 1) return label === null ? first + "." : label + " " + first;
+  const parts = [first];
+  for (let k = 1; k < level; k++) parts.push(numberText(sub[k], "decimal", thai));
+  return parts.join(".");
+}
+
 const LIST_KINDS = { "list-of-tables": "table", "list-of-figures": "figure" };
 
 // An entry is one line: a heading broken over two lines reads as one in the list.
@@ -3970,6 +4034,16 @@ function captionText(c) {
 // thai-docx — writer: the port of scripts/thai_docx/writer.py. The body of word/document.xml;
 // Package in 51-parts.js adds the other parts. The same Markdown, images and settings give
 // the same bytes (ADR 0008).
+
+// A text inline whose run properties are the ones a caption's label carries: bold, nothing else.
+function isBoldOnly(node) {
+  return Boolean(node.b) && !(node.i || node.strike || node.code || node.u || node.sup || node.sub || node.link);
+}
+
+// A text inline that carries any formatting of its own.
+function isFormatted(node) {
+  return Boolean(node.b || node.i || node.strike || node.code || node.u || node.sup || node.sub || node.link);
+}
 
 const CODE_FONT = "Consolas";
 // Styles whose own definition fixes the alignment — the styles part writes a <w:jc> into each
@@ -4056,7 +4130,6 @@ class Writer {
     this.rels = [];
     this.media = [];
     this.imageRel = new Map();
-    this.nums = [];
     this.docPr = 0;
     [this.headingProps, this.styleWarnings] = headingStyles(doc);
     [this.items, this.regions, this.layoutWarnings] = layout(doc, opts);
@@ -4179,12 +4252,26 @@ class Writer {
     return '<w:jc w:val="left"/>';
   }
 
-  // --chapter-title-on-new-line: the number Word writes keeps the first line and the
-  // heading's own text starts the next one. OOXML gives a level no such suffix — nothing, a
-  // space or a tab — so the break belongs to the heading (ADR 0027).
+  // --chapter-title-on-new-line: the number keeps the first line and the heading's own text
+  // starts the next one.
   titleBreak(item) {
     if (!this.opts.chapter_title_on_new_line || item.number === undefined) return "";
     return "<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>";
+  }
+
+  // A heading's inlines and what goes before them: its number, written into the paragraph as
+  // text (ADR 0035). The number carries no run properties of its own, so it takes the heading
+  // style's. Where the first word is unformatted the number joins its run rather than sitting
+  // in one beside it, formatted alike (cause 4).
+  numberedHeading(item) {
+    const inlines = item.block.inlines;
+    if (item.number === undefined) return [inlines, ""];
+    const brk = this.titleBreak(item);
+    if (!brk && inlines.length && inlines[0].t === "text" && !isFormatted(inlines[0])) {
+      return [[{ ...inlines[0], s: item.number + " " + inlines[0].s }, ...inlines.slice(1)], ""];
+    }
+    const text = brk ? item.number : item.number + " ";
+    return [inlines, "<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + brk];
   }
 
   // `body` marks the document's own top level: only its paragraphs take the first-line
@@ -4200,16 +4287,10 @@ class Writer {
         out.push(this.caption(item.caption, Boolean(item.keep_next)));
       } else if (b.t === "directive") {
         out.push(this.field(LIST_FIELDS[b.name], "", listEntries(this.items, b.name)));
-      } else if (b.t === "heading" && this.regions.length && item.region !== "chapters" && this.numberedLevels().has(b.level)) {
-        // appendices take their own list ("ภาคผนวก ก"); headings in any other region, none
+      } else if (b.t === "heading") {
         this.counts.headings += 1;
-        const num = item.region === "appendices"
-          ? '<w:numPr><w:ilvl w:val="' + (b.level - 1) + '"/><w:numId w:val="' + (this.headingNumId() + 1) + '"/></w:numPr>'
-          : '<w:numPr><w:numId w:val="0"/></w:numPr>';
-        out.push(this.paragraph(b.inlines, "Heading" + b.level, num, false, this.titleBreak(item)));
-      } else if (b.t === "heading" && this.titleBreak(item)) {
-        this.counts.headings += 1;
-        out.push(this.paragraph(b.inlines, "Heading" + b.level, "", false, this.titleBreak(item)));
+        const [inlines, lead] = this.numberedHeading(item);
+        out.push(this.paragraph(inlines, "Heading" + b.level, "", false, lead));
       } else {
         out.push(this.blocks([b], 0, false, true, Boolean(item.keep_next)));
       }
@@ -4217,19 +4298,23 @@ class Writer {
     return out.join("");
   }
 
-  // Label, chapter number and SEQ number, bold, with their results written in — an
-  // application that never updates fields still shows them — then the caption text.
+  // Label and number, bold, then the caption text. The number is written as text: a STYLEREF
+  // and a SEQ field are read differently by different applications — LibreOffice gives the
+  // chapter's title where Word gives its number — and a caption a reader cannot trust is worse
+  // than one that does not renumber itself (ADR 0035).
   caption(c, keepNext) {
     this.counts.paragraphs += 1;
     const bold = "<w:b/><w:bCs/>";
     const run = (text, rpr) => "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>";
     let ppr = '<w:pStyle w:val="Caption"/>' + (keepNext ? "<w:keepNext/>" : "") + (c.kind === "figure" ? '<w:jc w:val="center"/>' : "");
     ppr += this.latinJc(ppr, captionText(c));
-    let out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c.label + " ", bold);
-    if (c.chapter) out += this.fieldRuns("STYLEREF 1 \\s", c.chapter, bold) + run("-", bold);
-    const seq = "SEQ " + c.kind[0].toUpperCase() + c.kind.slice(1) + " \\* " + (this.opts.thai_digits ? "ThaiArabic" : "ARABIC") + (c.reset ? " \\s 1" : "");
-    out += this.fieldRuns(seq, c.seq, bold);
+    const head = c.label + " " + ((c.chapter ? c.chapter + "-" : "") + c.seq);
     const rest = c.inlines;
+    if (rest.length && rest[0].t === "text" && isBoldOnly(rest[0])) {
+      // the caption opens in bold, as the label does: one run, or two formatted alike (cause 4)
+      return "<w:p><w:pPr>" + ppr + "</w:pPr>" + this.inlines([{ ...rest[0], s: head + " " + rest[0].s }, ...rest.slice(1)]) + "</w:p>";
+    }
+    let out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(head, bold);
     if (rest.length && rest[0].t === "text") {
       // the space joins the first text run: a run of its own would sit beside one formatted alike (cause 4)
       out += this.inlines([{ ...rest[0], s: " " + rest[0].s }, ...rest.slice(1)]);
@@ -4237,23 +4322,6 @@ class Writer {
       out += run(" ", "") + this.inlines(rest);
     }
     return out + "</w:p>";
-  }
-
-  fieldRuns(instr, result, rpr) {
-    return (
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>' +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>" +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>' +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>" +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
-    );
-  }
-
-  // Heading levels Word numbers: the chapter level whenever there are chapters, the rest with --heading-numbers.
-  numberedLevels() {
-    const rest = this.opts.heading_numbers ? [2, 3, 4, 5, 6] : [];
-    if (this.hasChapters) return new Set([1, ...rest]);
-    return new Set(this.opts.heading_numbers ? [1, ...rest] : []);
   }
 
   blocks(blocks, level, quote, body, keepNext) {
@@ -4288,16 +4356,15 @@ class Writer {
     return out.join("");
   }
 
+  // A bullet is drawn by the numbering part, which every application reads the same way. An
+  // ordered list's number is written as text instead (ADR 0035): its format is one a reader may
+  // not have — LibreOffice draws thaiNumbers as 1, 2, 3 — and the hanging indent and the tab
+  // after the marker put it where the numbering put it.
   list(b, level, quote) {
-    let numId;
-    if (b.ordered) {
-      numId = this.nums.length + 2;
-      this.nums.push([numId, b.start, level]);
-    } else {
-      numId = 1;
-    }
     const out = [];
-    for (const item of b.items) {
+    const indent = '<w:ind w:left="' + 720 * (level + 1) + '" w:hanging="360"/>';
+    for (let n = 0; n < b.items.length; n++) {
+      const item = b.items[n];
       this.counts.list_items += 1;
       let first, rest;
       if (item.length && item[0].t === "paragraph") {
@@ -4307,10 +4374,18 @@ class Writer {
         first = [];
         rest = item;
       }
-      let ppr;
-      if (first.length && first[0].t === "task") ppr = '<w:ind w:left="' + 720 * (level + 1) + '"/>';
-      else ppr = '<w:numPr><w:ilvl w:val="' + Math.min(level, 8) + '"/><w:numId w:val="' + numId + '"/></w:numPr>';
-      out.push(this.paragraph(first, "ListParagraph", ppr));
+      let ppr, lead = "";
+      if (first.length && first[0].t === "task") {
+        ppr = '<w:ind w:left="' + 720 * (level + 1) + '"/>';
+      } else if (b.ordered) {
+        const marker = numberText(b.start + n, "decimal", this.opts.thai_digits) + ".";
+        ppr = indent;
+        lead = "<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(marker) + "</w:t></w:r>" +
+          "<w:r><w:rPr>" + LANG + "</w:rPr><w:tab/></w:r>";
+      } else {
+        ppr = '<w:numPr><w:ilvl w:val="' + Math.min(level, 8) + '"/><w:numId w:val="1"/></w:numPr>';
+      }
+      out.push(this.paragraph(first, "ListParagraph", ppr, false, lead));
       out.push(this.blocks(rest, level + 1, quote));
     }
     return out.join("");
@@ -4516,7 +4591,6 @@ class Package extends Writer {
       const [name, rest] = this.headingRun(n);
       const face = name !== null ? attr(name) : "";
       const rpr = (face ? "<w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + " w:eastAsia=" + face + "/>" : "") + rest;
-      const num = this.numberedLevels().has(n) ? '<w:numPr><w:ilvl w:val="' + (n - 1) + '"/><w:numId w:val="' + this.headingNumId() + '"/></w:numPr>' : "";
       let spacing = '<w:spacing w:before="' + (has(p, "before") ? p.before : n === 1 ? 240 : 200) + '" w:after="' + (has(p, "after") ? p.after : 80) + '"';
       spacing += has(p, "line") ? ' w:line="' + p.line + '" w:lineRule="auto"/>' : "/>";
       let ind = "";
@@ -4527,7 +4601,7 @@ class Package extends Writer {
       }
       return (
         '<w:style w:type="paragraph" w:styleId="Heading' + n + '"><w:name w:val="heading ' + n + '"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>' +
-        "<w:pPr><w:keepNext/><w:keepLines/>" + (p.break ? "<w:pageBreakBefore/>" : "") + num + spacing + ind +
+        "<w:pPr><w:keepNext/><w:keepLines/>" + (p.break ? "<w:pageBreakBefore/>" : "") + spacing + ind +
         '<w:jc w:val="' + (has(p, "jc") ? p.jc : "left") + '"/><w:outlineLvl w:val="' + (n - 1) + '"/></w:pPr>' +
         "<w:rPr>" + rpr + "</w:rPr></w:style>"
       );
@@ -4579,70 +4653,26 @@ class Package extends Writer {
     );
   }
 
-  // After every ordered list's numId, which the body has handed out by the time styles are written.
-  headingNumId() {
-    return this.nums.length + 2;
-  }
-
+  // Only the bullet list is numbered by the package now: every other marker and number is
+  // written into the document as text (ADR 0035), because an application that does not know a
+  // format draws it its own way — thaiNumbers as 1, 2, 3 — and then the same file reads
+  // differently in two readers.
   numberingXml() {
     const font = attr(this.opts.font);
-    const fmt = this.opts.thai_digits ? "thaiNumbers" : "decimal";
     let bullet = "";
-    let decimal = "";
     // a level with no font of its own is drawn in the application's default, which need not
     // carry Thai: WPS showed "บทที่ ๑" as Latin letters until every level named one
     const half = String(halfUp(this.opts.size * 2));
     const levelFont = "<w:rPr><w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + "/>" +
       '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + LANG + "</w:rPr>";
-    // A heading level's number is drawn as its heading is — "บทที่ 1" at Heading 1's size, not
-    // the body's — naming the font all the same; levels past Heading 6 have none.
-    const headingFont = (l) => {
-      if (l >= HEADING_LOOK.length) return levelFont;
-      const [name, rest] = this.headingRun(l + 1);
-      const face = name !== null ? attr(name) : font;
-      return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + LANG + "</w:rPr>";
-    };
     for (let l = 0; l < 9; l++) {
       bullet += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/>' +
         '<w:pPr><w:ind w:left="' + 720 * (l + 1) + '" w:hanging="360"/></w:pPr>' + levelFont + "</w:lvl>";
-      decimal += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="' + fmt + '"/><w:lvlText w:val="%' + (l + 1) + '."/><w:lvlJc w:val="left"/>' +
-        '<w:pPr><w:ind w:left="' + 720 * (l + 1) + '" w:hanging="360"/></w:pPr>' + levelFont + "</w:lvl>";
-    }
-    let nums = '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>' + this.nums.map(([nid, start, level]) =>
-      '<w:num w:numId="' + nid + '"><w:abstractNumId w:val="1"/><w:lvlOverride w:ilvl="' + Math.min(level, 8) +
-      '"><w:startOverride w:val="' + start + '"/></w:lvlOverride></w:num>').join("");
-    let headings = "";
-    const levelsOn = this.numberedLevels();
-    if (levelsOn.size) {
-      // "1." for a # heading — "บทที่ 1" with chapters — then "1.1", "1.1.1" ... followed by a space, no hanging indent
-      let levels = "";
-      for (let l = 0; l < 9; l++) {
-        const text = l === 0 ? (this.hasChapters ? this.opts.chapter_label + " %1" : "%1.") : Array.from({ length: l + 1 }, (_, k) => "%" + (k + 1)).join(".");
-        levels += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="' + fmt + '"/>' +
-          (levelsOn.has(l + 1) ? '<w:pStyle w:val="Heading' + (l + 1) + '"/>' : "") +
-          '<w:suff w:val="space"/><w:lvlText w:val=' + attr(text) + '/><w:lvlJc w:val="left"/>' + headingFont(l) + "</w:lvl>";
-      }
-      headings = '<w:abstractNum w:abstractNumId="2"><w:multiLevelType w:val="multilevel"/>' + levels + "</w:abstractNum>";
-      nums += '<w:num w:numId="' + this.headingNumId() + '"><w:abstractNumId w:val="2"/></w:num>';
-    }
-    if (this.regions.includes("appendices")) {
-      // "ภาคผนวก ก", then "ก.1", "ก.1.1" with --heading-numbers; set on each heading, linked to no style
-      let first = APPENDIX_NUMBERS[this.opts.appendix_numbers];
-      if (first === "decimal" && this.opts.thai_digits) first = "thaiNumbers";
-      let levels = "";
-      for (let l = 0; l < 9; l++) {
-        const text = l === 0 ? this.opts.appendix_label + " %1" : Array.from({ length: l + 1 }, (_, k) => "%" + (k + 1)).join(".");
-        levels += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="' + (l === 0 ? first : fmt) + '"/>' +
-          '<w:suff w:val="space"/><w:lvlText w:val=' + attr(text) + '/><w:lvlJc w:val="left"/>' + headingFont(l) + "</w:lvl>";
-      }
-      headings += '<w:abstractNum w:abstractNumId="3"><w:multiLevelType w:val="multilevel"/>' + levels + "</w:abstractNum>";
-      nums += '<w:num w:numId="' + (this.headingNumId() + 1) + '"><w:abstractNumId w:val="3"/></w:num>';
     }
     return (
       XML_DECL + '<w:numbering xmlns:w="' + W + '">' +
       '<w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>' + bullet + "</w:abstractNum>" +
-      '<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>' + decimal + "</w:abstractNum>" +
-      headings + nums + "</w:numbering>"
+      '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num></w:numbering>'
     );
   }
 
@@ -4828,14 +4858,16 @@ function expectedText(doc, opts) {
     if (item.caption) out.push(captionText(item.caption));
     else if (item.block.t === "directive" && LIST_FIELDS[item.block.name] !== undefined) {
       out.push(...listEntries(items, item.block.name).map(([, text]) => text));
-    } else if (opts.chapter_title_on_new_line && item.number !== undefined && item.block.t === "heading") {
-      out.push(...plainText([item.block]).map((line) => "\n" + line));
-    } else out.push(...plainText([item.block]));
+    } else if (item.block.t === "heading" && item.number !== undefined) {
+      // the number is text in the heading's paragraph now, not a number an application draws
+      const join = opts.chapter_title_on_new_line ? "\n" : " ";
+      out.push(...plainText([item.block], opts.thai_digits).map((line) => item.number + join + line));
+    } else out.push(...plainText([item.block], opts.thai_digits));
   }
   for (const label of doc.footnoteOrder) {
     const blocks = doc.footnotes.get(label);
     if (!blocks.length || blocks[0].t !== "paragraph") out.push("");
-    out.push(...plainText(blocks));
+    out.push(...plainText(blocks, opts.thai_digits));
   }
   return out.map((s) => s.normalize("NFC"));
 }
@@ -4888,6 +4920,8 @@ function buildText(text, opts, readImage) {
     ["chapters or appendices", writer.hasChapters],
     ["numbered headings", items.some((item) => item.number !== undefined)],
     ["appendices", writer.regions.includes("appendices")],
+    ["appendix headings", items.some((item) => item.number !== undefined && item.region === "appendices")],
+    ["chapter headings", items.some((item) => item.number !== undefined && item.region === "chapters")],
     ["front", writer.regions.includes("front")],
     ["toc comment", items.some((item) => item.block.t === "directive" && item.block.name === "toc")],
   ].filter(([, there]) => there).map(([name]) => name));
