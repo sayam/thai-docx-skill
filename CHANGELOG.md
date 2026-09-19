@@ -107,6 +107,16 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   `&nbsp;` keeps CommonMark's reading, which `references/markdown.md` states, and gets no warning.
   No document's bytes change.
 
+- `references/specs.md` — everything the Markdown can say, in one page, for an assistant writing
+  a document of a shape the user asked for. It was four files and an inference before: what the
+  parser accepts, how a long document is marked up, what the front matter styles, what the flags
+  set, what stops the build and what only warns. SKILL.md sends the agent there when a user shows
+  an example of their own. **It describes a format, not a house style** — the skill carries no
+  ministry's, university's or company's form, and the page says so in its own second paragraph;
+  the assistant follows the user's example, not one of ours. The page's single example uses every
+  construct at once and a test builds it, so the page cannot drift from the parser. Scenario 14
+  of both guides walks the flow: show the example, read the specs, see the Markdown, then build.
+
 - The skill ships one profile, `thesis`, and the document it belongs to. The profile loader has
   looked in the skill's own directory since ADR 0024 and found nothing there; a user who
   installed the skill saw rules about บทที่ and ตารางที่ and no example, which reads as a format

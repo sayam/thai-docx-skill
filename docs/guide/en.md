@@ -67,6 +67,7 @@ No AI app? Build files yourself with one command: [Use it without an AI](en/comm
 | change a saved profile by answering questions | [11. Edit a profile with questions](en/scenarios.md#scenario-11-edit-a-profile-with-questions) |
 | change a saved profile in one sentence | [12. Edit a profile in one sentence](en/scenarios.md#scenario-12-edit-a-profile-in-one-sentence) |
 | find out why a Thai Word file looks wrong | [13. Check a Word file you already have](en/scenarios.md#scenario-13-check-a-word-file-you-already-have) |
+| make a document like an example you have | [14. You have an example already](en/scenarios.md#scenario-14-you-have-an-example-already-and-want-one-like-it) |
 
 Something went wrong? See [Fix a problem](en/troubleshooting.md).
 
