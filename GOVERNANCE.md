@@ -7,6 +7,11 @@ decision is made and recorded, who does what, and what happens if the maintainer
 
 - **The maintainer decides.** Anyone may propose a change in an issue or a pull request; the
   maintainer accepts or declines it, and says why in the thread.
+- **[`docs/rules.md`](docs/rules.md) is the filter every decision passes through**: the scope this
+  skill answers for, what an output must be, what it must never introduce, and the compatibility
+  contract. A proposal against a rule is declined, with the reason written down. The Thai in that
+  file is the rule; the English below it is a translation for reference. A decision record shows
+  how a rule was applied and never stands above one.
 - **A design decision is written down before it is built**, as a record in
   [`docs/adr/`](docs/adr/README.md): where it came from, the decision, why, what it leaves out, and
   when it expires. A record is never edited into another decision; a new record supersedes it.
