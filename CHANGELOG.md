@@ -69,6 +69,15 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   was read only to its 20,000-character cap, so an agent can tell that answer from a user who never
   asked for the interview. No document's bytes change.
 
+- `ำ` typed the long way is named, and left exactly as it was. `ำ` (U+0E33) can also be written as
+  `ํ` + `า` (U+0E4D U+0E32); the two look the same on screen and are not the same text in the file, so a
+  reader's search for `ำ` skips the long form. The build now warns, with the line number, and changes
+  nothing: U+0E33's decomposition is `<compat> 0E4D 0E32`, so NFKC turns `ำ` **into** the pair and no
+  normalisation turns the pair back — joining them would be a transformation this project invented
+  (ADR 0034, ADR 0023), and the form NFKC would leave everywhere is the one WPS already misplaces.
+  `&nbsp;` keeps CommonMark's reading, which `references/markdown.md` states, and gets no warning.
+  No document's bytes change.
+
 ### Fixed
 
 - `check` says when it is the path that is wrong. A file that does not exist, or a directory,
