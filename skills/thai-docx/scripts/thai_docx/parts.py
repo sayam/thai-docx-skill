@@ -51,7 +51,7 @@ class Package(Writer):
         for kind in self.page_parts():
             numbered = self.rel(REL + kind, kind + "1.xml")
             rids.append((kind, numbered, self.rel(REL + kind, kind + "2.xml") if self.plain_page_part() else None))
-        toc = self.field('TOC \\o "1-3" \\h \\z \\u', entries=list_entries(self.items, "toc")) + "<w:p><w:pPr/></w:p>" if self.opts["toc"] else ""
+        toc = self.written_list(list_entries(self.items, "toc")) + "<w:p><w:pPr/></w:p>" if self.opts["toc"] else ""
         numbers = "thaiNumbers" if self.opts["thai_digits"] else "decimal"
 
         def sect(region: str | None, start: bool) -> str:

@@ -40,7 +40,7 @@ class Package extends Writer {
       const numbered = this.rel(REL + kind, kind + "1.xml");
       rids.push([kind, numbered, this.plainPagePart() ? this.rel(REL + kind, kind + "2.xml") : null]);
     }
-    const toc = this.opts.toc ? this.field('TOC \\o "1-3" \\h \\z \\u', "", listEntries(this.items, "toc")) + "<w:p><w:pPr/></w:p>" : "";
+    const toc = this.opts.toc ? this.writtenList(listEntries(this.items, "toc")) + "<w:p><w:pPr/></w:p>" : "";
     const numbers = this.opts.thai_digits ? "thaiNumbers" : "decimal";
     // A cover shows the plain parts; front pages count ก ข ค from ก, the rest from 1.
     const sect = (region, start) => {

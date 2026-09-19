@@ -252,13 +252,15 @@ def test_defaults_are_announced_and_flags_change_the_package(tmp_path):
     settings = zipfile.ZipFile(out).read("word/settings.xml").decode()
     assert "hideSpellingErrors" not in settings and "updateFields" not in settings
 
-    result, out = build(tmp_path, "ก", font="Sarabun", size=14, hide_spelling_errors=True, toc=True, page_numbers="top-right", align="thai")
+    # a heading, so the table of contents has an entry: it is the build's own paragraphs now
+    result, out = build(tmp_path, "# หัวข้อ\n\nก", font="Sarabun", size=14, hide_spelling_errors=True, toc=True,
+                        page_numbers="top-right", align="thai")
     assert result["ok"] and result["warnings"] == []
     with zipfile.ZipFile(out) as zf:
         settings, styles, doc = (zf.read(f"word/{n}.xml").decode() for n in ("settings", "styles", "document"))
         assert "<w:hideSpellingErrors/><w:hideGrammaticalErrors/>" in settings and '<w:updateFields w:val="true"/>' in settings
         assert 'w:cs="Sarabun"' in styles and '<w:sz w:val="28"/><w:szCs w:val="28"/>' in styles and 'thaiDistribute' in styles
-        assert "TOC \\o" in doc and "headerReference" in doc and " PAGE " in zf.read("word/header1.xml").decode()
+        assert "PAGEREF _Toc" in doc and "headerReference" in doc and " PAGE " in zf.read("word/header1.xml").decode()
 
 
 def test_table_header_row_repeats_unless_turned_off(tmp_path):
@@ -517,19 +519,21 @@ def test_regions_make_a_section_of_every_chapter_and_page_before_and_after(tmp_p
     said = fi.docx_text(parts, 0)
     assert "บทที่ 1 บทนำ" in said and "บทคัดย่อ" in said and "สารบัญ" in said
     # directives become fields, and Word is asked to fill them in
-    assert ' TOC \\o "1-3" \\h \\z \\u ' in doc and ' TOC \\h \\z \\c "Table" ' in doc and '<w:updateFields w:val="true"/>' in settings
+    # a list is the build's own paragraphs now; only its page numbers are a field (ADR 0035)
+    assert "TOC \\o" not in doc and '\\c "Table"' not in doc
+    assert doc.count(" PAGEREF _Toc") >= 6 and '<w:updateFields w:val="true"/>' in settings
     assert 'w:styleId="Caption"' in styles and 'w:styleId="TableofFigures"' in styles and 'w:styleId="TOC1"' in styles
     # captions: chapter-number-seq inside the chapters, restarting at every #, plain in the back
     parts = {n: zipfile.ZipFile(out).read(n) for n in names}
     text = fi.docx_text(parts, 0)
     captions = [t for t in text if t.startswith(("ตารางที่", "รูปที่"))]
-    assert captions == ["ตารางที่ 1-1 สาเหตุ", "ตารางที่ 2-1 รูปแบบ", "ตารางที่ 1 ข้อมูล",  # the list of tables holds them
+    assert captions == ["ตารางที่ 1-1 สาเหตุ\t", "ตารางที่ 2-1 รูปแบบ\t", "ตารางที่ 1 ข้อมูล\t",  # the list of tables, with the tab before its page number
                         "ตารางที่ 1-1 สาเหตุ", "รูปที่ 1-1 ขั้นตอน", "ตารางที่ 2-1 รูปแบบ", "ตารางที่ 1 ข้อมูล"]
-    # ADR 0027: the lists carry their entries, so an application that never updates a field shows them
-        # the entry carries the sub-heading's number too: the build writes it, so it knows it
-    assert text[4:10] == ["บทคัดย่อ", "สารบัญ", "บทที่ 1 บทนำ", "1.1 ที่มา", "บทที่ 2 ทฤษฎี", "ภาคผนวก ก"], text[:12]
+    # ADR 0035: the build writes the lists itself, so a reader that updates fields keeps them
+    # the entry carries the sub-heading's number too: the build writes it, so it knows it
+    assert text[4:10] == ["บทคัดย่อ\t", "สารบัญ\t", "บทที่ 1 บทนำ\t", "1.1 ที่มา\t", "บทที่ 2 ทฤษฎี\t", "ภาคผนวก ก\t"], text[:12]
     assert doc.count('<w:pStyle w:val="TOC1"/>') == 8 and doc.count('<w:pStyle w:val="TOC2"/>') == 1
-    assert '<w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr>' + wr.LANG + '</w:rPr><w:t xml:space="preserve">บทคัดย่อ</w:t>' in doc
+    assert '<w:hyperlink w:anchor="_Toc' in doc, "an entry points at the bookmark on its heading"
     # the number is the build's own text: a STYLEREF gave the chapter's title in LibreOffice
     # and a SEQ gave a Thai letter that never restarted (ADR 0035)
     assert "STYLEREF" not in doc and "SEQ " not in doc
@@ -835,7 +839,7 @@ def test_the_chapter_title_can_start_its_own_line(tmp_path):
     assert doc.count(breaks) == 2, "the chapter and the appendix, not the ## heading"
     text_of = fi.docx_text(parts, 0)
     assert "บทที่ 1\nบทนำ" in text_of and "ภาคผนวก ก\nแบบสอบถาม" in text_of and "ที่มา" in text_of
-    assert "บทที่ 1 บทนำ" in text_of, "the list entry is still one line"
+    assert "บทที่ 1 บทนำ\t" in text_of, "the list entry is still one line"
     assert result["counts"]["headings"] == 3, "a heading moved to its own line is still a heading"
     build(tmp_path, text)  # the same document without the flag
     with zipfile.ZipFile(out) as zf:
@@ -857,7 +861,7 @@ def test_a_heading_over_two_lines_reads_as_one_in_the_list(tmp_path):
         parts = {n: zf.read(n) for n in zf.namelist()}
     assert result["ok"] and result["findings"] == []
     assert "<w:br/>" in doc, "the heading itself keeps the break"
-    assert "บทที่ 1 บทนำ เรื่องทั่วไป" in fi.docx_text(parts, 0), "the entry is one line"
+    assert "บทที่ 1 บทนำ เรื่องทั่วไป\t" in fi.docx_text(parts, 0), "the entry is one line"
     assert "บทที่ 1 บทนำ\nเรื่องทั่วไป" not in doc
 
 
@@ -973,7 +977,8 @@ def test_every_generated_run_names_the_font(tmp_path):
         doc = zf.read("word/document.xml").decode()
     # a heading's number is a run of the heading's own paragraph, so it takes the style's look
     # without naming it again: the size, the weight and the colour of the words beside it
-    assert '<w:pStyle w:val="Heading1"/></w:pPr><w:r><w:rPr>' + wr.LANG + '</w:rPr><w:t xml:space="preserve">บทที่ ๑ บทนำ' in doc
+    assert '<w:pStyle w:val="Heading1"/></w:pPr><w:bookmarkStart' in doc, "the list entry points at the heading"
+    assert '</w:rPr><w:t xml:space="preserve">บทที่ ๑ บทนำ' in doc
     heading1 = styles.split('w:styleId="Heading1"', 1)[1].split("</w:style>", 1)[0].split("<w:rPr>", 1)[1].split("</w:rPr>", 1)[0]
     psk = '<w:rFonts w:ascii="TH SarabunPSK" w:hAnsi="TH SarabunPSK" w:cs="TH SarabunPSK"'
     assert heading1.startswith(psk + ' w:eastAsia="TH SarabunPSK"/><w:b/><w:bCs/><w:color w:val="1F4E79"/><w:sz w:val="44"/>')
