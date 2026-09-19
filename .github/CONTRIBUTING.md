@@ -182,6 +182,14 @@ Conventional Commits, a subject of at most 72 characters, signed off with `git c
 branch with `python3 tools/lint_commits.py --range main..HEAD`. Pull requests are merged by
 rebase, so each commit should stand on its own.
 
+**A pull request's description is held to the same rule.** It credits nobody who did not sign: no
+line opens with `Co-authored-by:` or `Claude-Session:`, with an assistant's "Generated with …"
+footer, or with a link to its session. Turn the footer off in the tool that writes it, or delete
+it before you open the pull request. Saying what the rule refuses is fine — a mention inside a
+sentence, or quoted in backticks, opens no line. The `pr-description` check runs when a pull
+request is opened or pushed to, and again each time its description is edited, which is how a
+refused one is fixed. Check yours with `python3 tools/lint_pr_body.py --file description.md`.
+
 ## License
 
 By contributing you agree that your contribution is licensed under the MIT License of this
