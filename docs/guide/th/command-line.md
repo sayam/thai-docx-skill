@@ -1,7 +1,7 @@
 # ใช้โดยไม่มี AI
 
-โปรแกรมของสกิลรันเองได้ในหน้าจอคำสั่ง (terminal) เราเขียน Markdown เอง แล้วใช้คำสั่งเดียวสร้างไฟล์ Word
-ทุกคำสั่งในหน้านี้ลองรันตามที่เขียนไว้แล้ว
+โปรแกรมของสกิลรันเองได้ในหน้าจอคำสั่ง (terminal) เขียน Markdown เอง แล้วใช้คำสั่งเดียวสร้างไฟล์ Word
+ทุกคำสั่งในหน้านี้ผ่านการรันจริงตามที่เขียนไว้แล้ว
 
 [หน้าแรกของคู่มือ](../th.md) · [English](../en/command-line.md)
 
@@ -58,12 +58,12 @@
    |---|---|---|
    | 0 | `"ok": true` | ได้ `report.docx` แล้ว `"settings"` บอกการตั้งค่าที่ใช้ |
    | 2 | `"error"` มักมี `"line"` | Markdown บรรทัดนั้นมีสิ่งที่สกิลไม่รับ ยังไม่สร้างไฟล์ |
-   | 1 | `"findings"` | ข้อบกพร่องของสกิลเอง ยังไม่สร้างไฟล์ ช่วย[แจ้งที่หน้า Issues](https://github.com/sayam/thai-docx-skill/issues) |
+   | 1 | `"findings"` | ข้อบกพร่องของสกิลเอง ยังไม่สร้างไฟล์ โปรด[แจ้งที่หน้า Issues](https://github.com/sayam/thai-docx-skill/issues) |
 
    `"warnings"` (คำเตือน) ไม่หยุดการสร้างไฟล์ แต่ควรอ่าน เช่น ฟอนต์ไม่มีตัวอักษรไทย
    หรือการตั้งค่าที่ไม่มีผล
 
-   **ระวัง:** `build` เขียนทับ `report.docx` ที่มีอยู่แล้วโดยไม่ถาม ถ้าอยากเก็บไฟล์เดิม ให้ใช้ชื่อใหม่
+   **ระวัง:** `build` เขียนทับ `report.docx` ที่มีอยู่แล้วโดยไม่ถาม หากต้องการเก็บไฟล์เดิม ให้ใช้ชื่อใหม่
 
 ## เปลี่ยนการตั้งค่า
 
@@ -85,7 +85,7 @@ python3 thai-docx/scripts/thai_docx build report.md report.docx --font "Sarabun"
 | `--toc`, `--heading-numbers` | สารบัญ เลขหัวข้อ |
 | `--page-numbers`, `--page-numbers bottom-center`, `--no-page-number-first` | เลขหน้า |
 | `--header "ลับ"`, `--footer "ร่าง"` | ข้อความหัวกระดาษและท้ายกระดาษ |
-| `--thai-digits` | เลขไทย ๑ ๒ ๓ ในเลขที่สกิลใส่ให้ ตัวเลขที่เราพิมพ์ไม่เปลี่ยน |
+| `--thai-digits` | เลขไทย ๑ ๒ ๓ ในเลขที่สกิลใส่ให้ ตัวเลขในข้อความต้นฉบับไม่เปลี่ยน |
 | `--hide-spelling-errors` | ซ่อนเส้นหยัก |
 | `--table-widths auto`, `--table-size 14`, `--no-repeat-table-header` | ตาราง |
 | `--allow-dir ../images` | อ่านรูปจากโฟลเดอร์อื่น |
@@ -115,7 +115,7 @@ python3 thai-docx/scripts/thai_docx build report.md report.docx --profile thesis
 | `profile save thesis-v2 --from thesis --default align --size 14` | สร้างโปรไฟล์ใหม่จากของเดิม: `align` กลับเป็นค่าเริ่มต้น ขนาด 14 |
 | `profile export thesis thesis.json` | เขียนไฟล์ไว้ส่งให้คนอื่น |
 | `profile import thesis.json --name school-thesis` | รับโปรไฟล์ที่คนอื่นส่งมา ตั้งชื่อเอง (เพิ่ม `--project` ถ้าใช้เฉพาะโฟลเดอร์นี้) |
-| `build report.md report.docx --profile thesis.json` | ใช้ไฟล์โปรไฟล์จากที่อยู่ของไฟล์ได้เลย |
+| `build report.md report.docx --profile thesis.json` | ใช้ไฟล์โปรไฟล์จากที่อยู่ของไฟล์ได้โดยตรง |
 | `build report.md report.docx --profile thesis --default toc` | ใช้โปรไฟล์ แต่ตัดการตั้งค่าหนึ่งออก |
 
 ```sh
@@ -130,7 +130,7 @@ python3 thai-docx/scripts/thai_docx profile import thesis.json --name school-the
 ถ้าเขียนทับ บรรทัดที่พิมพ์ออกมาจะมี `"replaced": true` และคำเตือน
 
 โปรไฟล์อยู่ที่ `~/.thai-docx/profiles/` หรือ `.thai-docx/profiles/` ในโปรเจกต์ โปรไฟล์ของโปรเจกต์ชนะโปรไฟล์ชื่อเดียวกัน
-เป็นไฟล์ JSON เล็ก ๆ ที่มีแค่การตั้งค่า
+เป็นไฟล์ JSON ขนาดเล็กที่มีเฉพาะการตั้งค่า
 รายละเอียด: [references/profiles.md](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/profiles.md)
 
 ## ตรวจไฟล์ Word
@@ -142,7 +142,7 @@ python3 thai-docx/scripts/thai_docx check report.docx
 exit code 0: ไม่มีปัญหา 1: มีปัญหา อยู่ใน `"findings"` เป็นรหัส 2: ไม่ใช่ไฟล์ Word ที่อ่านได้ หรือไม่ปลอดภัย
 ความหมายของแต่ละรหัส:
 [references/check.md](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/check.md)
-คำสั่งนี้รายงานอย่างเดียว ถ้าอยากซ่อมไฟล์ที่ไม่มีเนื้อหาต้นฉบับแล้ว
+คำสั่งนี้รายงานอย่างเดียว หากต้องการซ่อมไฟล์ที่ไม่มีเนื้อหาต้นฉบับแล้ว
 
 ```text
 python3 thai-docx/scripts/thai_docx repair theirs.docx theirs-fixed.docx
@@ -151,20 +151,20 @@ python3 thai-docx/scripts/thai_docx repair theirs.docx theirs-fixed.docx
 จะได้ไฟล์ใหม่ ไฟล์เดิมไม่ถูกแตะ แก้ได้ห้าในเจ็ดข้อ คือโหมดความเข้ากันได้ เครื่องหมายที่ทุกช่วงข้อความไทยต้องมี
 การปิดการตรวจคำสะกด คุณสมบัติคู่ของ complex script และลำดับคุณสมบัติที่ผิด ส่วนคำที่ถูกแยกเป็นสองช่วง
 กับอักขระที่มองไม่เห็น จะแจ้งไว้ใน `"remaining"` แทน เพราะการแก้สองข้อนั้นต้องแตะข้อความ
-รายงานจะบอกด้วยว่าเขียนฟอนต์อะไรลงไปในที่ที่ไม่ได้ระบุไว้ ถ้าอยากเลือกเอง ใช้ `--font "Sarabun"`
+รายงานจะบอกด้วยว่าเขียนฟอนต์อะไรลงไปในที่ที่ไม่ได้ระบุไว้ หากต้องการเลือกเอง ใช้ `--font "Sarabun"`
 
 ไฟล์ใหม่จะมีขนาดใกล้เคียงไฟล์เดิม ถ้ามีไฟล์ Markdown ต้นฉบับ การสร้างใหม่แก้ได้ครบกว่า
 รวมถึงสามข้อที่ repair ไม่แตะ
 
 ## ดูคำถาม grill เอง
 
-คำถาม grill มีไว้ให้ผู้ช่วย AI ใช้ แต่เราดูเองได้
+คำถาม grill มีไว้ให้ผู้ช่วย AI ใช้ แต่เรียกดูเองได้
 
 ```sh
 python3 thai-docx/scripts/thai_docx grill --said "thai-docx grill ช่วยทำรายงาน"
 ```
 
-จะได้คำถาม ตัวเลือก และ flag ของแต่ละตัวเลือก ในหน้าจอคำสั่ง ใส่ flag เหล่านั้นให้ `build` ได้เลย
+จะได้คำถาม ตัวเลือก และ flag ของแต่ละตัวเลือก ในหน้าจอคำสั่ง ใส่ flag เหล่านั้นให้ `build` ได้ทันที
 
 ## ในหน้าเว็บหรือ sandbox
 
