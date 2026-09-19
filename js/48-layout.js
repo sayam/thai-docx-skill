@@ -165,7 +165,7 @@ function numberText(n, fmt, thai) {
 }
 const SECTION_MARK = "\x00"; // between sections in the body; the input can hold no control character
 // A caption of each kind takes a style of its own, and a list collects that style: \c collects
-// SEQ fields, which a caption stopped carrying when its number became text (ADR 0035).
+// SEQ fields, which a caption stopped carrying when its number became text (ADR 0036).
 const CAPTION_STYLE = { table: "TableCaption", figure: "FigureCaption" };
 const CAPTION_STYLE_NAME = { table: "Table Caption", figure: "Figure Caption" };
 const LIST_FIELDS = {
@@ -268,7 +268,7 @@ function layout(doc, opts) {
   let chapter = 0;
   let appendix = 0;
   let counters = { table: 0, figure: 0 };
-  const sub = [0, 0, 0, 0, 0, 0]; // the counter of each heading level (ADR 0035)
+  const sub = [0, 0, 0, 0, 0, 0]; // the counter of each heading level (ADR 0036)
   let lastLevel = 0;  // the heading level before this one: a jump leaves a gap in the outline
   const blocks = doc.blocks;
   blocks.forEach((b, i) => {
@@ -361,7 +361,7 @@ function countHeading(level, sub) {
 }
 
 // The number a heading carries, or null for a heading that carries none. Written into the
-// document as text rather than left to the application to compute (ADR 0035).
+// document as text rather than left to the application to compute (ADR 0036).
 function headingNumber(level, sub, region, sectioned, chapter, appendix, opts) {
   if (level > 1 && !opts.heading_numbers) return null;
   if (sectioned && region !== "chapters" && region !== "appendices") return null;

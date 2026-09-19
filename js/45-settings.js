@@ -23,6 +23,7 @@ const STRUCTURES = {
   "appendix headings": "no heading carries an appendix letter; a # heading under <!-- appendices --> does",
   "chapter headings": "no heading carries a chapter number; a # heading under <!-- chapters --> does",
   front: "the document has no <!-- front --> comment",
+  numbers: "the document has no numbered heading, ordered list or caption",
 };
 const CLASHES = {
   "toc comment": "the document places a table of contents with <!-- toc --> as well, so it now has two",
@@ -58,6 +59,8 @@ const SETTINGS = [
     read: ["text", 200, "\t\n"], takes: "text of 1 to 200 characters on one line", usage: "TEXT", report: ["footer", "value"] },
   { key: "thai_digits", flag: "--thai-digits", kind: "switch", default: false, layer: 2, // numbers Word generates; never the text
     report: ["thai_digits", "value"] },
+  { key: "auto_numbering", flag: "--auto-numbering", kind: "switch", default: false, layer: 2, // who counts: the build, or the application
+    needs: "numbers", report: ["auto_numbering", "value"] },
   { key: "hide_spelling_errors", flag: "--hide-spelling-errors", kind: "switch", default: false, layer: 1,
     report: ["hide_spelling_errors", "value"] },
   { key: "repeat_table_header", flag: "--no-repeat-table-header", kind: "off", default: true, layer: 3,

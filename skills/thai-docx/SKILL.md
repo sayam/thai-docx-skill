@@ -77,6 +77,11 @@ again with the flags and report the new settings. Add a flag only for what the u
 for; every other setting keeps its default. A font without Thai glyphs, or a flag the
 document gives nothing to act on, is a warning, not an error.
 
+Heading, list and caption numbers are text the build writes: the same in every application,
+but they do not renumber when the .docx is edited. Only when the user will go on editing in
+Microsoft Word and wants the numbers to follow, add `--auto-numbering` — and tell them what
+[references/numbering.md](references/numbering.md) says other applications draw.
+
 ## Grill mode
 
 You do not choose this mode and an argument you were invoked with is not the user's word.

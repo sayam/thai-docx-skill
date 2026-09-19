@@ -158,7 +158,7 @@ class Package extends Writer {
     const kinds = [...new Set(this.items.filter((item) => item.caption).map((item) => item.caption.kind))].sort();
     if (kinds.length) {
       // a caption style of its own for each kind: the list of tables and the list of figures
-      // collect the paragraphs in one style, where they used to collect SEQ fields (ADR 0035)
+      // collect the paragraphs in one style, where they used to collect SEQ fields (ADR 0036)
       applied += own("Caption", "caption", '<w:spacing w:before="120" w:after="120"/>');
       for (const kind of kinds) {
         applied += '<w:style w:type="paragraph" w:styleId="' + CAPTION_STYLE[kind] + '"><w:name w:val="' +
@@ -202,7 +202,7 @@ class Package extends Writer {
   }
 
   // Only the bullet list is numbered by the package now: every other marker and number is
-  // written into the document as text (ADR 0035), because an application that does not know a
+  // written into the document as text (ADR 0036), because an application that does not know a
   // format draws it its own way — thaiNumbers as 1, 2, 3 — and then the same file reads
   // differently in two readers.
   headingNumId() {
@@ -215,7 +215,7 @@ class Package extends Writer {
     return !this.numbersAreText() && this.items.some((item) => item.number !== undefined && item.region !== "appendices");
   }
 
-  // The bullet list, and — unless the numbers are the build's own text (ADR 0035) — the ordered
+  // The bullet list, and — unless the numbers are the build's own text (ADR 0036) — the ordered
   // lists, the headings and the appendices.
   numberingXml() {
     const font = attr(this.opts.font);
@@ -281,7 +281,9 @@ class Package extends Writer {
     return (
       XML_DECL + '<w:numbering xmlns:w="' + W + '">' +
       '<w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>' + bullet + "</w:abstractNum>" +
-      '<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>' + decimal + "</w:abstractNum>" +
+      // the ordered lists' definition only where there is one: a flag that reaches nothing
+      // changes no byte, and the settings registry says so (ADR 0028)
+      (this.nums.length ? '<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>' + decimal + "</w:abstractNum>" : "") +
       headings + nums + "</w:numbering>"
     );
   }

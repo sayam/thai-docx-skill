@@ -100,6 +100,7 @@ class Writer {
     this.media = [];
     this.imageRel = new Map();
     this.docPr = 0;
+    this.hasOrderedList = false; // whether --auto-numbering has anything to count (ADR 0028)
     [this.headingProps, this.styleWarnings] = headingStyles(doc);
     [this.items, this.regions, this.layoutWarnings] = layout(doc, opts);
     this.nums = [];
@@ -229,14 +230,16 @@ class Writer {
     return "<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>";
   }
 
-  // Whether the build writes this document's numbers itself (ADR 0035). One answer for the
+  // Whether the build writes this document's numbers itself (ADR 0036). One answer for the
   // whole document, never a number here and a field there: a document that renumbers its
   // headings but not its captions goes wrong silently the first time a reader inserts a
-  // chapter. Thai digits put it on this side, because LibreOffice draws thaiNumbers as 1, 2, 3;
-  // so do regions, because a caption inside chapters takes its number from a STYLEREF that
-  // LibreOffice answers with the chapter's title.
+  // chapter. The build writes them unless --auto-numbering asks otherwise, because a written
+  // number reads the same in all five applications and a counted one does not: LibreOffice
+  // draws thaiNumbers as 1, 2, 3, and answers a caption's STYLEREF with the chapter's title.
+  // With --auto-numbering the application counts, whole, and references/numbering.md says
+  // what each of the other four draws.
   numbersAreText() {
-    return this.opts.thai_digits || this.regions.length > 0;
+    return !this.opts.auto_numbering;
   }
 
   // A field and the result the build already knows, between `separate` and `end`.
@@ -262,7 +265,7 @@ class Writer {
   }
 
   // A heading's inlines and what goes before them: its number, written into the paragraph as
-  // text (ADR 0035). The number carries no run properties of its own, so it takes the heading
+  // text (ADR 0036). The number carries no run properties of its own, so it takes the heading
   // style's. Where the first word is unformatted the number joins its run rather than sitting
   // in one beside it, formatted alike (cause 4).
   numberedHeading(item) {
@@ -312,10 +315,11 @@ class Writer {
     return out.join("");
   }
 
-  // Label and number, bold, then the caption text. The number is written as text: a STYLEREF
-  // and a SEQ field are read differently by different applications — LibreOffice gives the
-  // chapter's title where Word gives its number — and a caption a reader cannot trust is worse
-  // than one that does not renumber itself (ADR 0035).
+  // Label and number, bold, then the caption text. Where the document's numbers are the
+  // build's own (ADR 0036) the number is text. With --auto-numbering it is the pair of fields
+  // Word's own Insert Caption writes — the chapter from a STYLEREF, the count from a SEQ that
+  // starts again at each chapter, in Thai digits when those are asked for — with the results
+  // written in, so an application that never updates fields still shows them.
   caption(c, keepNext) {
     this.counts.paragraphs += 1;
     const bold = "<w:b/><w:bCs/>";
@@ -324,10 +328,11 @@ class Writer {
     ppr += this.latinJc(ppr, captionText(c));
     const rest = c.inlines;
     if (!this.numbersAreText()) {
-      // no regions here, so the number is a SEQ of its own with no chapter and no restart:
-      // a field every one of the five applications counts the same way
-      let plain = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c.label + " ", bold) +
-        this.fieldRuns("SEQ " + c.kind[0].toUpperCase() + c.kind.slice(1) + " \\* ARABIC", c.seq, bold);
+      let plain = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c.label + " ", bold);
+      if (c.chapter) plain += this.fieldRuns("STYLEREF 1 \\s", c.chapter, bold) + run("-", bold);
+      const seq = "SEQ " + c.kind[0].toUpperCase() + c.kind.slice(1) + " \\* " + (this.opts.thai_digits ? "ThaiArabic" : "ARABIC") +
+        (c.reset ? " \\s 1" : "");
+      plain += this.fieldRuns(seq, c.seq, bold);
       if (rest.length && rest[0].t === "text") plain += this.inlines([{ ...rest[0], s: " " + rest[0].s }, ...rest.slice(1)]);
       else if (rest.length) plain += run(" ", "") + this.inlines(rest);
       return plain + "</w:p>";
@@ -380,12 +385,13 @@ class Writer {
   }
 
   // A bullet is drawn by the numbering part, which every application reads the same way. An
-  // ordered list's number is written as text instead (ADR 0035): its format is one a reader may
+  // ordered list's number is written as text instead (ADR 0036): its format is one a reader may
   // not have — LibreOffice draws thaiNumbers as 1, 2, 3 — and the hanging indent and the tab
   // after the marker put it where the numbering put it.
   list(b, level, quote) {
     const out = [];
     const written = this.numbersAreText();
+    this.hasOrderedList = this.hasOrderedList || b.ordered;
     let numId = 0;
     if (b.ordered && !written) {
       numId = this.nums.length + 2;

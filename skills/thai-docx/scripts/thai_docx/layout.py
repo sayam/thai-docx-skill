@@ -165,7 +165,7 @@ ROMAN = ((1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC
          (1, "I"))
 SECTION_MARK = "\x00"  # between sections in the body; the input can hold no control character
 # A caption of each kind takes a style of its own, and a list collects that style: `\\c` collects
-# SEQ fields, which a caption stopped carrying when its number became text (ADR 0035).
+# SEQ fields, which a caption stopped carrying when its number became text (ADR 0036).
 CAPTION_STYLE = {"table": "TableCaption", "figure": "FigureCaption"}
 CAPTION_STYLE_NAME = {"table": "Table Caption", "figure": "Figure Caption"}
 LIST_FIELDS = {"toc": 'TOC \\o "1-3" \\h \\z \\u',
@@ -282,7 +282,7 @@ def layout(doc: md.Document, opts: dict) -> tuple[list[dict], list[str], list[st
     warnings: list[str] = []
     region, pending, has_content, chapter, appendix = "cover", None, False, 0, 0
     counters = {"table": 0, "figure": 0}
-    sub = [0] * 6  # the counter of each heading level, for the numbers the build writes (ADR 0035)
+    sub = [0] * 6  # the counter of each heading level, for the numbers the build writes (ADR 0036)
     last_level = 0  # the heading level before this one: a jump leaves a gap in the outline
     blocks = doc.blocks
     for i, b in enumerate(blocks):
@@ -370,7 +370,7 @@ def _count_heading(level: int, sub: list[int]) -> None:
 def _heading_number(level: int, sub: list[int], region: str, sectioned: bool,
                     chapter: int, appendix: int, opts: dict) -> str | None:
     """The number a heading carries, or None for a heading that carries none. Written into the
-    document as text rather than left to the application to compute (ADR 0035), so it reads the
+    document as text rather than left to the application to compute (ADR 0036), so it reads the
     same in every reader — the shapes are the ones Word's numbering drew before: "บทที่ ๑",
     "ภาคผนวก ก", "๑.๑", "ก.๑.๑", and "1." for a document with no regions."""
     if level > 1 and not opts["heading_numbers"]:

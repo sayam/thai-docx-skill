@@ -3297,7 +3297,7 @@ function thaiDigits(text) {
 }
 
 // Every paragraph's text, in document order. Hard breaks are newlines; task markers are □/■
-// (ADR 0033); an ordered list's number is text and comes with the tab after it (ADR 0035); a
+// (ADR 0033); an ordered list's number is text and comes with the tab after it (ADR 0036); a
 // bullet is drawn by the numbering part and is not text.
 function plainText(blocks, numbersAreText, thai) {
   const out = [];
@@ -3365,6 +3365,7 @@ const STRUCTURES = {
   "appendix headings": "no heading carries an appendix letter; a # heading under <!-- appendices --> does",
   "chapter headings": "no heading carries a chapter number; a # heading under <!-- chapters --> does",
   front: "the document has no <!-- front --> comment",
+  numbers: "the document has no numbered heading, ordered list or caption",
 };
 const CLASHES = {
   "toc comment": "the document places a table of contents with <!-- toc --> as well, so it now has two",
@@ -3400,6 +3401,8 @@ const SETTINGS = [
     read: ["text", 200, "\t\n"], takes: "text of 1 to 200 characters on one line", usage: "TEXT", report: ["footer", "value"] },
   { key: "thai_digits", flag: "--thai-digits", kind: "switch", default: false, layer: 2, // numbers Word generates; never the text
     report: ["thai_digits", "value"] },
+  { key: "auto_numbering", flag: "--auto-numbering", kind: "switch", default: false, layer: 2, // who counts: the build, or the application
+    needs: "numbers", report: ["auto_numbering", "value"] },
   { key: "hide_spelling_errors", flag: "--hide-spelling-errors", kind: "switch", default: false, layer: 1,
     report: ["hide_spelling_errors", "value"] },
   { key: "repeat_table_header", flag: "--no-repeat-table-header", kind: "off", default: true, layer: 3,
@@ -3785,7 +3788,7 @@ function numberText(n, fmt, thai) {
 }
 const SECTION_MARK = "\x00"; // between sections in the body; the input can hold no control character
 // A caption of each kind takes a style of its own, and a list collects that style: \c collects
-// SEQ fields, which a caption stopped carrying when its number became text (ADR 0035).
+// SEQ fields, which a caption stopped carrying when its number became text (ADR 0036).
 const CAPTION_STYLE = { table: "TableCaption", figure: "FigureCaption" };
 const CAPTION_STYLE_NAME = { table: "Table Caption", figure: "Figure Caption" };
 const LIST_FIELDS = {
@@ -3888,7 +3891,7 @@ function layout(doc, opts) {
   let chapter = 0;
   let appendix = 0;
   let counters = { table: 0, figure: 0 };
-  const sub = [0, 0, 0, 0, 0, 0]; // the counter of each heading level (ADR 0035)
+  const sub = [0, 0, 0, 0, 0, 0]; // the counter of each heading level (ADR 0036)
   let lastLevel = 0;  // the heading level before this one: a jump leaves a gap in the outline
   const blocks = doc.blocks;
   blocks.forEach((b, i) => {
@@ -3981,7 +3984,7 @@ function countHeading(level, sub) {
 }
 
 // The number a heading carries, or null for a heading that carries none. Written into the
-// document as text rather than left to the application to compute (ADR 0035).
+// document as text rather than left to the application to compute (ADR 0036).
 function headingNumber(level, sub, region, sectioned, chapter, appendix, opts) {
   if (level > 1 && !opts.heading_numbers) return null;
   if (sectioned && region !== "chapters" && region !== "appendices") return null;
@@ -4139,6 +4142,7 @@ class Writer {
     this.media = [];
     this.imageRel = new Map();
     this.docPr = 0;
+    this.hasOrderedList = false; // whether --auto-numbering has anything to count (ADR 0028)
     [this.headingProps, this.styleWarnings] = headingStyles(doc);
     [this.items, this.regions, this.layoutWarnings] = layout(doc, opts);
     this.nums = [];
@@ -4268,14 +4272,16 @@ class Writer {
     return "<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>";
   }
 
-  // Whether the build writes this document's numbers itself (ADR 0035). One answer for the
+  // Whether the build writes this document's numbers itself (ADR 0036). One answer for the
   // whole document, never a number here and a field there: a document that renumbers its
   // headings but not its captions goes wrong silently the first time a reader inserts a
-  // chapter. Thai digits put it on this side, because LibreOffice draws thaiNumbers as 1, 2, 3;
-  // so do regions, because a caption inside chapters takes its number from a STYLEREF that
-  // LibreOffice answers with the chapter's title.
+  // chapter. The build writes them unless --auto-numbering asks otherwise, because a written
+  // number reads the same in all five applications and a counted one does not: LibreOffice
+  // draws thaiNumbers as 1, 2, 3, and answers a caption's STYLEREF with the chapter's title.
+  // With --auto-numbering the application counts, whole, and references/numbering.md says
+  // what each of the other four draws.
   numbersAreText() {
-    return this.opts.thai_digits || this.regions.length > 0;
+    return !this.opts.auto_numbering;
   }
 
   // A field and the result the build already knows, between `separate` and `end`.
@@ -4301,7 +4307,7 @@ class Writer {
   }
 
   // A heading's inlines and what goes before them: its number, written into the paragraph as
-  // text (ADR 0035). The number carries no run properties of its own, so it takes the heading
+  // text (ADR 0036). The number carries no run properties of its own, so it takes the heading
   // style's. Where the first word is unformatted the number joins its run rather than sitting
   // in one beside it, formatted alike (cause 4).
   numberedHeading(item) {
@@ -4351,10 +4357,11 @@ class Writer {
     return out.join("");
   }
 
-  // Label and number, bold, then the caption text. The number is written as text: a STYLEREF
-  // and a SEQ field are read differently by different applications — LibreOffice gives the
-  // chapter's title where Word gives its number — and a caption a reader cannot trust is worse
-  // than one that does not renumber itself (ADR 0035).
+  // Label and number, bold, then the caption text. Where the document's numbers are the
+  // build's own (ADR 0036) the number is text. With --auto-numbering it is the pair of fields
+  // Word's own Insert Caption writes — the chapter from a STYLEREF, the count from a SEQ that
+  // starts again at each chapter, in Thai digits when those are asked for — with the results
+  // written in, so an application that never updates fields still shows them.
   caption(c, keepNext) {
     this.counts.paragraphs += 1;
     const bold = "<w:b/><w:bCs/>";
@@ -4363,10 +4370,11 @@ class Writer {
     ppr += this.latinJc(ppr, captionText(c));
     const rest = c.inlines;
     if (!this.numbersAreText()) {
-      // no regions here, so the number is a SEQ of its own with no chapter and no restart:
-      // a field every one of the five applications counts the same way
-      let plain = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c.label + " ", bold) +
-        this.fieldRuns("SEQ " + c.kind[0].toUpperCase() + c.kind.slice(1) + " \\* ARABIC", c.seq, bold);
+      let plain = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c.label + " ", bold);
+      if (c.chapter) plain += this.fieldRuns("STYLEREF 1 \\s", c.chapter, bold) + run("-", bold);
+      const seq = "SEQ " + c.kind[0].toUpperCase() + c.kind.slice(1) + " \\* " + (this.opts.thai_digits ? "ThaiArabic" : "ARABIC") +
+        (c.reset ? " \\s 1" : "");
+      plain += this.fieldRuns(seq, c.seq, bold);
       if (rest.length && rest[0].t === "text") plain += this.inlines([{ ...rest[0], s: " " + rest[0].s }, ...rest.slice(1)]);
       else if (rest.length) plain += run(" ", "") + this.inlines(rest);
       return plain + "</w:p>";
@@ -4419,12 +4427,13 @@ class Writer {
   }
 
   // A bullet is drawn by the numbering part, which every application reads the same way. An
-  // ordered list's number is written as text instead (ADR 0035): its format is one a reader may
+  // ordered list's number is written as text instead (ADR 0036): its format is one a reader may
   // not have — LibreOffice draws thaiNumbers as 1, 2, 3 — and the hanging indent and the tab
   // after the marker put it where the numbering put it.
   list(b, level, quote) {
     const out = [];
     const written = this.numbersAreText();
+    this.hasOrderedList = this.hasOrderedList || b.ordered;
     let numId = 0;
     if (b.ordered && !written) {
       numId = this.nums.length + 2;
@@ -4691,7 +4700,7 @@ class Package extends Writer {
     const kinds = [...new Set(this.items.filter((item) => item.caption).map((item) => item.caption.kind))].sort();
     if (kinds.length) {
       // a caption style of its own for each kind: the list of tables and the list of figures
-      // collect the paragraphs in one style, where they used to collect SEQ fields (ADR 0035)
+      // collect the paragraphs in one style, where they used to collect SEQ fields (ADR 0036)
       applied += own("Caption", "caption", '<w:spacing w:before="120" w:after="120"/>');
       for (const kind of kinds) {
         applied += '<w:style w:type="paragraph" w:styleId="' + CAPTION_STYLE[kind] + '"><w:name w:val="' +
@@ -4735,7 +4744,7 @@ class Package extends Writer {
   }
 
   // Only the bullet list is numbered by the package now: every other marker and number is
-  // written into the document as text (ADR 0035), because an application that does not know a
+  // written into the document as text (ADR 0036), because an application that does not know a
   // format draws it its own way — thaiNumbers as 1, 2, 3 — and then the same file reads
   // differently in two readers.
   headingNumId() {
@@ -4748,7 +4757,7 @@ class Package extends Writer {
     return !this.numbersAreText() && this.items.some((item) => item.number !== undefined && item.region !== "appendices");
   }
 
-  // The bullet list, and — unless the numbers are the build's own text (ADR 0035) — the ordered
+  // The bullet list, and — unless the numbers are the build's own text (ADR 0036) — the ordered
   // lists, the headings and the appendices.
   numberingXml() {
     const font = attr(this.opts.font);
@@ -4814,7 +4823,9 @@ class Package extends Writer {
     return (
       XML_DECL + '<w:numbering xmlns:w="' + W + '">' +
       '<w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>' + bullet + "</w:abstractNum>" +
-      '<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>' + decimal + "</w:abstractNum>" +
+      // the ordered lists' definition only where there is one: a flag that reaches nothing
+      // changes no byte, and the settings registry says so (ADR 0028)
+      (this.nums.length ? '<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>' + decimal + "</w:abstractNum>" : "") +
       headings + nums + "</w:numbering>"
     );
   }
@@ -4995,16 +5006,16 @@ function docxText(parts, footnoteCount) {
 function expectedText(doc, opts) {
   const out = [];
   opts = opts || DEFAULTS;
-  const [items, regions] = layout(doc, opts);
-  // one answer for the whole document, as the writer takes it (ADR 0035)
-  const numbersAreText = opts.thai_digits || regions.length > 0;
+  const [items] = layout(doc, opts);
+  // one answer for the whole document, as the writer takes it (ADR 0036)
+  const numbersAreText = !opts.auto_numbering;
   if (opts.toc) out.push(...listEntries(items, "toc").map(([, text]) => text)); // the entries the field carries
   for (const item of items) {
     if (item.caption) out.push(captionText(item.caption));
     else if (item.block.t === "directive" && LIST_FIELDS[item.block.name] !== undefined) {
       out.push(...listEntries(items, item.block.name).map(([, text]) => text));
     } else if (item.block.t === "heading" && item.number !== undefined && numbersAreText) {
-      // the number is text in the heading's own paragraph, not one an application draws (ADR 0035)
+      // the number is text in the heading's own paragraph, not one an application draws (ADR 0036)
       const join = opts.chapter_title_on_new_line ? "\n" : " ";
       out.push(...plainText([item.block], true, opts.thai_digits).map((line) => item.number + join + line));
     } else if (item.block.t === "heading" && item.number !== undefined && opts.chapter_title_on_new_line) {
@@ -5071,6 +5082,7 @@ function buildText(text, opts, readImage) {
     ["appendix headings", items.some((item) => item.number !== undefined && item.region === "appendices")],
     ["chapter headings", items.some((item) => item.number !== undefined && item.region === "chapters")],
     ["front", writer.regions.includes("front")],
+    ["numbers", writer.hasOrderedList || items.some((item) => item.number !== undefined || item.caption !== undefined)],
     ["toc comment", items.some((item) => item.block.t === "directive" && item.block.name === "toc")],
   ].filter(([, there]) => there).map(([name]) => name));
   const outcome = {

@@ -44,6 +44,8 @@ STRUCTURES = {
     "appendix headings": ("a `#` heading under `<!-- appendices -->`",
                           "no heading carries an appendix letter; a # heading under <!-- appendices --> does"),
     "front": ("a `<!-- front -->` comment", "the document has no <!-- front --> comment"),
+    "numbers": ("a numbered heading, an ordered list or a caption",
+                "the document has no numbered heading, ordered list or caption"),
 }
 # (what the document places, as the reference names it; what the flag then does; the warning)
 CLASHES = {
@@ -97,7 +99,7 @@ SETTINGS: tuple[dict, ...] = (
      "clashes": "toc comment",
      "report": ("toc", "value"),
      "doc": ("table of contents", "none", "`--toc` (at the top of the document)")},
-    {"key": "heading_numbers", "flag": "--heading-numbers", "kind": "switch", "default": False, "layer": 4,  # 1. / 1.1 / 1.1.1, numbered by Word
+    {"key": "heading_numbers", "flag": "--heading-numbers", "kind": "switch", "default": False, "layer": 4,  # 1. / 1.1 / 1.1.1
      "report": ("heading_numbers", "value"),
      "doc": ("heading numbers", "none", "`--heading-numbers` (1. for `#`, 1.1 for `##`, 1.1.1 …)")},
     {"key": "page_numbers", "flag": "--page-numbers", "kind": "option", "default": False, "layer": 2,  # or one of PAGE_NUMBERS
@@ -119,6 +121,12 @@ SETTINGS: tuple[dict, ...] = (
     {"key": "thai_digits", "flag": "--thai-digits", "kind": "switch", "default": False, "layer": 2,  # numbers Word generates; never the text
      "report": ("thai_digits", "value"),
      "doc": ("page, list and footnote numbers", "1 2 3", "`--thai-digits` (๑ ๒ ๓; the text itself is never changed)")},
+    {"key": "auto_numbering", "flag": "--auto-numbering", "kind": "switch", "default": False, "layer": 2,  # who counts: the build, or the application
+     "needs": "numbers",
+     "report": ("auto_numbering", "value"),
+     "doc": ("heading, list and caption numbers", "written by the build, the same in every application",
+             "`--auto-numbering` (the application counts, and Word renumbers as you edit; "
+             "what each application draws is in [numbering.md](numbering.md))")},
     {"key": "hide_spelling_errors", "flag": "--hide-spelling-errors", "kind": "switch", "default": False, "layer": 1,
      "report": ("hide_spelling_errors", "value"),
      "doc": ("spelling squiggles", "shown", "`--hide-spelling-errors`")},

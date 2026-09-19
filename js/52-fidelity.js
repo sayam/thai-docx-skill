@@ -44,16 +44,16 @@ function docxText(parts, footnoteCount) {
 function expectedText(doc, opts) {
   const out = [];
   opts = opts || DEFAULTS;
-  const [items, regions] = layout(doc, opts);
-  // one answer for the whole document, as the writer takes it (ADR 0035)
-  const numbersAreText = opts.thai_digits || regions.length > 0;
+  const [items] = layout(doc, opts);
+  // one answer for the whole document, as the writer takes it (ADR 0036)
+  const numbersAreText = !opts.auto_numbering;
   if (opts.toc) out.push(...listEntries(items, "toc").map(([, text]) => text)); // the entries the field carries
   for (const item of items) {
     if (item.caption) out.push(captionText(item.caption));
     else if (item.block.t === "directive" && LIST_FIELDS[item.block.name] !== undefined) {
       out.push(...listEntries(items, item.block.name).map(([, text]) => text));
     } else if (item.block.t === "heading" && item.number !== undefined && numbersAreText) {
-      // the number is text in the heading's own paragraph, not one an application draws (ADR 0035)
+      // the number is text in the heading's own paragraph, not one an application draws (ADR 0036)
       const join = opts.chapter_title_on_new_line ? "\n" : " ";
       out.push(...plainText([item.block], true, opts.thai_digits).map((line) => item.number + join + line));
     } else if (item.block.t === "heading" && item.number !== undefined && opts.chapter_title_on_new_line) {

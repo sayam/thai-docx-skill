@@ -44,17 +44,16 @@ page; copy the block into your own file and change the numbers.
 
 ## What it costs, said here rather than found later
 
-This example uses `--thai-digits`, and it has region comments. Either of those means **the
-numbers in the finished .docx do not renumber themselves**: a reader who opens it in Word and
-inserts a chapter or a table renumbers from there by hand. The contents, the list of tables, the
-list of figures and the page numbers still update.
+**The numbers in the finished .docx do not renumber themselves.** The build writes them as text,
+so the file reads the same in every application; a reader who opens it in Word and inserts a
+chapter or a table renumbers from there by hand. The contents, the list of tables, the list of
+figures and the page numbers still update. The way back is the one the skill is built for —
+change the Markdown and build again, where every number is worked out afresh.
 
-The reason is in `../references/chapters.md`: no application but Word works out a chapter-numbered
-caption correctly, and LibreOffice draws Thai digits as 1, 2, 3. The way back is the one the skill
-is built for — change the Markdown and build again, where every number is worked out afresh.
-
-A report with no region comments and no Thai digits keeps Word's own numbering and renumbers
-itself as before.
+If you will go on working on the thesis in Microsoft Word, add `--auto-numbering`: Word then
+counts the chapters, headings, lists and captions itself and renumbers as you edit, in Thai digits
+too. That file is made for Word — `../references/numbering.md` says what LibreOffice Writer, WPS
+Writer and Google Docs draw with it.
 
 ## The files
 

@@ -172,7 +172,7 @@ class Package(Writer):
         kinds = {item["caption"]["kind"] for item in self.items if "caption" in item}
         if kinds:
             # a caption style of its own for each kind: the list of tables and the list of figures
-            # collect the paragraphs in one style, where they used to collect SEQ fields (ADR 0035)
+            # collect the paragraphs in one style, where they used to collect SEQ fields (ADR 0036)
             applied += own("Caption", "caption", '<w:spacing w:before="120" w:after="120"/>')
             for kind in sorted(kinds):
                 applied += ('<w:style w:type="paragraph" w:styleId="' + CAPTION_STYLE[kind] + '"><w:name w:val="'
@@ -226,7 +226,7 @@ class Package(Writer):
             "number" in item and item["region"] != "appendices" for item in self.items)
 
     def numbering_xml(self) -> str:
-        """The bullet list, and — unless the numbers are the build's own text (ADR 0035) — the
+        """The bullet list, and — unless the numbers are the build's own text (ADR 0036) — the
         ordered lists, the headings and the appendices."""
         font, size = attr(self.opts["font"]), self.opts["size"]
         fmt = "thaiNumbers" if self.opts["thai_digits"] else "decimal"
@@ -300,7 +300,10 @@ class Package(Writer):
         return (
             XML + '<w:numbering xmlns:w="' + W + '">'
             '<w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>' + bullet + "</w:abstractNum>"
-            '<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>' + decimal + "</w:abstractNum>"
+            # the ordered lists' definition only where there is one: a flag that reaches nothing
+            # changes no byte, and the settings registry says so (ADR 0028)
+            + ('<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>' + decimal + "</w:abstractNum>"
+               if self.nums else "")
             + headings + nums + "</w:numbering>"
         )
 

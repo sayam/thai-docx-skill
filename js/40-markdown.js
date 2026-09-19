@@ -1979,7 +1979,7 @@ function thaiDigits(text) {
 }
 
 // Every paragraph's text, in document order. Hard breaks are newlines; task markers are □/■
-// (ADR 0033); an ordered list's number is text and comes with the tab after it (ADR 0035); a
+// (ADR 0033); an ordered list's number is text and comes with the tab after it (ADR 0036); a
 // bullet is drawn by the numbering part and is not text.
 function plainText(blocks, numbersAreText, thai) {
   const out = [];
