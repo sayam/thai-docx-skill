@@ -108,6 +108,21 @@ def test_check_decides_each_named_rule_the_same():
         assert py == from_js, f"{what}:\n python: {py}\n     js: {from_js}"
 
 
+def test_sara_am_written_the_long_way_is_read_the_same():
+    """ADR 0034: the generated corpus never writes ำ the long way, so the two characters
+    that look like it are put to both implementations here — same text out, same warning."""
+    long_way, short_way = "\u0e17\u0e4d\u0e32", "\u0e17\u0e33"
+    texts = [
+        long_way + "\n", short_way + "\n", short_way + " " + long_way + "\n",
+        "# " + long_way + "\n\n- " + long_way + "\n\n| " + long_way + " |\n|---|\n| " + short_way + " |\n",
+        "**" + long_way + "**\n", "`" + long_way + "`\n", "\u0e4d\n", "\u0e32\u0e4d\n",
+    ]
+    js = parity.run_js({"op": "ast", "texts": texts})
+    py = [parity.py_ast(t) for t in texts]
+    assert py == js, _first_difference(py, js, texts)
+    assert [len(r["warnings"]) for r in py] == [1, 0, 1, 3, 1, 1, 0, 0]
+
+
 def test_deep_nesting_is_read_or_refused_the_same_way():
     """Past markdown.MAX_DEPTH every later step recurses, so both refuse there, with the
     same message and line, rather than overflow a stack at a depth that depends on the
