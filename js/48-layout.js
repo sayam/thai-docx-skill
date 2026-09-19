@@ -164,7 +164,15 @@ function numberText(n, fmt, thai) {
   return thai ? thaiDigits(String(n)) : String(n);
 }
 const SECTION_MARK = "\x00"; // between sections in the body; the input can hold no control character
-const LISTS = ["toc", "list-of-tables", "list-of-figures"]; // the directives the build writes a list for
+// A caption of each kind takes a style of its own, and a list collects that style: \c collects
+// SEQ fields, which a caption stopped carrying when its number became text (ADR 0035).
+const CAPTION_STYLE = { table: "TableCaption", figure: "FigureCaption" };
+const CAPTION_STYLE_NAME = { table: "Table Caption", figure: "Figure Caption" };
+const LIST_FIELDS = {
+  toc: 'TOC \\o "1-3" \\h \\z \\u',
+  "list-of-tables": 'TOC \\h \\z \\t "' + CAPTION_STYLE_NAME.table + ',1"',
+  "list-of-figures": 'TOC \\h \\z \\t "' + CAPTION_STYLE_NAME.figure + ',1"',
+};
 const CAPTION_PREFIX = { table: "Table:", figure: "Figure:" };
 // What a Thai writer reaches for instead. These make no caption — the prefix is one word,
 // written in English, so one rule holds in both languages — but a paragraph that opens with
@@ -385,29 +393,23 @@ function oneLine(text) {
   return text.split("\n").join(" ");
 }
 
-// What a table of contents, tables or figures holds, as [heading level, text, anchor]. The
-// build writes the entries itself (ADR 0035): a \c list collects the SEQ fields a caption no
-// longer carries, and a \o list would rebuild text the build already knows. The anchor names
-// the bookmark whose page a PAGEREF field asks for.
+// What a table of contents, tables or figures holds, as [heading level, text]. Written
+// into the field so an application that never updates fields still shows it; Word, which
+// does update, replaces it with its own — with the page numbers only a layout knows
+// (ADR 0027).
 function listEntries(items, name) {
   const out = [];
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
+  for (const item of items) {
     const b = item.block;
     if (name === "toc") {
       if (!item.caption && b.t === "heading" && b.level <= 3) {
-        out.push([b.level, oneLine((item.number === undefined ? "" : item.number + " ") + inlineText(b.inlines)), anchorName(i)]);
+        out.push([b.level, oneLine((item.number === undefined ? "" : item.number + " ") + inlineText(b.inlines))]);
       }
     } else if (item.caption && item.caption.kind === LIST_KINDS[name]) {
-      out.push([1, oneLine(captionText(item.caption)), anchorName(i)]);
+      out.push([1, oneLine(captionText(item.caption))]);
     }
   }
   return out;
-}
-
-// The bookmark a list entry points at. `_Toc` is the prefix Word gives its own.
-function anchorName(index) {
-  return "_Toc" + (90000000 + index);
 }
 
 // What a caption paragraph reads as: its label and number, then the Markdown's text.

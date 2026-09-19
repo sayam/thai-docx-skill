@@ -27,11 +27,11 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   — and drew `บทที่ 1`, `1.1`, `1.` where Word drew Thai digits, because `thaiNumbers` is a
   format it does not implement. What only a laid-out page knows stays a field: page numbers,
   footnote marks, and the page numbers a list shows after an update. A bullet stays a numbering
-  level, since `•` is written out and every reader drew it. **The three lists — of contents, of
-  tables, of figures — are written by the build too**, one paragraph per entry with a `PAGEREF`
-  field for the page number: a `TOC` field asks the application to collect its own entries from
-  the `SEQ` fields a caption used to carry, and with those gone LibreOffice emptied the list of
-  tables and the list of figures the moment a reader updated the fields. **Word no longer renumbers a
+  level, since `•` is written out and every reader drew it. **The three lists stay `TOC` fields**,
+  which is what an application, and a person who edits the file afterwards, knows how to update —
+  but a caption now takes a paragraph style of its own, `Table Caption` or `Figure Caption`, and
+  the list collects that style with `\t` instead of the `SEQ` fields a caption stopped carrying.
+  **Word no longer renumbers a
   document a reader edits by hand** — the trade this buys is a file that reads the same in every
   application, and a change belongs in the Markdown, where the build renumbers everything.
   **The bytes of every document change**, and get smaller: the goldens lost about 11%.

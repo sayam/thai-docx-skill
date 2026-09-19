@@ -10,7 +10,7 @@ import unicodedata
 from xml.etree import ElementTree as ET
 
 from . import markdown as md
-from .layout import LISTS, caption_text, layout, list_entries
+from .layout import LIST_FIELDS, caption_text, layout, list_entries
 from .ooxml import w
 from .settings import DEFAULTS
 
@@ -23,12 +23,8 @@ def docx_text(parts: dict[str, bytes], footnote_count: int) -> list[str]:
     def paragraphs(root):
         for p in root.iter(w("p")):
             pieces, seen, after_mark = [], False, False
-            # a <w:tab/> inside <w:tabs> is a tab stop the paragraph declares, not a tab in it
-            stops = {id(t) for tabs in p.iter(w("tabs")) for t in tabs.iter(w("tab"))}
             for el in p.iter():
                 tag = el.tag
-                if tag == w("tab") and id(el) in stops:
-                    continue
                 if tag == w("footnoteRef"):
                     after_mark = True
                     seen = True
@@ -63,12 +59,12 @@ def expected_text(doc: md.Document, opts: dict | None = None) -> list[str]:
     out = []
     items = layout(doc, opts)[0]
     if opts["toc"]:
-        out.extend(text + "\t" for _, text, _ in list_entries(items, "toc"))  # the tab before the page number
+        out.extend(text for _, text in list_entries(items, "toc"))  # the entries the field carries
     for item in items:
         if "caption" in item:
             out.append(caption_text(item["caption"]))
-        elif item["block"]["t"] == "directive" and item["block"]["name"] in LISTS:
-            out.extend(text + "\t" for _, text, _ in list_entries(items, item["block"]["name"]))
+        elif item["block"]["t"] == "directive" and item["block"]["name"] in LIST_FIELDS:
+            out.extend(text for _, text in list_entries(items, item["block"]["name"]))
         elif item["block"]["t"] == "heading" and "number" in item:
             # the number is text in the heading's paragraph now, not a number an application draws
             join = "\n" if opts["chapter_title_on_new_line"] else " "

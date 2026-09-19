@@ -174,10 +174,9 @@ def test_chapters_example_builds_as_the_section_says(tmp_path):
         parts = {n: zf.read(n) for n in zf.namelist()}
     text = fi.docx_text(parts, 0)
     captions = [t for t in text if t.startswith(("ตารางที่", "รูปที่"))]
-    # the list of tables holds them, with the tab before each page number (ADR 0035)
-    assert captions == ["ตารางที่ 1-1 ผลการสำรวจ\t", "ตารางที่ ก-1 ผู้ตอบแบบสอบถาม\t",
+    assert captions == ["ตารางที่ 1-1 ผลการสำรวจ", "ตารางที่ ก-1 ผู้ตอบแบบสอบถาม",  # the list of tables holds them (ADR 0027)
                         "ตารางที่ 1-1 ผลการสำรวจ", "รูปที่ 1-1 ขั้นตอนการทำงาน", "ตารางที่ ก-1 ผู้ตอบแบบสอบถาม"]
-    assert text[1:8] == ["สารบัญ", "สารบัญ\t", "สารบัญตาราง\t", "บทที่ 1 บทนำ\t", "บรรณานุกรม\t", "ภาคผนวก ก แบบสอบถาม\t", "ประวัติผู้เขียน\t"]
+    assert text[1:8] == ["สารบัญ", "สารบัญ", "สารบัญตาราง", "บทที่ 1 บทนำ", "บรรณานุกรม", "ภาคผนวก ก แบบสอบถาม", "ประวัติผู้เขียน"]
     assert "ตารางที่ 1-1" in section and "รูปที่ 1-1" in section and "ตารางที่ ก-1" in section and "ก ข ค" in section
     assert _flags(CHAPTERS) <= _flags(b.USAGE)
 

@@ -6,7 +6,7 @@ footnotes, headers and footers, core properties, content types and relationships
 
 from __future__ import annotations
 
-from .layout import list_entries
+from .layout import CAPTION_STYLE, CAPTION_STYLE_NAME, list_entries
 from .ooxml import W
 from .settings import FRONT_NUMBERS, half_up
 from .writer import CODE_FONT, LANG, NS_R, REL, SECTION_MARK, XML, Writer, attr, esc
@@ -51,7 +51,7 @@ class Package(Writer):
         for kind in self.page_parts():
             numbered = self.rel(REL + kind, kind + "1.xml")
             rids.append((kind, numbered, self.rel(REL + kind, kind + "2.xml") if self.plain_page_part() else None))
-        toc = self.written_list(list_entries(self.items, "toc")) + "<w:p><w:pPr/></w:p>" if self.opts["toc"] else ""
+        toc = self.field('TOC \\o "1-3" \\h \\z \\u', entries=list_entries(self.items, "toc")) + "<w:p><w:pPr/></w:p>" if self.opts["toc"] else ""
         numbers = "thaiNumbers" if self.opts["thai_digits"] else "decimal"
 
         def sect(region: str | None, start: bool) -> str:
@@ -167,8 +167,14 @@ class Package(Writer):
             applied += own("TOC1", "toc 1") + own("TOC2", "toc 2", '<w:ind w:left="240"/>') + own("TOC3", "toc 3", '<w:ind w:left="480"/>')
         for kind in self.page_parts():
             applied += own(kind.capitalize(), kind)
-        if any("caption" in item for item in self.items):
+        kinds = {item["caption"]["kind"] for item in self.items if "caption" in item}
+        if kinds:
+            # a caption style of its own for each kind: the list of tables and the list of figures
+            # collect the paragraphs in one style, where they used to collect SEQ fields (ADR 0035)
             applied += own("Caption", "caption", '<w:spacing w:before="120" w:after="120"/>')
+            for kind in sorted(kinds):
+                applied += ('<w:style w:type="paragraph" w:styleId="' + CAPTION_STYLE[kind] + '"><w:name w:val="'
+                            + CAPTION_STYLE_NAME[kind] + '"/><w:basedOn w:val="Caption"/><w:next w:val="Normal"/></w:style>')
         if any(item["block"]["t"] == "directive" and item["block"]["name"] != "toc" for item in self.items):
             applied += own("TableofFigures", "table of figures")
         if any(item["block"]["t"] == "directive" and item["block"]["name"] == "toc" for item in self.items) and not self.opts["toc"]:

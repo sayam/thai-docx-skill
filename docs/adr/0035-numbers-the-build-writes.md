@@ -49,13 +49,14 @@ compute, and every application drew it correctly.
 
 `word/numbering.xml` therefore holds one list: the bullet.
 
-**And the three lists — of contents, of tables, of figures — are written too.** A `TOC` field
-asks the application to *find* its own entries: `\c "Table"` collects the `SEQ` fields a caption
-carries. When the caption's number became text there was nothing left to collect, and LibreOffice
-emptied both lists the moment a reader updated the fields — found in the check of the same day,
-and true of any application that updates them. So a list is now one paragraph per entry, written
-by the build, each with a `PAGEREF` field pointing at a bookmark on the thing it names. The page
-number is the one part only a laid-out page knows, so it stays a field; the words never move.
+**The three lists stay `TOC` fields, and a caption takes a style of its own.** A list of tables
+was `TOC \h \z \c "Table"`, and `\c` collects the `SEQ` fields a caption used to carry: with the
+number written as text there was nothing left to collect, and LibreOffice emptied both caption
+lists the moment a reader updated the fields. The answer is not to stop using a field — a field is
+what every application, and every person who edits the file afterwards, knows how to update. It is
+to collect something the build still writes: each caption takes a paragraph style of its own,
+`Table Caption` or `Figure Caption`, and the list collects that style with `\t`. LibreOffice reads
+it as its own index-by-style, which is what it is.
 
 ## What this gives up, plainly
 
@@ -86,15 +87,12 @@ due. A file that states its numbers needs no application to agree with it.
 
 ## What it costs
 
-**The bytes of every document change.** The heading and ordered-list numbering definitions are
-gone, which makes a document smaller; the written lists, with a bookmark and a `PAGEREF` per
-entry, make one with lists a little larger. `sample-default` went from 32,883 to 30,532 bytes;
-`thesis-layout`, which carries all three lists, from 197,094 to 203,293. The five applications of ADR
+**The bytes of every document change**, and they get smaller: the heading and ordered-list
+numbering definitions are gone. The five goldens shrank by about 11%. The five applications of ADR
 0012 are due another look before the release, and this record is the reason.
 
-A list entry's text now ends in a tab, before the page number the field fills in, and the build's
-text contains the numbers, so `plain_text`, the fidelity check and `check`'s text comparison all
-account for them — a number is generated matter, like a caption's label, and
+The build's text now contains the numbers, so `plain_text`, the fidelity check and `check`'s
+text comparison all account for them — a number is generated matter, like a caption's label, and
 [ADR 0023](0023-fidelity-transformations-restated-again.md) still governs the author's own words,
 which are untouched.
 
