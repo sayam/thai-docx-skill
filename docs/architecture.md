@@ -3,6 +3,11 @@
 How thai-docx is put together: the parts, what flows between them, and the properties the design
 holds. The reasons are in the decision records linked from each part.
 
+Above all of them are [the rules](rules.md) — what this skill answers for, what an output must be,
+what it must never introduce, and the contract the five office applications are held to. The design
+below is one way of meeting them, and every record cited here is a trace of a rule in use, not a
+rule of its own; `rules.md` ends with the table that maps each rule to its records.
+
 ## The pieces a user receives
 
 ```
