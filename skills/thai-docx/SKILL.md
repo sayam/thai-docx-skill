@@ -109,7 +109,9 @@ python3 <skill>/scripts/thai_docx profile export thesis thesis.json
 python3 <skill>/scripts/thai_docx profile import thesis.json
 ```
 
-`profile list` shows the names there are. A flag typed after `--profile` wins. Details:
+`profile list` shows the names there are. A flag typed after `--profile` wins. The skill ships
+one, `thesis` — an example to copy and change, never a format the user must follow; the document
+beside it is [examples/README.md](examples/README.md). Details:
 [references/profiles.md](references/profiles.md).
 
 ## Chapters, captions and lists

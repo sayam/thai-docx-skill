@@ -94,7 +94,9 @@ def test_the_project_comes_before_the_home_and_a_path_before_both(home):
     assert again["replaced"] is True and again["warnings"] == ["replaced the profile house that was there before"]
     run("profile", "save", "house", "--size", "16", "--project")
     listed = run("profile", "list")["profiles"]
-    assert [(r["name"], r["where"], r["used"]) for r in listed] == [("house", "project", True), ("house", "home", False)]
+    # the skill ships one of its own, which every list also shows
+    assert [(r["name"], r["where"], r["used"]) for r in listed if r["name"] == "house"] == [
+        ("house", "project", True), ("house", "home", False)]
     assert run("profile", "show", "house")["resolved"]["size_pt"] == 16
     (home / "elsewhere").mkdir()
     run("profile", "export", "house", "elsewhere/house.json")
@@ -170,3 +172,30 @@ def test_default_takes_settings_out_of_a_profile_before_any_flag(home):
                         (["--default"], "--default needs a value")):
         refused = run("build", "in.md", "e.docx", "--profile", "thesis", *args)
         assert refused["ok"] is False and refused["error"].startswith(error), refused
+
+
+def test_the_shipped_example_is_an_example_and_it_builds(home, tmp_path):
+    """The skill ships one profile and one document beside it. They are an example to copy,
+    not a format anyone must follow — so the example says so itself, invents every name in it,
+    and builds clean with no warning a user would have to act on."""
+    skill = ROOT / "skills" / "thai-docx"
+    profile = json.loads((skill / "profiles" / "thesis.json").read_text(encoding="utf-8"))
+    assert profile["id"] == "thesis" and profile["schema"] == 1
+    assert set(profile["settings"]) <= {s["key"] for s in __import__("thai_docx.settings", fromlist=["SETTINGS"]).SETTINGS}
+    assert run("profile", "show", "thesis")["ok"], "found by name, from the skill's own directory"
+    assert [(r["where"], r["used"]) for r in run("profile", "list")["profiles"] if r["name"] == "thesis"] == [("skill", True)]
+
+    readme = (skill / "examples" / "README.md").read_text(encoding="utf-8")
+    assert "not a standard" in readme and "do not renumber themselves" in readme, "it says what it is and what it costs"
+
+    out = tmp_path / "thesis.docx"
+    result = run("build", skill / "examples" / "thesis.md", out, "--profile", "thesis")
+    assert result["ok"] and result["findings"] == [] and result["warnings"] == [], result
+    assert result["profile"]["name"] == "thesis" and result["settings"]["thai_digits"] is True
+    assert result["counts"]["tables"] == 2 and result["counts"]["images"] == 1 and result["counts"]["footnotes"] == 1
+
+    # a user's own of the same name wins over the shipped one, and takes what it likes from it
+    mine = run("profile", "save", "thesis", "--from", "thesis", "--default", "thai_digits")
+    assert mine["ok"] and mine["where"] == "home" and "thai_digits" not in mine["settings"]
+    assert [(r["where"], r["used"]) for r in run("profile", "list")["profiles"] if r["name"] == "thesis"] == [
+        ("home", True), ("skill", False)], "the user's own wins, and the shipped one is still shown"
