@@ -257,6 +257,13 @@ Good to know:
   the build stops and names the line.
 - Front pages are numbered ก ข ค only when you ask for page numbers.
 - Outside a chapter, captions read "ตารางที่ 1".
+- **Chapter, heading, list and caption numbers are written into the file, not numbers Word keeps
+  up to date.** If you open the .docx and insert a chapter or a table yourself, renumber from
+  there by hand — the three lists and the page numbers still update. The reason is that no
+  application but Word numbers a chapter-based caption correctly: LibreOffice answers the field
+  asking for the chapter's number with the chapter's *title*, and draws Thai digits as 1, 2, 3.
+  **The intended way is to change the Markdown and build again**, which works every number out
+  afresh. A report with no region markers and no Thai digits keeps Word's own numbering.
 - `<!-- toc -->` already places a table of contents; asking for a table of contents too gives a
   second one.
 

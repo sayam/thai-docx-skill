@@ -3299,25 +3299,28 @@ function thaiDigits(text) {
 // Every paragraph's text, in document order. Hard breaks are newlines; task markers are □/■
 // (ADR 0033); an ordered list's number is text and comes with the tab after it (ADR 0035); a
 // bullet is drawn by the numbering part and is not text.
-function plainText(blocks, numbersAreText) {
+function plainText(blocks, numbersAreText, thai) {
   const out = [];
   for (const b of blocks) {
     const t = b.t;
     if (t === "paragraph" || t === "heading") out.push(inlineText(b.inlines));
     else if (t === "code") out.push(...(b.lines.length ? b.lines : [""]));
-    else if (t === "quote") out.push(...plainText(b.blocks, numbersAreText));
+    else if (t === "quote") out.push(...plainText(b.blocks, numbersAreText, thai));
     else if (t === "list") {
       for (let n = 0; n < b.items.length; n++) {
         const item = b.items[n];
         const task = item.length && item[0].t === "paragraph" && item[0].inlines.length && item[0].inlines[0].t === "task";
         let marker = "";
-        if (numbersAreText && b.ordered && !task) marker = thaiDigits(String(b.start + n)) + ".\t";
+        if (numbersAreText && b.ordered && !task) {
+          const number = String(b.start + n);
+          marker = (thai ? thaiDigits(number) : number) + ".\t";
+        }
         if (!item.length || item[0].t !== "paragraph") {
           out.push(marker);
-          out.push(...plainText(item, numbersAreText));
+          out.push(...plainText(item, numbersAreText, thai));
           continue;
         }
-        const lines = plainText(item, numbersAreText);
+        const lines = plainText(item, numbersAreText, thai);
         if (lines.length) out.push(marker + lines[0], ...lines.slice(1));
         else out.push(marker);
       }
@@ -4265,11 +4268,25 @@ class Writer {
     return "<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>";
   }
 
-  // Thai digits are the one numbering format an application may not have: LibreOffice draws
-  // thaiNumbers as 1, 2, 3 (measured 2026-09-19). Every other format this skill asks for it
-  // draws correctly, so a document without Thai digits keeps real numbering (ADR 0035).
+  // Whether the build writes this document's numbers itself (ADR 0035). One answer for the
+  // whole document, never a number here and a field there: a document that renumbers its
+  // headings but not its captions goes wrong silently the first time a reader inserts a
+  // chapter. Thai digits put it on this side, because LibreOffice draws thaiNumbers as 1, 2, 3;
+  // so do regions, because a caption inside chapters takes its number from a STYLEREF that
+  // LibreOffice answers with the chapter's title.
   numbersAreText() {
-    return this.opts.thai_digits;
+    return this.opts.thai_digits || this.regions.length > 0;
+  }
+
+  // A field and the result the build already knows, between `separate` and `end`.
+  fieldRuns(instr, result, rpr) {
+    return (
+      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>' +
+      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>" +
+      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>' +
+      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>" +
+      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
+    );
   }
 
   // Heading levels the numbering part numbers.
@@ -4344,8 +4361,17 @@ class Writer {
     const run = (text, rpr) => "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>";
     let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + (c.kind === "figure" ? '<w:jc w:val="center"/>' : "");
     ppr += this.latinJc(ppr, captionText(c));
-    const head = c.label + " " + ((c.chapter ? c.chapter + "-" : "") + c.seq);
     const rest = c.inlines;
+    if (!this.numbersAreText()) {
+      // no regions here, so the number is a SEQ of its own with no chapter and no restart:
+      // a field every one of the five applications counts the same way
+      let plain = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c.label + " ", bold) +
+        this.fieldRuns("SEQ " + c.kind[0].toUpperCase() + c.kind.slice(1) + " \\* ARABIC", c.seq, bold);
+      if (rest.length && rest[0].t === "text") plain += this.inlines([{ ...rest[0], s: " " + rest[0].s }, ...rest.slice(1)]);
+      else if (rest.length) plain += run(" ", "") + this.inlines(rest);
+      return plain + "</w:p>";
+    }
+    const head = c.label + " " + ((c.chapter ? c.chapter + "-" : "") + c.seq);
     if (rest.length && rest[0].t === "text" && isBoldOnly(rest[0])) {
       // the caption opens in bold, as the label does: one run, or two formatted alike (cause 4)
       return "<w:p><w:pPr>" + ppr + "</w:pPr>" + this.inlines([{ ...rest[0], s: head + " " + rest[0].s }, ...rest.slice(1)]) + "</w:p>";
@@ -4969,25 +4995,27 @@ function docxText(parts, footnoteCount) {
 function expectedText(doc, opts) {
   const out = [];
   opts = opts || DEFAULTS;
-  const items = layout(doc, opts)[0];
+  const [items, regions] = layout(doc, opts);
+  // one answer for the whole document, as the writer takes it (ADR 0035)
+  const numbersAreText = opts.thai_digits || regions.length > 0;
   if (opts.toc) out.push(...listEntries(items, "toc").map(([, text]) => text)); // the entries the field carries
   for (const item of items) {
     if (item.caption) out.push(captionText(item.caption));
     else if (item.block.t === "directive" && LIST_FIELDS[item.block.name] !== undefined) {
       out.push(...listEntries(items, item.block.name).map(([, text]) => text));
-    } else if (item.block.t === "heading" && item.number !== undefined && opts.thai_digits) {
+    } else if (item.block.t === "heading" && item.number !== undefined && numbersAreText) {
       // the number is text in the heading's own paragraph, not one an application draws (ADR 0035)
       const join = opts.chapter_title_on_new_line ? "\n" : " ";
-      out.push(...plainText([item.block], true).map((line) => item.number + join + line));
+      out.push(...plainText([item.block], true, opts.thai_digits).map((line) => item.number + join + line));
     } else if (item.block.t === "heading" && item.number !== undefined && opts.chapter_title_on_new_line) {
       // the application draws the number; the break after it is still the build's
       out.push(...plainText([item.block]).map((line) => "\n" + line));
-    } else out.push(...plainText([item.block], opts.thai_digits));
+    } else out.push(...plainText([item.block], numbersAreText, opts.thai_digits));
   }
   for (const label of doc.footnoteOrder) {
     const blocks = doc.footnotes.get(label);
     if (!blocks.length || blocks[0].t !== "paragraph") out.push("");
-    out.push(...plainText(blocks, opts.thai_digits));
+    out.push(...plainText(blocks, numbersAreText, opts.thai_digits));
   }
   return out.map((s) => s.normalize("NFC"));
 }
