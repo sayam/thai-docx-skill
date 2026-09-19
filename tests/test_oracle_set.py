@@ -16,7 +16,7 @@ import oracle_set  # noqa: E402
 
 def test_every_variant_for_every_application_is_its_golden(tmp_path):
     results = oracle_set.write(tmp_path)
-    assert len(results) == len(oracle_set.VARIANTS) * len(oracle_set.APPLICATIONS) == 20
+    assert len(results) == len(oracle_set.VARIANTS) * len(oracle_set.APPLICATIONS) == 25
     names = sorted(p.name for p in tmp_path.glob("*.docx"))
     assert names == sorted(f"{v}-{a}.docx" for v in oracle_set.VARIANTS for a in oracle_set.APPLICATIONS)
     checklist = (tmp_path / "CHECKLIST.md").read_text(encoding="utf-8")

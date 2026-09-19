@@ -57,9 +57,9 @@ def docx_text(parts: dict[str, bytes], footnote_count: int) -> list[str]:
 def expected_text(doc: md.Document, opts: dict | None = None) -> list[str]:
     opts = opts or DEFAULTS
     out = []
-    items, regions = layout(doc, opts)[:2]
-    # one answer for the whole document, as the writer takes it (ADR 0035)
-    numbers_are_text = opts["thai_digits"] or bool(regions)
+    items = layout(doc, opts)[0]
+    # one answer for the whole document, as the writer takes it (ADR 0036)
+    numbers_are_text = not opts["auto_numbering"]
     if opts["toc"]:
         out.extend(text for _, text in list_entries(items, "toc"))  # the entries the field carries
     for item in items:
@@ -68,7 +68,7 @@ def expected_text(doc: md.Document, opts: dict | None = None) -> list[str]:
         elif item["block"]["t"] == "directive" and item["block"]["name"] in LIST_FIELDS:
             out.extend(text for _, text in list_entries(items, item["block"]["name"]))
         elif item["block"]["t"] == "heading" and "number" in item and numbers_are_text:
-            # the number is text in the heading's own paragraph, not one an application draws (ADR 0035)
+            # the number is text in the heading's own paragraph, not one an application draws (ADR 0036)
             join = "\n" if opts["chapter_title_on_new_line"] else " "
             out.extend(item["number"] + join + line for line in md.plain_text([item["block"]], True, opts["thai_digits"]))
         elif (item["block"]["t"] == "heading" and "number" in item and opts["chapter_title_on_new_line"]):

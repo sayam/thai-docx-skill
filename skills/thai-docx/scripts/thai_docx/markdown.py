@@ -2077,7 +2077,7 @@ THAI_DIGITS = str.maketrans("0123456789", "๐๑๒๓๔๕๖๗๘๙")
 def plain_text(blocks: list[dict], numbers_are_text: bool = False, thai_digits: bool = False) -> list[str]:
     """Every paragraph's text, in document order. Hard breaks are newlines; task markers are
     □/■ (ADR 0033); images and footnote marks contribute nothing. `numbers_are_text` is the
-    document whose numbers the build writes rather than the application (ADR 0035): there an
+    document whose numbers the build writes rather than the application (ADR 0036): there an
     ordered list's marker is text, in the document's own digits, and comes with the tab after
     it. Elsewhere
     the numbering part draws it, as it draws a bullet, and it is not text."""

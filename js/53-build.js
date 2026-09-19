@@ -50,6 +50,7 @@ function buildText(text, opts, readImage) {
     ["appendix headings", items.some((item) => item.number !== undefined && item.region === "appendices")],
     ["chapter headings", items.some((item) => item.number !== undefined && item.region === "chapters")],
     ["front", writer.regions.includes("front")],
+    ["numbers", writer.hasOrderedList || items.some((item) => item.number !== undefined || item.caption !== undefined)],
     ["toc comment", items.some((item) => item.block.t === "directive" && item.block.name === "toc")],
   ].filter(([, there]) => there).map(([name]) => name));
   const outcome = {

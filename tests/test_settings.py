@@ -117,6 +117,7 @@ def test_the_reference_states_each_default():
         "page_numbers": "yes" if d["page_numbers"] else "none", "page_number_on_first": "shown" if d["page_number_on_first"] else "none",
         "header": d["header"] or "none", "footer": d["footer"] or "none",
         "thai_digits": "๑ ๒ ๓" if d["thai_digits"] else "1 2 3",
+        "auto_numbering": "counted by the application" if d["auto_numbering"] else "written by the build, the same in every application",
         "repeat_table_header": "repeats on every page" if d["repeat_table_header"] else "first page only",
         "table_widths": d["table_widths"], "table_size": "as the body" if d["table_size"] is None else f"{d['table_size']} pt",
         "chapter_label": d["chapter_label"], "table_label": d["table_label"], "figure_label": d["figure_label"],

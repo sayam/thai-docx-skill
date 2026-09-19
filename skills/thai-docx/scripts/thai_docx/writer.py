@@ -110,6 +110,7 @@ class Writer:
         self.media: list[tuple[str, bytes]] = []  # part name, bytes
         self.image_rel: dict[str, tuple[str, int, int]] = {}
         self.doc_pr = 0
+        self.has_ordered_list = False  # whether --auto-numbering has anything to count (ADR 0028)
         self.heading_props, self.style_warnings = heading_styles(doc)
         self.items, self.regions, self.layout_warnings = layout(doc, opts)
         self.nums: list[tuple[int, int, int]] = []  # numId, start, level
@@ -252,21 +253,24 @@ class Writer:
 
     def numbers_are_text(self) -> bool:
         """Whether the build writes this document's numbers itself, instead of asking the
-        application for them (ADR 0035). It is one answer for the whole document, never a
+        application for them (ADR 0036). It is one answer for the whole document, never a
         number here and a field there: a document that renumbers its headings but not its
         captions goes wrong silently the first time a reader inserts a chapter.
 
-        Two things put a document on this side, and both were measured on 2026-09-19:
+        The build writes them unless `--auto-numbering` asks otherwise, because a written
+        number reads the same in all five applications and a counted one does not — both
+        measured on 2026-09-19:
 
         - **Thai digits.** LibreOffice draws `thaiNumbers` as 1, 2, 3, and does not read a
-          `custom` format at all. Every other format this skill asks for — decimal, ก ข ค, A,
-          I, i — it draws correctly.
+          `custom` format at all.
         - **Regions.** A caption inside chapters takes its number from `STYLEREF 1 \\s`, which
           LibreOffice answers with the chapter's *title*, and from a `SEQ` whose restart at each
           chapter it ignores.
 
-        A report with neither keeps the application's own numbering, whole."""
-        return self.opts["thai_digits"] or bool(self.regions)
+        With `--auto-numbering` the application counts, whole: headings, ordered lists and
+        captions renumber themselves as a reader edits, in Word — and `references/numbering.md`
+        says what each of the other four draws."""
+        return not self.opts["auto_numbering"]
 
     def field_runs(self, instr: str, result: str, rpr: str) -> str:
         """A field and the result the build already knows, between `separate` and `end`."""
@@ -290,7 +294,7 @@ class Writer:
 
     def numbered_heading(self, item: dict) -> tuple[list[dict], str, str]:
         """A heading's inlines and what goes before them: its number, written into the paragraph
-        as text (ADR 0035). The number carries no run properties of its own, so it takes the
+        as text (ADR 0036). The number carries no run properties of its own, so it takes the
         heading style's — the size, weight and colour of the words beside it, which is what ADR
         0027 asked a numbering level to repeat. Where the first word is unformatted the number
         joins its run rather than sitting in one beside it, formatted alike (cause 4)."""
@@ -333,10 +337,10 @@ class Writer:
 
     def caption(self, c: dict, keep_next: bool) -> str:
         """Label and number, bold, then the caption text. Where the document's numbers are the
-        build's own (ADR 0035) the number is text: a caption inside chapters takes its number
-        from a STYLEREF and a SEQ, and LibreOffice answers the first with the chapter's title
-        and ignores the second's restart. A report with no regions keeps its SEQ field, which
-        every application counts the same way."""
+        build's own (ADR 0036) the number is text. With `--auto-numbering` it is the pair of
+        fields Word's own Insert Caption writes — the chapter from a STYLEREF, the count from a
+        SEQ that starts again at each chapter, in Thai digits when those are asked for — with the
+        results written in, so an application that never updates fields still shows them."""
         self.counts["paragraphs"] += 1
         bold = "<w:b/><w:bCs/>"
 
@@ -348,10 +352,12 @@ class Writer:
         ppr += self.latin_jc(ppr, caption_text(c))
         rest = c["inlines"]
         if not self.numbers_are_text():
-            # no regions here, so the number is a SEQ of its own with no chapter and no restart:
-            # a field every one of the five applications counts the same way
-            out = ("<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c["label"] + " ", bold)
-                   + self.field_runs("SEQ " + c["kind"].capitalize() + " \\* ARABIC", c["seq"], bold))
+            out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c["label"] + " ", bold)
+            if c["chapter"]:
+                out += self.field_runs("STYLEREF 1 \\s", c["chapter"], bold) + run("-", bold)
+            seq = ("SEQ " + c["kind"].capitalize() + " \\* " + ("ThaiArabic" if self.opts["thai_digits"] else "ARABIC")
+                   + (" \\s 1" if c["reset"] else ""))
+            out += self.field_runs(seq, c["seq"], bold)
             if rest and rest[0]["t"] == "text":
                 out += self.inlines([dict(rest[0], s=" " + rest[0]["s"])] + rest[1:])
             elif rest:
@@ -403,10 +409,11 @@ class Writer:
 
     def list(self, b: dict, level: int, quote: bool) -> str:
         """A bullet is drawn by the numbering part, which every application reads the same way.
-        An ordered list's number is written as text instead (ADR 0035): its format is one a
+        An ordered list's number is written as text instead (ADR 0036): its format is one a
         reader may not have — LibreOffice draws thaiNumbers as 1, 2, 3 — and the hanging indent
         and the tab after the marker put it where the numbering put it."""
         ordered, out = b["ordered"], []
+        self.has_ordered_list = self.has_ordered_list or ordered
         written = self.numbers_are_text()
         if ordered and not written:
             num_id = len(self.nums) + 2

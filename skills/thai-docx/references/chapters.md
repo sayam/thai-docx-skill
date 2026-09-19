@@ -71,15 +71,15 @@ Table: ผู้ตอบแบบสอบถาม
   paragraph become "ตารางที่ 1-1 …" and "รูปที่ 1-1 …" in a chapter, "ตารางที่ ก-1 …" in
   an appendix, "ตารางที่ 1 …" elsewhere or with no region comments. Leave a blank line
   between a caption and its image or table. Anywhere else they stay text, with a warning.
-- **The numbers are written in, and do not renumber themselves.** In a document with region
-  comments — and in any document built with `--thai-digits` — every chapter, heading, list and
-  caption number is text the build worked out, not a number Word keeps up to date. A reader who
-  inserts a chapter or a table in the .docx renumbers from there by hand; the contents, the list
-  of tables and the list of figures still fill in, and page numbers still update. The reason is
-  that no application but Word numbers such a caption correctly: LibreOffice answers the field
-  that asks for the chapter's number with the chapter's *title*, and draws Thai digits as 1, 2,
-  3. **Change the Markdown and build again** — every number is worked out afresh. A report with
-  no regions and no Thai digits keeps Word's own numbering and renumbers itself as before.
+- **The numbers are written in, and do not renumber themselves — unless you ask.** Every
+  chapter, heading, list and caption number is text the build worked out, so the file reads the
+  same in all five applications. A reader who inserts a chapter or a table in the .docx
+  renumbers from there by hand; the contents, the list of tables and the list of figures still
+  fill in, and page numbers still update. **Change the Markdown and build again** — every number
+  is worked out afresh. For a thesis its author will go on editing in Microsoft Word, build with
+  `--auto-numbering`: Word then counts and renumbers, in Arabic or Thai digits. Other
+  applications draw that file differently — LibreOffice writes `ตารางที่ บทนำ-ก` — so read
+  [numbering.md](numbering.md) before you offer it.
 - **Lists:** `<!-- toc -->`, `<!-- list-of-tables -->`, `<!-- list-of-figures -->` fill in
   when Word opens the file; write the heading above each yourself. Do not add `--toc` as
   well: it puts a second table of contents on the cover, and the build warns so. A flag
