@@ -40,7 +40,7 @@ class Package extends Writer {
       const numbered = this.rel(REL + kind, kind + "1.xml");
       rids.push([kind, numbered, this.plainPagePart() ? this.rel(REL + kind, kind + "2.xml") : null]);
     }
-    const toc = this.opts.toc ? this.writtenList(listEntries(this.items, "toc")) + "<w:p><w:pPr/></w:p>" : "";
+    const toc = this.opts.toc ? this.field('TOC \\o "1-3" \\h \\z \\u', "", listEntries(this.items, "toc")) + "<w:p><w:pPr/></w:p>" : "";
     const numbers = this.opts.thai_digits ? "thaiNumbers" : "decimal";
     // A cover shows the plain parts; front pages count ก ข ค from ก, the rest from 1.
     const sect = (region, start) => {
@@ -153,7 +153,16 @@ class Package extends Writer {
     let applied = "";
     if (this.opts.toc) applied += own("TOC1", "toc 1") + own("TOC2", "toc 2", '<w:ind w:left="240"/>') + own("TOC3", "toc 3", '<w:ind w:left="480"/>');
     for (const kind of this.pageParts()) applied += own(kind[0].toUpperCase() + kind.slice(1), kind);
-    if (this.items.some((item) => item.caption)) applied += own("Caption", "caption", '<w:spacing w:before="120" w:after="120"/>');
+    const kinds = [...new Set(this.items.filter((item) => item.caption).map((item) => item.caption.kind))].sort();
+    if (kinds.length) {
+      // a caption style of its own for each kind: the list of tables and the list of figures
+      // collect the paragraphs in one style, where they used to collect SEQ fields (ADR 0035)
+      applied += own("Caption", "caption", '<w:spacing w:before="120" w:after="120"/>');
+      for (const kind of kinds) {
+        applied += '<w:style w:type="paragraph" w:styleId="' + CAPTION_STYLE[kind] + '"><w:name w:val="' +
+          CAPTION_STYLE_NAME[kind] + '"/><w:basedOn w:val="Caption"/><w:next w:val="Normal"/></w:style>';
+      }
+    }
     if (this.items.some((item) => item.block.t === "directive" && item.block.name !== "toc")) applied += own("TableofFigures", "table of figures");
     if (this.items.some((item) => item.block.t === "directive" && item.block.name === "toc") && !this.opts.toc) {
       applied += own("TOC1", "toc 1") + own("TOC2", "toc 2", '<w:ind w:left="240"/>') + own("TOC3", "toc 3", '<w:ind w:left="480"/>');

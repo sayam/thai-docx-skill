@@ -249,18 +249,17 @@ class Writer {
   // SECTION_MARK, captions, directives, and headings outside the chapters unnumbered.
   body() {
     const out = [];
-    for (let index = 0; index < this.items.length; index++) {
-      const item = this.items[index];
+    for (const item of this.items) {
       const b = item.block;
       if (item.new_section) out.push(SECTION_MARK);
       if (item.caption) {
-        out.push(this.caption(item.caption, Boolean(item.keep_next), this.anchor(index)));
+        out.push(this.caption(item.caption, Boolean(item.keep_next)));
       } else if (b.t === "directive") {
-        out.push(this.writtenList(listEntries(this.items, b.name)));
+        out.push(this.field(LIST_FIELDS[b.name], "", listEntries(this.items, b.name)));
       } else if (b.t === "heading") {
         this.counts.headings += 1;
         const [inlines, lead] = this.numberedHeading(item);
-        out.push(this.paragraph(inlines, "Heading" + b.level, "", false, this.anchor(index) + lead));
+        out.push(this.paragraph(inlines, "Heading" + b.level, "", false, lead));
       } else {
         out.push(this.blocks([b], 0, false, true, Boolean(item.keep_next)));
       }
@@ -272,19 +271,19 @@ class Writer {
   // and a SEQ field are read differently by different applications — LibreOffice gives the
   // chapter's title where Word gives its number — and a caption a reader cannot trust is worse
   // than one that does not renumber itself (ADR 0035).
-  caption(c, keepNext, anchor) {
+  caption(c, keepNext) {
     this.counts.paragraphs += 1;
     const bold = "<w:b/><w:bCs/>";
     const run = (text, rpr) => "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>";
-    let ppr = '<w:pStyle w:val="Caption"/>' + (keepNext ? "<w:keepNext/>" : "") + (c.kind === "figure" ? '<w:jc w:val="center"/>' : "");
+    let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + (c.kind === "figure" ? '<w:jc w:val="center"/>' : "");
     ppr += this.latinJc(ppr, captionText(c));
     const head = c.label + " " + ((c.chapter ? c.chapter + "-" : "") + c.seq);
     const rest = c.inlines;
     if (rest.length && rest[0].t === "text" && isBoldOnly(rest[0])) {
       // the caption opens in bold, as the label does: one run, or two formatted alike (cause 4)
-      return "<w:p><w:pPr>" + ppr + "</w:pPr>" + (anchor || "") + this.inlines([{ ...rest[0], s: head + " " + rest[0].s }, ...rest.slice(1)]) + "</w:p>";
+      return "<w:p><w:pPr>" + ppr + "</w:pPr>" + this.inlines([{ ...rest[0], s: head + " " + rest[0].s }, ...rest.slice(1)]) + "</w:p>";
     }
-    let out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + (anchor || "") + run(head, bold);
+    let out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(head, bold);
     if (rest.length && rest[0].t === "text") {
       // the space joins the first text run: a run of its own would sit beside one formatted alike (cause 4)
       out += this.inlines([{ ...rest[0], s: " " + rest[0].s }, ...rest.slice(1)]);
@@ -411,45 +410,23 @@ class Writer {
   // A field paragraph, and — for a list of contents, tables or figures — the entries it
   // already holds between `separate` and `end`, one paragraph each (ADR 0027). The field
   // opens in the first entry and closes in the last, as Word writes it.
-  // A field paragraph whose result the build does not write: PAGE in a header, and the like.
-  // A list of contents, tables or figures is not one of these — see writtenList.
-  field(instr, ppr) {
+  field(instr, ppr, entries) {
     const char = (kind) => "<w:r><w:rPr>" + LANG + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>';
     const instruction = "<w:r><w:rPr>" + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>";
-    return "<w:p><w:pPr>" + (ppr || "") + "</w:pPr>" + char("begin") + instruction + char("separate") + char("end") + "</w:p>";
-  }
-
-  // A table of contents, tables or figures: one paragraph the build writes per entry, its page
-  // number a PAGEREF field pointing at the entry's bookmark (ADR 0035). It was a TOC field
-  // until 2026-09-19, and \c "Table" collects the SEQ fields a caption carries — when the
-  // caption's number became text, LibreOffice emptied both lists on the first update.
-  writtenList(entries) {
-    if (!entries.length) return "";
-    this.counts.paragraphs += entries.length;
-    const tabs = '<w:tabs><w:tab w:val="right" w:leader="dot" w:pos="' + this.textWidthTwips + '"/></w:tabs>';
-    const out = [];
-    for (const [level, text, anchor] of entries) {
-      const entryPpr = '<w:pStyle w:val="TOC' + Math.min(level, 3) + '"/>' + tabs;
-      out.push(
-        "<w:p><w:pPr>" + entryPpr + this.latinJc(entryPpr, text) + "</w:pPr>" +
-        '<w:hyperlink w:anchor="' + anchor + '">' +
-        "<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" +
-        // a run with no text needs no complex-script properties: the checker asks for them
-        // where a reader sees Thai, and nothing here is text the reader sees
-        "<w:r><w:tab/></w:r>" +
-        '<w:r><w:fldChar w:fldCharType="begin"/></w:r>' +
-        '<w:r><w:instrText xml:space="preserve"> PAGEREF ' + anchor + ' \\h </w:instrText></w:r>' +
-        '<w:r><w:fldChar w:fldCharType="separate"/></w:r>' +
-        '<w:r><w:fldChar w:fldCharType="end"/></w:r>' +
-        "</w:hyperlink></w:p>"
-      );
+    if (!entries || !entries.length) {
+      return "<w:p><w:pPr>" + (ppr || "") + "</w:pPr>" + char("begin") + instruction + char("separate") + char("end") + "</w:p>";
     }
+    this.counts.paragraphs += entries.length;
+    const out = [];
+    entries.forEach(([level, text], i) => {
+      const opening = i === 0 ? char("begin") + instruction + char("separate") : "";
+      const closing = i === entries.length - 1 ? char("end") : "";
+      const entryPpr = '<w:pStyle w:val="TOC' + Math.min(level, 3) + '"/>';
+      out.push(
+        "<w:p><w:pPr>" + entryPpr + this.latinJc(entryPpr, text) + "</w:pPr>" + opening +
+        "<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + closing + "</w:p>"
+      );
+    });
     return out.join("");
-  }
-
-  // The bookmark a list entry points at, on the paragraph it names.
-  anchor(index) {
-    return '<w:bookmarkStart w:id="' + (index + 1) + '" w:name="' + anchorName(index) + '"/>' +
-      '<w:bookmarkEnd w:id="' + (index + 1) + '"/>';
   }
 }

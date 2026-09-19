@@ -164,7 +164,13 @@ THAI_LETTERS = "กขคงจฉชซฌญฎฏฐฑฒณดตถทธ�
 ROMAN = ((1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"),
          (1, "I"))
 SECTION_MARK = "\x00"  # between sections in the body; the input can hold no control character
-LISTS = ("toc", "list-of-tables", "list-of-figures")  # the directives the build writes a list for
+# A caption of each kind takes a style of its own, and a list collects that style: `\\c` collects
+# SEQ fields, which a caption stopped carrying when its number became text (ADR 0035).
+CAPTION_STYLE = {"table": "TableCaption", "figure": "FigureCaption"}
+CAPTION_STYLE_NAME = {"table": "Table Caption", "figure": "Figure Caption"}
+LIST_FIELDS = {"toc": 'TOC \\o "1-3" \\h \\z \\u',
+               "list-of-tables": 'TOC \\h \\z \\t "' + CAPTION_STYLE_NAME["table"] + ',1"',
+               "list-of-figures": 'TOC \\h \\z \\t "' + CAPTION_STYLE_NAME["figure"] + ',1"'}
 THAI_DIGITS = md.THAI_DIGITS  # the translation lives beside plain_text, which also writes numbers
 CAPTION_PREFIX = {"table": "Table:", "figure": "Figure:"}
 # What a Thai writer reaches for instead. These make no caption — the prefix is one word,
@@ -395,27 +401,21 @@ def _heading_number(level: int, sub: list[int], region: str, sectioned: bool,
 LIST_KINDS = {"list-of-tables": "table", "list-of-figures": "figure"}
 
 
-def list_entries(items: list[dict], name: str) -> list[tuple[int, str, str]]:
-    """What a table of contents, tables or figures holds, as (heading level, text, anchor).
-    The build writes the entries itself (ADR 0035): a `\\c` list collects the SEQ fields a
-    caption no longer carries, and a `\\o` list would rebuild text the build already knows.
-    The anchor names the bookmark whose page a PAGEREF field asks for — the one thing here
-    that only a laid-out page knows."""
-    out: list[tuple[int, str, str]] = []
-    for i, item in enumerate(items):
+def list_entries(items: list[dict], name: str) -> list[tuple[int, str]]:
+    """What a table of contents, tables or figures holds, as (heading level, text).
+    Written into the field so an application that never updates fields still shows it;
+    Word, which does update, replaces it with its own — with the page numbers only a
+    layout knows (ADR 0027)."""
+    out: list[tuple[int, str]] = []
+    for item in items:
         b = item["block"]
         if name == "toc":
             if "caption" not in item and b["t"] == "heading" and b["level"] <= 3:
                 number = item["number"] + " " if "number" in item else ""
-                out.append((b["level"], _one_line(number + md.inline_text(b["inlines"])), anchor_name(i)))
+                out.append((b["level"], _one_line(number + md.inline_text(b["inlines"]))))
         elif "caption" in item and item["caption"]["kind"] == LIST_KINDS[name]:
-            out.append((1, _one_line(caption_text(item["caption"])), anchor_name(i)))
+            out.append((1, _one_line(caption_text(item["caption"]))))
     return out
-
-
-def anchor_name(index: int) -> str:
-    """The bookmark a list entry points at. `_Toc` is the prefix Word gives its own."""
-    return "_Toc" + str(90000000 + index)
 
 
 def _one_line(text: str) -> str:
