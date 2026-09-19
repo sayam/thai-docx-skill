@@ -31,6 +31,10 @@ Every local font that carries ☐ is a symbol font: DejaVu Sans, Noto Sans Symbo
 Source Code Pro, and Microsoft's two Segoe faces. **No font that carries them is present on
 Windows, macOS and Linux alike**, so no choice of font name can make ☐ appear everywhere.
 
+Confirmed the other way round on the same day: with Segoe UI Symbol installed on that Linux
+machine, the old file's boxes appear. The font was the whole of it — and the remedy that fact
+suggests, *every reader installs a Microsoft font*, is not one a document can ask for.
+
 ## Decision
 
 - **The box is `□` (U+25A1) and, when checked, `■` (U+25A0)** — a white square and a black one.

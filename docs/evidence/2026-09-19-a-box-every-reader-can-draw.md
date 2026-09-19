@@ -25,6 +25,17 @@ the characters had to change.
 The document's own Thai font carries no square either, so a font must be named for that run
 whatever the character is.
 
+## The cause, proved rather than inferred
+
+After the fix was written, the maintainer installed **Segoe UI Symbol** on the same Linux machine
+and opened the **old** file again in WPS. The boxes appeared — ☐ and ☑, correctly drawn.
+
+That closes the diagnosis: nothing was wrong with WPS and nothing was wrong with the file's
+structure. The file asked for a font the machine did not have, and no reader invents a glyph it was
+not given. It also shows what the "fix" would otherwise be — *ask every reader of the document to
+install a Microsoft font* — which is not a thing a person who receives a thesis will do, or will
+know how to do, since nothing on screen says which font is missing.
+
 ## What changed
 
 ```xml
