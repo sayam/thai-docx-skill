@@ -31,6 +31,16 @@ gates:
     kind: job
     severity: blocking
     enforced_by: {job: commits}
+  - id: pr-description-credits-the-signer
+    title: A pull request's description opens no line with an assistant's trailer, its "Generated with" footer or a link to its session, and reaches the checker through the environment, never a script (ADR 0013)
+    kind: job
+    severity: blocking
+    enforced_by: {job: pr-description}
+  - id: pr-description-checker-proven-two-way
+    title: The description checker refuses an assistant's default footer in every form, passes a description that only mentions one, reads the description as data, and the workflow hands it over through the environment and runs again on an edit (ADR 0013)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_pr_body.py]}
   - id: docx-checker-proven-two-way
     title: The checker names each of the five causes (ADR 0004), invisible text and misordered properties on a planted violation in any part that holds text a reader sees — body, comments, footnotes, endnotes, headers, footers — passes a clean package, and refuses DOCTYPE and oversized packages
     kind: test

@@ -106,4 +106,4 @@ Markdown ──parse──▶ blocks ──lay out──▶ sections, numbering 
 | `tests/` | the suite; `tests/js` holds the CommonMark reference for the parser tests |
 | `gates.yaml`, `tools/` | verifiable-gates: each gate, its test or scanner, its evidence |
 | `docs/adr/`, `docs/evidence/`, `SOURCES.md` | decisions, what each gate was seen to catch, outside sources |
-| `.github/workflows/` | `gates.yml` (scans, commits, tests, lint, deps), `codeql.yml`, `scorecard.yml`, `release.yml` (check, pack, attest, attach) |
+| `.github/workflows/` | `gates.yml` (scans, commits, tests, lint, deps), `pr-description.yml` (the description credits nobody who did not sign), `codeql.yml`, `scorecard.yml`, `release.yml` (check, pack, attest, attach) |
