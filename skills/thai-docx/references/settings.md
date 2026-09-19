@@ -32,6 +32,9 @@ The header and footer, and how Word draws the numbers it generates.
 | header text | none | `--header "ลับ"` (centred, above a page number there) |
 | footer text | none | `--footer "TEXT"` (centred, above a page number there) |
 | page, list and footnote numbers | 1 2 3 | `--thai-digits` (๑ ๒ ๓; the text itself is never changed) |
+| heading, list and caption numbers | written by the build, the same in every application | `--auto-numbering` (the application counts, and Word renumbers as you edit; what each application draws is in [numbering.md](numbering.md)) |
+
+Without a numbered heading, an ordered list or a caption, `--auto-numbering` changes nothing, and the build says so.
 
 ## Tables
 

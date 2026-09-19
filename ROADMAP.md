@@ -48,6 +48,16 @@ so they drew as nothing outside Windows. Fixed by ADR 0033 — `□` and `■` i
 the bytes of any document with a task list, so the five applications of ADR 0012 are due a look
 before the next release.
 
+**Who counts.** The build writes every heading, list and caption number as text, in every
+document, so a file reads the same in all five applications; `--auto-numbering` hands the counting
+to the application for a document someone will go on editing in Word
+([ADR 0036](docs/adr/0036-who-counts-is-one-switch.md)). The first application of this release's
+check — Word 365 for Windows, on `sample-options` — passed every item of the look and is what
+raised the question ([record](docs/evidence/2026-09-19-the-look-passes-the-edit-does-not.md)).
+**Owed before the tag:** `sample-basic`, whose bytes changed, in all five; and the new
+`sample-auto` — in Word 365 for Windows every item including the four edits, in the other four
+whatever is seen, written into `references/numbering.md` where a cell still says not measured.
+
 **Two characters that look like one.** ำ typed the long way (`ํ` + `า`) and `&nbsp;` were the two
 questions left over that touch the author's own text. Both are settled by
 [ADR 0034](docs/adr/0034-two-characters-that-look-like-one.md) without changing a byte a document

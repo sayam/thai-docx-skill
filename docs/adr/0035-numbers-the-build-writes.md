@@ -1,7 +1,8 @@
 # 0035 — Every number the build can know is written as text, not left to the application
 
-- Status: accepted
+- Status: superseded
 - Decided: 2026-09-19
+- Superseded by: 0036
 - Extends: [0027](0027-lists-carry-entries-and-runs-name-their-font.md) (generated matter carries
   what an application would otherwise supply), [0021](0021-regions-sections-captions-and-lists.md)
   (which chose the fields this record replaces), [0012](0012-xml-checks-are-the-proxy-office-apps-the-oracle.md)

@@ -410,6 +410,6 @@ def test_command_line_is_the_same(tmp_path):
     # thesis has one more run
     for (args, run), (_source, _flags, golden, _about) in zip(thesis, list(oracle_set.VARIANTS.values())[1:], strict=False):
         assert run[0] == 0 and run[3]["out.docx"] == (parity.GOLDEN / f"{golden}.docx").read_bytes(), args
-    assert len(thesis) == 4  # the three golden variants, then --chapter-title-on-new-line
-    assert thesis[3][1][3]["out.docx"] not in [(parity.GOLDEN / f"{g}.docx").read_bytes()
+    assert len(thesis) == 5  # the four golden variants, then --chapter-title-on-new-line
+    assert thesis[4][1][3]["out.docx"] not in [(parity.GOLDEN / f"{g}.docx").read_bytes()
                                                for _s, _f, g, _a in oracle_set.VARIANTS.values()]

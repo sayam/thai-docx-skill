@@ -44,6 +44,10 @@ VARIANTS = {
         "--paper", "f14", "--landscape", "--size", "15", "--margins", "1,1,1,1", "--toc",
         "--no-repeat-table-header", "--hide-spelling-errors", "--table-widths", "auto",
     ], "thesis-layout", "The same thesis on F14 landscape, with the settings flags."),
+    "sample-auto": (FIXTURES / "thesis" / "thesis.md", [
+        "--heading-numbers", "--thai-digits", "--auto-numbering", "--page-numbers", "bottom-center",
+    ], "thesis-auto", "The same thesis with the application counting (ADR 0036): open it, then edit it. "
+                      "Word 365 for Windows must pass every item; what each of the others draws is recorded in references/numbering.md."),
 }
 
 # ADR 0012's items, then what each variant adds
@@ -89,6 +93,16 @@ SHOWS = {
         "A table of contents on the cover as well as the one in the front pages (on purpose: the build warns that --toc adds a second)",
         "The long table does not repeat its header row",
         "No spelling squiggles at all",
+    ),
+    "sample-auto": (
+        "As the file opens, before anything is updated: headings read บทที่ ๑, ๑.๑, ๑.๓.๒; appendices ภาคผนวก ก; "
+        "captions ตารางที่ ๑-๑, รูปที่ ๒-๑, ตารางที่ ก-๑; numbered lists ๑. ๒. ๓.",
+        "After updating every field (Word: Ctrl+A then F9) the captions and the three lists read as they did before",
+        "(edit) A new paragraph in the Heading 2 style typed after ๑.๑ takes ๑.๒, and the headings after it move on by one",
+        "(edit) A new Heading 1 typed before บทที่ ๒ takes บทที่ ๒; after updating fields the captions below it read ตารางที่ ๓-๑, รูปที่ ๓-๑",
+        "(edit) A table caption copied and pasted later in the same chapter takes the next number after updating fields, "
+        "and the list of tables gains it",
+        "(edit) A new item typed inside a numbered list takes the next number, and the items after it move on by one",
     ),
 }
 

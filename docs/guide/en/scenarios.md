@@ -258,12 +258,15 @@ Good to know:
 - Front pages are numbered ก ข ค only when you ask for page numbers.
 - Outside a chapter, captions read "ตารางที่ 1".
 - **Chapter, heading, list and caption numbers are written into the file, not numbers Word keeps
-  up to date.** If you open the .docx and insert a chapter or a table yourself, renumber from
-  there by hand — the three lists and the page numbers still update. The reason is that no
-  application but Word numbers a chapter-based caption correctly: LibreOffice answers the field
-  asking for the chapter's number with the chapter's *title*, and draws Thai digits as 1, 2, 3.
-  **The intended way is to change the Markdown and build again**, which works every number out
-  afresh. A report with no region markers and no Thai digits keeps Word's own numbering.
+  up to date.** That is why the file reads the same in Word, LibreOffice, WPS and Google Docs, in
+  Arabic digits or Thai. If you open the .docx and insert a chapter or a table yourself, renumber
+  from there by hand — the three lists and the page numbers still update. **The intended way is
+  to change the Markdown and build again**, which works every number out afresh.
+- **If you will go on working in Microsoft Word and want the numbers to follow your edits**, ask
+  for "automatic numbering" (`--auto-numbering`). Word then counts chapters, headings, lists and
+  captions itself, in Arabic digits or Thai. That file is made for Word: LibreOffice shows Thai
+  digits as 1, 2, 3 and a caption as "ตารางที่ บทนำ-ก", and WPS draws "บทที่" as Latin letters
+  and the digit ๑ as ๕ — leave it off if the file must open in those.
 - `<!-- toc -->` already places a table of contents; asking for a table of contents too gives a
   second one.
 
