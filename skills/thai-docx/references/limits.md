@@ -17,19 +17,36 @@ build, and the build is the only thing that changes it.
 
 ## 2. Two kinds of document, and the contract each is held to
 
-| | default — handed over ready to use | `--auto-numbering` |
+| | default — **ready to use** | `--auto-numbering` — **made for editing in Word** |
 |---|---|---|
-| who counts the numbers | the build writes them as text | the application counts |
-| the five applications | **all five, held to the contract** | Word 365 for Windows and Word on the web; what the other three draw is recorded, not promised |
-| a reader edits it | the numbers do not move — the reader keeps the format | Word renumbers as they edit |
+| for | a document to be read, printed, handed in or passed on, with small edits | a document a Word user will go on working on |
+| who counts the numbers | the build writes them as text | Word counts, and renumbers as the user edits |
+| held to | **the five applications** | **Word 365 for Windows, on the desktop — that alone** |
+| a reader edits it | the numbers do not move; the reader keeps the format (§4) | Word's own numbering, captions and styles carry on working |
 
-**The five-application contract covers the ready-to-use document.** That is what is opened in Word
-365 for Windows (the reference application, which must pass every item), Word for macOS,
-LibreOffice Writer, Google Docs and WPS Writer before every release that changes a document's
-bytes. `--auto-numbering` is made for Word: the differences the others draw are in
-[numbering.md](numbering.md), each one measured, and a blank there is not a promise.
-
+**The five-application contract covers the ready-to-use document.** It is opened in Word 365 for
+Windows (the reference application, which must pass every item), Word for macOS, LibreOffice
+Writer, Google Docs and WPS Writer before every release that changes a document's bytes.
 **Nothing outside those five applications is covered**, and it must never be described as working.
+
+**`--auto-numbering` is held to Word on the desktop, and to nothing else.** Word on the web is not
+covered for it — it cannot insert a section break at all, and its Format Painter does not carry a
+heading's number — so a document meant to be edited there is a ready-to-use one. What the other
+applications draw with `--auto-numbering` is recorded in [numbering.md](numbering.md), each line
+measured; a blank there is not a promise.
+
+**A document is one kind or the other, never both.** The moment a document numbers itself, it is
+the second kind: a document that renumbers its headings but not its captions goes wrong in silence
+the first time a chapter is inserted. Mixing them is not offered in this version or the next few —
+it would cost more of the package than a skill should.
+
+**What the second kind is for.** It carries everything the ready-to-use document does — the
+paragraph layout, the left and right indents, Thai distributed alignment, line and paragraph
+spacing, the heading styles the front matter sets, the chapter and appendix labels, the caption
+labels and their number format, the table widths, the page numbering of each region — and adds the
+numbering on top, so that a Word user can go on with Word's own tools: heading numbering that
+follows what they type, References → Insert Caption offering this document's labels, the three
+lists updating from what is there. Every setting works in both kinds; only the numbering differs.
 
 ## 3. What the reader must do after opening the file
 
@@ -47,7 +64,7 @@ bytes. `--auto-numbering` is made for Word: the differences the others draw are 
 - With `--auto-numbering`, **caption numbers move only after an update** (Ctrl+A, then F9);
   heading and list numbers move as you type.
 
-## 4. If the reader edits a ready-to-use document
+## 4. If the reader edits a ready-to-use document (the default)
 
 **The format is theirs from that moment.** The skill has handed over a document whose numbers are
 text; it does not watch it afterwards.
