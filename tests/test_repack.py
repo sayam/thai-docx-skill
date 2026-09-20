@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
 """Writing a package back the way it came, so a repair can change one part and leave
-everything else exactly as the user handed it over (ADR 0032; gate
+everything else exactly as the user handed it over (ADR 0037; gate
 `repack-keeps-what-it-did-not-write`).
 """
 

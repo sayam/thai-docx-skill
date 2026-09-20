@@ -27,27 +27,34 @@ sys.path.insert(0, str(ROOT / "skills" / "thai-docx" / "scripts"))
 from thai_docx import build as b  # noqa: E402
 
 APPLICATIONS = ("word365_windows", "word_mac", "libreoffice_writer", "google_docs", "wps_writer")
+# The five-application contract covers the document the skill hands over ready to use. A variant
+# built with --auto-numbering is made for Word (ADR 0036, references/limits.md §2): it is opened
+# in the reference application, and what the other four draw is recorded in numbering.md rather
+# than held to the contract. A variant names the applications it is opened in.
+WORD = ("word365_windows",)
 
 # name → (fixture, flags, golden in tests/golden, what this variant is there to show)
 VARIANTS = {
     "sample-basic": (FIXTURES / "sample.md", [], "sample-default",
-                     "Every Markdown construct once, on the defaults."),
+                     "Every Markdown construct once, on the defaults.", APPLICATIONS),
     "sample-text": (FIXTURES / "thesis" / "thesis.md", ["--heading-numbers", "--page-numbers", "bottom-center"], "thesis-text",
-                    "A thesis: cover, front pages, chapters, bibliography, appendices; captions and lists; long paragraphs."),
+                    "A thesis: cover, front pages, chapters, bibliography, appendices; captions and lists; long paragraphs.", APPLICATIONS),
     "sample-options": (FIXTURES / "thesis" / "thesis.md", [
         "--heading-numbers", "--align", "thai", "--indent", "0.5", "--line-spacing", "1.5", "--thai-digits",
         "--page-numbers", "top-center", "--no-page-number-first", "--header", "ข้อมูลสังเคราะห์ ใช้ทดสอบเท่านั้น",
         "--footer", "มหาวิทยาลัยตัวอย่าง", "--front-page-numbers", "lower-roman", "--appendix-numbers", "upper-letters",
         "--appendix-label", "Appendix", "--table-widths", "auto", "--table-size", "14",
-    ], "thesis-options", "The same thesis with the paragraph, number, page and table options."),
+    ], "thesis-options", "The same thesis with the paragraph, number, page and table options.", APPLICATIONS),
     "sample-layout": (FIXTURES / "thesis" / "thesis.md", [
         "--paper", "f14", "--landscape", "--size", "15", "--margins", "1,1,1,1", "--toc",
         "--no-repeat-table-header", "--hide-spelling-errors", "--table-widths", "auto",
-    ], "thesis-layout", "The same thesis on F14 landscape, with the settings flags."),
+    ], "thesis-layout", "The same thesis on F14 landscape, with the settings flags.", APPLICATIONS),
     "sample-auto": (FIXTURES / "thesis" / "thesis.md", [
         "--heading-numbers", "--thai-digits", "--auto-numbering", "--page-numbers", "bottom-center",
     ], "thesis-auto", "The same thesis with the application counting (ADR 0036): open it, then edit it. "
-                      "Word 365 for Windows must pass every item; what each of the others draws is recorded in references/numbering.md."),
+                      "Made for Word, so it is opened in the reference application alone — the contract of ADR 0012 covers the "
+                      "ready-to-use documents above, and what the other four draw with --auto-numbering is recorded in "
+                      "references/numbering.md.", WORD),
 }
 
 # ADR 0012's items, then what each variant adds
@@ -114,8 +121,8 @@ def write(out: pathlib.Path) -> list[dict]:
     """Every variant for every application into `out`, and CHECKLIST.md; the build results."""
     out.mkdir(parents=True, exist_ok=True)
     results = []
-    for variant, (source, flags, _golden, _about) in VARIANTS.items():
-        for application in APPLICATIONS:
+    for variant, (source, flags, _golden, _about, applications) in VARIANTS.items():
+        for application in applications:
             target = out / f"{variant}-{application}.docx"
             opts, _, allow = b.parse_args(flags + [str(source), str(target)])
             result = b.build(str(source), str(target), opts, allow)
@@ -128,15 +135,17 @@ def checklist(results: list[dict]) -> str:
     lines = ["# Release oracle checklist (ADR 0012)", "",
              "Open each file in the application its name ends with. Tick an item when it holds;",
              "a failure that attributes cannot reach gets a known-limitation record.", ""]
-    for variant, (source, flags, golden, about) in VARIANTS.items():
+    for variant, (source, flags, golden, about, applications) in VARIANTS.items():
         sha = {r["sha256"] for r in results if r["variant"] == variant}
         lines += [f"## {variant}", "", about, "",
                   f"- Source: `{source.relative_to(ROOT)}`, flags: `{' '.join(flags) or '(none)'}`",
                   f"- sha256 (every copy, and tests/golden/{golden}.docx): `{', '.join(sorted(sha))}`", ""]
         items = [*EVERY_APPLICATION, *SHOWS.get(variant, ())]
-        lines += ["| item | " + " | ".join(APPLICATIONS) + " |", "|---|" + "---|" * len(APPLICATIONS)]
-        lines += ["| " + item + " |" + " |" * len(APPLICATIONS) for item in items]
-        lines += ["| (Word only) " + item + " | | | — | — | — |" for item in WORD_ONLY]
+        lines += ["| item | " + " | ".join(applications) + " |", "|---|" + "---|" * len(applications)]
+        lines += ["| " + item + " |" + " |" * len(applications) for item in items]
+        word_cells = " |" * len(applications) if applications == WORD else " | | — | — | —"
+        lines += ["| (Word only) " + item + " |" + word_cells + " |" if applications != WORD else "| (Word only) " + item + " | |"
+                  for item in WORD_ONLY]
         lines.append("")
     return "\n".join(lines)
 

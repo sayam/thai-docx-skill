@@ -277,7 +277,7 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
         ["check", "not-a-zip.docx"],
         ["check", "huge.docx"],
         ["check", "missing.docx"],
-        # repair: the same file out of both, or the same refusal (ADR 0032, 0008)
+        # repair: the same file out of both, or the same refusal (ADR 0037, 0008)
         ["repair", "legacy.docx", "repaired.docx"],
         ["repair", "out-of-order.docx", "ordered.docx"],   # properties in the wrong order
         ["repair", "sample-default.docx", "clean.docx"],   # nothing to repair: nothing written
@@ -291,7 +291,7 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
         [],
         ["convert", "x"],
         # the release oracle's thesis variants, whose goldens are held below
-        *(["build", "thesis/thesis.md", out, *flags] for source, flags, _golden, _about in list(oracle_set.VARIANTS.values())[1:]),
+        *(["build", "thesis/thesis.md", out, *flags] for source, flags, *_ in list(oracle_set.VARIANTS.values())[1:]),
         # profiles (ADR 0024): saved, listed, shown, exported, imported, built with
         ["profile"],
         ["profile", "list"],
@@ -408,8 +408,8 @@ def test_command_line_is_the_same(tmp_path):
     assert all_flags[3]["out.docx"] == (parity.GOLDEN / "sample-all-flags.docx").read_bytes()
     thesis = [(a, r) for a, r in runs if a[:2] == ["build", "thesis/thesis.md"]]
     # thesis has one more run
-    for (args, run), (_source, _flags, golden, _about) in zip(thesis, list(oracle_set.VARIANTS.values())[1:], strict=False):
+    for (args, run), (_source, _flags, golden, *_) in zip(thesis, list(oracle_set.VARIANTS.values())[1:], strict=False):
         assert run[0] == 0 and run[3]["out.docx"] == (parity.GOLDEN / f"{golden}.docx").read_bytes(), args
     assert len(thesis) == 5  # the four golden variants, then --chapter-title-on-new-line
     assert thesis[4][1][3]["out.docx"] not in [(parity.GOLDEN / f"{g}.docx").read_bytes()
-                                               for _s, _f, g, _a in oracle_set.VARIANTS.values()]
+                                               for _s, _f, g, *_ in oracle_set.VARIANTS.values()]

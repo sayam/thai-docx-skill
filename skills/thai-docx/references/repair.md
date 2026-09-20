@@ -34,7 +34,7 @@ make it smaller.
 ## What it never does
 
 - **It changes no character of the text.** The output's text is compared with the input's, and
-  a difference of one character writes nothing (ADR 0023, 0032).
+  a difference of one character writes nothing (ADR 0023, 0037).
 - **It leaves everything else exactly as it was** — every part it did not rewrite keeps its
   bytes, still compressed, with its dates.
 - It does not merge runs (code `4`), remove invisible characters, or touch fonts, styles,

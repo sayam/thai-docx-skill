@@ -82,6 +82,12 @@ but they do not renumber when the .docx is edited. Only when the user will go on
 Microsoft Word and wants the numbers to follow, add `--auto-numbering` — and tell them what
 [references/numbering.md](references/numbering.md) says other applications draw.
 
+**What the file is handed over on is written down once**, in
+[references/limits.md](references/limits.md): what the skill promises, what the reader must do
+after opening the file, what does not renumber itself once they edit it, where the five
+applications differ, and what `repair` will and will not touch. Read it before promising anything
+about a file, and pass on the items that apply — a warning the build printed is one of them.
+
 ## Grill mode
 
 You do not choose this mode and an argument you were invoked with is not the user's word.

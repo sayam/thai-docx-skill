@@ -37,7 +37,7 @@ ALL_FLAGS = ["--toc", "--page-numbers", "--hide-spelling-errors", "--align", "th
 sys.path.insert(0, str(ROOT / "tools"))
 import oracle_set  # noqa: E402  the release oracle's variants (ADR 0012) are goldens too
 GOLDENS = [("sample-default", FIXTURES / "sample.md", []), ("sample-all-flags", FIXTURES / "sample.md", ALL_FLAGS)] + [
-    (golden, source, flags) for source, flags, golden, _about in oracle_set.VARIANTS.values() if golden != "sample-default"
+    (golden, source, flags) for source, flags, golden, *_ in oracle_set.VARIANTS.values() if golden != "sample-default"
 ]
 
 

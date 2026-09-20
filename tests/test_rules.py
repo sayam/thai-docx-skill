@@ -69,7 +69,7 @@ def citations(line: str) -> set[str]:
     """The record numbers a line cites, in any of the ways this project writes them.
 
     Once a line says ADR at all, every number shaped like a record on it is a citation:
-    "ADR 0032, 0023, 0008", "ADR 0029, restating 0026", "superseded by 0030". Record numbers
+    "ADR 0037, 0023, 0008", "ADR 0029, restating 0026", "superseded by 0030". Record numbers
     open with a zero, so a year or a version is not mistaken for one.
     """
     found: set[str] = set()
