@@ -4359,9 +4359,10 @@ class Writer {
 
   // Label and number, bold, then the caption text. Where the document's numbers are the
   // build's own (ADR 0036) the number is text. With --auto-numbering it is the pair of fields
-  // Word's own Insert Caption writes — the chapter from a STYLEREF, the count from a SEQ that
-  // starts again at each chapter, in Thai digits when those are asked for — with the results
-  // written in, so an application that never updates fields still shows them.
+  // Word's own Insert Caption writes — the chapter from a STYLEREF, the count from a SEQ named
+  // after the label and starting again at each chapter, in Thai digits when those are asked for
+  // — with the results written in, so an application that never updates fields still shows them.
+  // settings.xml carries the label itself (captionsXml).
   caption(c, keepNext) {
     this.counts.paragraphs += 1;
     const bold = "<w:b/><w:bCs/>";
@@ -4372,7 +4373,10 @@ class Writer {
     if (!this.numbersAreText()) {
       let plain = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c.label + " ", bold);
       if (c.chapter) plain += this.fieldRuns("STYLEREF 1 \\s", c.chapter, bold) + run("-", bold);
-      const seq = "SEQ " + c.kind[0].toUpperCase() + c.kind.slice(1) + " \\* " + (this.opts.thai_digits ? "ThaiArabic" : "ARABIC") +
+      // the counter is named after the label, which is what Word's own Insert Caption names it:
+      // a caption a reader inserts then continues this document's numbering instead of
+      // starting a second count beside it
+      const seq = "SEQ " + c.label + " \\* " + (this.opts.thai_digits ? "ThaiArabic" : "ARABIC") +
         (c.reset ? " \\s 1" : "");
       plain += this.fieldRuns(seq, c.seq, bold);
       if (rest.length && rest[0].t === "text") plain += this.inlines([{ ...rest[0], s: " " + rest[0].s }, ...rest.slice(1)]);
@@ -4854,7 +4858,28 @@ class Package extends Writer {
       "</w:compat>" +
       '<w:themeFontLang w:val="en-US" w:bidi="th-TH"/>'
     );
+    parts.push(this.captionsXml());
     return XML_DECL + '<w:settings xmlns:w="' + W + '">' + parts.join("") + "</w:settings>";
+  }
+
+  // The caption labels the document uses, so Word's own Insert Caption offers them. Only where
+  // the application counts (--auto-numbering): a reader who inserts a caption there continues
+  // the document's numbering, and one who inserts a caption into a document whose numbers are
+  // text would start a counter of its own beside them — the half-numbered document ADR 0036
+  // refuses. Word keeps a label the user makes in their own profile, not in the file; written
+  // here, the label travels with the document, already carrying its number format, its chapter
+  // number and the side of the table or figure it belongs on.
+  captionsXml() {
+    if (this.numbersAreText()) return "";
+    const kinds = ["table", "figure"].filter((k) => this.items.some((item) => item.caption && item.caption.kind === k));
+    if (!kinds.length) return "";
+    const fmt = this.opts.thai_digits ? "thaiNumbers" : "decimal";
+    const chapter = this.regions.length ? "1" : "0";
+    // a table's caption goes above it and a figure's below it, as the build writes them
+    const pos = { table: "above", figure: "below" };
+    return "<w:captions>" + kinds.map((kind) =>
+      "<w:caption w:name=" + attr(this.opts[kind + "_label"]) + ' w:pos="' + pos[kind] + '" w:chapNum="' + chapter +
+      '" w:heading="0" w:noLabel="0" w:numFmt="' + fmt + '" w:sep="hyphen"/>').join("") + "</w:captions>";
   }
 
   // Thai-digit footnote marks, for the section; settings.xml says the same for the document.

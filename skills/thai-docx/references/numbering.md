@@ -33,7 +33,8 @@ Only what has been measured is here. A blank is not a promise.
 
 | application | Arabic digits | with `--thai-digits` | chapter-numbered captions (region comments) |
 |---|---|---|---|
-| Word 365 for Windows, Word on the web | correct | correct | correct |
+| Word 365 for Windows | correct; a heading, chapter, list item or caption inserted renumbers what follows | correct, in Thai digits | correct |
+| Word on the web | headings and lists as the desktop; **no section break can be inserted** (Layout → Breaks offers Page and Column only), and Format Painter does not carry a heading's number — apply the Heading style instead | correct, in Thai digits | correct |
 | Word for macOS | correct | headings correct (`บทที่ ๑`, `๑.๑`), at the heading's size | not measured on its own |
 | Google Docs | correct as opened; renumbering on edit not measured | not measured | correct as opened |
 | LibreOffice Writer | correct | **draws 1, 2, 3** — it has no Thai-digit numbering | **wrong**: `ตารางที่ บทนำ-ก` — it answers the chapter-number field with the chapter's *title*, and ignores the restart at each chapter |
@@ -42,6 +43,16 @@ Only what has been measured is here. A blank is not a promise.
 These are those applications' own behaviour on the numbering the file asks for; no attribute in
 the file changes them. Until an application is updated, the way to have it draw the numbers right
 is to leave `--auto-numbering` off.
+
+## Inserting a caption yourself, in Word
+
+`--auto-numbering` writes the document's caption labels into the file, so **References → Insert
+Caption** already offers `ตารางที่` and `รูปที่` (or whatever `--table-label` and `--figure-label`
+say), already set to the document's number format, to number by chapter, and to sit above a table
+and below a figure. The counter is the document's own, so a caption inserted between two others
+takes the next number and the ones after it move on when fields are updated (Ctrl+A, then F9).
+
+A label carrying a space is not one Word's `SEQ` field can name; keep a caption label to one word.
 
 ## What written numbers cost
 

@@ -102,6 +102,9 @@ SHOWS = {
         "(edit) A new Heading 1 typed before บทที่ ๒ takes บทที่ ๒; after updating fields the captions below it read ตารางที่ ๓-๑, รูปที่ ๓-๑",
         "(edit) A table caption copied and pasted later in the same chapter takes the next number after updating fields, "
         "and the list of tables gains it",
+        "(edit) References → Insert Caption already offers the document's labels (ตารางที่, รูปที่), "
+        "numbered by chapter in the document's digits, above a table and below a figure — and the caption it inserts "
+        "continues the document's count instead of starting again at 1",
         "(edit) A new item typed inside a numbered list takes the next number, and the items after it move on by one",
     ),
 }

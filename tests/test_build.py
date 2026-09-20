@@ -678,26 +678,41 @@ def test_asked_to_count_a_caption_is_the_fields_word_s_own_insert_caption_writes
             said = fi.docx_text({n: zf.read(n) for n in zf.namelist()}, 0)
         assert result["ok"] and result["findings"] == [] and result["warnings"] == [], result
         fields = re.findall(r"<w:instrText[^>]*> ((?:SEQ|STYLEREF)[^<]*) </w:instrText>", doc)
+        # the counter is named after the label, as Word's own Insert Caption names it
         assert fields == [
-            "SEQ Table \\* " + fmt + " \\s 1",  # before the chapters: no chapter number, the restart all the same
-            "STYLEREF 1 \\s", "SEQ Table \\* " + fmt + " \\s 1",
-            "STYLEREF 1 \\s", "SEQ Figure \\* " + fmt + " \\s 1",
-            "STYLEREF 1 \\s", "SEQ Table \\* " + fmt + " \\s 1",
+            "SEQ ตารางที่ \\* " + fmt + " \\s 1",  # before the chapters: no chapter number, the restart all the same
+            "STYLEREF 1 \\s", "SEQ ตารางที่ \\* " + fmt + " \\s 1",
+            "STYLEREF 1 \\s", "SEQ รูปที่ \\* " + fmt + " \\s 1",
+            "STYLEREF 1 \\s", "SEQ ตารางที่ \\* " + fmt + " \\s 1",
         ]
+        # and settings.xml carries the label itself, with the format, chapter number and side
+        with zipfile.ZipFile(out) as zf:
+            settings = zf.read("word/settings.xml").decode()
+        assert ('<w:captions><w:caption w:name="ตารางที่" w:pos="above" w:chapNum="1" w:heading="0" w:noLabel="0" w:numFmt="'
+                + ("thaiNumbers" if digits else "decimal") + '" w:sep="hyphen"/>'
+                '<w:caption w:name="รูปที่" w:pos="below" w:chapNum="1" w:heading="0" w:noLabel="0" w:numFmt="'
+                + ("thaiNumbers" if digits else "decimal") + '" w:sep="hyphen"/></w:captions>') in settings, settings[-400:]
         assert [t for t in said if t.startswith(("ตารางที่", "รูปที่"))][:4] == captions, "the results are written in"
         # the list still collects the caption's style, so it holds whether the number is text or a field
         assert 'TOC \\h \\z \\t "Table Caption,1"' in doc and "\\c " not in doc
     # without regions there is no chapter and no restart: the field every application counts alike
-    opts, _, _ = b.parse_args(["--auto-numbering", "in.md", "out.docx"])
+    opts, _, _ = b.parse_args(["--auto-numbering", "--table-label", "Table", "in.md", "out.docx"])
     _, out = build(tmp_path, "Table: หนึ่ง\n\n| ก |\n|---|\n| 1 |\n", **opts)
-    doc = zipfile.ZipFile(out).read("word/document.xml").decode()
+    with zipfile.ZipFile(out) as zf:
+        doc, settings = (zf.read(f"word/{n}.xml").decode() for n in ("document", "settings"))
     assert "> SEQ Table \\* ARABIC <" in doc and "STYLEREF" not in doc
+    # no regions, so the label carries no chapter number, and only the kind the document holds
+    assert '<w:captions><w:caption w:name="Table" w:pos="above" w:chapNum="0"' in settings and "figure" not in settings.lower()
+    # where the build writes the numbers there is no label to offer: a caption inserted beside
+    # them would count on its own (ADR 0036)
+    _, plain = build(tmp_path, "Table: หนึ่ง\n\n| ก |\n|---|\n| 1 |\n")
+    assert "captions" not in zipfile.ZipFile(plain).read("word/settings.xml").decode()
     # a caption that opens with something other than text — here a hard break — keeps a space of
     # its own after the number, whoever counts, and the text still matches the Markdown
     for counted in (True, False):
         result, out = build(tmp_path, "Table:\\\nขึ้นบรรทัดใหม่\n\n| ก |\n|---|\n| 1 |\n", auto_numbering=counted)
         doc = zipfile.ZipFile(out).read("word/document.xml").decode()
-        assert result["ok"] and result["findings"] == [] and ("SEQ Table" in doc) is counted
+        assert result["ok"] and result["findings"] == [] and ("SEQ ตารางที่" in doc) is counted
         assert re.search(r'<w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr>(?:(?!</w:rPr>).)*</w:rPr><w:br/>', doc), "a space, then the break"
 
 
