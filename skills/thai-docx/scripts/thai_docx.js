@@ -4079,6 +4079,7 @@ const BOX = "□ ", BOX_CHECKED = "■ ";
 const NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 const REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
 const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+const DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main"; // the theme, and a picture's own namespace
 const EMU_PER_PX = 9525;
 const EMU_PER_TWIP = 635;
 let LANG = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>';
@@ -4669,7 +4670,7 @@ class Package extends Writer {
     return (
       XML_DECL + '<w:document xmlns:w="' + W + '" xmlns:r="' + NS_R + '" ' +
       'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" ' +
-      'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
+      'xmlns:a="' + DRAWING + '" ' +
       'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
       "<w:body>" + toc + body + "</w:body></w:document>"
     );
@@ -4873,6 +4874,43 @@ class Package extends Writer {
     );
   }
 
+  // The theme, naming this document's font as the document's own. A package with no theme leaves
+  // Word to resolve +Body and +Headings against its own built-in Office theme, and everything
+  // Word makes afterwards — a table it inserts, the Caption style it creates the first time a
+  // caption is inserted — comes out in that theme's Latin font instead of the document's, with
+  // the font box showing no name at all. w:themeFontLang in settings.xml already says which
+  // language takes which theme font; this is the part it points at (ADR 0027). Nothing in the
+  // document refers to the theme: every style names its fonts outright, so the theme changes no
+  // run this build writes. It is there for what the reader adds.
+  themeXml() {
+    const font = attr(this.opts.font);
+    const faces = ["latin", "ea", "cs"].map((tag) => "<a:" + tag + " typeface=" + font + "/>").join("");
+    // a colour scheme is required, and these are the twelve the Office theme names
+    const colours = [
+      ["dk1", "windowText", "000000"], ["lt1", "window", "FFFFFF"], ["dk2", "44546A", ""],
+      ["lt2", "E7E6E6", ""], ["accent1", "4472C4", ""], ["accent2", "ED7D31", ""],
+      ["accent3", "A5A5A5", ""], ["accent4", "FFC000", ""], ["accent5", "5B9BD5", ""],
+      ["accent6", "70AD47", ""], ["hlink", "0563C1", ""], ["folHlink", "954F72", ""],
+    ].map(([tag, val, last]) => "<a:" + tag + ">" +
+      (val.startsWith("window") ? '<a:sysClr val="' + val + '" lastClr="' + last + '"/>' : '<a:srgbClr val="' + val + '"/>') +
+      "</a:" + tag + ">").join("");
+    // three of each is what the format asks for; a document this skill writes uses none of them
+    const fill = '<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>';
+    const line = '<a:ln w="6350" cap="flat" cmpd="sng" algn="ctr">' + fill + '<a:prstDash val="solid"/></a:ln>';
+    return (
+      XML_DECL + '<a:theme xmlns:a="' + DRAWING + '" name="Office Theme"><a:themeElements>' +
+      '<a:clrScheme name="Office">' + colours + "</a:clrScheme>" +
+      '<a:fontScheme name="Office"><a:majorFont>' + faces + "</a:majorFont>" +
+      "<a:minorFont>" + faces + "</a:minorFont></a:fontScheme>" +
+      '<a:fmtScheme name="Office">' +
+      "<a:fillStyleLst>" + fill.repeat(3) + "</a:fillStyleLst>" +
+      "<a:lnStyleLst>" + line.repeat(3) + "</a:lnStyleLst>" +
+      "<a:effectStyleLst>" + "<a:effectStyle><a:effectLst/></a:effectStyle>".repeat(3) + "</a:effectStyleLst>" +
+      "<a:bgFillStyleLst>" + fill.repeat(3) + "</a:bgFillStyleLst>" +
+      "</a:fmtScheme></a:themeElements></a:theme>"
+    );
+  }
+
   settingsXml() {
     const parts = [];
     if (this.opts.hide_spelling_errors) parts.push("<w:hideSpellingErrors/><w:hideGrammaticalErrors/>");
@@ -4981,11 +5019,13 @@ class Package extends Writer {
       ["/word/styles.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"],
       ["/word/settings.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"],
       ["/word/numbering.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"],
+      ["/word/theme/theme1.xml", "application/vnd.openxmlformats-officedocument.theme+xml"],
       ["/docProps/core.xml", "application/vnd.openxmlformats-package.core-properties+xml"],
     ];
     this.rel(REL + "styles", "styles.xml");
     this.rel(REL + "settings", "settings.xml");
     this.rel(REL + "numbering", "numbering.xml");
+    this.rel(REL + "theme", "theme/theme1.xml");
     let footnotes = null;
     if (this.doc.footnoteOrder.length) {
       this.rel(REL + "footnotes", "footnotes.xml");
@@ -5014,6 +5054,7 @@ class Package extends Writer {
       ["word/styles.xml", this.stylesXml()],
       ["word/settings.xml", this.settingsXml()],
       ["word/numbering.xml", this.numberingXml()],
+      ["word/theme/theme1.xml", this.themeXml()],
     ];
     if (footnotes !== null) parts.push(["word/footnotes.xml", footnotes]);
     parts.push(...pageParts);

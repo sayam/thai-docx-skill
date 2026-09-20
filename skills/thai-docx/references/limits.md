@@ -79,9 +79,23 @@ text; it does not watch it afterwards.
   afresh. That is what the skill is for, and it is the answer whenever the Markdown still exists.
 - **Bringing the edited file back to `repair`** so that it re-runs the numbers and brings a
   paragraph into line with its neighbours is decided (ADR 0037) and **not yet shipped**. Today
-  repair changes attributes only — see §8. Do not offer it.
+  repair changes attributes only — see §9. Do not offer it.
 
-## 5. What never renumbers or updates itself, in either kind of document
+## 5. What the reader adds to the document, in either kind
+
+**What they type into a paragraph the build wrote takes that paragraph's font**, Thai and Latin
+alike: every style the package carries names its fonts outright.
+
+**What Word itself makes takes the document's font too** — a table inserted from the ribbon, the
+`Caption` style Word creates the first time a caption is inserted. The package carries a theme
+naming the document's font as the document's own, so Word resolves its `+Body` and `+Headings`
+against this document rather than against its own Office theme. Without it the Latin letters in
+anything Word added came out in Word's default face, and the font box showed no name at all.
+
+The theme names one font for Latin, complex-script and East Asian text: whatever `--font` said.
+A document built with a font that carries no Thai still warns, as it always did.
+
+## 6. What never renumbers or updates itself, in either kind of document
 
 - **Page numbers, footnote marks, and the page numbers inside the three lists** are always the
   application's: only a laid-out page knows them.
@@ -92,7 +106,7 @@ text; it does not watch it afterwards.
 - A flag that reaches nothing in the document changes no byte, and the build says which flag and
   what was missing. Pass that on.
 
-## 6. Where the five applications differ, as measured
+## 7. Where the five applications differ, as measured
 
 Each of these is a difference of that application, on a file that is correct in the reference
 application. None can be reached by anything the file could say differently.
@@ -113,7 +127,7 @@ Two more that are not any application's fault:
 - **A difference may change when the other side updates.** Every one here is re-measured whenever
   a document's bytes change, and CI passing is a proxy — not the applications passing.
 
-## 7. What the build refuses, and what it only warns about
+## 8. What the build refuses, and what it only warns about
 
 **Refused — no file is written, and the line is named:** any HTML but `<br> <sup> <sub> <u>
 <kbd>`; invisible characters in the text; nesting past 100 deep; a footnote defined and never
@@ -136,7 +150,7 @@ a region comment inside a list, quotation or footnote; `$…$` math kept as lite
 **Exit 1 with `findings` means a defect in this skill**: nothing was written, do not retry, quote
 the codes.
 
-## 8. What `repair` does, and what it never does
+## 9. What `repair` does, and what it never does
 
 `repair` is for a Word file the user has and cannot rebuild from Markdown.
 
@@ -156,7 +170,7 @@ names none is a decision it made: it is in `warnings`, so read it out. `repair` 
 about the layout of a document somebody else made; it is measured only by its own contract.
 **Rebuilding from Markdown is better whenever the content exists.**
 
-## 9. What this skill is not
+## 10. What this skill is not
 
 - **It carries no institution's form.** The `thesis` profile and `examples/thesis.md` are an
   example to copy, not a standard, and every word and number in them is invented. The skill will

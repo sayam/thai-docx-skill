@@ -25,7 +25,6 @@ from thai_docx import fidelity as fi
 from thai_docx import layout as lo
 from thai_docx import markdown as md
 from thai_docx import parts as pa
-from thai_docx import settings as st
 from thai_docx import writer as wr
 from thai_docx.check import check
 
@@ -731,95 +730,45 @@ def test_asked_to_count_a_caption_is_the_fields_word_s_own_insert_caption_writes
         assert re.search(r'<w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr>(?:(?!</w:rPr>).)*</w:rPr><w:br/>', doc), "a space, then the break"
 
 
-def test_asked_to_count_the_sample_is_byte_for_byte_what_it_was_before_the_build_wrote_numbers(tmp_path):
-    """ADR 0036 made the written number the default; the application's own numbering is the path
-    that was there before, and this holds it whole: `sample.md --auto-numbering` is the
-    `sample-default.docx` the five applications were shown on 2026-09-19."""
-    out = tmp_path / "out.docx"
-    code, result = run_cli(str(FIXTURES / "sample.md"), str(out), "--auto-numbering")
-    assert code == 0 and result["sha256"] == "50776ea25c454dfd820a8c8d28e601ab8039ae5814521f976367fdf1b0fde95f"
+def test_the_package_carries_a_theme_naming_the_document_s_own_font(tmp_path):
+    """A package with no theme leaves Word to resolve `+Body` against its own built-in one, and
+    everything Word makes afterwards — a table it inserts, the `Caption` style it creates — comes
+    out in that theme's Latin font rather than the document's (ADR 0027: generated matter carries
+    what an application would otherwise supply). Nothing in the document refers to it: the styles
+    name their fonts outright, so the theme changes no run the build writes."""
+    for font in ("TH Sarabun New", "Sarabun"):
+        _, out = build(tmp_path, "ข้อความ ปนกับ English\n", font=font)
+        with zipfile.ZipFile(out) as zf:
+            theme = zf.read("word/theme/theme1.xml").decode()
+            types = zf.read("[Content_Types].xml").decode()
+            rels = zf.read("word/_rels/document.xml.rels").decode()
+            document = zf.read("word/document.xml").decode()
+        faces = "".join(f'<a:{tag} typeface="{font}"/>' for tag in ("latin", "ea", "cs"))
+        assert "<a:majorFont>" + faces + "</a:majorFont><a:minorFont>" + faces + "</a:minorFont>" in theme
+        assert '<Override PartName="/word/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>' in types
+        assert wr.REL + 'theme" Target="theme/theme1.xml"' in rels
+        # the format asks for a colour scheme and three of each format entry (three fills, three
+        # lines each carrying a fill of its own, three effects, three background fills)
+        for tag in ("dk1", "lt1", "dk2", "lt2", "accent1", "accent6", "hlink", "folHlink"):
+            assert "<a:" + tag + ">" in theme, tag
+        for tag, n in (("a:solidFill", 9), ("a:ln ", 3), ("a:effectStyle>", 3)):
+            assert theme.count("<" + tag) == n, tag
+        # and no run, style or numbering level asks for a theme font
+        assert "Theme" not in document
 
 
-def test_a_caption_s_lines_after_the_first_are_indented_only_when_asked(tmp_path):
-    """`--caption-hanging-indent` moves every line of a caption after the first, so a caption that
-    runs on sits beside its number rather than under it. It stands on its own: `--indent` is the
-    body's first line and changes no caption, and the default indents nothing."""
-    shutil.copy(FIXTURES / "pixel.png", tmp_path / "p.png")
-    text = ("Table: ก\n\n| ก |\n|---|\n| 1 |\n\n![ผัง](p.png)\n\nFigure: ข\n")
-    plain = zipfile.ZipFile(build(tmp_path, text)[1]).read("word/document.xml").decode()
-    assert "w:hanging" not in plain, "nothing is indented until it is asked for"
-    # the body's first-line indent is not the caption's, in either mode
-    indented = zipfile.ZipFile(build(tmp_path, text, indent=0.5)[1]).read("word/document.xml").decode()
-    assert "w:hanging" not in indented and '<w:ind w:firstLine="720"/>' in indented
-    for flags, twips in ((["--caption-hanging-indent", "0.75"], 1080), (["--caption-hanging-indent", "0.3"], 432)):
-        opts, _, allow = b.parse_args([*flags, "--allow-dir", str(tmp_path), "in.md", "out.docx"])
-        result, out = build(tmp_path, text, **opts)
-        doc = zipfile.ZipFile(out).read("word/document.xml").decode()
-        assert result["ok"] and result["findings"] == [] and result["warnings"] == []
-        ind = '<w:ind w:left="' + str(twips) + '" w:hanging="' + str(twips) + '"/>'
-        # both kinds, and before the alignment a figure's caption carries (w:ind before w:jc)
-        assert '<w:pStyle w:val="TableCaption"/><w:keepNext/>' + ind + "</w:pPr>" in doc
-        assert '<w:pStyle w:val="FigureCaption"/>' + ind + '<w:jc w:val="center"/>' in doc
-        assert doc.count(ind) == 2, "one caption of each kind, and nothing else moved"
-    # a document with no caption is not changed, and the build says the flag did nothing
-    result, _ = build(tmp_path, "ข้อความ\n", caption_hanging_indent=0.75)
-    assert [w["message"] for w in result["warnings"]] == [
-        "--caption-hanging-indent changed nothing: the document has no 'Table:' or 'Figure:' caption"]
-    for bad in (["--caption-hanging-indent", "5"], ["--caption-hanging-indent", "-1"], ["--caption-hanging-indent", "x"]):
-        with pytest.raises(b.BuildError, match="takes a number of inches from 0 to 4"):
-            b.parse_args(bad + ["in.md", "out.docx"])
-
-
-def test_a_caption_is_as_wide_as_the_picture_it_belongs_to_only_when_asked(tmp_path):
-    """`--caption-matches-object` indents a figure's caption to the picture's own box, so the
-    caption ends where the picture does; `--center-images` centres the picture, and the box is
-    then split evenly. A table is written at the full width of the text, so its caption is
-    already as wide as it is and neither flag moves it."""
-    (tmp_path / "wide.png").write_bytes(_png(200, 100))  # 200 px = 3000 twips
-    text = "![ผัง](wide.png)\n\nFigure: รูป\n\nTable: ตาราง\n\n| ก |\n|---|\n| 1 |\n"
-    # A4 (11906 twips) less the default margins, right 1 in and left 1.5 in
-    assert st.page_size(b.DEFAULTS)[0] - st.half_up((1 + 1.5) * 1440) == 8306
-
-    def doc(**opts):
-        result, out = build(tmp_path, text, **opts)
-        assert result["ok"] and result["findings"] == [] and result["warnings"] == []
-        return zipfile.ZipFile(out).read("word/document.xml").decode()
-
-    plain = doc()
-    assert "w:ind" not in plain and "</w:pPr><w:r><w:rPr>" + wr.LANG + "</w:rPr><w:drawing>" in plain, "the picture starts at the margin"
-
-    # the picture keeps the left margin, so all the slack goes on the right
-    left_aligned = doc(caption_matches_object=True)
-    assert '<w:pStyle w:val="FigureCaption"/><w:ind w:right="5306"/><w:jc w:val="center"/>' in left_aligned
-    assert left_aligned.count("w:ind") == 1, "the table's caption is already as wide as its table"
-
-    # centred: the slack is split, and the picture's own paragraph is centred with no indent
-    centred = doc(caption_matches_object=True, center_images=True)
-    assert '<w:pStyle w:val="FigureCaption"/><w:ind w:left="2653" w:right="2653"/><w:jc w:val="center"/>' in centred
-    # the picture is kept with its caption, then centred
-    assert '<w:p><w:pPr><w:keepNext/><w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + wr.LANG + "</w:rPr><w:drawing>" in centred
-    # centring the picture alone leaves every caption where it was, and the picture takes no
-    # first-line indent: an indent would move it off the centre a caption is measured against
-    assert "w:ind" not in doc(center_images=True)
-    with_indent = doc(center_images=True, indent=0.5)
-    assert '<w:pPr><w:keepNext/><w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + wr.LANG + "</w:rPr><w:drawing>" in with_indent
-    assert with_indent.count('<w:ind w:firstLine="720"/>') == 0
-
-    # a hanging indent is added to the box, and the table's caption still gets only the hang
-    both = doc(caption_matches_object=True, center_images=True, caption_hanging_indent=0.5)
-    assert '<w:pStyle w:val="FigureCaption"/><w:ind w:left="3373" w:right="2653" w:hanging="720"/>' in both
-    assert '<w:pStyle w:val="TableCaption"/><w:keepNext/><w:ind w:left="720" w:hanging="720"/>' in both
-
-    # a picture wider than the text is drawn at the text width, so there is no slack to give
-    (tmp_path / "wide.png").write_bytes(_png(2000, 100))
-    assert "w:ind" not in doc(caption_matches_object=True, center_images=True)
-
-    # and each flag says it changed nothing where the document gives it nothing to act on
-    result, _ = build(tmp_path, "Table: ก\n\n| ก |\n|---|\n| 1 |\n", caption_matches_object=True, center_images=True)
-    assert sorted(w["message"] for w in result["warnings"]) == [
-        "--caption-matches-object changed nothing: the document has no 'Figure:' caption",
-        "--center-images changed nothing: the document has no image on a line of its own",
-    ]
+def test_asked_to_count_changes_the_numbering_and_nothing_else(tmp_path):
+    """ADR 0036 made the written number the default and left the application's own numbering as
+    the path it always was. The two builds of one file differ in the parts that carry numbers and
+    in no other: the switch moves who counts, not how the document is laid out."""
+    for name in ("pixel.png", "figure.png"):
+        if (FIXTURES / name).exists():
+            shutil.copy(FIXTURES / name, tmp_path / name)
+    text = (FIXTURES / "sample.md").read_text(encoding="utf-8")
+    default, counted = (build(tmp_path, text, **opts)[1].read_bytes() for opts in ({}, {"auto_numbering": True}))
+    with zipfile.ZipFile(io.BytesIO(default)) as a, zipfile.ZipFile(io.BytesIO(counted)) as b_:
+        assert a.namelist() == b_.namelist()
+        assert [n for n in a.namelist() if a.read(n) != b_.read(n)] == ["word/document.xml", "word/numbering.xml"]
 
 
 def test_region_comments_and_captions_refuse_or_warn_with_their_line(tmp_path):
