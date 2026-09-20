@@ -100,3 +100,4 @@ row names, in those words or plainly the same; a request that names none of them
 | another word than บทที่, ภาคผนวก, ตารางที่ or รูปที่ | `--chapter-label`, `--appendix-label`, `--table-label`, `--figure-label` |
 | the chapter title on its own line under "บทที่ 1" | `--chapter-title-on-new-line` |
 | Thai digits (๑ ๒ ๓) in page, heading and caption numbers | `--thai-digits` |
+| A caption that runs to a second line, indented under its text rather than under its number | `--caption-hanging-indent 0.75` (inches; on its own, not with `--indent`) |

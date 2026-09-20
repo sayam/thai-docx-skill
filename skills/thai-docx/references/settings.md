@@ -68,6 +68,7 @@ For a report or thesis: region comments and `Table:` / `Figure:` captions — [c
 | chapter label | บทที่ | `--chapter-label "บท"` |
 | table caption label | ตารางที่ | `--table-label "ตาราง"` |
 | figure caption label | รูปที่ | `--figure-label "ภาพที่"` |
+| caption lines after the first | start at the margin, like the first | `--caption-hanging-indent 0.75` (0–4 in; independent of `--indent`) |
 | page numbers before the chapters | ก ข ค | `--front-page-numbers lower-roman` (or `upper-roman`, `decimal`) |
 | appendix label | ภาคผนวก | `--appendix-label "Appendix"` |
 | appendix numbers | ก ข ค | `--appendix-numbers upper-letters` (or `decimal`, `upper-roman`) |
@@ -78,6 +79,8 @@ Without a `#` heading under `<!-- chapters -->`, `--chapter-label` changes nothi
 Without a `Table:` caption, `--table-label` changes nothing, and the build says so.
 
 Without a `Figure:` caption, `--figure-label` changes nothing, and the build says so.
+
+Without a `Table:` or `Figure:` caption, `--caption-hanging-indent` changes nothing, and the build says so.
 
 Without a `<!-- front -->` comment, `--front-page-numbers` changes nothing, and the build says so.
 
