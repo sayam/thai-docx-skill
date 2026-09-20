@@ -560,6 +560,33 @@ def test_regions_make_a_section_of_every_chapter_and_page_before_and_after(tmp_p
     assert '<w:pPr><w:pStyle w:val="FigureCaption"/><w:jc w:val="center"/><w:sectPr>' in doc, "the figure's caption ends chapter 1"
 
 
+def test_a_section_never_closes_in_a_paragraph_a_field_holds(tmp_path):
+    """A region that ends in a list of contents, tables or figures closes its section in a
+    paragraph of its own after the list. Updating a field rewrites every paragraph between its
+    begin and its end, and a section break sitting on one of them goes with it — Word on the web
+    loses the whole region (evidence 2026-09-20)."""
+    shutil.copy(FIXTURES / "pixel.png", tmp_path / "p.png")
+    result, out = build(tmp_path, THESIS)
+    assert result["ok"], result
+    with zipfile.ZipFile(out) as zf:
+        doc = zf.read("word/document.xml").decode()
+    depth, inside = 0, 0
+    for m in re.finditer(r'<w:fldChar w:fldCharType="(begin|end)"/>|<w:sectPr>', doc):
+        if m.group(1) == "begin":
+            depth += 1
+        elif m.group(1) == "end":
+            depth -= 1
+        elif depth:
+            inside += 1
+    assert inside == 0, "a section break inside a field is one Word may take away when it updates it"
+    # the สารบัญ region ends in <!-- list-of-tables -->: its break is on an empty paragraph after it
+    tables = doc.index(' TOC \\h \\z \\t "Table Caption,1" ')
+    closing = doc.index('<w:fldChar w:fldCharType="end"/>', tables)
+    after = doc[closing:]
+    assert after.index("<w:sectPr>") > after.index("</w:p><w:p><w:pPr>"), "the break comes after the field's last paragraph"
+    assert "</w:p><w:p><w:pPr><w:sectPr>" in after, "and it is that paragraph's only property"
+
+
 APPENDICES = """<!-- front -->
 
 # บทคัดย่อ

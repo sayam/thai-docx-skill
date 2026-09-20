@@ -12,10 +12,28 @@ from .settings import APPENDIX_NUMBERS, FRONT_NUMBERS, half_up
 from .writer import CODE_FONT, DRAWING, NS_R, REL, SECTION_MARK, XML, Writer, attr, esc
 
 
+def _holds_a_field(xml: str, at: int) -> bool:
+    """The paragraph at `at` belongs to a field: it carries part of one, or a field opened in
+    an earlier paragraph and has not closed by the time this one starts."""
+    if "<w:fldChar" in xml[at:] or "<w:instrText" in xml[at:]:
+        return True
+    before = xml[:at]
+    return before.count('w:fldCharType="begin"') > before.count('w:fldCharType="end"')
+
+
 def _end_section(xml: str, sect: str) -> str:
     """Close a section in the properties of its last top-level paragraph — a table's is the
-    empty paragraph after it — so no empty paragraph can spill onto a page of its own."""
+    empty paragraph after it — so no empty paragraph can spill onto a page of its own.
+
+    A paragraph a field holds is not one to close in. Updating a field rewrites every paragraph
+    between its `begin` and its `end`, and a section break sitting on one of them goes with it;
+    a list of contents, tables or figures at the end of a region would hand Word the whole region
+    to lose (`docs/evidence/2026-09-20-the-field-keeps-nothing-of-the-section.md`). Such a section
+    gets a paragraph of its own after the list, which is what `--toc` has always written.
+    """
     at = xml.rindex("<w:p>")
+    if _holds_a_field(xml, at):
+        return xml + "<w:p><w:pPr>" + sect + "</w:pPr></w:p>"
     if xml.startswith("<w:p><w:pPr/>", at):
         return xml[:at] + "<w:p><w:pPr>" + sect + "</w:pPr>" + xml[at + len("<w:p><w:pPr/>"):]
     end = xml.index("</w:pPr>", at)
