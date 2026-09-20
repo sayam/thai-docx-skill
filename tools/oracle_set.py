@@ -69,6 +69,10 @@ EVERY_APPLICATION = (
     "Content complete: nothing missing against the Markdown",
     "(Word) Type a Latin word into a paragraph, and insert a table from the ribbon: both come out in the document's "
     "font, and the font box names it",
+    "SARA AM sits over its own letter: กำหนด ทำงาน คำสำคัญ สม่ำเสมอ — in WPS Writer above all, which is what "
+    "the default not writing the Thai language buys (ADR 0038)",
+    "(Word) No red underline under a correctly spelled Thai word — on a machine with Thai among its languages, "
+    "which is what the default relies on",
     "Bold and italic render on Thai",
     "Bullets show as •; numbered lists count on",
     "Thai lines break inside words, not only at spaces",

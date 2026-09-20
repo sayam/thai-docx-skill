@@ -82,6 +82,11 @@ but they do not renumber when the .docx is edited. Only when the user will go on
 Microsoft Word and wants the numbers to follow, add `--auto-numbering` — and tell them what
 [references/numbering.md](references/numbering.md) says other applications draw.
 
+By default the document does not say which complex-script language its Thai is, so Word takes it
+from the reader's machine — which every machine that types Thai has (ADR 0038). Add
+`--thai-language` when the user says the file goes to a machine that may not, and say in the same
+breath that WPS Writer then places ำ over the wrong letter.
+
 **What the file is handed over on is written down once**, in
 [references/limits.md](references/limits.md): what the skill promises, what the reader must do
 after opening the file, what does not renumber itself once they edit it, where the five

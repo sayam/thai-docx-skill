@@ -95,8 +95,8 @@ class Package extends Writer {
       '<w:footnote w:type="separator" w:id="-1"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:separator/></w:r></w:p></w:footnote>',
       '<w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>',
     ];
-    const mark = '<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + LANG + "</w:rPr><w:footnoteRef/></w:r>" +
-      "<w:r><w:rPr>" + LANG + "</w:rPr><w:tab/></w:r>";
+    const mark = '<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + this.lang + "</w:rPr><w:footnoteRef/></w:r>" +
+      "<w:r><w:rPr>" + this.lang + "</w:rPr><w:tab/></w:r>";
     this.doc.footnoteOrder.forEach((label, k) => {
       const fid = k + 1;
       this.counts.footnotes += 1;
@@ -178,7 +178,7 @@ class Package extends Writer {
       XML_DECL + '<w:styles xmlns:w="' + W + '">' +
       "<w:docDefaults><w:rPrDefault><w:rPr>" +
       "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>" +
-      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/><w:cs/><w:lang w:val="en-US" w:eastAsia="en-US" w:bidi="th-TH"/>' +
+      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/><w:cs/><w:lang w:val="en-US" w:eastAsia="en-US"' + (this.opts.thai_language ? ' w:bidi="th-TH"' : "") + "/>" +
       "</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr>" +
       '<w:spacing w:after="120" w:line="' + halfUp(this.opts.line_spacing * 240) + '" w:lineRule="auto"/>' + jc +
       "</w:pPr></w:pPrDefault></w:docDefaults>" +
@@ -186,7 +186,7 @@ class Package extends Writer {
       // but not w:docDefaults (WPS numbers one) then still has the font and size
       '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:rPr>' +
       "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>" +
-      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + LANG + "</w:rPr></w:style>" +
+      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + this.lang + "</w:rPr></w:style>" +
       [1, 2, 3, 4, 5, 6].map((n) => heading(n)).join("") +
       '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720"/><w:contextualSpacing/></w:pPr></w:style>' +
       '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720" w:right="720"/></w:pPr><w:rPr><w:i/><w:iCs/></w:rPr></w:style>' +
@@ -226,14 +226,14 @@ class Package extends Writer {
     // carry Thai: WPS showed "บทที่ ๑" as Latin letters until every level named one
     const half = String(halfUp(this.opts.size * 2));
     const levelFont = "<w:rPr><w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + "/>" +
-      '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + LANG + "</w:rPr>";
+      '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + this.lang + "</w:rPr>";
     // A heading level's number is drawn as its heading is — "บทที่ 1" at Heading 1's size, not
     // the body's — naming the font all the same; levels past Heading 6 have none.
     const headingFont = (l) => {
       if (l >= HEADING_LOOK.length) return levelFont;
       const [name, rest] = this.headingRun(l + 1);
       const face = name !== null ? attr(name) : font;
-      return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + LANG + "</w:rPr>";
+      return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + this.lang + "</w:rPr>";
     };
     for (let l = 0; l < 9; l++) {
       bullet += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/>' +
@@ -347,7 +347,7 @@ class Package extends Writer {
       '<w:compatSetting w:name="doNotFlipMirrorIndents"' + uri + 'w:val="1"/>' +
       '<w:compatSetting w:name="differentiateMultirowTableHeaders"' + uri + 'w:val="1"/>' +
       "</w:compat>" +
-      '<w:themeFontLang w:val="en-US" w:bidi="th-TH"/>'
+      '<w:themeFontLang w:val="en-US"' + (this.opts.thai_language ? ' w:bidi="th-TH"' : "") + "/>"
     );
     parts.push(this.captionsXml());
     return XML_DECL + '<w:settings xmlns:w="' + W + '">' + parts.join("") + "</w:settings>";
@@ -404,7 +404,7 @@ class Package extends Writer {
     const style = '<w:pStyle w:val="' + kind[0].toUpperCase() + kind.slice(1) + '"/>';
     let body = "";
     if (this.opts[kind] !== null) {
-      body += "<w:p><w:pPr>" + style + '<w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + LANG + '</w:rPr><w:t xml:space="preserve">' +
+      body += "<w:p><w:pPr>" + style + '<w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + this.lang + '</w:rPr><w:t xml:space="preserve">' +
         esc(this.opts[kind]) + "</w:t></w:r></w:p>";
     }
     if (this.opts.page_numbers && this.pageNumberPart() === kind && !first) {

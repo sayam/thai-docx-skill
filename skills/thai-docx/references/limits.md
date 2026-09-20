@@ -55,6 +55,13 @@ lists updating from what is there. Every setting works in both kinds; only the n
   in — but the page numbers beside them are the application's, and appear only after an update.
   Word on the desktop offers to do it on open; elsewhere it is manual: **Word** Ctrl+A then F9 ·
   **LibreOffice** Ctrl+Shift+F9 · **WPS** References → Update.
+- **Have Thai among the machine's languages, or build with `--thai-language`.** By default the
+  document does not say which complex-script language its Thai is (ADR 0038), so Word uses the
+  machine's own. Every machine that types Thai has it, and nothing is underlined. On a machine
+  that does not — a colleague abroad, a shared machine, a server that renders documents — Word
+  underlines every correctly spelled Thai word. Building again with `--thai-language` writes the
+  language into the document and settles it everywhere. **The cost is WPS Writer**: in a document
+  built with that flag it places SARA AM (ำ) over the wrong letter.
 - **Install the font the file names.** The default is TH Sarabun New; a file names whatever
   `--font` said. A font that is not on the reader's machine is outside the rendering contract —
   the application substitutes, and the page will not look the same. Sarabun is free from Google
@@ -113,7 +120,7 @@ application. None can be reached by anything the file could say differently.
 
 | application | what it draws its own way |
 |---|---|
-| **WPS Writer** | a Thai label in a numbering level through a legacy code page — `บทที่ 1` reads `ÓõõõyA 1`; SARA AM (ำ) placed over the wrong consonant, in every weight and font tried; with `--auto-numbering --thai-digits` the value 1 drawn as ๕ (2 and 3 are right) |
+| **WPS Writer** | a Thai label in a numbering level through a legacy code page — `บทที่ 1` reads `ÓõõõyA 1`; with `--auto-numbering --thai-digits` the value 1 drawn as ๕ (2 and 3 are right); **with `--thai-language`, SARA AM (ำ) placed over the wrong letter** — it is that flag's `w:bidi="th-TH"` that WPS trips over, measured attribute by attribute on 2026-09-20, and a ำ under a tone mark (น้ำ) is drawn correctly |
 | **LibreOffice Writer** | with `--auto-numbering`: Thai-digit numbering drawn as 1, 2, 3, and a chapter-numbered caption as `ตารางที่ บทนำ-ก` — it answers the chapter-number field with the chapter's *title* and ignores the restart at each chapter |
 | **Google Docs** | converts a table of contents into an object of its own, with its own font and page numbers |
 | **Word on the web** | cannot insert a section break (Layout → Breaks offers Page and Column only); Format Painter does not carry a heading's number — apply the Heading style instead |

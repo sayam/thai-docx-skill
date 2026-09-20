@@ -19,6 +19,7 @@ Every document has these.
 | first-line indent, inches | none | `--indent 0.5` (body paragraphs only) |
 | line spacing | 1 | `--line-spacing 1.5` (1–3; code and footnotes stay single) |
 | alignment | left | `--align thai` (Thai distributed; a paragraph with no Thai stays left) |
+| the complex-script language of the text | left to the reader's machine | `--thai-language` (writes `w:bidi="th-TH"`; see [limits.md](limits.md) §3) |
 | spelling squiggles | shown | `--hide-spelling-errors` |
 
 ## Page furniture

@@ -14,7 +14,7 @@ A new file is written; the one given is never touched. Tell the user both paths.
 | code | what it does |
 |---|---|
 | `1` | declares compatibility mode 15 — sets the one that is there, drops a second one |
-| `2` | gives every run with text `<w:cs/>` and `<w:lang w:bidi="th-TH"/>`, in schema order |
+| `2` | gives every run with text `<w:cs/>`, in schema order. `--thai-language` also writes `<w:lang w:bidi="th-TH"/>`, and the report says into how many run properties — see [limits.md](limits.md) §3 |
 | `3` | removes `<w:noProof/>`, wherever in the package it is |
 | `5` | writes the missing twin of `w:sz`, `w:b` and `w:i`; adds a complex-script font to an `w:rFonts` that names only a Latin one; gives a Symbol bullet a font with Thai in it |
 | `order` | puts a run's, a paragraph's and the settings' properties back in the order the schema fixes |

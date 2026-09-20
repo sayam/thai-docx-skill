@@ -29,7 +29,7 @@ from . import package
 from . import settings as st
 from .fidelity import docx_text
 
-USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"]'
+USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"] [--thai-language]'
 
 # A part is edited as bytes, not re-serialised from a tree: a tree would rewrite prefixes,
 # attribute order and empty-element spelling across the whole part, and ADR 0037 allows only
@@ -123,11 +123,11 @@ def _insert(children: list[tuple[bytes, bytes]], name: bytes, element: bytes) ->
     return children + [(name, element)]
 
 
-def fix_rpr(inner: bytes, font: bytes, mark_thai: bool) -> tuple[bytes, int, int]:
-    """One w:rPr put right: (its new inner XML, code 2 repairs, code 5 repairs)."""
+def fix_rpr(inner: bytes, font: bytes, mark_thai: bool, thai_language: bool = False) -> tuple[bytes, int, int, int]:
+    """One w:rPr put right: (its new inner XML, code 2 repairs, code 5 repairs, language marks)."""
     children = _children(inner)
     by_name = {name: raw for name, raw in children}
-    two = five = 0
+    two = five = marked = 0
 
     for latin, twin in ((b"w:sz", b"w:szCs"), (b"w:b", b"w:bCs"), (b"w:i", b"w:iCs")):
         if latin in by_name and twin not in by_name:
@@ -149,17 +149,19 @@ def fix_rpr(inner: bytes, font: bytes, mark_thai: bool) -> tuple[bytes, int, int
         if b"w:cs" not in by_name:
             children = _insert(children, b"w:cs", b"<w:cs/>")
             two += 1
-        lang = by_name.get(b"w:lang")
-        if lang is None:
-            children = _insert(children, b"w:lang", b'<w:lang w:bidi="th-TH"/>')
-            two += 1
-        elif not re.search(rb'w:bidi\s*=\s*"th-TH"', lang):
-            new = (re.sub(rb'w:bidi\s*=\s*"[^"]*"', b'w:bidi="th-TH"', lang)
-                   if re.search(rb'w:bidi\s*=\s*"', lang) else lang[:-2].rstrip() + b' w:bidi="th-TH"/>')
-            children = [(n, new if n == b"w:lang" else raw) for n, raw in children]
-            two += 1
+        if thai_language:
+            # the Thai complex-script language, only where the caller asked for it (ADR 0038)
+            lang = by_name.get(b"w:lang")
+            if lang is None:
+                children = _insert(children, b"w:lang", b'<w:lang w:bidi="th-TH"/>')
+                marked += 1
+            elif not re.search(rb'w:bidi\s*=\s*"th-TH"', lang):
+                new = (re.sub(rb'w:bidi\s*=\s*"[^"]*"', b'w:bidi="th-TH"', lang)
+                       if re.search(rb'w:bidi\s*=\s*"', lang) else lang[:-2].rstrip() + b' w:bidi="th-TH"/>')
+                children = [(n, new if n == b"w:lang" else raw) for n, raw in children]
+                marked += 1
 
-    return b"".join(raw for _n, raw in children), two, five
+    return b"".join(raw for _n, raw in children), two, five, marked
 
 
 def reorder(xml: bytes, element: bytes, order: list[str]) -> tuple[bytes, int]:
@@ -192,7 +194,7 @@ def reorder(xml: bytes, element: bytes, order: list[str]) -> tuple[bytes, int]:
     return xml, count
 
 
-def _fix_runs(xml: bytes, font: bytes, counts: dict[str, int]) -> bytes:
+def _fix_runs(xml: bytes, font: bytes, counts: dict[str, int], thai_language: bool = False) -> bytes:
     """Every run with text marked, every rPr's twins filled in — nested runs included."""
     out, pos = bytearray(), 0
     for m in RUN_START.finditer(xml):
@@ -200,12 +202,12 @@ def _fix_runs(xml: bytes, font: bytes, counts: dict[str, int]) -> bytes:
             continue  # inside a run already put right
         inner_end, element_end = _end_of(xml, m.end(), b"w:r")
         inner = xml[m.end():inner_end]
-        out += xml[pos:m.end()] + _fix_run(inner, font, counts)
+        out += xml[pos:m.end()] + _fix_run(inner, font, counts, thai_language)
         pos = inner_end
     return bytes(out) + xml[pos:]
 
 
-def _fix_run(inner: bytes, font: bytes, counts: dict[str, int]) -> bytes:
+def _fix_run(inner: bytes, font: bytes, counts: dict[str, int], thai_language: bool = False) -> bytes:
     has_text = re.search(rb"<w:t(?:\s[^<>]*?)?>", inner) is not None
     rpr = re.match(rb"<w:rPr(?:\s[^<>]*?)?(/?)>", inner)
     rest_from = 0
@@ -218,20 +220,21 @@ def _fix_run(inner: bytes, font: bytes, counts: dict[str, int]) -> bytes:
     elif has_text:
         body, rest_from = b"", 0                    # a run with text and no rPr gets one
     else:
-        return _fix_runs(inner, font, counts)       # nothing of ours here; look deeper
-    new_body, two, five = fix_rpr(body, font, has_text)
+        return _fix_runs(inner, font, counts, thai_language)  # nothing of ours here; look deeper
+    new_body, two, five, marked = fix_rpr(body, font, has_text, thai_language)
     counts["2"] = counts.get("2", 0) + two
     counts["5"] = counts.get("5", 0) + five
+    counts["thai-language"] = counts.get("thai-language", 0) + marked
     if new_body:
         head = b"<w:rPr>" + new_body + b"</w:rPr>"
     elif rpr is not None:
         head = inner[:rest_from]
-    return head + _fix_runs(inner[rest_from:], font, counts)
+    return head + _fix_runs(inner[rest_from:], font, counts, thai_language)
 
 
-def fix_text_part(xml: bytes, font: bytes) -> tuple[bytes, dict[str, int]]:
+def fix_text_part(xml: bytes, font: bytes, thai_language: bool = False) -> tuple[bytes, dict[str, int]]:
     counts: dict[str, int] = {}
-    return _fix_runs(xml, font, counts), {k: v for k, v in counts.items() if v}
+    return _fix_runs(xml, font, counts, thai_language), {k: v for k, v in counts.items() if v}
 
 
 def fix_styles(xml: bytes, font: bytes) -> tuple[bytes, int]:
@@ -241,7 +244,7 @@ def fix_styles(xml: bytes, font: bytes) -> tuple[bytes, int]:
         if m.start() < pos:
             continue
         inner_end, _element_end = _end_of(xml, m.end(), b"w:rPr")
-        new_body, _two, n = fix_rpr(xml[m.end():inner_end], font, False)
+        new_body, _two, n, _marked = fix_rpr(xml[m.end():inner_end], font, False)
         five += n
         out += xml[pos:m.end()] + new_body
         pos = inner_end
@@ -285,7 +288,8 @@ def complex_script_font(parts: dict[str, bytes], asked: str | None) -> tuple[byt
     return st.DEFAULTS["font"].encode("utf-8"), "this skill's default, as the document names none"
 
 
-def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None = None) -> tuple[dict[str, bytes], dict[str, int]]:
+def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None = None,
+                 thai_language: bool = False) -> tuple[dict[str, bytes], dict[str, int]]:
     """The parts to write anew, and how many of each code were repaired."""
     codes = {f["code"] for f in findings}
     replace: dict[str, bytes] = {}
@@ -318,12 +322,12 @@ def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None
                 replace[name] = out
                 repaired["order"] = repaired.get("order", 0) + n
     chosen = None
-    if codes & {"2", "5"}:
+    if codes & {"2", "5"} or thai_language:
         cs_font, why = complex_script_font(parts, font)
         for name, xml in parts.items():
             if not check_mod.TEXT_PARTS.fullmatch(name):
                 continue
-            new, counts = fix_text_part(replace.get(name, xml), cs_font)
+            new, counts = fix_text_part(replace.get(name, xml), cs_font, thai_language)
             if counts:
                 replace[name] = new
                 for code, n in counts.items():
@@ -344,7 +348,7 @@ def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None
     return replace, repaired, chosen
 
 
-def repair(in_path: str, out_path: str, font: str | None = None) -> dict:
+def repair(in_path: str, out_path: str, font: str | None = None, thai_language: bool = False) -> dict:
     result: dict = {"ok": False, "file": out_path}
     try:
         with open(in_path, "rb") as f:
@@ -365,7 +369,7 @@ def repair(in_path: str, out_path: str, font: str | None = None) -> dict:
 
     ents = package.entries(data)
     parts = {e.name: package.read(data, e) for e in ents}
-    replace, repaired, chosen = repair_parts(parts, before.findings, font)
+    replace, repaired, chosen = repair_parts(parts, before.findings, font, thai_language)
     if not replace:
         result["repaired"] = {}
         result["remaining"] = before.findings
@@ -382,6 +386,7 @@ def repair(in_path: str, out_path: str, font: str | None = None) -> dict:
         result["error"] = "the repair would have changed the document's text; nothing was written"
         return result
     still = {f["code"] for f in after.findings}
+    marked = repaired.pop("thai-language", 0)
     for code in repaired:
         if code in still:
             result["error"] = "finding " + code + " is still there after the repair; nothing was written"
@@ -393,19 +398,26 @@ def repair(in_path: str, out_path: str, font: str | None = None) -> dict:
         result["error"] = "cannot write " + out_path + ": " + package.os_error(exc)
         return result
     warnings = ([chosen] if chosen else []) + after.warnings
+    if marked:
+        warnings = warnings + [{"code": "thai-language", "message":
+                                'the Thai complex-script language w:bidi="th-TH" was written into '
+                                + str(marked) + " run properties, as --thai-language asked"}]
     result.update(ok=True, repaired=repaired, remaining=after.findings, warnings=warnings,
                   sha256=hashlib.sha256(out).hexdigest(), bytes=len(out))
     return result
 
 
 def main(argv: list[str]) -> int:
-    font = None
+    font, thai_language = None, False
+    if "--thai-language" in argv:
+        argv = [a for a in argv if a != "--thai-language"]
+        thai_language = True
     if len(argv) == 4 and argv[2] == "--font":
         argv, font = argv[:2], argv[3]
     if len(argv) != 2:
         print(json.dumps({"ok": False, "error": USAGE}))
         return 2
-    result = repair(argv[0], argv[1], font)
+    result = repair(argv[0], argv[1], font, thai_language)
     print(json.dumps(result, ensure_ascii=False))
     if "error" in result:
         return 2

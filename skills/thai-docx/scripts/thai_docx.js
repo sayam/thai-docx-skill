@@ -1240,7 +1240,9 @@ function checkTextPart(name, root, report) {
           report.find("2", name, "a run with text has no <w:cs/> element");
         } else {
           const lang = rpr.find(w("lang"));
-          if (lang === null || lang.get(w("bidi")) !== "th-TH") report.find("2", name, 'a run with text has no <w:lang w:bidi="th-TH"/>');
+          if (lang !== null && lang.get(w("bidi")) === "th-TH") {
+            report.counts.thai_language_runs = (report.counts.thai_language_runs || 0) + 1;
+          }
         }
         for (const t of texts) {
           for (const ch of Object.keys(INVISIBLE)) {
@@ -3401,6 +3403,8 @@ const SETTINGS = [
     read: ["text", 200, "\t\n"], takes: "text of 1 to 200 characters on one line", usage: "TEXT", report: ["header", "value"] },
   { key: "footer", flag: "--footer", kind: "option", default: null, layer: 2, // centred at the bottom of every page
     read: ["text", 200, "\t\n"], takes: "text of 1 to 200 characters on one line", usage: "TEXT", report: ["footer", "value"] },
+  { key: "thai_language", flag: "--thai-language", kind: "switch", default: false, layer: 1,
+    report: ["thai_language", "value"] },
   { key: "thai_digits", flag: "--thai-digits", kind: "switch", default: false, layer: 2, // numbers Word generates; never the text
     report: ["thai_digits", "value"] },
   { key: "auto_numbering", flag: "--auto-numbering", kind: "switch", default: false, layer: 2, // who counts: the build, or the application
@@ -4082,7 +4086,12 @@ const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 const DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main"; // the theme, and a picture's own namespace
 const EMU_PER_PX = 9525;
 const EMU_PER_TWIP = 635;
-let LANG = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>';
+// Every run says it is complex script (ADR 0004, cause 1). Whether it also says *which*
+// complex-script language is --thai-language's to decide (ADR 0038): w:bidi="th-TH" is what tells
+// Word the text is Thai on a machine whose own complex-script language is not, and it is what
+// makes WPS Writer place SARA AM (ำ) over the wrong letter.
+const LANG = '<w:cs/><w:lang w:val="en-US"/>';
+const LANG_THAI = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>';
 // Thai marks above and below a consonant take no width of their own when a column is measured
 const THAI_MARKS = new Set([0x0e31, 0x0e34, 0x0e35, 0x0e36, 0x0e37, 0x0e38, 0x0e39, 0x0e3a, 0x0e47, 0x0e48, 0x0e49, 0x0e4a, 0x0e4b, 0x0e4c, 0x0e4d, 0x0e4e]);
 // Word's own table default; with no table style it would otherwise be 0 and text touches the borders
@@ -4154,6 +4163,7 @@ class Writer {
     this.docPr = 0;
     this.hasOrderedList = false; // whether --auto-numbering has anything to count (ADR 0028)
     this.imageTwips = 0; // the width the last image was drawn at, for --caption-matches-object
+    this.lang = opts.thai_language ? LANG_THAI : LANG;
     [this.headingProps, this.styleWarnings] = headingStyles(doc);
     [this.items, this.regions, this.layoutWarnings] = layout(doc, opts);
     this.nums = [];
@@ -4181,7 +4191,7 @@ class Writer {
     if (node.u) p.push('<w:u w:val="single"/>');
     if (node.sup) p.push('<w:vertAlign w:val="superscript"/>');
     else if (node.sub) p.push('<w:vertAlign w:val="subscript"/>');
-    p.push(LANG);
+    p.push(this.lang);
     return "<w:rPr>" + p.join("") + "</w:rPr>";
   }
 
@@ -4207,19 +4217,19 @@ class Writer {
       }
       const t = n.t;
       if (t === "text") out.push(this.textRun(n, bold));
-      else if (t === "hardbreak") out.push("<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>");
+      else if (t === "hardbreak") out.push("<w:r><w:rPr>" + this.lang + "</w:rPr><w:br/></w:r>");
       else if (t === "task") {
         const mark = n.checked ? BOX_CHECKED : BOX;
         out.push('<w:r><w:rPr><w:rFonts w:ascii="' + SYMBOL_FONT + '" w:hAnsi="' + SYMBOL_FONT + '" w:cs="' + SYMBOL_FONT + '"/>' +
-          LANG + '</w:rPr><w:t xml:space="preserve">' + mark + "</w:t></w:r>");
+          this.lang + '</w:rPr><w:t xml:space="preserve">' + mark + "</w:t></w:r>");
       } else if (t === "footnote_ref") {
-        out.push('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + LANG + '</w:rPr><w:footnoteReference w:id="' + n.id + '"/></w:r>');
+        out.push('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + this.lang + '</w:rPr><w:footnoteReference w:id="' + n.id + '"/></w:r>');
       } else if (t === "image") {
         out.push(this.image(n));
       }
       i++;
     }
-    if (!out.length) out.push("<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve"></w:t></w:r>');
+    if (!out.length) out.push("<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve"></w:t></w:r>');
     return out.join("");
   }
 
@@ -4249,7 +4259,7 @@ class Writer {
     this.docPr += 1;
     const k = String(this.docPr);
     return (
-      "<w:r><w:rPr>" + LANG + "</w:rPr><w:drawing>" +
+      "<w:r><w:rPr>" + this.lang + "</w:rPr><w:drawing>" +
       '<wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + cx + '" cy="' + cy + '"/>' +
       '<wp:docPr id="' + k + '" name="Picture ' + k + '" descr=' + attr(node.alt) + "/>" +
       '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
@@ -4281,7 +4291,7 @@ class Writer {
   // starts the next one.
   titleBreak(item) {
     if (!this.opts.chapter_title_on_new_line || item.number === undefined) return "";
-    return "<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>";
+    return "<w:r><w:rPr>" + this.lang + "</w:rPr><w:br/></w:r>";
   }
 
   // Whether the build writes this document's numbers itself (ADR 0036). One answer for the
@@ -4299,11 +4309,11 @@ class Writer {
   // A field and the result the build already knows, between `separate` and `end`.
   fieldRuns(instr, result, rpr) {
     return (
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>' +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>" +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>' +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>" +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
+      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>' +
+      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>" +
+      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>' +
+      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>" +
+      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
     );
   }
 
@@ -4342,7 +4352,7 @@ class Writer {
       return [[{ ...inlines[0], s: item.number + " " + inlines[0].s }, ...inlines.slice(1)], "", ""];
     }
     const text = brk ? item.number : item.number + " ";
-    return [inlines, "", "<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + brk];
+    return [inlines, "", "<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + brk];
   }
 
   // `body` marks the document's own top level: only its paragraphs take the first-line
@@ -4378,7 +4388,7 @@ class Writer {
   caption(c, keepNext) {
     this.counts.paragraphs += 1;
     const bold = "<w:b/><w:bCs/>";
-    const run = (text, rpr) => "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>";
+    const run = (text, rpr) => "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>";
     // --caption-hanging-indent: the label and number keep the margin and every line after the
     // first is indented, so a caption that runs on reads as one block beside its number
     const hang = halfUp(this.opts.caption_hanging_indent * 1440);
@@ -4503,8 +4513,8 @@ class Writer {
       } else if (b.ordered) {
         const marker = numberText(b.start + n, "decimal", this.opts.thai_digits) + ".";
         ppr = indent;
-        lead = "<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(marker) + "</w:t></w:r>" +
-          "<w:r><w:rPr>" + LANG + "</w:rPr><w:tab/></w:r>";
+        lead = "<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(marker) + "</w:t></w:r>" +
+          "<w:r><w:rPr>" + this.lang + "</w:rPr><w:tab/></w:r>";
       } else {
         ppr = '<w:numPr><w:ilvl w:val="' + Math.min(level, 8) + '"/><w:numId w:val="1"/></w:numPr>';
       }
@@ -4565,8 +4575,8 @@ class Writer {
   // already holds between `separate` and `end`, one paragraph each (ADR 0027). The field
   // opens in the first entry and closes in the last, as Word writes it.
   field(instr, ppr, entries) {
-    const char = (kind) => "<w:r><w:rPr>" + LANG + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>';
-    const instruction = "<w:r><w:rPr>" + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>";
+    const char = (kind) => "<w:r><w:rPr>" + this.lang + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>';
+    const instruction = "<w:r><w:rPr>" + this.lang + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>";
     if (!entries || !entries.length) {
       return "<w:p><w:pPr>" + (ppr || "") + "</w:pPr>" + char("begin") + instruction + char("separate") + char("end") + "</w:p>";
     }
@@ -4578,7 +4588,7 @@ class Writer {
       const entryPpr = '<w:pStyle w:val="TOC' + Math.min(level, 3) + '"/>';
       out.push(
         "<w:p><w:pPr>" + entryPpr + this.latinJc(entryPpr, text) + "</w:pPr>" + opening +
-        "<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + closing + "</w:p>"
+        "<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + closing + "</w:p>"
       );
     });
     return out.join("");
@@ -4681,8 +4691,8 @@ class Package extends Writer {
       '<w:footnote w:type="separator" w:id="-1"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:separator/></w:r></w:p></w:footnote>',
       '<w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>',
     ];
-    const mark = '<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + LANG + "</w:rPr><w:footnoteRef/></w:r>" +
-      "<w:r><w:rPr>" + LANG + "</w:rPr><w:tab/></w:r>";
+    const mark = '<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + this.lang + "</w:rPr><w:footnoteRef/></w:r>" +
+      "<w:r><w:rPr>" + this.lang + "</w:rPr><w:tab/></w:r>";
     this.doc.footnoteOrder.forEach((label, k) => {
       const fid = k + 1;
       this.counts.footnotes += 1;
@@ -4764,7 +4774,7 @@ class Package extends Writer {
       XML_DECL + '<w:styles xmlns:w="' + W + '">' +
       "<w:docDefaults><w:rPrDefault><w:rPr>" +
       "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>" +
-      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/><w:cs/><w:lang w:val="en-US" w:eastAsia="en-US" w:bidi="th-TH"/>' +
+      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/><w:cs/><w:lang w:val="en-US" w:eastAsia="en-US"' + (this.opts.thai_language ? ' w:bidi="th-TH"' : "") + "/>" +
       "</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr>" +
       '<w:spacing w:after="120" w:line="' + halfUp(this.opts.line_spacing * 240) + '" w:lineRule="auto"/>' + jc +
       "</w:pPr></w:pPrDefault></w:docDefaults>" +
@@ -4772,7 +4782,7 @@ class Package extends Writer {
       // but not w:docDefaults (WPS numbers one) then still has the font and size
       '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:rPr>' +
       "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>" +
-      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + LANG + "</w:rPr></w:style>" +
+      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + this.lang + "</w:rPr></w:style>" +
       [1, 2, 3, 4, 5, 6].map((n) => heading(n)).join("") +
       '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720"/><w:contextualSpacing/></w:pPr></w:style>' +
       '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720" w:right="720"/></w:pPr><w:rPr><w:i/><w:iCs/></w:rPr></w:style>' +
@@ -4812,14 +4822,14 @@ class Package extends Writer {
     // carry Thai: WPS showed "บทที่ ๑" as Latin letters until every level named one
     const half = String(halfUp(this.opts.size * 2));
     const levelFont = "<w:rPr><w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + "/>" +
-      '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + LANG + "</w:rPr>";
+      '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + this.lang + "</w:rPr>";
     // A heading level's number is drawn as its heading is — "บทที่ 1" at Heading 1's size, not
     // the body's — naming the font all the same; levels past Heading 6 have none.
     const headingFont = (l) => {
       if (l >= HEADING_LOOK.length) return levelFont;
       const [name, rest] = this.headingRun(l + 1);
       const face = name !== null ? attr(name) : font;
-      return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + LANG + "</w:rPr>";
+      return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + this.lang + "</w:rPr>";
     };
     for (let l = 0; l < 9; l++) {
       bullet += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/>' +
@@ -4933,7 +4943,7 @@ class Package extends Writer {
       '<w:compatSetting w:name="doNotFlipMirrorIndents"' + uri + 'w:val="1"/>' +
       '<w:compatSetting w:name="differentiateMultirowTableHeaders"' + uri + 'w:val="1"/>' +
       "</w:compat>" +
-      '<w:themeFontLang w:val="en-US" w:bidi="th-TH"/>'
+      '<w:themeFontLang w:val="en-US"' + (this.opts.thai_language ? ' w:bidi="th-TH"' : "") + "/>"
     );
     parts.push(this.captionsXml());
     return XML_DECL + '<w:settings xmlns:w="' + W + '">' + parts.join("") + "</w:settings>";
@@ -4990,7 +5000,7 @@ class Package extends Writer {
     const style = '<w:pStyle w:val="' + kind[0].toUpperCase() + kind.slice(1) + '"/>';
     let body = "";
     if (this.opts[kind] !== null) {
-      body += "<w:p><w:pPr>" + style + '<w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + LANG + '</w:rPr><w:t xml:space="preserve">' +
+      body += "<w:p><w:pPr>" + style + '<w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + this.lang + '</w:rPr><w:t xml:space="preserve">' +
         esc(this.opts[kind]) + "</w:t></w:r></w:p>";
     }
     if (this.opts.page_numbers && this.pageNumberPart() === kind && !first) {
@@ -5226,7 +5236,7 @@ function buildText(text, opts, readImage) {
 // attribute order and empty-element spelling across the whole part, and ADR 0037 allows only
 // the attributes named. Both elements below are empty ones, so the shapes are few.
 
-const REPAIR_USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"]';
+const REPAIR_USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"] [--thai-language]';
 
 class RepairError extends Error {}
 const RE_NO_PROOF = /<w:noProof(?:\s[^>]*?)?\/>|<w:noProof(?:\s[^>]*?)?>\s*<\/w:noProof>/g;
@@ -5334,10 +5344,10 @@ function insertChild(children, name, element) {
 }
 
 // One w:rPr put right: [its new inner XML, code 2 repairs, code 5 repairs].
-function fixRpr(inner, font, markThai) {
+function fixRpr(inner, font, markThai, thaiLanguage) {
   let children = childrenOf(inner);
   const byName = new Map(children);
-  let two = 0, five = 0;
+  let two = 0, five = 0, marked = 0;
 
   for (const [latin, twin] of [["w:sz", "w:szCs"], ["w:b", "w:bCs"], ["w:i", "w:iCs"]]) {
     if (byName.has(latin) && !byName.has(twin)) {
@@ -5364,20 +5374,23 @@ function fixRpr(inner, font, markThai) {
       children = insertChild(children, "w:cs", "<w:cs/>");
       two += 1;
     }
-    const lang = byName.get("w:lang");
-    if (lang === undefined) {
-      children = insertChild(children, "w:lang", '<w:lang w:bidi="th-TH"/>');
-      two += 1;
-    } else if (!/w:bidi\s*=\s*"th-TH"/.test(lang)) {
-      const put = /w:bidi\s*=\s*"/.test(lang)
-        ? lang.replace(/w:bidi\s*=\s*"[^"]*"/, 'w:bidi="th-TH"')
-        : lang.slice(0, -2).replace(/\s+$/, "") + ' w:bidi="th-TH"/>';
-      children = children.map(([n, raw]) => [n, n === "w:lang" ? put : raw]);
-      two += 1;
+    if (thaiLanguage) {
+      // the Thai complex-script language, only where the caller asked for it (ADR 0038)
+      const lang = byName.get("w:lang");
+      if (lang === undefined) {
+        children = insertChild(children, "w:lang", '<w:lang w:bidi="th-TH"/>');
+        marked += 1;
+      } else if (!/w:bidi\s*=\s*"th-TH"/.test(lang)) {
+        const put = /w:bidi\s*=\s*"/.test(lang)
+          ? lang.replace(/w:bidi\s*=\s*"[^"]*"/, 'w:bidi="th-TH"')
+          : lang.slice(0, -2).replace(/\s+$/, "") + ' w:bidi="th-TH"/>';
+        children = children.map(([n, raw]) => [n, n === "w:lang" ? put : raw]);
+        marked += 1;
+      }
     }
   }
 
-  return [children.map(([, raw]) => raw).join(""), two, five];
+  return [children.map(([, raw]) => raw).join(""), two, five, marked];
 }
 
 // Every `element` in the part with its children in the order the schema fixes.
@@ -5415,21 +5428,21 @@ function reorder(xml, element, order) {
   return [xml, count];
 }
 
-function fixRuns(xml, font, counts) {
+function fixRuns(xml, font, counts, thaiLanguage) {
   let out = "", pos = 0;
   const re = new RegExp(RE_RUN_START.source, "g");
   for (let m = re.exec(xml); m !== null; m = re.exec(xml)) {
     if (m.index < pos) continue;
     const startEnd = m.index + m[0].length;
     const [innerEnd] = endOf(xml, startEnd, "w:r");
-    out += xml.slice(pos, startEnd) + fixRun(xml.slice(startEnd, innerEnd), font, counts);
+    out += xml.slice(pos, startEnd) + fixRun(xml.slice(startEnd, innerEnd), font, counts, thaiLanguage);
     pos = innerEnd;
     re.lastIndex = pos;
   }
   return out + xml.slice(pos);
 }
 
-function fixRun(inner, font, counts) {
+function fixRun(inner, font, counts, thaiLanguage) {
   const hasText = /<w:t(?:\s[^<>]*?)?>/.test(inner);
   const rpr = /^<w:rPr(?:\s[^<>]*?)?(\/?)>/.exec(inner);
   let body, restFrom, head = "";
@@ -5444,19 +5457,20 @@ function fixRun(inner, font, counts) {
     body = "";
     restFrom = 0;
   } else {
-    return fixRuns(inner, font, counts); // nothing of ours here; look deeper
+    return fixRuns(inner, font, counts, thaiLanguage); // nothing of ours here; look deeper
   }
-  const [newBody, two, five] = fixRpr(body, font, hasText);
+  const [newBody, two, five, marked] = fixRpr(body, font, hasText, thaiLanguage);
   counts["2"] = (counts["2"] || 0) + two;
   counts["5"] = (counts["5"] || 0) + five;
+  counts["thai-language"] = (counts["thai-language"] || 0) + marked;
   if (newBody) head = "<w:rPr>" + newBody + "</w:rPr>";
   else if (rpr !== null) head = inner.slice(0, restFrom);
-  return head + fixRuns(inner.slice(restFrom), font, counts);
+  return head + fixRuns(inner.slice(restFrom), font, counts, thaiLanguage);
 }
 
-function fixTextPart(xml, font) {
+function fixTextPart(xml, font, thaiLanguage) {
   const counts = {};
-  const out = fixRuns(xml, font, counts);
+  const out = fixRuns(xml, font, counts, thaiLanguage);
   const kept = {};
   for (const [k, v] of Object.entries(counts)) if (v) kept[k] = v;
   return [out, kept];
@@ -5470,7 +5484,7 @@ function fixStyles(xml, font) {
     if (m.index < pos) continue;
     const startEnd = m.index + m[0].length;
     const [innerEnd] = endOf(xml, startEnd, "w:rPr");
-    const [newBody, , n] = fixRpr(xml.slice(startEnd, innerEnd), font, false);
+    const [newBody, , n] = fixRpr(xml.slice(startEnd, innerEnd), font, false, false);
     five += n;
     out += xml.slice(pos, startEnd) + newBody;
     pos = innerEnd;
@@ -5528,7 +5542,7 @@ function complexScriptFont(parts, asked) {
 }
 
 // The parts to write anew, and how many of each code were repaired.
-function repairParts(parts, findings, font) {
+function repairParts(parts, findings, font, thaiLanguage) {
   const codes = new Set(findings.map((f) => f.code));
   const replace = new Map();
   const repaired = {};
@@ -5569,11 +5583,11 @@ function repairParts(parts, findings, font) {
     }
   }
   let chosen = null;
-  if (codes.has("2") || codes.has("5")) {
+  if (codes.has("2") || codes.has("5") || thaiLanguage) {
     const [csFont, why] = complexScriptFont(parts, font);
     for (const [name, bytes] of parts) {
       if (!TEXT_PARTS.test(name)) continue;
-      const [put, counts] = fixTextPart(fromUtf8(replace.get(name) || bytes), csFont);
+      const [put, counts] = fixTextPart(fromUtf8(replace.get(name) || bytes), csFont, thaiLanguage);
       if (Object.keys(counts).length) {
         replace.set(name, utf8(put));
         for (const [code, n] of Object.entries(counts)) repaired[code] = (repaired[code] || 0) + n;
@@ -6486,6 +6500,11 @@ function nodeCheck(argv) {
 
 function nodeRepair(argv) {
   let font = null;
+  let thaiLanguage = false;
+  if (argv.indexOf("--thai-language") !== -1) {
+    argv = argv.filter((a) => a !== "--thai-language");
+    thaiLanguage = true;
+  }
   if (argv.length === 4 && argv[2] === "--font") {
     font = argv[3];
     argv = argv.slice(0, 2);
@@ -6516,7 +6535,7 @@ function nodeRepair(argv) {
   }
   const ents = readZipDirectory(data);
   const parts = new Map(ents.map((e) => [e.name, readZipEntry(data, e)]));
-  const [replace, repaired, chosen] = repairParts(parts, before.findings, font);
+  const [replace, repaired, chosen] = repairParts(parts, before.findings, font, thaiLanguage);
   if (!replace.size) {
     result.repaired = {};
     result.remaining = before.findings;
@@ -6536,6 +6555,8 @@ function nodeRepair(argv) {
     process.stdout.write(pyDumps(result) + "\n");
     return 2;
   }
+  const marked = repaired["thai-language"] || 0;
+  delete repaired["thai-language"];
   const still = new Set(after.findings.map((f) => f.code));
   for (const code of Object.keys(repaired)) {
     if (still.has(code)) {
@@ -6555,6 +6576,11 @@ function nodeRepair(argv) {
   result.repaired = repaired;
   result.remaining = after.findings;
   result.warnings = chosen ? [chosen, ...after.warnings] : after.warnings;
+  if (marked) {
+    result.warnings = result.warnings.concat([{ code: "thai-language", message:
+      'the Thai complex-script language w:bidi="th-TH" was written into ' + marked +
+      " run properties, as --thai-language asked" }]);
+  }
   result.sha256 = sha256Hex(out);
   result.bytes = out.length;
   process.stdout.write(pyDumps(result) + "\n");

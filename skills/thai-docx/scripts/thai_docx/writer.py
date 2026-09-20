@@ -47,7 +47,12 @@ XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
 DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main"  # the theme, and a picture's own namespace
 EMU_PER_PX = 9525  # at 96 dpi
 EMU_PER_TWIP = 635
-LANG = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>'
+# Every run says it is complex script (ADR 0004, cause 1). Whether it also says *which*
+# complex-script language is --thai-language's to decide (ADR 0038): `w:bidi="th-TH"` is what
+# tells Word the text is Thai on a machine whose own complex-script language is not, and it is
+# what makes WPS Writer place SARA AM (ำ) over the wrong letter.
+LANG = '<w:cs/><w:lang w:val="en-US"/>'
+LANG_THAI = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>'
 # Thai marks above and below a consonant take no width of their own when a column is measured
 THAI_MARKS = frozenset([0x0E31, *range(0x0E34, 0x0E3B), *range(0x0E47, 0x0E4F)])
 # Word's own table default; with no table style it would otherwise be 0 and text touches the borders
@@ -113,6 +118,7 @@ class Writer:
         self.doc_pr = 0
         self.has_ordered_list = False  # whether --auto-numbering has anything to count (ADR 0028)
         self.image_twips = 0  # the width the last image was drawn at, for --caption-matches-object
+        self.lang = LANG_THAI if opts["thai_language"] else LANG
         self.heading_props, self.style_warnings = heading_styles(doc)
         self.items, self.regions, self.layout_warnings = layout(doc, opts)
         self.nums: list[tuple[int, int, int]] = []  # numId, start, level
@@ -149,7 +155,7 @@ class Writer:
             p.append('<w:vertAlign w:val="superscript"/>')
         elif node.get("sub"):
             p.append('<w:vertAlign w:val="subscript"/>')
-        p.append(LANG)
+        p.append(self.lang)
         return "<w:rPr>" + "".join(p) + "</w:rPr>"
 
     def text_run(self, node: dict, bold: bool = False) -> str:
@@ -176,19 +182,19 @@ class Writer:
             if t == "text":
                 out.append(self.text_run(n, bold))
             elif t == "hardbreak":
-                out.append("<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>")
+                out.append("<w:r><w:rPr>" + self.lang + "</w:rPr><w:br/></w:r>")
             elif t == "task":
                 mark = BOX_CHECKED if n["checked"] else BOX
                 out.append('<w:r><w:rPr><w:rFonts w:ascii="' + SYMBOL_FONT + '" w:hAnsi="' + SYMBOL_FONT + '" w:cs="' + SYMBOL_FONT + '"/>'
-                           + LANG + '</w:rPr><w:t xml:space="preserve">' + mark + "</w:t></w:r>")
+                           + self.lang + '</w:rPr><w:t xml:space="preserve">' + mark + "</w:t></w:r>")
             elif t == "footnote_ref":
-                out.append('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + LANG + '</w:rPr><w:footnoteReference w:id="' + str(n["id"])
+                out.append('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + self.lang + '</w:rPr><w:footnoteReference w:id="' + str(n["id"])
                            + '"/></w:r>')
             elif t == "image":
                 out.append(self.image(n))
             i += 1
         if not out:  # an empty paragraph still carries a run, so fidelity reads it
-            out.append("<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve"></w:t></w:r>')
+            out.append("<w:r><w:rPr>" + self.lang + '</w:rPr><w:t xml:space="preserve"></w:t></w:r>')
         return "".join(out)
 
     def image(self, node: dict) -> str:
@@ -213,7 +219,7 @@ class Writer:
         self.doc_pr += 1
         k = str(self.doc_pr)
         return (
-            "<w:r><w:rPr>" + LANG + "</w:rPr><w:drawing>"
+            "<w:r><w:rPr>" + self.lang + "</w:rPr><w:drawing>"
             '<wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + str(cx) + '" cy="' + str(cy) + '"/>'
             '<wp:docPr id="' + k + '" name="Picture ' + k + '" descr=' + attr(node["alt"]) + "/>"
             '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
@@ -252,7 +258,7 @@ class Writer:
         text starts the next one."""
         if not self.opts["chapter_title_on_new_line"] or "number" not in item:
             return ""
-        return "<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>"
+        return "<w:r><w:rPr>" + self.lang + "</w:rPr><w:br/></w:r>"
 
     def numbers_are_text(self) -> bool:
         """Whether the build writes this document's numbers itself, instead of asking the
@@ -278,11 +284,11 @@ class Writer:
     def field_runs(self, instr: str, result: str, rpr: str) -> str:
         """A field and the result the build already knows, between `separate` and `end`."""
         return (
-            "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>'
-            "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
-            "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>'
-            "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>"
-            "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
+            "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>'
+            "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
+            "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>'
+            "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>"
+            "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
         )
 
     def numbered_levels(self) -> set[int]:
@@ -316,7 +322,7 @@ class Writer:
         if not brk and inlines and inlines[0]["t"] == "text" and not _formatted(inlines[0]):
             return [dict(inlines[0], s=item["number"] + " " + inlines[0]["s"])] + inlines[1:], "", ""
         text = item["number"] if brk else item["number"] + " "
-        return inlines, "", ("<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + brk)
+        return inlines, "", ("<w:r><w:rPr>" + self.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + brk)
 
     def body(self) -> str:
         """The document's own top level, as layout() arranged it: sections apart by
@@ -349,7 +355,7 @@ class Writer:
         bold = "<w:b/><w:bCs/>"
 
         def run(text: str, rpr: str) -> str:
-            return "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>"
+            return "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>"
 
         # --caption-hanging-indent: the label and number keep the margin and every line after
         # the first is indented, so a caption that runs on reads as one block beside its number
@@ -467,8 +473,8 @@ class Writer:
             elif ordered:
                 marker = number_text(b["start"] + n, "decimal", self.opts["thai_digits"]) + "."
                 ppr = indent
-                lead = ("<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(marker) + "</w:t></w:r>"
-                        "<w:r><w:rPr>" + LANG + "</w:rPr><w:tab/></w:r>")
+                lead = ("<w:r><w:rPr>" + self.lang + '</w:rPr><w:t xml:space="preserve">' + esc(marker) + "</w:t></w:r>"
+                        "<w:r><w:rPr>" + self.lang + "</w:rPr><w:tab/></w:r>")
             else:
                 ppr, lead = '<w:numPr><w:ilvl w:val="' + str(min(level, 8)) + '"/><w:numId w:val="1"/></w:numPr>', ""
             out.append(self.paragraph(first, "ListParagraph", ppr, lead=lead))
@@ -526,9 +532,9 @@ class Writer:
         The field opens in the first entry and closes in the last, as Word writes it."""
 
         def char(kind: str) -> str:
-            return "<w:r><w:rPr>" + LANG + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>'
+            return "<w:r><w:rPr>" + self.lang + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>'
 
-        instruction = "<w:r><w:rPr>" + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
+        instruction = "<w:r><w:rPr>" + self.lang + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
         if not entries:
             return "<w:p><w:pPr>" + ppr + "</w:pPr>" + char("begin") + instruction + char("separate") + char("end") + "</w:p>"
         self.counts["paragraphs"] += len(entries)
@@ -539,6 +545,6 @@ class Writer:
             entry_ppr = '<w:pStyle w:val="TOC' + str(min(level, 3)) + '"/>'
             out.append(
                 "<w:p><w:pPr>" + entry_ppr + self.latin_jc(entry_ppr, text) + "</w:pPr>" + opening
-                + "<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + closing + "</w:p>"
+                + "<w:r><w:rPr>" + self.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + closing + "</w:p>"
             )
         return "".join(out)

@@ -59,6 +59,8 @@ const SETTINGS = [
     read: ["text", 200, "\t\n"], takes: "text of 1 to 200 characters on one line", usage: "TEXT", report: ["header", "value"] },
   { key: "footer", flag: "--footer", kind: "option", default: null, layer: 2, // centred at the bottom of every page
     read: ["text", 200, "\t\n"], takes: "text of 1 to 200 characters on one line", usage: "TEXT", report: ["footer", "value"] },
+  { key: "thai_language", flag: "--thai-language", kind: "switch", default: false, layer: 1,
+    report: ["thai_language", "value"] },
   { key: "thai_digits", flag: "--thai-digits", kind: "switch", default: false, layer: 2, // numbers Word generates; never the text
     report: ["thai_digits", "value"] },
   { key: "auto_numbering", flag: "--auto-numbering", kind: "switch", default: false, layer: 2, // who counts: the build, or the application

@@ -88,6 +88,7 @@ Common flags:
 | `--page-numbers`, `--page-numbers bottom-center`, `--no-page-number-first` | page numbers |
 | `--header "ลับ"`, `--footer "ร่าง"` | text at the top or bottom of each page |
 | `--thai-digits` | ๑ ๒ ๓ for the numbers the skill adds; digits you typed stay |
+| `--thai-language` | write the Thai language into the document, so Word proofs it as Thai on any machine; WPS Writer then misplaces ำ |
 | `--auto-numbering` | Word counts headings, lists and captions and renumbers as you edit (by default the skill writes the numbers in: the same in every application, but they do not renumber) — for a file you will keep editing in Word; other applications draw it differently |
 | `--hide-spelling-errors` | no squiggles |
 | `--table-widths auto`, `--table-size 14`, `--no-repeat-table-header` | tables |
