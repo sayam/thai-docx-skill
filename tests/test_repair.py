@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
-"""Repair: the attributes that break Thai, never the text (ADR 0032; gate
+"""Repair: the attributes that break Thai, never the text (ADR 0037; gate
 `repair-changes-only-what-it-names`). This version repairs findings 1 and 3 and reports
 every other one.
 """
@@ -135,7 +135,7 @@ def test_the_text_comes_through_character_for_character(tmp_path):
 
 
 def test_every_part_it_did_not_write_keeps_its_bytes(tmp_path):
-    """ADR 0032: everything untouched comes through byte for byte, still compressed."""
+    """ADR 0037: everything untouched comes through byte for byte, still compressed."""
     src = FIXTURES / "legacy-python-docx-default.docx"
     b = src.read_bytes()
     out = tmp_path / "out.docx"
@@ -176,14 +176,26 @@ def test_findings_this_version_does_not_repair_are_reported_and_left(tmp_path):
 
 
 def test_a_run_with_no_marks_at_all_is_marked(tmp_path):
-    """Code 2, the commonest finding: <w:cs/> and a Thai w:lang, in schema order."""
+    """Code 2, the commonest finding: the run is marked complex script, in schema order. The
+    complex-script *language* is not written unless it is asked for (ADR 0038): it is what makes
+    WPS Writer misplace ำ, and what a machine without Thai needs."""
     parts = replaced(good(), "word/document.xml", run("ข้อความทดสอบ "), "<w:r><w:t>ข้อความทดสอบ </w:t></w:r>")
     out = tmp_path / "out.docx"
     result = rp.repair(str(written(tmp_path, parts)), str(out))
-    assert result["ok"] and result["repaired"] == {"2": 2} and result["remaining"] == []
+    assert result["ok"] and result["repaired"] == {"2": 1} and result["remaining"] == []
     document = parts_of(out)["word/document.xml"]
-    assert b'<w:rPr><w:cs/><w:lang w:bidi="th-TH"/></w:rPr><w:t>' in document
+    assert b"<w:rPr><w:cs/></w:rPr><w:t>" in document and b'w:bidi="th-TH"/></w:rPr><w:t>' not in document
     assert check(out).findings == []
+    assert [w["code"] for w in result["warnings"] if w["code"] == "thai-language"] == []
+
+    asked = tmp_path / "asked.docx"
+    result = rp.repair(str(written(tmp_path, parts)), str(asked), None, True)
+    assert result["ok"] and result["repaired"] == {"2": 1}
+    assert b'<w:rPr><w:cs/><w:lang w:bidi="th-TH"/></w:rPr><w:t>' in parts_of(asked)["word/document.xml"]
+    said = [w["message"] for w in result["warnings"] if w["code"] == "thai-language"]
+    assert said == ['the Thai complex-script language w:bidi="th-TH" was written into 1 run properties,'
+                    " as --thai-language asked"], result["warnings"]
+    assert check(asked).findings == []
 
 
 def test_a_latin_property_gets_its_complex_script_twin(tmp_path):
@@ -195,7 +207,7 @@ def test_a_latin_property_gets_its_complex_script_twin(tmp_path):
 
 
 def test_the_font_for_a_run_that_names_none_is_chosen_and_reported(tmp_path):
-    """ADR 0032's order: what the command was given, else the document's own, else ours."""
+    """ADR 0037's order: what the command was given, else the document's own, else ours."""
     parts = replaced(good(), "word/document.xml", "<w:rPr>", '<w:rPr><w:rFonts w:ascii="Calibri"/>', count=1)
     src = written(tmp_path, parts)
     out = tmp_path / "out.docx"
@@ -229,7 +241,7 @@ def test_a_clean_file_is_left_alone(tmp_path):
 
 
 def test_repairing_a_repaired_file_changes_nothing(tmp_path):
-    """Idempotent, as ADR 0032 requires: the second run has nothing left to do."""
+    """Idempotent, as ADR 0037 requires: the second run has nothing left to do."""
     once = tmp_path / "once.docx"
     assert rp.repair(str(FIXTURES / "legacy-python-docx-default.docx"), str(once))["ok"]
     twice = tmp_path / "twice.docx"

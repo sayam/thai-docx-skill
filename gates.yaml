@@ -31,6 +31,16 @@ gates:
     kind: job
     severity: blocking
     enforced_by: {job: commits}
+  - id: pr-description-credits-the-signer
+    title: A pull request's description opens no line with an assistant's trailer, its "Generated with" footer or a link to its session, and reaches the checker through the environment, never a script (ADR 0013)
+    kind: job
+    severity: blocking
+    enforced_by: {job: pr-description}
+  - id: pr-description-checker-proven-two-way
+    title: The description checker refuses an assistant's default footer in every form, passes a description that only mentions one, reads the description as data, and the workflow hands it over through the environment and runs again on an edit (ADR 0013)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_pr_body.py]}
   - id: docx-checker-proven-two-way
     title: The checker names each of the five causes (ADR 0004), invisible text and misordered properties on a planted violation in any part that holds text a reader sees — body, comments, footnotes, endnotes, headers, footers — passes a clean package, and refuses DOCTYPE and oversized packages
     kind: test
@@ -56,19 +66,19 @@ gates:
     enforced_by: {job: tests, tests: [tests/test_oracle.py]}
     proved_by: docs/evidence/2026-09-15-parser-held-to-references.md
   - id: deflate-is-defined-not-borrowed
-    title: The compressor is this project's own, defined so that both implementations write the same bytes, and what it writes inflates back through zlib and through the skill's own reader (ADR 0008, 0032)
+    title: The compressor is this project's own, defined so that both implementations write the same bytes, and what it writes inflates back through zlib and through the skill's own reader (ADR 0008, 0037)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_deflate.py]}
     proved_by: docs/evidence/2026-09-19-a-deflate-of-our-own.md
   - id: repack-keeps-what-it-did-not-write
-    title: A package written back with nothing replaced is the same bytes; a package with one part rewritten compresses that part with this project's own deflate and keeps every other entry's compressed bytes, method, checksum and date, in both implementations (ADR 0032, 0008)
+    title: A package written back with nothing replaced is the same bytes; a package with one part rewritten compresses that part with this project's own deflate and keeps every other entry's compressed bytes, method, checksum and date, in both implementations (ADR 0037, 0008)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_repack.py]}
     proved_by: docs/evidence/2026-09-18-a-package-comes-back-as-it-went-in.md
   - id: repair-changes-only-what-it-names
-    title: Repair writes a new file with findings 1, 2, 3, 5 and order gone and the complex-script font it chose reported, reports every other finding, changes no character of the text, keeps every part it did not rewrite byte for byte, refuses a file the checker refuses, and gives the same bytes from both implementations (ADR 0032, 0023, 0008)
+    title: Repair writes a new file with findings 1, 2, 3, 5 and order gone and the complex-script font it chose reported, reports every other finding, changes no character of the text, keeps every part it did not rewrite byte for byte, refuses a file the checker refuses, and gives the same bytes from both implementations (ADR 0037, 0023, 0008)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_repair.py]}
@@ -109,7 +119,7 @@ gates:
     enforced_by: {job: tests, tests: [tests/test_grill.py]}
     proved_by: [docs/evidence/2026-09-16-grill-is-the-users-word.md, docs/evidence/2026-09-16-grill-from-a-profile.md, docs/evidence/2026-09-18-grill-reads-one-message-one-way.md]
   - id: profiles-are-data
-    title: A profile holds only settings a flag could set, checked as flags are; it is found in the project, the home or the skill in that order; saving, exporting and importing stay inside the profile directories, and both implementations write the same bytes (ADR 0024, 0025)
+    title: A profile holds only settings a flag could set, checked as flags are; it is found in the project, the home or the skill in that order; saving, exporting and importing stay inside the profile directories, and both implementations write the same bytes (ADR 0024, 0030)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_profiles.py]}
@@ -179,3 +189,9 @@ gates:
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_skill_md.py]}
     proved_by: [docs/evidence/2026-09-15-skill-md-archive-and-agents.md, docs/evidence/2026-09-16-agents-with-the-grown-skill.md, docs/evidence/2026-09-16-agents-after-the-redesign.md, docs/evidence/2026-09-17-agents-with-the-flag-table.md, docs/evidence/2026-09-17-a-description-of-200-characters.md, docs/evidence/2026-09-17-user-guides-hold.md]
+  - id: live-pages-cite-the-record-in-force
+    title: The rules page is one text — Thai the rule, the English below it marked a translation — every link on it reaches a file, each rule traces to a record the index marks accepted, the pages that decide send a reader there, and no live page of this project cites a record the index marks superseded unless it names the record in force on the same line (docs/rules.md, ADR 0001)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_rules.py]}
+    proved_by: docs/evidence/2026-09-19-the-rules-and-the-records-they-cite.md

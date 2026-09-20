@@ -39,6 +39,11 @@ runtimes — and `"replaced"`, with a `"warnings"` line, when the file took the 
 
 - **Where a name is found**, first wins: a path (it has `/` or ends `.json`), then
   `./.thai-docx/profiles/`, then `~/.thai-docx/profiles/`, then the skill's own.
+- **The skill ships one profile, `thesis`** — the most a document asks for, as the interview
+  would leave it. It is an example to copy and change, not a format anyone must follow; say so
+  when offering it. `profile save NAME --from thesis` starts a user's own from it, and
+  `examples/README.md` says which parts of a document a profile holds and which belong to the
+  Markdown itself.
 - **`save` and `import` write** to `~/.thai-docx/profiles/` — with `--project`, to
   `./.thai-docx/profiles/`. Nowhere else; a name is a name, never a path.
 - **A profile file is read only up to 64 KiB**; a larger one is refused with "larger than 64 KiB;

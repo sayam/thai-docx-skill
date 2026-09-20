@@ -44,10 +44,15 @@ function buildText(text, opts, readImage) {
     ["tables", writer.counts.tables > 0],
     ["table captions", items.some((item) => item.caption && item.caption.kind === "table")],
     ["figure captions", items.some((item) => item.caption && item.caption.kind === "figure")],
+    ["captions", items.some((item) => item.caption !== undefined)],
+    ["images", items.some((item) => imageOnly(item.block))],
     ["chapters or appendices", writer.hasChapters],
     ["numbered headings", items.some((item) => item.number !== undefined)],
     ["appendices", writer.regions.includes("appendices")],
+    ["appendix headings", items.some((item) => item.number !== undefined && item.region === "appendices")],
+    ["chapter headings", items.some((item) => item.number !== undefined && item.region === "chapters")],
     ["front", writer.regions.includes("front")],
+    ["numbers", writer.hasOrderedList || items.some((item) => item.number !== undefined || item.caption !== undefined)],
     ["toc comment", items.some((item) => item.block.t === "directive" && item.block.name === "toc")],
   ].filter(([, there]) => there).map(([name]) => name));
   const outcome = {

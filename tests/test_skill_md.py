@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
-"""SKILL.md tells the agent the truth (ADR 0007, 0014, 0026): it passes the Agent
+"""SKILL.md tells the agent the truth (ADR 0007, 0014, 0029): it passes the Agent
 Skills validator, stays within its ceiling, and every default, flag, finding code,
 command and snippet it gives is the one the skill has — run from the archive a user
 downloads, not from this checkout.
@@ -239,7 +239,7 @@ def test_commands_in_skill_md_run_as_written_from_the_download(unpacked, tmp_pat
 
 
 def test_skill_md_sends_the_mode_decision_to_the_script(unpacked, tmp_path):
-    """ADR 0026: SKILL.md does not tell the agent when the interview applies — it tells it
+    """ADR 0029: SKILL.md does not tell the agent when the interview applies — it tells it
     to hand the script the user's message and obey the mode that comes back. The section
     therefore never names the phrase that turns the interview on: only the script knows it."""
     section = SKILL_MD.split("\n## Grill mode", 1)[1].split("\n## ", 1)[0]
@@ -323,7 +323,7 @@ def test_the_user_guides_say_what_the_skill_does():
         text = "\n".join(pages.values())
         assert _flags(OTHER_PROGRAMS.sub("", text)) <= _flags(b.USAGE) | _flags(pf.USAGE) | _flags(gr.USAGE), lang
         scenarios = re.findall(r"^## (?:Scenario|สถานการณ์ที่) (\d+)", pages["scenarios"], re.M)
-        assert scenarios == [str(n) for n in range(1, 14)], lang
+        assert scenarios == [str(n) for n in range(1, 15)], lang
         prompts = [" ".join(block.split()) for block in re.findall(r"```text\n(.*?)```", text, re.S)]
         grilled = []
         for prompt in prompts:
@@ -428,3 +428,28 @@ def test_the_prompts_for_chat_apps_give_the_same_rules():
         assert re.findall(r"^[1-5]\. ", said, re.M) == ["1. ", "2. ", "3. ", "4. ", "5. "]
         assert _flags(said) <= _flags(b.USAGE)
     assert "(PROMPT.th.md)" in PROMPTS["en"] and "(PROMPT.md)" in PROMPTS["th"]
+
+
+def test_the_specs_page_is_the_whole_surface_and_its_example_builds(unpacked, tmp_path):
+    """references/specs.md is what an assistant reads before writing a document of a shape the
+    user asked for. Its one example uses every construct, so it is the page's own proof; and it
+    says what it is not, because a format description that starts prescribing forms breaks the
+    promise that the skill carries nobody's house style."""
+    specs = (SKILL / "references" / "specs.md").read_text(encoding="utf-8")
+    assert "not a house style" in specs and "carries no ministry" in specs
+    for pointer in ("chapters.md", "heading-styles.md", "settings.md", "profiles.md", "../examples/README.md"):
+        assert "(" + pointer + ")" in specs, pointer
+    # the flags it names are flags, and the settings table it points at is the generated one
+    assert _flags(OTHER_PROGRAMS.sub("", specs)) <= _flags(b.USAGE) | _flags(pf.USAGE)
+
+    block = re.search(r"^````markdown\n(.*?)^````$", specs, re.S | re.M)
+    assert block, "the page carries one example, fenced with four backticks so it can hold a fence"
+    body = block.group(1)
+    for construct in ("# ", "## ", "- [ ]", "- [x]", "> ", "```", "|---|", "![", "[^1]", "<kbd>", "<sub>", "---\ntitle:"):
+        assert construct in body, construct
+    shutil.copy(FIXTURES / "pixel.png", tmp_path / "figure.png")
+    (tmp_path / "specs.md").write_text(body, encoding="utf-8")
+    done = _run([sys.executable, str(unpacked / "scripts" / "thai_docx"), "build", "specs.md", "specs.docx"], tmp_path)
+    result = json.loads(done.stdout)
+    assert done.returncode == 0 and result["ok"] and result["warnings"] == [] and result["findings"] == [], done.stdout
+    assert result["counts"]["tables"] == 1 and result["counts"]["images"] == 1 and result["counts"]["footnotes"] == 1

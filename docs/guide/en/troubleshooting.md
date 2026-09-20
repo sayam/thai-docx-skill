@@ -1,5 +1,9 @@
 # Fix a problem
 
+Every limit in one place — what the skill promises, what you must do after opening the file,
+what does not renumber itself, and where the five applications differ:
+`skills/thai-docx/references/limits.md`.
+
 Find what you see in the left column.
 
 [Guide home](../en.md) · [ภาษาไทย](../th/troubleshooting.md)
@@ -35,7 +39,9 @@ Find what you see in the left column.
 |---|---|---|
 | Thai text in an odd font | the computer does not have the font in the file | install that font, or ask for a font you have |
 | the table of contents or lists have no page numbers | the fields have not been updated | Word: Ctrl+A, then F9; LibreOffice: Ctrl+Shift+F9; WPS: **References > Update** |
-| in WPS Writer, บทที่ or ภาคผนวก numbers look garbled, or ำ sits in the wrong place | a limit of WPS Writer; the file is right | open the file in Word, LibreOffice or Google Docs |
+| in WPS Writer, บทที่ or ภาคผนวก numbers look garbled | a limit of WPS Writer; the file is right | open the file in Word, LibreOffice or Google Docs |
+| in WPS Writer, ำ sits over the wrong letter | the file was made with `--thai-language`, and WPS mishandles the Thai language mark it writes | make it again without that flag — then Word takes the language from the machine, which every machine that types Thai has |
+| squiggles under Thai words in a file **this skill made**, on somebody else's computer | that computer has no Thai among its languages, so Word proofs the Thai as another language | make it again with `--thai-language` ("guarantee Thai on any machine"); ำ will then sit wrongly in WPS Writer |
 | in Google Docs, the table of contents has another font | Google Docs turns it into its own object | nothing to fix in the file; Word shows it as made |
 | squiggles under Thai words in a file made elsewhere | the file does not mark Thai as Thai | check it ([scenario 13](scenarios.md#scenario-13-check-a-word-file-you-already-have)) and make it again with the skill |
 

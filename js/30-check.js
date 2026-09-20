@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sayam Sriphua
 // SPDX-License-Identifier: MIT
 // thai-docx — check: the JavaScript port of scripts/thai_docx/check.py. Findings,
-// messages, counts and their order match it exactly (ADR 0004, 0005, 0008, 0011).
+// messages, counts and their order match it exactly (ADR 0004, 0023, 0008, 0030).
 
 const OOXML = /*@@OOXML@@*/ null;
 
@@ -223,7 +223,9 @@ function checkTextPart(name, root, report) {
           report.find("2", name, "a run with text has no <w:cs/> element");
         } else {
           const lang = rpr.find(w("lang"));
-          if (lang === null || lang.get(w("bidi")) !== "th-TH") report.find("2", name, 'a run with text has no <w:lang w:bidi="th-TH"/>');
+          if (lang !== null && lang.get(w("bidi")) === "th-TH") {
+            report.counts.thai_language_runs = (report.counts.thai_language_runs || 0) + 1;
+          }
         }
         for (const t of texts) {
           for (const ch of Object.keys(INVISIBLE)) {

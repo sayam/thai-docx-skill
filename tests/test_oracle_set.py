@@ -16,13 +16,16 @@ import oracle_set  # noqa: E402
 
 def test_every_variant_for_every_application_is_its_golden(tmp_path):
     results = oracle_set.write(tmp_path)
-    assert len(results) == len(oracle_set.VARIANTS) * len(oracle_set.APPLICATIONS) == 20
+    # the five applications open the documents the skill hands over ready to use; the variant
+    # built with --auto-numbering is made for Word and is opened there alone (ADR 0036)
+    assert sum(len(v[-1]) for v in oracle_set.VARIANTS.values()) == len(results) == 4 * 5 + 1
+    assert oracle_set.VARIANTS["sample-auto"][-1] == oracle_set.WORD == ("word365_windows",)
     names = sorted(p.name for p in tmp_path.glob("*.docx"))
-    assert names == sorted(f"{v}-{a}.docx" for v in oracle_set.VARIANTS for a in oracle_set.APPLICATIONS)
+    assert names == sorted(f"{v}-{a}.docx" for v, spec in oracle_set.VARIANTS.items() for a in spec[-1])
     checklist = (tmp_path / "CHECKLIST.md").read_text(encoding="utf-8")
-    for variant, (_source, _flags, golden, _about) in oracle_set.VARIANTS.items():
+    for variant, (_source, _flags, golden, _about, applications) in oracle_set.VARIANTS.items():
         golden_bytes = (ROOT / "tests" / "golden" / f"{golden}.docx").read_bytes()
-        for application in oracle_set.APPLICATIONS:
+        for application in applications:
             assert (tmp_path / f"{variant}-{application}.docx").read_bytes() == golden_bytes, (variant, application)
         assert f"## {variant}" in checklist and hashlib.sha256(golden_bytes).hexdigest() in checklist
     for r in results:

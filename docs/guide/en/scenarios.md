@@ -257,6 +257,16 @@ Good to know:
   the build stops and names the line.
 - Front pages are numbered ก ข ค only when you ask for page numbers.
 - Outside a chapter, captions read "ตารางที่ 1".
+- **Chapter, heading, list and caption numbers are written into the file, not numbers Word keeps
+  up to date.** That is why the file reads the same in Word, LibreOffice, WPS and Google Docs, in
+  Arabic digits or Thai. If you open the .docx and insert a chapter or a table yourself, renumber
+  from there by hand — the three lists and the page numbers still update. **The intended way is
+  to change the Markdown and build again**, which works every number out afresh.
+- **If you will go on working in Microsoft Word and want the numbers to follow your edits**, ask
+  for "automatic numbering" (`--auto-numbering`). Word then counts chapters, headings, lists and
+  captions itself, in Arabic digits or Thai. That file is made for Word: LibreOffice shows Thai
+  digits as 1, 2, 3 and a caption as "ตารางที่ บทนำ-ก", and WPS draws "บทที่" as Latin letters
+  and the digit ๑ as ๕ — leave it off if the file must open in those.
 - `<!-- toc -->` already places a table of contents; asking for a table of contents too gives a
   second one.
 
@@ -421,3 +431,27 @@ The skill can repair five of the seven faults with `repair` at the command line,
 marks every Thai run needs; a split word and invisible characters are reported instead, because
 fixing either would change your text. If you have the content, making a new file with scenario 1
 or 2 fixes everything.
+
+## Scenario 14: you have an example already, and want one like it
+
+**Use when** you have a form or a sample document and want a Word file shaped the same way.
+
+1. Attach your own example (a PDF, a photograph, a Word file) with the text to go in it, and type:
+
+   ```text
+   Here is a sample of our internal memo and the text to put in it. Read the skill's specs and write it as Markdown first.
+   ```
+
+2. The assistant reads `references/specs.md` — everything the format can express, in one page —
+   and writes the Markdown, saying which parts of your example it could match and which it could not.
+3. Ask for changes: "heading 20 pt, centred", "page numbers top right".
+4. When it looks right, say "now make the Word file" — or ask for the .docx from the start.
+5. To use the same shape again: "save these settings as a profile called memo".
+
+Good to know:
+
+- **The skill carries no organisation's form**, and never will. The assistant follows *your*
+  example. With no example, list what you want instead.
+- Reading a PDF or a photograph is your app's ability, not this skill's. If it cannot, type the
+  shape of your example as a list.
+- Ask to see the Markdown first: changing it is easier than changing the Word file.

@@ -3,10 +3,25 @@
 thai-docx-skill is a small project with one maintainer. This page says who decides, how a
 decision is made and recorded, who does what, and what happens if the maintainer stops.
 
+## The rules a decision passes through
+
+**[`docs/rules.md`](docs/rules.md)** holds them in full: the scope this skill answers for, what an
+output must be, what the skill must never introduce, the compatibility contract the five office
+applications are held to, and the limitations that must be said out loud. In short — a file that
+leaves the skill is usable straight away in Word 365 for Windows; the skill repairs Thai rendering
+and introduces no new document standard, no new way of working and no new problem; the user's text
+is never changed; in doubt no file is written; and every limitation is stated where the user meets
+it. Against a rule means the change is not made, and the reason is written down.
+
+The Thai in that file is the rule, in the maintainer's own words; the English below it is a
+translation for reference. Its last table is the trace: which decision record applied each rule,
+and what was seen. A record shows how a rule was applied and never stands above one.
+
 ## How decisions are made
 
 - **The maintainer decides.** Anyone may propose a change in an issue or a pull request; the
   maintainer accepts or declines it, and says why in the thread.
+- **A proposal against [the rules](docs/rules.md) is declined**, with the reason written down.
 - **A design decision is written down before it is built**, as a record in
   [`docs/adr/`](docs/adr/README.md): where it came from, the decision, why, what it leaves out, and
   when it expires. A record is never edited into another decision; a new record supersedes it.

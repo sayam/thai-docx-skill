@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Sayam Sriphua
 // SPDX-License-Identifier: MIT
-// Grill mode is the user's word, not the agent's choice (ADR 0026, restated by 0029) — the
+// Grill mode is the user's word, not the agent's choice (ADR 0029, restating 0026) — the
 // port of thai_docx/grill.py. The agent hands the command the user's own message; the
 // command, not the model, says which mode the build is in — and, in grill mode, which
 // questions to ask, which choice each setting holds now, and what every choice means.
 
 const GRILL_USAGE = "usage: thai_docx grill --said \"the user's own message, word for word\"";
-// grillFold reads `_` as `-`; the space is the third way ADR 0026 lets the two words of
+// grillFold reads `_` as `-`; the space is the third way ADR 0029 lets the two words of
 // the name be joined, and it cannot be folded — a space is what separates the phrase's
 // own words — so the pattern allows it there and nowhere else.
 const GRILL_PHRASE = /thai[- ]docx grill/;

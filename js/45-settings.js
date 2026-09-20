@@ -17,10 +17,15 @@ const STRUCTURES = {
   tables: "the document has no table",
   "table captions": "the document has no 'Table:' caption",
   "figure captions": "the document has no 'Figure:' caption",
+  captions: "the document has no 'Table:' or 'Figure:' caption",
+  images: "the document has no image on a line of its own",
   "chapters or appendices": "the document has no <!-- chapters --> or <!-- appendices --> comment",
   "numbered headings": "no heading carries a chapter or appendix number; a # heading under <!-- chapters --> or <!-- appendices --> does",
   appendices: "the document has no <!-- appendices --> comment",
+  "appendix headings": "no heading carries an appendix letter; a # heading under <!-- appendices --> does",
+  "chapter headings": "no heading carries a chapter number; a # heading under <!-- chapters --> does",
   front: "the document has no <!-- front --> comment",
+  numbers: "the document has no numbered heading, ordered list or caption",
 };
 const CLASHES = {
   "toc comment": "the document places a table of contents with <!-- toc --> as well, so it now has two",
@@ -54,8 +59,12 @@ const SETTINGS = [
     read: ["text", 200, "\t\n"], takes: "text of 1 to 200 characters on one line", usage: "TEXT", report: ["header", "value"] },
   { key: "footer", flag: "--footer", kind: "option", default: null, layer: 2, // centred at the bottom of every page
     read: ["text", 200, "\t\n"], takes: "text of 1 to 200 characters on one line", usage: "TEXT", report: ["footer", "value"] },
+  { key: "thai_language", flag: "--thai-language", kind: "switch", default: false, layer: 1,
+    report: ["thai_language", "value"] },
   { key: "thai_digits", flag: "--thai-digits", kind: "switch", default: false, layer: 2, // numbers Word generates; never the text
     report: ["thai_digits", "value"] },
+  { key: "auto_numbering", flag: "--auto-numbering", kind: "switch", default: false, layer: 2, // who counts: the build, or the application
+    needs: "numbers", report: ["auto_numbering", "value"] },
   { key: "hide_spelling_errors", flag: "--hide-spelling-errors", kind: "switch", default: false, layer: 1,
     report: ["hide_spelling_errors", "value"] },
   { key: "repeat_table_header", flag: "--no-repeat-table-header", kind: "off", default: true, layer: 3,
@@ -65,17 +74,24 @@ const SETTINGS = [
   { key: "table_size", flag: "--table-size", kind: "option", default: null, layer: 3, // null: the body size
     read: ["points", 1, 400], takes: "a number of points from 1 to 400", usage: "PT", report: ["table_size_pt", "value"] },
   { key: "chapter_label", flag: "--chapter-label", kind: "value", default: "บทที่", layer: 5,
-    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "chapters or appendices", report: ["chapter_label", "value"] },
+    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "chapter headings", report: ["chapter_label", "value"] },
   { key: "table_label", flag: "--table-label", kind: "value", default: "ตารางที่", layer: 5,
     read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "table captions", report: ["table_label", "value"] },
   { key: "figure_label", flag: "--figure-label", kind: "value", default: "รูปที่", layer: 5,
     read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "figure captions", report: ["figure_label", "value"] },
+  { key: "caption_hanging_indent", flag: "--caption-hanging-indent", kind: "value", default: 0.0, layer: 5, // inches
+    read: ["number", 0, 4], takes: "a number of inches from 0 to 4", usage: "IN",
+    needs: "captions", report: ["caption_hanging_indent_in", "float"] },
+  { key: "center_images", flag: "--center-images", kind: "switch", default: false, layer: 5,
+    needs: "images", report: ["center_images", "value"] },
+  { key: "caption_matches_object", flag: "--caption-matches-object", kind: "switch", default: false, layer: 5,
+    needs: "figure captions", report: ["caption_matches_object", "value"] },
   { key: "front_page_numbers", flag: "--front-page-numbers", kind: "value", default: "thai-letters", layer: 5,
     read: ["choice", Object.keys(FRONT_NUMBERS)], takes: Object.keys(FRONT_NUMBERS).join(", "), needs: "front", report: ["front_page_numbers", "value"] },
   { key: "appendix_label", flag: "--appendix-label", kind: "value", default: "ภาคผนวก", layer: 5,
-    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "appendices", report: ["appendix_label", "value"] },
+    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "appendix headings", report: ["appendix_label", "value"] },
   { key: "appendix_numbers", flag: "--appendix-numbers", kind: "value", default: "thai-letters", layer: 5,
-    read: ["choice", Object.keys(APPENDIX_NUMBERS)], takes: Object.keys(APPENDIX_NUMBERS).join(", "), needs: "appendices", report: ["appendix_numbers", "value"] },
+    read: ["choice", Object.keys(APPENDIX_NUMBERS)], takes: Object.keys(APPENDIX_NUMBERS).join(", "), needs: "appendix headings", report: ["appendix_numbers", "value"] },
   { key: "chapter_title_on_new_line", flag: "--chapter-title-on-new-line", kind: "switch", default: false, layer: 5,
     needs: "numbered headings", report: ["chapter_title_on_new_line", "value"] },
 ];

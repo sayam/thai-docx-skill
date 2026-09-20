@@ -86,6 +86,8 @@ python3 thai-docx/scripts/thai_docx build report.md report.docx --font "Sarabun"
 | `--page-numbers`, `--page-numbers bottom-center`, `--no-page-number-first` | เลขหน้า |
 | `--header "ลับ"`, `--footer "ร่าง"` | ข้อความหัวกระดาษและท้ายกระดาษ |
 | `--thai-digits` | เลขไทย ๑ ๒ ๓ ในเลขที่สกิลใส่ให้ ตัวเลขในข้อความต้นฉบับไม่เปลี่ยน |
+| `--thai-language` | เขียนภาษาไทยลงในเอกสาร เพื่อให้ Word ตรวจคำไทยเป็นภาษาไทยได้ทุกเครื่อง แต่ WPS Writer จะวางสระอำผิดตำแหน่ง |
+| `--auto-numbering` | ให้ Word รันเลขหัวข้อ รายการ และชื่อตาราง/รูปเอง (ปกติสกิลเขียนเลขลงไฟล์ให้ อ่านได้เหมือนกันทุกโปรแกรมแต่ไม่ไล่เลขให้) — สำหรับไฟล์ที่จะแก้ต่อใน Word โปรแกรมอื่นแสดงต่างออกไป |
 | `--hide-spelling-errors` | ซ่อนเส้นหยัก |
 | `--table-widths auto`, `--table-size 14`, `--no-repeat-table-header` | ตาราง |
 | `--allow-dir ../images` | อ่านรูปจากโฟลเดอร์อื่น |
@@ -154,7 +156,7 @@ python3 thai-docx/scripts/thai_docx repair theirs.docx theirs-fixed.docx
 รายงานจะบอกด้วยว่าเขียนฟอนต์อะไรลงไปในที่ที่ไม่ได้ระบุไว้ หากต้องการเลือกเอง ใช้ `--font "Sarabun"`
 
 ไฟล์ใหม่จะมีขนาดใกล้เคียงไฟล์เดิม ถ้ามีไฟล์ Markdown ต้นฉบับ การสร้างใหม่แก้ได้ครบกว่า
-รวมถึงสามข้อที่ repair ไม่แตะ
+รวมถึงสองข้อที่ repair ไม่แตะ
 
 ## ดูคำถาม grill เอง
 

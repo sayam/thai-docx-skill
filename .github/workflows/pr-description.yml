@@ -1,0 +1,31 @@
+# A pull request's description credits nobody who did not sign (ADR 0013): the rule the commit
+# linter in gates.yml holds for commits, held for the description. tools/lint_pr_body.py, gate
+# `pr-description-credits-the-signer`.
+#
+# A workflow of its own, because it must run again when the description is **edited** — that is
+# how a refused description is fixed — and gates.yml should not run the suite for an edit.
+#
+# The description is text a stranger writes. It reaches the script through the environment and is
+# never interpolated into `run:`, where it would be executed (tests/test_pr_body.py holds this).
+# `pull_request`, not `pull_request_target`: a fork's run gets a read-only token and no secrets.
+#
+# Pinned as gates.yml: actions/checkout v7.0.1 ... 3d3c42e5aac5ba805825da76410c181273ba90b1
+name: pr-description
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-description:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: the description credits nobody who did not sign
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: python3 tools/lint_pr_body.py

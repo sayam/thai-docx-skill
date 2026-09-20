@@ -6,6 +6,13 @@ Thank you for helping. This page is for changing the skill; to use it, read the
 takes part follows the [code of conduct](https://github.com/sayam/thai-docx-skill/blob/main/CODE_OF_CONDUCT.md); how decisions are made is in
 [GOVERNANCE.md](https://github.com/sayam/thai-docx-skill/blob/main/GOVERNANCE.md).
 
+**Read [`docs/rules.md`](https://github.com/sayam/thai-docx-skill/blob/main/docs/rules.md) first.**
+It holds the rules a change is decided by — what this skill answers for, what leaves it, what it
+must never introduce, and the compatibility contract the five office applications are held to.
+Against a rule means the change is not made, and the reason is written down. The Thai in that file
+is the rule; the English below it is a translation for reference. A decision record says how a rule
+was applied; it does not overrule one.
+
 ## Ask first, in an issue
 
 Open an [issue](https://github.com/sayam/thai-docx-skill/issues) before a large change, and
@@ -80,6 +87,7 @@ a written reason why it is not exploitable here; the reason stays on the alert.
 - `skills/thai-docx/` — the skill itself; the only part that ships
 - `js/` — the sources of `scripts/thai_docx.js`; `python3 tools/bundle_js.py` builds it
 - `tests/` — the suite; `gates.yaml` names the gate each test file holds
+- `docs/rules.md` — the rules a change is decided by, in Thai, with an English translation
 - `docs/guide/` — the user guides, in Thai and English
 - `docs/adr/` — the decision records; `docs/adr/README.md` is their index
 - `docs/evidence/` — what each gate was seen to catch
@@ -173,6 +181,14 @@ Conventional Commits, a subject of at most 72 characters, signed off with `git c
 (DCO 1.1), and no assistant trailers such as `Co-Authored-By` (`docs/adr/0013`). Check a
 branch with `python3 tools/lint_commits.py --range main..HEAD`. Pull requests are merged by
 rebase, so each commit should stand on its own.
+
+**A pull request's description is held to the same rule.** It credits nobody who did not sign: no
+line opens with `Co-authored-by:` or `Claude-Session:`, with an assistant's "Generated with …"
+footer, or with a link to its session. Turn the footer off in the tool that writes it, or delete
+it before you open the pull request. Saying what the rule refuses is fine — a mention inside a
+sentence, or quoted in backticks, opens no line. The `pr-description` check runs when a pull
+request is opened or pushed to, and again each time its description is edited, which is how a
+refused one is fixed. Check yours with `python3 tools/lint_pr_body.py --file description.md`.
 
 ## License
 

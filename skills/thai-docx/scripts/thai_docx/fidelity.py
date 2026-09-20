@@ -58,6 +58,8 @@ def expected_text(doc: md.Document, opts: dict | None = None) -> list[str]:
     opts = opts or DEFAULTS
     out = []
     items = layout(doc, opts)[0]
+    # one answer for the whole document, as the writer takes it (ADR 0036)
+    numbers_are_text = not opts["auto_numbering"]
     if opts["toc"]:
         out.extend(text for _, text in list_entries(items, "toc"))  # the entries the field carries
     for item in items:
@@ -65,13 +67,18 @@ def expected_text(doc: md.Document, opts: dict | None = None) -> list[str]:
             out.append(caption_text(item["caption"]))
         elif item["block"]["t"] == "directive" and item["block"]["name"] in LIST_FIELDS:
             out.extend(text for _, text in list_entries(items, item["block"]["name"]))
-        elif opts["chapter_title_on_new_line"] and "number" in item and item["block"]["t"] == "heading":
+        elif item["block"]["t"] == "heading" and "number" in item and numbers_are_text:
+            # the number is text in the heading's own paragraph, not one an application draws (ADR 0036)
+            join = "\n" if opts["chapter_title_on_new_line"] else " "
+            out.extend(item["number"] + join + line for line in md.plain_text([item["block"]], True, opts["thai_digits"]))
+        elif (item["block"]["t"] == "heading" and "number" in item and opts["chapter_title_on_new_line"]):
+            # the application draws the number; the break after it is still the build's
             out.extend("\n" + line for line in md.plain_text([item["block"]]))
         else:
-            out.extend(md.plain_text([item["block"]]))
+            out.extend(md.plain_text([item["block"]], numbers_are_text, opts["thai_digits"]))
     for label in doc.footnote_order:
         blocks = doc.footnotes[label]
         if not blocks or blocks[0]["t"] != "paragraph":
             out.append("")
-        out.extend(md.plain_text(blocks))
+        out.extend(md.plain_text(blocks, numbers_are_text, opts["thai_digits"]))
     return [unicodedata.normalize("NFC", s) for s in out]

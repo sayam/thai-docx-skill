@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sayam Sriphua
 // SPDX-License-Identifier: MIT
 // thai-docx — entry: the command line under Node.js, and the ThaiDocx object for a
-// sandbox that runs JavaScript with no file system (ADR 0007, 0008, 0011).
+// sandbox that runs JavaScript with no file system (ADR 0007, 0008, 0030).
 
 const OS_ERRORS = { ENOENT: "No such file or directory", EACCES: "Permission denied", EISDIR: "Is a directory", ENOTDIR: "Not a directory" };
 
@@ -156,6 +156,11 @@ function nodeCheck(argv) {
 
 function nodeRepair(argv) {
   let font = null;
+  let thaiLanguage = false;
+  if (argv.indexOf("--thai-language") !== -1) {
+    argv = argv.filter((a) => a !== "--thai-language");
+    thaiLanguage = true;
+  }
   if (argv.length === 4 && argv[2] === "--font") {
     font = argv[3];
     argv = argv.slice(0, 2);
@@ -186,7 +191,7 @@ function nodeRepair(argv) {
   }
   const ents = readZipDirectory(data);
   const parts = new Map(ents.map((e) => [e.name, readZipEntry(data, e)]));
-  const [replace, repaired, chosen] = repairParts(parts, before.findings, font);
+  const [replace, repaired, chosen] = repairParts(parts, before.findings, font, thaiLanguage);
   if (!replace.size) {
     result.repaired = {};
     result.remaining = before.findings;
@@ -199,13 +204,15 @@ function nodeRepair(argv) {
   const footnotes = before.counts.footnotes || 0;
   const now = new Map(parts);
   for (const [k, v] of replace) now.set(k, v);
-  // the text is the user's (ADR 0023, 0032): a difference of one character writes nothing
+  // the text is the user's (ADR 0023, 0037): a difference of one character writes nothing
   const was = docxText(parts, footnotes), is = docxText(now, footnotes);
   if (was.length !== is.length || was.some((t, i) => t !== is[i])) {
     result.error = "the repair would have changed the document's text; nothing was written";
     process.stdout.write(pyDumps(result) + "\n");
     return 2;
   }
+  const marked = repaired["thai-language"] || 0;
+  delete repaired["thai-language"];
   const still = new Set(after.findings.map((f) => f.code));
   for (const code of Object.keys(repaired)) {
     if (still.has(code)) {
@@ -225,6 +232,11 @@ function nodeRepair(argv) {
   result.repaired = repaired;
   result.remaining = after.findings;
   result.warnings = chosen ? [chosen, ...after.warnings] : after.warnings;
+  if (marked) {
+    result.warnings = result.warnings.concat([{ code: "thai-language", message:
+      'the Thai complex-script language w:bidi="th-TH" was written into ' + marked +
+      " run properties, as --thai-language asked" }]);
+  }
   result.sha256 = sha256Hex(out);
   result.bytes = out.length;
   process.stdout.write(pyDumps(result) + "\n");

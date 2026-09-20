@@ -37,6 +37,10 @@ file that is gone, a repeated number or a gap in the numbering is red.
 | 0029 | [Grill from a profile and save as another: the interview is data, read by the script (restated)](0029-grill-from-a-profile-save-as-another.md) | 2026-09-16 | accepted |
 | 0030 | [Bundled scripts run with the agent's rights: the limits, restated with both implementations read by tests](0030-script-limits-read-by-tests-in-both-implementations.md) | 2026-09-18 | accepted |
 | 0031 | [MIT, with every exception named in the file that carries it (restated)](0031-mit-with-the-exceptions-each-file-names.md) | 2026-09-18 | accepted |
-| 0032 | [Repair rewrites the attributes that break Thai, never the text](0032-repair-rewrites-attributes-never-the-text.md) | 2026-09-18 | accepted |
+| 0032 | [Repair rewrites the attributes that break Thai, never the text](0032-repair-rewrites-attributes-never-the-text.md) | 2026-09-18 | superseded by 0037 |
 | 0033 | [The task-list box is a square in a text font, not a symbol only Windows has](0033-the-task-box-is-a-square-in-a-text-font.md) | 2026-09-19 | accepted |
 | 0034 | [Two characters that look like one: ำ written long, and `&nbsp;`](0034-two-characters-that-look-like-one.md) | 2026-09-19 | accepted |
+| 0035 | [Every number the build can know is written as text, not left to the application](0035-numbers-the-build-writes.md) | 2026-09-19 | superseded by 0036 |
+| 0036 | [The build writes every number, unless `--auto-numbering` asks the application to count (restated)](0036-who-counts-is-one-switch.md) | 2026-09-19 | accepted |
+| 0037 | [Repair puts a document's own numbering back, and asks which kind it is before it starts](0037-repair-renumbers-what-the-build-would-have-written.md) | 2026-09-20 | accepted |
+| 0038 | [Every run says it is complex script; only `--thai-language` says the language is Thai](0038-the-thai-language-is-written-only-when-asked.md) | 2026-09-20 | accepted |

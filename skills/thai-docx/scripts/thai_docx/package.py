@@ -89,7 +89,7 @@ def raw(b: bytes, e: Entry) -> bytes:
 def repack(b: bytes, ents: list[Entry], replace: dict[str, bytes]) -> bytes:
     """The package again, in the order it had: an entry named in `replace` is written anew,
     every other entry keeps the bytes it already had — its method, its checksum, its sizes and
-    its date (ADR 0032).
+    its date (ADR 0037).
 
     A rewritten entry is compressed by `deflate`, this project's own, which both
     implementations run to the same bytes by construction (ADR 0008); it is stored when

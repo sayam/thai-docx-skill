@@ -4,6 +4,16 @@
 // Package in 51-parts.js adds the other parts. The same Markdown, images and settings give
 // the same bytes (ADR 0008).
 
+// A text inline whose run properties are the ones a caption's label carries: bold, nothing else.
+function isBoldOnly(node) {
+  return Boolean(node.b) && !(node.i || node.strike || node.code || node.u || node.sup || node.sub || node.link);
+}
+
+// A text inline that carries any formatting of its own.
+function isFormatted(node) {
+  return Boolean(node.b || node.i || node.strike || node.code || node.u || node.sup || node.sub || node.link);
+}
+
 const CODE_FONT = "Consolas";
 // Styles whose own definition fixes the alignment — the styles part writes a <w:jc> into each
 // of them. A paragraph in one of these takes its style's alignment, so latinJc leaves it alone.
@@ -18,9 +28,15 @@ const BOX = "□ ", BOX_CHECKED = "■ ";
 const NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 const REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
 const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+const DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main"; // the theme, and a picture's own namespace
 const EMU_PER_PX = 9525;
 const EMU_PER_TWIP = 635;
-let LANG = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>';
+// Every run says it is complex script (ADR 0004, cause 1). Whether it also says *which*
+// complex-script language is --thai-language's to decide (ADR 0038): w:bidi="th-TH" is what tells
+// Word the text is Thai on a machine whose own complex-script language is not, and it is what
+// makes WPS Writer place SARA AM (ำ) over the wrong letter.
+const LANG = '<w:cs/><w:lang w:val="en-US"/>';
+const LANG_THAI = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>';
 // Thai marks above and below a consonant take no width of their own when a column is measured
 const THAI_MARKS = new Set([0x0e31, 0x0e34, 0x0e35, 0x0e36, 0x0e37, 0x0e38, 0x0e39, 0x0e3a, 0x0e47, 0x0e48, 0x0e49, 0x0e4a, 0x0e4b, 0x0e4c, 0x0e4d, 0x0e4e]);
 // Word's own table default; with no table style it would otherwise be 0 and text touches the borders
@@ -89,10 +105,13 @@ class Writer {
     this.rels = [];
     this.media = [];
     this.imageRel = new Map();
-    this.nums = [];
     this.docPr = 0;
+    this.hasOrderedList = false; // whether --auto-numbering has anything to count (ADR 0028)
+    this.imageTwips = 0; // the width the last image was drawn at, for --caption-matches-object
+    this.lang = opts.thai_language ? LANG_THAI : LANG;
     [this.headingProps, this.styleWarnings] = headingStyles(doc);
     [this.items, this.regions, this.layoutWarnings] = layout(doc, opts);
+    this.nums = [];
     this.hasChapters = this.regions.includes("chapters") || this.regions.includes("appendices"); // headings Word numbers by region
     this.counts = { headings: 0, paragraphs: 0, list_items: 0, tables: 0, table_rows: 0, code_blocks: 0, images: 0, footnotes: 0, links: 0 };
     const [pw, ph] = pageSize(opts);
@@ -117,7 +136,7 @@ class Writer {
     if (node.u) p.push('<w:u w:val="single"/>');
     if (node.sup) p.push('<w:vertAlign w:val="superscript"/>');
     else if (node.sub) p.push('<w:vertAlign w:val="subscript"/>');
-    p.push(LANG);
+    p.push(this.lang);
     return "<w:rPr>" + p.join("") + "</w:rPr>";
   }
 
@@ -143,19 +162,19 @@ class Writer {
       }
       const t = n.t;
       if (t === "text") out.push(this.textRun(n, bold));
-      else if (t === "hardbreak") out.push("<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>");
+      else if (t === "hardbreak") out.push("<w:r><w:rPr>" + this.lang + "</w:rPr><w:br/></w:r>");
       else if (t === "task") {
         const mark = n.checked ? BOX_CHECKED : BOX;
         out.push('<w:r><w:rPr><w:rFonts w:ascii="' + SYMBOL_FONT + '" w:hAnsi="' + SYMBOL_FONT + '" w:cs="' + SYMBOL_FONT + '"/>' +
-          LANG + '</w:rPr><w:t xml:space="preserve">' + mark + "</w:t></w:r>");
+          this.lang + '</w:rPr><w:t xml:space="preserve">' + mark + "</w:t></w:r>");
       } else if (t === "footnote_ref") {
-        out.push('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + LANG + '</w:rPr><w:footnoteReference w:id="' + n.id + '"/></w:r>');
+        out.push('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + this.lang + '</w:rPr><w:footnoteReference w:id="' + n.id + '"/></w:r>');
       } else if (t === "image") {
         out.push(this.image(n));
       }
       i++;
     }
-    if (!out.length) out.push("<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve"></w:t></w:r>');
+    if (!out.length) out.push("<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve"></w:t></w:r>');
     return out.join("");
   }
 
@@ -181,10 +200,11 @@ class Writer {
       cy = (cy * maxCx) / cx;
       cx = maxCx;
     }
+    this.imageTwips = Number(cx / BigInt(EMU_PER_TWIP)); // what --caption-matches-object measures against
     this.docPr += 1;
     const k = String(this.docPr);
     return (
-      "<w:r><w:rPr>" + LANG + "</w:rPr><w:drawing>" +
+      "<w:r><w:rPr>" + this.lang + "</w:rPr><w:drawing>" +
       '<wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + cx + '" cy="' + cy + '"/>' +
       '<wp:docPr id="' + k + '" name="Picture ' + k + '" descr=' + attr(node.alt) + "/>" +
       '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
@@ -212,12 +232,72 @@ class Writer {
     return '<w:jc w:val="left"/>';
   }
 
-  // --chapter-title-on-new-line: the number Word writes keeps the first line and the
-  // heading's own text starts the next one. OOXML gives a level no such suffix — nothing, a
-  // space or a tab — so the break belongs to the heading (ADR 0027).
+  // --chapter-title-on-new-line: the number keeps the first line and the heading's own text
+  // starts the next one.
   titleBreak(item) {
     if (!this.opts.chapter_title_on_new_line || item.number === undefined) return "";
-    return "<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>";
+    return "<w:r><w:rPr>" + this.lang + "</w:rPr><w:br/></w:r>";
+  }
+
+  // Whether the build writes this document's numbers itself (ADR 0036). One answer for the
+  // whole document, never a number here and a field there: a document that renumbers its
+  // headings but not its captions goes wrong silently the first time a reader inserts a
+  // chapter. The build writes them unless --auto-numbering asks otherwise, because a written
+  // number reads the same in all five applications and a counted one does not: LibreOffice
+  // draws thaiNumbers as 1, 2, 3, and answers a caption's STYLEREF with the chapter's title.
+  // With --auto-numbering the application counts, whole, and references/numbering.md says
+  // what each of the other four draws.
+  numbersAreText() {
+    return !this.opts.auto_numbering;
+  }
+
+  // A field and the result the build already knows, between `separate` and `end`.
+  fieldRuns(instr, result, rpr) {
+    return (
+      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>' +
+      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>" +
+      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>' +
+      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>" +
+      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
+    );
+  }
+
+  // Heading levels the numbering part numbers.
+  numberedLevels() {
+    const rest = this.opts.heading_numbers ? [2, 3, 4, 5, 6] : [];
+    if (this.hasChapters) return new Set([1, ...rest]);
+    return new Set(this.opts.heading_numbers ? [1, ...rest] : []);
+  }
+
+  headingNumId() {
+    return this.nums.length + 2;
+  }
+
+  // A heading's inlines and what goes before them: its number, written into the paragraph as
+  // text (ADR 0036). The number carries no run properties of its own, so it takes the heading
+  // style's. Where the first word is unformatted the number joins its run rather than sitting
+  // in one beside it, formatted alike (cause 4).
+  numberedHeading(item) {
+    const b = item.block;
+    const inlines = b.inlines;
+    if (!this.numbersAreText()) {
+      // the numbering part numbers the heading, through its style or its own list
+      let ppr = "";
+      if (this.regions.length && item.region !== "chapters" && this.numberedLevels().has(b.level)) {
+        // appendices take their own list ("ภาคผนวก ก"); headings in any other region, none
+        ppr = item.region === "appendices"
+          ? '<w:numPr><w:ilvl w:val="' + (b.level - 1) + '"/><w:numId w:val="' + (this.headingNumId() + 1) + '"/></w:numPr>'
+          : '<w:numPr><w:numId w:val="0"/></w:numPr>';
+      }
+      return [inlines, ppr, this.titleBreak(item)];
+    }
+    if (item.number === undefined) return [inlines, "", ""];
+    const brk = this.titleBreak(item);
+    if (!brk && inlines.length && inlines[0].t === "text" && !isFormatted(inlines[0])) {
+      return [[{ ...inlines[0], s: item.number + " " + inlines[0].s }, ...inlines.slice(1)], "", ""];
+    }
+    const text = brk ? item.number : item.number + " ";
+    return [inlines, "", "<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + brk];
   }
 
   // `body` marks the document's own top level: only its paragraphs take the first-line
@@ -233,16 +313,10 @@ class Writer {
         out.push(this.caption(item.caption, Boolean(item.keep_next)));
       } else if (b.t === "directive") {
         out.push(this.field(LIST_FIELDS[b.name], "", listEntries(this.items, b.name)));
-      } else if (b.t === "heading" && this.regions.length && item.region !== "chapters" && this.numberedLevels().has(b.level)) {
-        // appendices take their own list ("ภาคผนวก ก"); headings in any other region, none
+      } else if (b.t === "heading") {
         this.counts.headings += 1;
-        const num = item.region === "appendices"
-          ? '<w:numPr><w:ilvl w:val="' + (b.level - 1) + '"/><w:numId w:val="' + (this.headingNumId() + 1) + '"/></w:numPr>'
-          : '<w:numPr><w:numId w:val="0"/></w:numPr>';
-        out.push(this.paragraph(b.inlines, "Heading" + b.level, num, false, this.titleBreak(item)));
-      } else if (b.t === "heading" && this.titleBreak(item)) {
-        this.counts.headings += 1;
-        out.push(this.paragraph(b.inlines, "Heading" + b.level, "", false, this.titleBreak(item)));
+        const [inlines, ppr, lead] = this.numberedHeading(item);
+        out.push(this.paragraph(inlines, "Heading" + b.level, ppr, false, lead));
       } else {
         out.push(this.blocks([b], 0, false, true, Boolean(item.keep_next)));
       }
@@ -250,19 +324,45 @@ class Writer {
     return out.join("");
   }
 
-  // Label, chapter number and SEQ number, bold, with their results written in — an
-  // application that never updates fields still shows them — then the caption text.
+  // Label and number, bold, then the caption text. Where the document's numbers are the
+  // build's own (ADR 0036) the number is text. With --auto-numbering it is the pair of fields
+  // Word's own Insert Caption writes — the chapter from a STYLEREF, the count from a SEQ named
+  // after the label and starting again at each chapter, in Thai digits when those are asked for
+  // — with the results written in, so an application that never updates fields still shows them.
+  // settings.xml carries the label itself (captionsXml).
   caption(c, keepNext) {
     this.counts.paragraphs += 1;
     const bold = "<w:b/><w:bCs/>";
-    const run = (text, rpr) => "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>";
-    let ppr = '<w:pStyle w:val="Caption"/>' + (keepNext ? "<w:keepNext/>" : "") + (c.kind === "figure" ? '<w:jc w:val="center"/>' : "");
+    const run = (text, rpr) => "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>";
+    // --caption-hanging-indent: the label and number keep the margin and every line after the
+    // first is indented, so a caption that runs on reads as one block beside its number
+    const hang = halfUp(this.opts.caption_hanging_indent * 1440);
+    const [boxLeft, boxRight] = this.captionBox(c);
+    const attrs = (boxLeft + hang ? ' w:left="' + (boxLeft + hang) + '"' : "") + (boxRight ? ' w:right="' + boxRight + '"' : "");
+    const ind = attrs || hang ? "<w:ind" + attrs + (hang ? ' w:hanging="' + hang + '"' : "") + "/>" : "";
+    let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + ind +
+      (c.kind === "figure" ? '<w:jc w:val="center"/>' : "");
     ppr += this.latinJc(ppr, captionText(c));
-    let out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c.label + " ", bold);
-    if (c.chapter) out += this.fieldRuns("STYLEREF 1 \\s", c.chapter, bold) + run("-", bold);
-    const seq = "SEQ " + c.kind[0].toUpperCase() + c.kind.slice(1) + " \\* " + (this.opts.thai_digits ? "ThaiArabic" : "ARABIC") + (c.reset ? " \\s 1" : "");
-    out += this.fieldRuns(seq, c.seq, bold);
     const rest = c.inlines;
+    if (!this.numbersAreText()) {
+      let plain = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c.label + " ", bold);
+      if (c.chapter) plain += this.fieldRuns("STYLEREF 1 \\s", c.chapter, bold) + run("-", bold);
+      // the counter is named after the label, which is what Word's own Insert Caption names it:
+      // a caption a reader inserts then continues this document's numbering instead of
+      // starting a second count beside it
+      const seq = "SEQ " + c.label + " \\* " + (this.opts.thai_digits ? "ThaiArabic" : "ARABIC") +
+        (c.reset ? " \\s 1" : "");
+      plain += this.fieldRuns(seq, c.seq, bold);
+      if (rest.length && rest[0].t === "text") plain += this.inlines([{ ...rest[0], s: " " + rest[0].s }, ...rest.slice(1)]);
+      else if (rest.length) plain += run(" ", "") + this.inlines(rest);
+      return plain + "</w:p>";
+    }
+    const head = c.label + " " + ((c.chapter ? c.chapter + "-" : "") + c.seq);
+    if (rest.length && rest[0].t === "text" && isBoldOnly(rest[0])) {
+      // the caption opens in bold, as the label does: one run, or two formatted alike (cause 4)
+      return "<w:p><w:pPr>" + ppr + "</w:pPr>" + this.inlines([{ ...rest[0], s: head + " " + rest[0].s }, ...rest.slice(1)]) + "</w:p>";
+    }
+    let out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(head, bold);
     if (rest.length && rest[0].t === "text") {
       // the space joins the first text run: a run of its own would sit beside one formatted alike (cause 4)
       out += this.inlines([{ ...rest[0], s: " " + rest[0].s }, ...rest.slice(1)]);
@@ -272,21 +372,19 @@ class Writer {
     return out + "</w:p>";
   }
 
-  fieldRuns(instr, result, rpr) {
-    return (
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>' +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>" +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>' +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>" +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
-    );
-  }
-
-  // Heading levels Word numbers: the chapter level whenever there are chapters, the rest with --heading-numbers.
-  numberedLevels() {
-    const rest = this.opts.heading_numbers ? [2, 3, 4, 5, 6] : [];
-    if (this.hasChapters) return new Set([1, ...rest]);
-    return new Set(this.opts.heading_numbers ? [1, ...rest] : []);
+  // The indents that make a caption as wide as the picture it belongs to, in twips
+  // (--caption-matches-object), or [0, 0] for a caption that fills the text width. Only a
+  // picture: a table is written at the full width of the text, so its caption already ends
+  // where it does. The width is the one the image was drawn at — its own, or the text width
+  // where the picture was wider — and where --center-images centres the picture the slack is
+  // split, so the caption's box is the picture's box. The width is the last picture written,
+  // which is this caption's: a Figure: caption is made only where the paragraph just before it
+  // holds a picture and nothing else (48-layout.js).
+  captionBox(c) {
+    if (!(this.opts.caption_matches_object && c.kind === "figure" && this.imageTwips)) return [0, 0];
+    const slack = Math.max(this.textWidthTwips - this.imageTwips, 0);
+    const left = this.opts.center_images ? Math.floor(slack / 2) : 0;
+    return [left, slack - left];
   }
 
   blocks(blocks, level, quote, body, keepNext) {
@@ -300,6 +398,12 @@ class Writer {
         this.counts.headings += 1;
         out.push(this.paragraph(b.inlines, "Heading" + b.level));
       } else if (t === "paragraph") {
+        if (this.opts.center_images && imageOnly(b)) {
+          // a picture on a line of its own is centred, and takes no first-line indent: an
+          // indent would move it off the centre its caption is measured against
+          out.push(this.paragraph(b.inlines, null, (keepNext ? "<w:keepNext/>" : "") + '<w:jc w:val="center"/>'));
+          continue;
+        }
         const ppr = (keepNext ? "<w:keepNext/>" : "") + (firstLine ? '<w:ind w:firstLine="' + firstLine + '"/>' : ind);
         out.push(this.paragraph(b.inlines, quote ? "Quote" : level ? "ListParagraph" : null, ppr));
       } else if (t === "code") {
@@ -321,16 +425,22 @@ class Writer {
     return out.join("");
   }
 
+  // A bullet is drawn by the numbering part, which every application reads the same way. An
+  // ordered list's number is written as text instead (ADR 0036): its format is one a reader may
+  // not have — LibreOffice draws thaiNumbers as 1, 2, 3 — and the hanging indent and the tab
+  // after the marker put it where the numbering put it.
   list(b, level, quote) {
-    let numId;
-    if (b.ordered) {
+    const out = [];
+    const written = this.numbersAreText();
+    this.hasOrderedList = this.hasOrderedList || b.ordered;
+    let numId = 0;
+    if (b.ordered && !written) {
       numId = this.nums.length + 2;
       this.nums.push([numId, b.start, level]);
-    } else {
-      numId = 1;
     }
-    const out = [];
-    for (const item of b.items) {
+    const indent = '<w:ind w:left="' + 720 * (level + 1) + '" w:hanging="360"/>';
+    for (let n = 0; n < b.items.length; n++) {
+      const item = b.items[n];
       this.counts.list_items += 1;
       let first, rest;
       if (item.length && item[0].t === "paragraph") {
@@ -340,10 +450,20 @@ class Writer {
         first = [];
         rest = item;
       }
-      let ppr;
-      if (first.length && first[0].t === "task") ppr = '<w:ind w:left="' + 720 * (level + 1) + '"/>';
-      else ppr = '<w:numPr><w:ilvl w:val="' + Math.min(level, 8) + '"/><w:numId w:val="' + numId + '"/></w:numPr>';
-      out.push(this.paragraph(first, "ListParagraph", ppr));
+      let ppr, lead = "";
+      if (first.length && first[0].t === "task") {
+        ppr = '<w:ind w:left="' + 720 * (level + 1) + '"/>';
+      } else if (b.ordered && !written) {
+        ppr = '<w:numPr><w:ilvl w:val="' + Math.min(level, 8) + '"/><w:numId w:val="' + numId + '"/></w:numPr>';
+      } else if (b.ordered) {
+        const marker = numberText(b.start + n, "decimal", this.opts.thai_digits) + ".";
+        ppr = indent;
+        lead = "<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(marker) + "</w:t></w:r>" +
+          "<w:r><w:rPr>" + this.lang + "</w:rPr><w:tab/></w:r>";
+      } else {
+        ppr = '<w:numPr><w:ilvl w:val="' + Math.min(level, 8) + '"/><w:numId w:val="1"/></w:numPr>';
+      }
+      out.push(this.paragraph(first, "ListParagraph", ppr, false, lead));
       out.push(this.blocks(rest, level + 1, quote));
     }
     return out.join("");
@@ -400,8 +520,8 @@ class Writer {
   // already holds between `separate` and `end`, one paragraph each (ADR 0027). The field
   // opens in the first entry and closes in the last, as Word writes it.
   field(instr, ppr, entries) {
-    const char = (kind) => "<w:r><w:rPr>" + LANG + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>';
-    const instruction = "<w:r><w:rPr>" + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>";
+    const char = (kind) => "<w:r><w:rPr>" + this.lang + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>';
+    const instruction = "<w:r><w:rPr>" + this.lang + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>";
     if (!entries || !entries.length) {
       return "<w:p><w:pPr>" + (ppr || "") + "</w:pPr>" + char("begin") + instruction + char("separate") + char("end") + "</w:p>";
     }
@@ -413,7 +533,7 @@ class Writer {
       const entryPpr = '<w:pStyle w:val="TOC' + Math.min(level, 3) + '"/>';
       out.push(
         "<w:p><w:pPr>" + entryPpr + this.latinJc(entryPpr, text) + "</w:pPr>" + opening +
-        "<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + closing + "</w:p>"
+        "<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + closing + "</w:p>"
       );
     });
     return out.join("");

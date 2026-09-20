@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sayam Sriphua
 // SPDX-License-Identifier: MIT
 // thai-docx — zip: writing stored entries, and reading stored or deflated entries
-// by the rules ADR 0017 numbers, as thai_docx/package.py does (ADR 0008, 0011 §7).
+// by the rules ADR 0017 numbers, as thai_docx/package.py does (ADR 0008, 0030 §9).
 
 class ZipError extends Error {}
 
@@ -48,7 +48,7 @@ function packZip(parts) {
 
 // The package again, in the order it had: an entry named in `replace` is written anew, every
 // other entry keeps the bytes it already had — its method, its checksum, its sizes and its
-// date (ADR 0032). A rewritten entry is compressed by this project's own deflate, which both
+// date (ADR 0037). A rewritten entry is compressed by this project's own deflate, which both
 // implementations run to the same bytes by construction (ADR 0008).
 function repackZip(b, ents, replace) {
   const names = new Set(ents.map((e) => e.name));
