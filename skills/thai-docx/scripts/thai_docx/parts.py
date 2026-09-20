@@ -307,6 +307,30 @@ class Package(Writer):
             + headings + nums + "</w:numbering>"
         )
 
+    def captions_xml(self) -> str:
+        """The caption labels the document uses, so Word's own Insert Caption offers them.
+
+        Only where the application counts (`--auto-numbering`): a reader who inserts a caption
+        there continues the document's numbering, and one who inserts a caption into a document
+        whose numbers are text would start a counter of its own beside them — the half-numbered
+        document ADR 0036 refuses. Word keeps a label the user makes in their own profile, not in
+        the file; written here, the label travels with the document, already carrying its number
+        format, its chapter number and the side of the table or figure it belongs on."""
+        if self.numbers_are_text():
+            return ""
+        kinds = [k for k in ("table", "figure") if any(item.get("caption", {}).get("kind") == k for item in self.items)]
+        if not kinds:
+            return ""
+        fmt = "thaiNumbers" if self.opts["thai_digits"] else "decimal"
+        chapter = "1" if self.regions else "0"
+        # a table's caption goes above it and a figure's below it, as the build writes them
+        pos = {"table": "above", "figure": "below"}
+        return "<w:captions>" + "".join(
+            "<w:caption w:name=" + attr(self.opts[kind + "_label"]) + ' w:pos="' + pos[kind] + '" w:chapNum="' + chapter
+            + '" w:heading="0" w:noLabel="0" w:numFmt="' + fmt + '" w:sep="hyphen"/>'
+            for kind in kinds
+        ) + "</w:captions>"
+
     def settings_xml(self) -> str:
         parts = []
         if self.opts["hide_spelling_errors"]:
@@ -332,6 +356,7 @@ class Package(Writer):
             "</w:compat>"
             '<w:themeFontLang w:val="en-US" w:bidi="th-TH"/>'
         )
+        parts.append(self.captions_xml())
         return XML + '<w:settings xmlns:w="' + W + '">' + "".join(parts) + "</w:settings>"
 
     def footnote_format(self) -> str:

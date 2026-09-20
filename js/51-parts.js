@@ -312,7 +312,28 @@ class Package extends Writer {
       "</w:compat>" +
       '<w:themeFontLang w:val="en-US" w:bidi="th-TH"/>'
     );
+    parts.push(this.captionsXml());
     return XML_DECL + '<w:settings xmlns:w="' + W + '">' + parts.join("") + "</w:settings>";
+  }
+
+  // The caption labels the document uses, so Word's own Insert Caption offers them. Only where
+  // the application counts (--auto-numbering): a reader who inserts a caption there continues
+  // the document's numbering, and one who inserts a caption into a document whose numbers are
+  // text would start a counter of its own beside them — the half-numbered document ADR 0036
+  // refuses. Word keeps a label the user makes in their own profile, not in the file; written
+  // here, the label travels with the document, already carrying its number format, its chapter
+  // number and the side of the table or figure it belongs on.
+  captionsXml() {
+    if (this.numbersAreText()) return "";
+    const kinds = ["table", "figure"].filter((k) => this.items.some((item) => item.caption && item.caption.kind === k));
+    if (!kinds.length) return "";
+    const fmt = this.opts.thai_digits ? "thaiNumbers" : "decimal";
+    const chapter = this.regions.length ? "1" : "0";
+    // a table's caption goes above it and a figure's below it, as the build writes them
+    const pos = { table: "above", figure: "below" };
+    return "<w:captions>" + kinds.map((kind) =>
+      "<w:caption w:name=" + attr(this.opts[kind + "_label"]) + ' w:pos="' + pos[kind] + '" w:chapNum="' + chapter +
+      '" w:heading="0" w:noLabel="0" w:numFmt="' + fmt + '" w:sep="hyphen"/>').join("") + "</w:captions>";
   }
 
   // Thai-digit footnote marks, for the section; settings.xml says the same for the document.

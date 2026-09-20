@@ -43,7 +43,7 @@ Two things followed from the same conversation:
 | who counts | the build: every number is text | the application: numbering levels and fields |
 | a heading's number | a run in the heading's paragraph | a multilevel list tied to the heading styles |
 | an ordered list's marker | `๑.` and a tab, with the hanging indent | a numbering level |
-| a caption's number | text beside its label | `STYLEREF 1 \s`, `-`, `SEQ Table \* ARABIC \s 1` |
+| a caption's number | text beside its label | `STYLEREF 1 \s`, `-`, `SEQ <the label> \* ARABIC \s 1` |
 | with `--thai-digits` | ๑ ๒ ๓ written | `thaiNumbers`, `SEQ … \* ThaiArabic` |
 | in the five applications | the same in all five | right in Word; the others as recorded below |
 | a reader inserts a chapter | renumbers by hand, or changes the Markdown and builds again | Word renumbers |
@@ -69,6 +69,17 @@ index-by-style.
 
 **With `--auto-numbering` the result of every field is still written in**, so an application that
 never updates fields shows `ตารางที่ ๑-๑` and not an empty caption (ADR 0027).
+
+**A caption's counter is named after its label, and the label is written into the package.** Word
+names the counter of a caption it inserts after the label chosen in its dialog, and keeps a label
+the user makes in their own profile rather than in the file. A document that counted `SEQ Figure`
+while Word counted `SEQ รูปที่` therefore handed a reader who inserted a figure a second count
+starting at 1 beside the first (seen in Word 365 for Windows and Word on the web, 2026-09-20). So
+the build names the counter after the label, and `word/settings.xml` carries a `<w:caption>` for
+each label the document uses — its number format, its chapter number, and the side of the table or
+figure it belongs on. In a document whose numbers are the build's own there is no such label: a
+caption inserted there would count on its own beside numbers that are text, which is the
+half-numbered document this record refuses.
 
 **The name says what the user gets.** "Automatic numbering" is Word's own term for it. The two
 documents are not called "ready to use" and "to edit": a file with written numbers can be edited
