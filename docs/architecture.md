@@ -3,6 +3,11 @@
 How thai-docx is put together: the parts, what flows between them, and the properties the design
 holds. The reasons are in the decision records linked from each part.
 
+Above all of them are [the rules](rules.md) — what this skill answers for, what an output must be,
+what it must never introduce, and the contract the five office applications are held to. The design
+below is one way of meeting them, and every record cited here is a trace of a rule in use, not a
+rule of its own; `rules.md` ends with the table that maps each rule to its records.
+
 ## The pieces a user receives
 
 ```
@@ -101,4 +106,4 @@ Markdown ──parse──▶ blocks ──lay out──▶ sections, numbering 
 | `tests/` | the suite; `tests/js` holds the CommonMark reference for the parser tests |
 | `gates.yaml`, `tools/` | verifiable-gates: each gate, its test or scanner, its evidence |
 | `docs/adr/`, `docs/evidence/`, `SOURCES.md` | decisions, what each gate was seen to catch, outside sources |
-| `.github/workflows/` | `gates.yml` (scans, commits, tests, lint, deps), `codeql.yml`, `scorecard.yml`, `release.yml` (check, pack, attest, attach) |
+| `.github/workflows/` | `gates.yml` (scans, commits, tests, lint, deps), `pr-description.yml` (the description credits nobody who did not sign), `codeql.yml`, `scorecard.yml`, `release.yml` (check, pack, attest, attach) |

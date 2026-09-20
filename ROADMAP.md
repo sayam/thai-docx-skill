@@ -9,7 +9,7 @@ Four things, decided 2026-09-18.
 
 | | what | where it is decided | state |
 |---|---|---|---|
-| 1 | **Repair a `.docx` this skill did not write** — attributes only, never the text | [ADR 0032](docs/adr/0032-repair-rewrites-attributes-never-the-text.md) | done: findings 1, 2, 3, 5 and the property order, in a file about the size it was; the split word waits for v0.3 and invisible characters are never removed |
+| 1 | **Repair a `.docx` this skill did not write** — today attributes only, never the text | [ADR 0037](docs/adr/0037-repair-renumbers-what-the-build-would-have-written.md) | done: findings 1, 2, 3, 5 and the property order, in a file about the size it was; the split word waits for v0.3 and invisible characters are never removed |
 | 2 | **`gh skill install` and `npx skills add`** held by a test, and the difference between them written in the guides | below | done 2026-09-19 |
 | 3 | **The attestation attached to the release as a file** | [evidence](docs/evidence/2026-09-18-the-release-carries-its-attestation.md) | done 2026-09-18 |
 | 4 | **WPS Writer re-checked** after the fixes of 0.1.0, and what it still draws its own way recorded | [evidence](docs/evidence/2026-09-19-wps-writer.md) | done 2026-09-19 |
@@ -48,6 +48,45 @@ so they drew as nothing outside Windows. Fixed by ADR 0033 — `□` and `■` i
 the bytes of any document with a task list, so the five applications of ADR 0012 are due a look
 before the next release.
 
+**SARA AM in WPS Writer, and the language the document declares.** Seven rounds of probes, opened
+by eye in WPS Writer and in Word, found the one attribute behind a difference recorded since the
+first release: `w:bidi="th-TH"`, the Thai complex-script language
+([evidence](docs/evidence/2026-09-20-sara-am-and-the-thai-language.md)). It is now written only
+when `--thai-language` asks ([ADR 0038](docs/adr/0038-the-thai-language-is-written-only-when-asked.md)),
+and the default takes the language from the reader's machine. **Owed before the tag:** the five
+applications again — every document's bytes changed — and, if it can be found, a Windows machine
+with no Thai among its languages, which is the one case the default gives up and which no machine
+in this round could test.
+
+**Repair puts a document's own numbering back.** The terms a document is handed over on are now
+written down once, in `skills/thai-docx/references/limits.md`: what the skill promises, what the
+reader does after opening the file, what does not renumber itself once they edit it, where the five
+applications differ, and what `repair` will and will not touch. The five-application contract covers
+the ready-to-use document; `--auto-numbering` is made for Word and its variant is opened there
+alone. [ADR 0037](docs/adr/0037-repair-renumbers-what-the-build-would-have-written.md) decided the
+next step and it is **not yet shipped**, in this order:
+
+1. **repair reads a document's numbering kind** — automatic (`w:numPr` on headings, `SEQ`/`STYLEREF`
+   captions, numbered list items) or written (numbers as text) — and says which it is. Where it is
+   automatic, repair writes nothing: the assistant asks the user which the document should be.
+2. **repair re-runs the written numbers** — a heading's, a caption's, an ordered list's — to the
+   document's own pattern, reporting every one it changed, with the author's words still compared
+   character for character.
+3. **repair brings a paragraph's indent and a run's font to the document's own majority pattern**,
+   not to this skill's defaults.
+
+Until all three ship, no page may describe repair as doing any of it.
+
+**Who counts.** The build writes every heading, list and caption number as text, in every
+document, so a file reads the same in all five applications; `--auto-numbering` hands the counting
+to the application for a document someone will go on editing in Word
+([ADR 0036](docs/adr/0036-who-counts-is-one-switch.md)). The first application of this release's
+check — Word 365 for Windows, on `sample-options` — passed every item of the look and is what
+raised the question ([record](docs/evidence/2026-09-19-the-look-passes-the-edit-does-not.md)).
+**Owed before the tag:** `sample-basic`, whose bytes changed, in all five; and the new
+`sample-auto` — in Word 365 for Windows every item including the four edits, in the other four
+whatever is seen, written into `references/numbering.md` where a cell still says not measured.
+
 **Two characters that look like one.** ำ typed the long way (`ํ` + `า`) and `&nbsp;` were the two
 questions left over that touch the author's own text. Both are settled by
 [ADR 0034](docs/adr/0034-two-characters-that-look-like-one.md) without changing a byte a document
@@ -83,8 +122,9 @@ reading, which the Markdown reference already states.
   in CI, and bump every pinned tool by hand.
 - Keep the assurance case current, and repeat the security review each year or at a boundary
   change (the last is `docs/evidence/2026-09-18-security-review.md`).
-- Hold the project's own citations: a check that no page stating a rule now points at a record
-  the index marks superseded (the drift of 2026-09-18 was found by a reviewer, not by a gate).
+- Keep the project's own citations held: the gate `live-pages-cite-the-record-in-force` reads
+  every live page for a citation of a record the index marks superseded (built 2026-09-19, after
+  the drift of 2026-09-18 was found by a reviewer and not by a gate).
 - OpenSSF Best Practices: passing (reached 2026-09-18), then silver as far as a one-maintainer
   project can go.
 

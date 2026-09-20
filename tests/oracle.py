@@ -15,11 +15,11 @@ references read CommonMark differently this parser follows commonmark.js, and
 known_divergence() names each such case. Test-only: nothing here ships.
 
 What the reduction deliberately normalizes, each tied to a decision:
-- a soft break between two Thai characters is nothing, any other is a space (ADR 0005 §1)
-- a task marker is its own item and the one space after it is consumed (ADR 0005 §2)
+- a soft break between two Thai characters is nothing, any other is a space (ADR 0023 §1)
+- a task marker is its own item and the one space after it is consumed (ADR 0023 §2)
 - link destinations are compared after markdown-it's own normalization on both sides,
   and a link with an empty destination is plain text: a Word hyperlink needs a target
-- image alt text is not compared (ADR 0005 §4: it is not body text)
+- image alt text is not compared (ADR 0023 §4: it is not body text)
 - a code line of only spaces and tabs compares as empty: inside a list item the
   references disagree on keeping the spaces, and neither reading is visible
 """

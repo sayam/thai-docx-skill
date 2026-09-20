@@ -116,10 +116,15 @@ def test_the_reference_states_each_default():
         "toc": "yes" if d["toc"] else "none", "heading_numbers": "yes" if d["heading_numbers"] else "none",
         "page_numbers": "yes" if d["page_numbers"] else "none", "page_number_on_first": "shown" if d["page_number_on_first"] else "none",
         "header": d["header"] or "none", "footer": d["footer"] or "none",
+        "thai_language": "written into the document" if d["thai_language"] else "left to the reader's machine",
         "thai_digits": "๑ ๒ ๓" if d["thai_digits"] else "1 2 3",
+        "auto_numbering": "counted by the application" if d["auto_numbering"] else "written by the build, the same in every application",
         "repeat_table_header": "repeats on every page" if d["repeat_table_header"] else "first page only",
         "table_widths": d["table_widths"], "table_size": "as the body" if d["table_size"] is None else f"{d['table_size']} pt",
         "chapter_label": d["chapter_label"], "table_label": d["table_label"], "figure_label": d["figure_label"],
+        "caption_hanging_indent": "start at the margin, like the first" if not d["caption_hanging_indent"] else f"{d['caption_hanging_indent']:g}",
+        "center_images": "centred" if d["center_images"] else "starts at the left margin",
+        "caption_matches_object": "as wide as the picture" if d["caption_matches_object"] else "the width of the text",
         "front_page_numbers": {"thai-letters": "ก ข ค"}[d["front_page_numbers"]],
         "appendix_label": d["appendix_label"], "appendix_numbers": {"thai-letters": "ก ข ค"}[d["appendix_numbers"]],
         "chapter_title_on_new_line": "beside its number" if not d["chapter_title_on_new_line"] else "under its number",
@@ -179,8 +184,9 @@ def test_flags_that_need_the_same_structure_share_one_warning_and_a_duplicate_is
     said = [w["message"] for w in _built(DOCUMENTS["plain"], all_of_them)["warnings"]]
     assert said == [
         "--no-repeat-table-header changed nothing: the document has no table",
-        "--chapter-label changed nothing: the document has no <!-- chapters --> or <!-- appendices --> comment",
-        "--appendix-label and --appendix-numbers changed nothing: the document has no <!-- appendices --> comment",
+        "--chapter-label changed nothing: no heading carries a chapter number; a # heading under <!-- chapters --> does",
+        "--appendix-label and --appendix-numbers changed nothing: no heading carries an appendix letter;"
+        " a # heading under <!-- appendices --> does",
     ]
     twice = _built(DOCUMENTS["toc comment"], ["--toc"])
     assert [w["message"] for w in twice["warnings"]] == [

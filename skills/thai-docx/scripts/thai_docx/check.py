@@ -1,12 +1,12 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
 """`thai_docx check FILE.docx` — report, by number, every cause in ADR 0004 the file
-still carries, plus the two things ADR 0005 and 0011 make the checker refuse.
+still carries, plus the two things ADR 0023 and 0030 make the checker refuse.
 
 Findings, each with a `code`:
 
     1        compatibilityMode is not declared exactly once as 15
-    2        a run with text lacks <w:cs/> or w:lang/@w:bidi="th-TH"
+    2        a run with text lacks <w:cs/>
     3        <w:noProof/> appears somewhere
     4        two adjacent runs carry identical formatting (a word may be split)
     5        a complex-script twin is missing (cs font, szCs, bCs, iCs), or a bullet
@@ -18,7 +18,7 @@ Findings, each with a `code`:
     package  not a WordprocessingML package
 
 Warnings never fail the check; today there is one: a complex-script font the
-checker does not know to carry Thai glyphs (ADR 0026).
+checker does not know to carry Thai glyphs (ADR 0029).
 
 Role: decider — exit 0 when there are no findings, 1 when there are, 2 when the
 file could not be examined at all. The output is one JSON line, and never carries
@@ -226,8 +226,8 @@ def _check_text_part(name: str, root: ET.Element, report: Report) -> None:
                     report.find("2", name, "a run with text has no <w:cs/> element")
                 else:
                     lang = rpr.find(w("lang"))
-                    if lang is None or lang.get(w("bidi")) != "th-TH":
-                        report.find("2", name, 'a run with text has no <w:lang w:bidi="th-TH"/>')
+                    if lang is not None and lang.get(w("bidi")) == "th-TH":
+                        report.counts["thai_language_runs"] = report.counts.get("thai_language_runs", 0) + 1
                 for t in texts:
                     for ch, label in INVISIBLE.items():
                         if ch in (t.text or ""):

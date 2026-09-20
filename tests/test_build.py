@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
-"""`thai_docx build`: faithful to the Markdown (ADR 0005), the same bytes every
+"""`thai_docx build`: faithful to the Markdown (ADR 0023), the same bytes every
 run (ADR 0008), and never a file that fails its own checker (ADR 0007).
 """
 
@@ -12,9 +12,11 @@ import json
 import pathlib
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import zipfile
+import zlib
 
 import pytest
 
@@ -22,7 +24,6 @@ from thai_docx import build as b
 from thai_docx import fidelity as fi
 from thai_docx import layout as lo
 from thai_docx import markdown as md
-from thai_docx import parts as pa
 from thai_docx import writer as wr
 from thai_docx.check import check
 
@@ -34,7 +35,7 @@ ALL_FLAGS = ["--toc", "--page-numbers", "--hide-spelling-errors", "--align", "th
 sys.path.insert(0, str(ROOT / "tools"))
 import oracle_set  # noqa: E402  the release oracle's variants (ADR 0012) are goldens too
 GOLDENS = [("sample-default", FIXTURES / "sample.md", []), ("sample-all-flags", FIXTURES / "sample.md", ALL_FLAGS)] + [
-    (golden, source, flags) for source, flags, golden, _about in oracle_set.VARIANTS.values() if golden != "sample-default"
+    (golden, source, flags) for source, flags, golden, *_ in oracle_set.VARIANTS.values() if golden != "sample-default"
 ]
 
 
@@ -42,6 +43,17 @@ def run_cli(*args) -> tuple[int, dict]:
     done = subprocess.run([sys.executable, str(SCRIPT), "build", *map(str, args)], capture_output=True, text=True)
     assert done.stderr == "", done.stderr
     return done.returncode, json.loads(done.stdout)
+
+
+def _png(w: int, h: int) -> bytes:
+    """A PNG of the given size in pixels: what the build measures a picture by."""
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        body = tag + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
+
+    raw = b"".join(b"\x00" + b"\xff\x00\x00" * w for _ in range(h))
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
 
 
 def build(tmp_path, text: str, **opts) -> tuple[dict, pathlib.Path]:
@@ -87,7 +99,7 @@ def test_docprops_carry_only_front_matter(tmp_path):
     assert zipfile.ZipFile(out).read("docProps/core.xml").decode().endswith("></cp:coreProperties>")
 
 
-# --- fidelity (ADR 0005) ---
+# --- fidelity (ADR 0023) ---
 
 
 def test_sample_text_round_trips_paragraph_for_paragraph():
@@ -113,8 +125,10 @@ def test_a_writer_that_drops_a_character_is_refused(tmp_path, monkeypatch):
 
 
 def test_a_writer_that_breaks_a_cause_is_refused(tmp_path, monkeypatch):
-    monkeypatch.setattr(wr, "LANG", "<w:cs/>")
-    monkeypatch.setattr(pa, "LANG", "<w:cs/>")  # the package's other parts name it too
+    """The build checks its own package before it writes it: a run that lost <w:cs/> is cause 1's
+    own symptom and finding 2, and no file is written."""
+    monkeypatch.setattr(wr, "LANG", '<w:lang w:val="en-US"/>')
+    monkeypatch.setattr(wr, "LANG_THAI", '<w:lang w:val="en-US" w:bidi="th-TH"/>')
     result, out = build(tmp_path, "ก")
     assert not result["ok"] and {f["code"] for f in result["findings"]} == {"2"}
     assert not out.exists()
@@ -234,7 +248,7 @@ def test_unreferenced_footnote_is_refused(tmp_path):
     assert "never referenced" in result["error"]
 
 
-# --- settings (ADR 0026) ---
+# --- settings (ADR 0029) ---
 
 
 def test_defaults_are_announced_and_flags_change_the_package(tmp_path):
@@ -243,9 +257,12 @@ def test_defaults_are_announced_and_flags_change_the_package(tmp_path):
         "font": "TH Sarabun New", "size_pt": 16, "paper": "a4", "landscape": False,
         "margins_in": {"top": 1.0, "right": 1.0, "bottom": 1.0, "left": 1.5},
         "first_line_indent_in": 0.0, "line_spacing": 1.0, "align": "left", "toc": False, "heading_numbers": False, "page_numbers": False,
-        "page_number_on_first": True, "header": None, "footer": None, "thai_digits": False, "hide_spelling_errors": False,
+        "page_number_on_first": True, "header": None, "footer": None, "thai_language": False,
+        "thai_digits": False, "auto_numbering": False,
+        "hide_spelling_errors": False,
         "repeat_table_header": True, "table_widths": "equal", "table_size_pt": None,
-        "chapter_label": "บทที่", "table_label": "ตารางที่", "figure_label": "รูปที่",
+        "chapter_label": "บทที่", "table_label": "ตารางที่", "figure_label": "รูปที่", "caption_hanging_indent_in": 0.0,
+        "center_images": False, "caption_matches_object": False,
         "front_page_numbers": "thai-letters", "appendix_label": "ภาคผนวก", "appendix_numbers": "thai-letters",
         "chapter_title_on_new_line": False,
     }
@@ -392,7 +409,8 @@ def test_front_matter_heading_styles_become_the_word_heading_styles(tmp_path):
         "heading-3: text-decoration: wavy underline; text-indent: 0.5in; text-align: thai-distribute\n"
         "---\n\n# บทที่ 1\n\n## ส่วน\n\n### ย่อย\n\n#### ไม่ได้ตั้ง\n"
     )
-    result, out = build(tmp_path, text, heading_numbers=True)
+    # the application counts here, so the style's own paragraph properties carry the list (ADR 0036)
+    result, out = build(tmp_path, text, heading_numbers=True, auto_numbering=True)
     styles = zipfile.ZipFile(out).read("word/styles.xml").decode()
     doc = zipfile.ZipFile(out).read("word/document.xml").decode()
     assert result["ok"] and result["findings"] == [] and result["warnings"] == []
@@ -406,7 +424,7 @@ def test_front_matter_heading_styles_become_the_word_heading_styles(tmp_path):
     assert '<w:rPr><w:b/><w:bCs/><w:strike/><w:sz w:val="36"/><w:szCs w:val="36"/><w:u w:val="double"/></w:rPr>' in h2
     assert '<w:ind w:firstLine="720"/><w:jc w:val="thaiDistribute"/>' in h3 and '<w:u w:val="wave"/></w:rPr>' in h3
     # a level the front matter leaves alone keeps exactly the built-in style
-    _, plain = build(tmp_path, "#### ไม่ได้ตั้ง\n", heading_numbers=True)
+    _, plain = build(tmp_path, "#### ไม่ได้ตั้ง\n", heading_numbers=True, auto_numbering=True)
     assert _heading_style(styles, 4) == _heading_style(zipfile.ZipFile(plain).read("word/styles.xml").decode(), 4)
 
 
@@ -498,6 +516,7 @@ def test_regions_make_a_section_of_every_chapter_and_page_before_and_after(tmp_p
     with zipfile.ZipFile(out) as zf:
         doc, styles, numbering, settings = (zf.read(f"word/{n}.xml").decode() for n in ("document", "styles", "numbering", "settings"))
         names = zf.namelist()
+        parts = {n: zf.read(n) for n in names}
     assert result["ok"] and result["findings"] == [] and result["warnings"] == [], result
     sections = _sections(doc)
     assert len(sections) == 6  # cover, บทคัดย่อ, สารบัญ, บทนำ, ทฤษฎี, ภาคผนวก ก
@@ -510,12 +529,17 @@ def test_regions_make_a_section_of_every_chapter_and_page_before_and_after(tmp_p
     # a section closes inside its last paragraph, never in an empty paragraph of its own
     assert doc.count("</w:sectPr></w:pPr>") == 5
     assert '<w:p><w:pPr><w:sectPr>' + sections[0][len("<w:sectPr>"):] + '</w:pPr><w:r>' in doc, "the cover closes in its own text"
-    # chapters: "บทที่ n" on #, 1.1 on ##; headings outside the chapters are unnumbered
-    assert '<w:lvlText w:val="บทที่ %1"/>' in numbering and '<w:lvlText w:val="%1.%2"/>' in numbering
-    assert doc.count('<w:pStyle w:val="Heading1"/><w:numPr><w:numId w:val="0"/></w:numPr>') == 3  # บทคัดย่อ, สารบัญ, ภาคผนวก ก
-    assert '<w:pStyle w:val="Heading1"/></w:pPr><w:r><w:rPr>' + wr.LANG + '</w:rPr><w:t xml:space="preserve">บทนำ' in doc
+    # chapters: "บทที่ n" on #, n.n on ##, written as the heading's own text; headings
+    # outside the chapters carry no number at all (ADR 0036)
+    # regions put the whole document on the build's own numbers, since a caption inside
+    # chapters is the one number no application but Word gets right (ADR 0036)
+    assert set(re.findall(r'w:numFmt w:val="(\w+)"', numbering)) == {"bullet"}
+    said = fi.docx_text(parts, 0)
+    assert "บทที่ 1 บทนำ" in said and "บทคัดย่อ" in said and "สารบัญ" in said
     # directives become fields, and Word is asked to fill them in
-    assert ' TOC \\o "1-3" \\h \\z \\u ' in doc and ' TOC \\h \\z \\c "Table" ' in doc and '<w:updateFields w:val="true"/>' in settings
+    # a list of tables collects a caption style, not the SEQ fields a caption stopped carrying
+    assert ' TOC \\o "1-3" \\h \\z \\u ' in doc and ' TOC \\h \\z \\t "Table Caption,1" ' in doc
+    assert '<w:updateFields w:val="true"/>' in settings and '<w:pStyle w:val="TableCaption"/>' in doc
     assert 'w:styleId="Caption"' in styles and 'w:styleId="TableofFigures"' in styles and 'w:styleId="TOC1"' in styles
     # captions: chapter-number-seq inside the chapters, restarting at every #, plain in the back
     parts = {n: zipfile.ZipFile(out).read(n) for n in names}
@@ -524,13 +548,16 @@ def test_regions_make_a_section_of_every_chapter_and_page_before_and_after(tmp_p
     assert captions == ["ตารางที่ 1-1 สาเหตุ", "ตารางที่ 2-1 รูปแบบ", "ตารางที่ 1 ข้อมูล",  # the list of tables holds them
                         "ตารางที่ 1-1 สาเหตุ", "รูปที่ 1-1 ขั้นตอน", "ตารางที่ 2-1 รูปแบบ", "ตารางที่ 1 ข้อมูล"]
     # ADR 0027: the lists carry their entries, so an application that never updates a field shows them
-    assert text[4:10] == ["บทคัดย่อ", "สารบัญ", "บทที่ 1 บทนำ", "ที่มา", "บทที่ 2 ทฤษฎี", "ภาคผนวก ก"], text[:12]
+        # the entry carries the sub-heading's number too: the build writes it, so it knows it
+    assert text[4:10] == ["บทคัดย่อ", "สารบัญ", "บทที่ 1 บทนำ", "1.1 ที่มา", "บทที่ 2 ทฤษฎี", "ภาคผนวก ก"], text[:12]
     assert doc.count('<w:pStyle w:val="TOC1"/>') == 8 and doc.count('<w:pStyle w:val="TOC2"/>') == 1
     assert '<w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr>' + wr.LANG + '</w:rPr><w:t xml:space="preserve">บทคัดย่อ</w:t>' in doc
-    assert ' STYLEREF 1 \\s ' in doc and ' SEQ Table \\* ARABIC \\s 1 ' in doc and ' SEQ Figure \\* ARABIC \\s 1 ' in doc
-    assert '<w:pPr><w:pStyle w:val="Caption"/><w:keepNext/></w:pPr>' in doc, "a table caption stays with its table"
+    # the number is the build's own text: a STYLEREF gave the chapter's title in LibreOffice
+    # and a SEQ gave a Thai letter that never restarted (ADR 0036)
+    assert "STYLEREF" not in doc and "SEQ " not in doc
+    assert '<w:pPr><w:pStyle w:val="TableCaption"/><w:keepNext/></w:pPr>' in doc, "a table caption stays with its table"
     assert '<w:pPr><w:keepNext/></w:pPr><w:r><w:rPr>' + wr.LANG + '</w:rPr><w:drawing>' in doc, "an image stays with its caption"
-    assert '<w:pPr><w:pStyle w:val="Caption"/><w:jc w:val="center"/><w:sectPr>' in doc, "the figure's caption ends chapter 1"
+    assert '<w:pPr><w:pStyle w:val="FigureCaption"/><w:jc w:val="center"/><w:sectPr>' in doc, "the figure's caption ends chapter 1"
 
 
 APPENDICES = """<!-- front -->
@@ -573,15 +600,17 @@ Table: ชุดที่ 1
 
 def test_appendices_are_lettered_and_front_pages_take_the_chosen_numbers(tmp_path):
     cases = (
-        ([], "thaiLetters", "ภาคผนวก %1", "thaiLetters", ["ตารางที่ ก-1 ผู้ตอบ", "ตารางที่ ข-1 ชุดที่ 1"]),
+        ([], "thaiLetters", "thaiLetters", "ภาคผนวก", ["ภาคผนวก ก แบบสอบถาม", "ภาคผนวก ข ข้อมูลดิบ"],
+         ["ตารางที่ ก-1 ผู้ตอบ", "ตารางที่ ข-1 ชุดที่ 1"]),
         (["--front-page-numbers", "lower-roman", "--appendix-numbers", "upper-letters", "--appendix-label", "Appendix"],
-         "lowerRoman", "Appendix %1", "upperLetter", ["ตารางที่ A-1 ผู้ตอบ", "ตารางที่ B-1 ชุดที่ 1"]),
-        (["--front-page-numbers=upper-roman", "--appendix-numbers", "upper-roman"], "upperRoman", "ภาคผนวก %1", "upperRoman",
-         ["ตารางที่ I-1 ผู้ตอบ", "ตารางที่ II-1 ชุดที่ 1"]),
-        (["--front-page-numbers", "decimal", "--appendix-numbers", "decimal", "--thai-digits"], "thaiNumbers", "ภาคผนวก %1", "thaiNumbers",
-         ["ตารางที่ ๑-๑ ผู้ตอบ", "ตารางที่ ๒-๑ ชุดที่ 1"]),
+         "lowerRoman", "upperLetter", "Appendix", ["Appendix A แบบสอบถาม", "Appendix B ข้อมูลดิบ"],
+         ["ตารางที่ A-1 ผู้ตอบ", "ตารางที่ B-1 ชุดที่ 1"]),
+        (["--front-page-numbers=upper-roman", "--appendix-numbers", "upper-roman"], "upperRoman", "upperRoman", "ภาคผนวก",
+         ["ภาคผนวก I แบบสอบถาม", "ภาคผนวก II ข้อมูลดิบ"], ["ตารางที่ I-1 ผู้ตอบ", "ตารางที่ II-1 ชุดที่ 1"]),
+        (["--front-page-numbers", "decimal", "--appendix-numbers", "decimal", "--thai-digits"], "thaiNumbers", "thaiNumbers", "ภาคผนวก",
+         ["ภาคผนวก ๑ แบบสอบถาม", "ภาคผนวก ๒ ข้อมูลดิบ"], ["ตารางที่ ๑-๑ ผู้ตอบ", "ตารางที่ ๒-๑ ชุดที่ 1"]),
     )
-    for flags, front, label, appendix_fmt, captions in cases:
+    for flags, front, appendix_fmt, label, appendix_headings, captions in cases:
         opts, _, _ = b.parse_args(flags + ["--heading-numbers", "in.md", "out.docx"])
         result, out = build(tmp_path, APPENDICES, **opts)
         with zipfile.ZipFile(out) as zf:
@@ -590,14 +619,11 @@ def test_appendices_are_lettered_and_front_pages_take_the_chosen_numbers(tmp_pat
         assert result["ok"] and result["findings"] == [] and result["warnings"] == [], result
         assert re.findall(r"<w:pgNumType[^>]*/>", doc)[0] == f'<w:pgNumType w:fmt="{front}" w:start="1"/>'
         assert len(_sections(doc)) == 6  # บทคัดย่อ, บทนำ, บรรณานุกรม, แบบสอบถาม, ข้อมูลดิบ, ประวัติผู้เขียน
-        appendix = numbering.split('<w:abstractNum w:abstractNumId="3">', 1)[1].split("</w:abstractNum>", 1)[0]
-        assert appendix.startswith(f'<w:multiLevelType w:val="multilevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="{appendix_fmt}"/>'
-                                   f'<w:suff w:val="space"/><w:lvlText w:val="{label}"/>')
-        assert "pStyle" not in appendix, "set on each appendix heading, so Heading 1 stays the chapters'"
-        # no numbered list here: the headings' list is numId 2, the appendices' 3
-        assert doc.count('<w:numPr><w:ilvl w:val="0"/><w:numId w:val="3"/></w:numPr>') == 2
-        assert '<w:numPr><w:ilvl w:val="1"/><w:numId w:val="3"/></w:numPr>' in doc
-        assert doc.count('<w:pStyle w:val="Heading1"/><w:numPr><w:numId w:val="0"/></w:numPr>') == 3  # บทคัดย่อ, บรรณานุกรม, ประวัติผู้เขียน
+        said = fi.docx_text(parts, 0)
+        # every one of these documents has regions, so its numbers are the build's own text
+        assert 'abstractNumId="3"' not in numbering and appendix_fmt
+        assert [t for t in said if t.startswith(label + " ")] == appendix_headings
+        assert "บทคัดย่อ" in said and "บรรณานุกรม" in said and "ประวัติผู้เขียน" in said
         assert [t for t in fi.docx_text(parts, 0) if t.startswith("ตารางที่")] == captions
     assert lo.number_text(27, "upper-letters", False) == "AA" and lo.number_text(3, "thai-letters", False) == "ค"
     assert lo.number_text(14, "upper-roman", False) == "XIV"
@@ -645,8 +671,106 @@ def test_without_region_comments_captions_count_through_the_document_and_nothing
     parts = {n: zipfile.ZipFile(out).read(n) for n in zipfile.ZipFile(out).namelist()}
     assert result["ok"] and result["findings"] == [] and len(_sections(doc)) == 1 and "numId" not in doc
     assert [t for t in fi.docx_text(parts, 0) if t.startswith("Table")] == ["Table ๑ หนึ่ง", "Table ๒ สอง ต่อ"]
-    assert ' SEQ Table \\* ThaiArabic ' in doc and "STYLEREF" not in doc
+    # the number is the build's own text, not a field another application would recompute (ADR 0036)
+    assert "SEQ" not in doc and "STYLEREF" not in doc
     # the goldens hold that a document with none of this keeps its bytes
+
+
+def test_asked_to_count_a_caption_is_the_fields_word_s_own_insert_caption_writes(tmp_path):
+    """ADR 0036: with `--auto-numbering` a caption's number is a STYLEREF for the chapter and a
+    SEQ that starts again at each one — in Thai digits when those are asked for — with the
+    results the build knows written in, so the text reads the same before any field is updated."""
+    shutil.copy(FIXTURES / "pixel.png", tmp_path / "p.png")
+    text = ("Table: ก่อนบท\n\n| ก |\n|---|\n| 1 |\n\n<!-- chapters -->\n\n# หนึ่ง\n\n# สอง\n\n"
+            "Table: **ตาราง** ในบท\n\n| ก |\n|---|\n| 1 |\n\n![ผัง](p.png)\n\nFigure: `รูป`\n\n"
+            "<!-- appendices -->\n\n# ผนวก\n\nTable: ท้าย\n\n| ก |\n|---|\n| 1 |\n\n<!-- list-of-tables -->\n")
+    for digits, fmt, captions in (
+            ([], "ARABIC", ["ตารางที่ 1 ก่อนบท", "ตารางที่ 2-1 ตาราง ในบท", "รูปที่ 2-1 รูป", "ตารางที่ ก-1 ท้าย"]),
+            (["--thai-digits"], "ThaiArabic", ["ตารางที่ ๑ ก่อนบท", "ตารางที่ ๒-๑ ตาราง ในบท", "รูปที่ ๒-๑ รูป", "ตารางที่ ก-๑ ท้าย"])):
+        opts, _, allow = b.parse_args([*digits, "--auto-numbering", "--allow-dir", str(tmp_path), "in.md", "out.docx"])
+        result, out = build(tmp_path, text, **opts)
+        with zipfile.ZipFile(out) as zf:
+            doc = zf.read("word/document.xml").decode()
+            said = fi.docx_text({n: zf.read(n) for n in zf.namelist()}, 0)
+        assert result["ok"] and result["findings"] == [] and result["warnings"] == [], result
+        fields = re.findall(r"<w:instrText[^>]*> ((?:SEQ|STYLEREF)[^<]*) </w:instrText>", doc)
+        # the counter is named after the label, as Word's own Insert Caption names it
+        assert fields == [
+            "SEQ ตารางที่ \\* " + fmt + " \\s 1",  # before the chapters: no chapter number, the restart all the same
+            "STYLEREF 1 \\s", "SEQ ตารางที่ \\* " + fmt + " \\s 1",
+            "STYLEREF 1 \\s", "SEQ รูปที่ \\* " + fmt + " \\s 1",
+            "STYLEREF 1 \\s", "SEQ ตารางที่ \\* " + fmt + " \\s 1",
+        ]
+        # and settings.xml carries the label itself, with the format, chapter number and side
+        with zipfile.ZipFile(out) as zf:
+            settings = zf.read("word/settings.xml").decode()
+        assert ('<w:captions><w:caption w:name="ตารางที่" w:pos="above" w:chapNum="1" w:heading="0" w:noLabel="0" w:numFmt="'
+                + ("thaiNumbers" if digits else "decimal") + '" w:sep="hyphen"/>'
+                '<w:caption w:name="รูปที่" w:pos="below" w:chapNum="1" w:heading="0" w:noLabel="0" w:numFmt="'
+                + ("thaiNumbers" if digits else "decimal") + '" w:sep="hyphen"/></w:captions>') in settings, settings[-400:]
+        assert [t for t in said if t.startswith(("ตารางที่", "รูปที่"))][:4] == captions, "the results are written in"
+        # the list still collects the caption's style, so it holds whether the number is text or a field
+        assert 'TOC \\h \\z \\t "Table Caption,1"' in doc and "\\c " not in doc
+    # without regions there is no chapter and no restart: the field every application counts alike
+    opts, _, _ = b.parse_args(["--auto-numbering", "--table-label", "Table", "in.md", "out.docx"])
+    _, out = build(tmp_path, "Table: หนึ่ง\n\n| ก |\n|---|\n| 1 |\n", **opts)
+    with zipfile.ZipFile(out) as zf:
+        doc, settings = (zf.read(f"word/{n}.xml").decode() for n in ("document", "settings"))
+    assert "> SEQ Table \\* ARABIC <" in doc and "STYLEREF" not in doc
+    # no regions, so the label carries no chapter number, and only the kind the document holds
+    assert '<w:captions><w:caption w:name="Table" w:pos="above" w:chapNum="0"' in settings and "figure" not in settings.lower()
+    # where the build writes the numbers there is no label to offer: a caption inserted beside
+    # them would count on its own (ADR 0036)
+    _, plain = build(tmp_path, "Table: หนึ่ง\n\n| ก |\n|---|\n| 1 |\n")
+    assert "captions" not in zipfile.ZipFile(plain).read("word/settings.xml").decode()
+    # a caption that opens with something other than text — here a hard break — keeps a space of
+    # its own after the number, whoever counts, and the text still matches the Markdown
+    for counted in (True, False):
+        result, out = build(tmp_path, "Table:\\\nขึ้นบรรทัดใหม่\n\n| ก |\n|---|\n| 1 |\n", auto_numbering=counted)
+        doc = zipfile.ZipFile(out).read("word/document.xml").decode()
+        assert result["ok"] and result["findings"] == [] and ("SEQ ตารางที่" in doc) is counted
+        assert re.search(r'<w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr>(?:(?!</w:rPr>).)*</w:rPr><w:br/>', doc), "a space, then the break"
+
+
+def test_the_package_carries_a_theme_naming_the_document_s_own_font(tmp_path):
+    """A package with no theme leaves Word to resolve `+Body` against its own built-in one, and
+    everything Word makes afterwards — a table it inserts, the `Caption` style it creates — comes
+    out in that theme's Latin font rather than the document's (ADR 0027: generated matter carries
+    what an application would otherwise supply). Nothing in the document refers to it: the styles
+    name their fonts outright, so the theme changes no run the build writes."""
+    for font in ("TH Sarabun New", "Sarabun"):
+        _, out = build(tmp_path, "ข้อความ ปนกับ English\n", font=font)
+        with zipfile.ZipFile(out) as zf:
+            theme = zf.read("word/theme/theme1.xml").decode()
+            types = zf.read("[Content_Types].xml").decode()
+            rels = zf.read("word/_rels/document.xml.rels").decode()
+            document = zf.read("word/document.xml").decode()
+        faces = "".join(f'<a:{tag} typeface="{font}"/>' for tag in ("latin", "ea", "cs"))
+        assert "<a:majorFont>" + faces + "</a:majorFont><a:minorFont>" + faces + "</a:minorFont>" in theme
+        assert '<Override PartName="/word/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>' in types
+        assert wr.REL + 'theme" Target="theme/theme1.xml"' in rels
+        # the format asks for a colour scheme and three of each format entry (three fills, three
+        # lines each carrying a fill of its own, three effects, three background fills)
+        for tag in ("dk1", "lt1", "dk2", "lt2", "accent1", "accent6", "hlink", "folHlink"):
+            assert "<a:" + tag + ">" in theme, tag
+        for tag, n in (("a:solidFill", 9), ("a:ln ", 3), ("a:effectStyle>", 3)):
+            assert theme.count("<" + tag) == n, tag
+        # and no run, style or numbering level asks for a theme font
+        assert "Theme" not in document
+
+
+def test_asked_to_count_changes_the_numbering_and_nothing_else(tmp_path):
+    """ADR 0036 made the written number the default and left the application's own numbering as
+    the path it always was. The two builds of one file differ in the parts that carry numbers and
+    in no other: the switch moves who counts, not how the document is laid out."""
+    for name in ("pixel.png", "figure.png"):
+        if (FIXTURES / name).exists():
+            shutil.copy(FIXTURES / name, tmp_path / name)
+    text = (FIXTURES / "sample.md").read_text(encoding="utf-8")
+    default, counted = (build(tmp_path, text, **opts)[1].read_bytes() for opts in ({}, {"auto_numbering": True}))
+    with zipfile.ZipFile(io.BytesIO(default)) as a, zipfile.ZipFile(io.BytesIO(counted)) as b_:
+        assert a.namelist() == b_.namelist()
+        assert [n for n in a.namelist() if a.read(n) != b_.read(n)] == ["word/document.xml", "word/numbering.xml"]
 
 
 def test_region_comments_and_captions_refuse_or_warn_with_their_line(tmp_path):
@@ -667,29 +791,54 @@ def test_region_comments_and_captions_refuse_or_warn_with_their_line(tmp_path):
             b.parse_args(bad + ["in.md", "out.docx"])
 
 
-def test_heading_numbers_come_from_word_numbering_linked_to_the_heading_styles(tmp_path):
+def test_a_number_is_the_build_s_unless_the_application_is_asked_to_count(tmp_path):
+    """ADR 0036: who counts is one switch. Without it every number is text, Arabic or Thai, and
+    reads the same in every application; with `--auto-numbering` the package numbers the
+    document — in `thaiNumbers` when Thai digits are asked for — and Word goes on renumbering."""
     text = "# บทนำ\n\n1. ข้อ\n2. ข้อ\n\n## ที่มา\n\n### ย่อย\n\n# บทที่สอง\n\n3. ต่อ\n"
-    for flags, fmt in (([], None), (["--heading-numbers"], "decimal"), (["--heading-numbers", "--thai-digits"], "thaiNumbers")):
-        opts, _, _ = b.parse_args(flags + ["in.md", "out.docx"])
+
+    def built(*flags):
+        opts, _, _ = b.parse_args(["--heading-numbers", *flags, "in.md", "out.docx"])
         result, out = build(tmp_path, text, **opts)
         with zipfile.ZipFile(out) as zf:
-            doc, styles, numbering = (zf.read(f"word/{n}.xml").decode() for n in ("document", "styles", "numbering"))
-        assert result["ok"] and result["findings"] == [] and result["settings"]["heading_numbers"] is bool(fmt)
-        assert "บทนำ" in doc and "1. บทนำ" not in doc, "the number is Word's, not text"
-        if fmt is None:
-            assert "numPr" not in styles and 'w:abstractNumId="2"' not in numbering
-            continue
-        # two ordered lists take numIds 2 and 3, so the headings' is 4
-        for n in range(1, 7):
-            own = styles.split(f'w:styleId="Heading{n}"', 1)[1].split("</w:style>", 1)[0]
-            assert f'<w:pPr><w:keepNext/><w:keepLines/><w:numPr><w:ilvl w:val="{n - 1}"/><w:numId w:val="4"/></w:numPr><w:spacing' in own
-        assert numbering.index('w:abstractNumId="2"><w:multiLevelType w:val="multilevel"/>') < numbering.index("<w:num ")
-        assert numbering.endswith('<w:num w:numId="4"><w:abstractNumId w:val="2"/></w:num></w:numbering>')
-        for level, lvl_text in ((0, "%1."), (1, "%1.%2"), (2, "%1.%2.%3"), (5, "%1.%2.%3.%4.%5.%6")):
-            assert (f'<w:lvl w:ilvl="{level}"><w:start w:val="1"/><w:numFmt w:val="{fmt}"/><w:pStyle w:val="Heading{level + 1}"/>'
-                    f'<w:suff w:val="space"/><w:lvlText w:val="{lvl_text}"/>') in numbering
+            styles, numbering = (zf.read(f"word/{n}.xml").decode() for n in ("styles", "numbering"))
+            said = fi.docx_text({n: zf.read(n) for n in zf.namelist()}, 0)
+        assert result["ok"] and result["findings"] == []
+        return styles, numbering, said
+
+    for digits, fmt in (((), "decimal"), (("--thai-digits",), "thaiNumbers")):
+        styles, numbering, said = built("--auto-numbering", *digits)
+        assert '<w:numPr><w:ilvl w:val="0"/><w:numId w:val="4"/></w:numPr>' in styles, "Heading 1 takes the list"
+        assert set(re.findall(r'w:numFmt w:val="(\w+)"', numbering)) == {"bullet", fmt}
+        assert [t for t in said if t.endswith(("บทนำ", "ที่มา", "ข้อ"))] == ["บทนำ", "ข้อ", "ข้อ", "ที่มา"], \
+            "the number is the application's, so it is not in the text"
+
+    for digits, headings, items in (
+            ((), ["1. บทนำ", "1.1 ที่มา", "1.1.1 ย่อย", "2. บทที่สอง"], ["1.\tข้อ", "2.\tข้อ"]),
+            (("--thai-digits",), ["๑. บทนำ", "๑.๑ ที่มา", "๑.๑.๑ ย่อย", "๒. บทที่สอง"], ["๑.\tข้อ", "๒.\tข้อ"])):
+        styles, numbering, said = built(*digits)
+        assert "numPr" not in styles, "no style carries numbering where the numbers are text"
+        assert set(re.findall(r'w:numFmt w:val="(\w+)"', numbering)) == {"bullet"}
+        assert [t for t in said if t.endswith(("บทนำ", "ที่มา", "ย่อย", "บทที่สอง"))] == headings
+        assert [t for t in said if t.endswith("ข้อ")] == items
     with pytest.raises(b.BuildError, match="takes no value"):
         b.parse_args(["--heading-numbers=1", "in.md", "out.docx"])
+
+
+def test_an_ordered_list_carries_its_own_numbers(tmp_path):
+    """ADR 0036: an ordered list's marker is text and a tab, indented where the numbering part
+    put it; a bullet is still drawn by the numbering part, which every reader reads alike."""
+    text = "5. ห้า\n6. หก\n\n- จุด\n\n1. หนึ่ง\n   1. ซ้อน\n"
+    opts, _, _ = b.parse_args(["--thai-digits", "in.md", "out.docx"])
+    result, out = build(tmp_path, text, **opts)
+    with zipfile.ZipFile(out) as zf:
+        doc = zf.read("word/document.xml").decode()
+        parts = {n: zf.read(n) for n in zf.namelist()}
+    assert result["ok"] and result["findings"] == []
+    said = fi.docx_text(parts, 0)
+    assert said == ["๕.\tห้า", "๖.\tหก", "จุด", "๑.\tหนึ่ง", "๑.\tซ้อน"]
+    assert doc.count('<w:numId w:val="1"/>') == 1, "only the bullet is numbered by the package"
+    assert '<w:ind w:left="720" w:hanging="360"/>' in doc and '<w:ind w:left="1440" w:hanging="360"/>' in doc
 
 
 def _page_parts(out) -> dict[str, str]:
@@ -813,7 +962,7 @@ def test_the_chapter_title_can_start_its_own_line(tmp_path):
     breaks = "<w:r><w:rPr>" + wr.LANG + "</w:rPr><w:br/></w:r>"
     assert doc.count(breaks) == 2, "the chapter and the appendix, not the ## heading"
     text_of = fi.docx_text(parts, 0)
-    assert "\nบทนำ" in text_of and "\nแบบสอบถาม" in text_of and "ที่มา" in text_of
+    assert "บทที่ 1\nบทนำ" in text_of and "ภาคผนวก ก\nแบบสอบถาม" in text_of and "ที่มา" in text_of
     assert "บทที่ 1 บทนำ" in text_of, "the list entry is still one line"
     assert result["counts"]["headings"] == 3, "a heading moved to its own line is still a heading"
     build(tmp_path, text)  # the same document without the flag
@@ -946,24 +1095,16 @@ def test_every_generated_run_names_the_font(tmp_path):
     # level's Latin font, which is where "บทที่ ๑" came out as Latin letters
     body = "<w:rPr>" + font + '<w:sz w:val="32"/><w:szCs w:val="32"/>' + wr.LANG + "</w:rPr>"
     abstract = dict(re.findall(r'<w:abstractNum w:abstractNumId="(\d)">(.*?)</w:abstractNum>', numbering))
-    assert sorted(abstract) == ["0", "1", "2", "3"], "bullets, ordered lists, chapter headings, appendix headings"
-    for number in ("0", "1"):
-        assert abstract[number].count(body + "</w:lvl>") == 9, "a list's number is the body's"
+    assert sorted(abstract) == ["0"], "the bullet list is all the package numbers now (ADR 0036)"
+    assert abstract["0"].count(body + "</w:lvl>") == 9, "a bullet is the body's font and size"
+    with zipfile.ZipFile(out) as zf:
+        doc = zf.read("word/document.xml").decode()
+    # a heading's number is a run of the heading's own paragraph, so it takes the style's look
+    # without naming it again: the size, the weight and the colour of the words beside it
+    assert '<w:pStyle w:val="Heading1"/></w:pPr><w:r><w:rPr>' + wr.LANG + '</w:rPr><w:t xml:space="preserve">บทที่ ๑ บทนำ' in doc
     heading1 = styles.split('w:styleId="Heading1"', 1)[1].split("</w:style>", 1)[0].split("<w:rPr>", 1)[1].split("</w:rPr>", 1)[0]
-    heading2 = styles.split('w:styleId="Heading2"', 1)[1].split("</w:style>", 1)[0].split("<w:rPr>", 1)[1].split("</w:rPr>", 1)[0]
-    for number in ("2", "3"):
-        levels = re.findall(r"<w:lvl .*?(<w:rPr>.*?</w:rPr>)</w:lvl>", abstract[number])
-        assert len(levels) == 9
-        # level 1 is Heading 1 as the front matter set it: its font, size, colour, underline
-        psk = '<w:rFonts w:ascii="TH SarabunPSK" w:hAnsi="TH SarabunPSK" w:cs="TH SarabunPSK"/>'
-        assert levels[0] == ("<w:rPr>" + psk + '<w:b/><w:bCs/><w:color w:val="1F4E79"/><w:sz w:val="44"/><w:szCs w:val="44"/><w:u w:val="single"/>'
-                             + wr.LANG + "</w:rPr>")
-        assert heading1 == psk.replace("/>", ' w:eastAsia="TH SarabunPSK"/>') + levels[0][len("<w:rPr>") + len(psk):-len(wr.LANG + "</w:rPr>")]
-        # level 2 is the built-in Heading 2 in the document's font: 18 pt, bold
-        assert levels[1] == "<w:rPr>" + font + '<w:b/><w:bCs/><w:sz w:val="36"/><w:szCs w:val="36"/>' + wr.LANG + "</w:rPr>"
-        assert heading2 == levels[1][len("<w:rPr>") + len(font):-len(wr.LANG + "</w:rPr>")]
-        assert '<w:i/><w:iCs/><w:sz w:val="32"/>' in levels[3] and "<w:b/>" not in levels[5], "Heading 4 italic, Heading 6 not bold"
-        assert levels[6:] == [body] * 3, "levels past Heading 6 take the body's"
+    psk = '<w:rFonts w:ascii="TH SarabunPSK" w:hAnsi="TH SarabunPSK" w:cs="TH SarabunPSK"'
+    assert heading1.startswith(psk + ' w:eastAsia="TH SarabunPSK"/><w:b/><w:bCs/><w:color w:val="1F4E79"/><w:sz w:val="44"/>')
     link = styles.split('w:styleId="Hyperlink"', 1)[1].split("</w:style>", 1)[0]
     assert font in link, "the entries a rebuilt list writes are hyperlink runs"
     normal = styles.split('w:styleId="Normal"', 1)[1].split("</w:style>", 1)[0]
@@ -983,8 +1124,22 @@ def test_thai_digits_format_the_numbers_word_generates_and_never_the_text(tmp_pa
         assert ('<w:pgNumType w:fmt="thaiNumbers"/></w:sectPr>' in sect) is thai, "page numbers, in the header and the table of contents"
         assert ('<w:footnotePr><w:numFmt w:val="thaiNumbers"/></w:footnotePr><w:pgSz' in sect) is thai
         assert ('<w:footnotePr><w:numFmt w:val="thaiNumbers"/><w:footnote w:id="-1"/>' in settings) is thai
-        assert numbering.count('w:numFmt w:val="thaiNumbers"') == (9 if thai else 0) and numbering.count('w:numFmt w:val="bullet"') == 9
-        assert " PAGE " in header and "2567" in doc and "12" in doc and "๒" not in doc, "the text keeps its own digits"
+        # the ordered list's number is the build's own text, in Thai digits when asked, so the
+        # package numbers the bullets and nothing else (ADR 0036)
+        assert numbering.count("w:numFmt") == 9 == numbering.count('w:numFmt w:val="bullet"')
+        # the page number and the footnote mark are formats only the application can apply
+        assert " PAGE " in header and "2567" in doc and "12" in doc, "the text keeps its own digits"
+        said = fi.docx_text({n: zipfile.ZipFile(out).read(n) for n in zipfile.ZipFile(out).namelist()}, 1)
+        assert [t for t in said if t.endswith(("หนึ่ง", "สอง"))] == (["๑.\tหนึ่ง", "๒.\tสอง"] if thai else ["1.\tหนึ่ง", "2.\tสอง"])
+        # asked to count, the application takes the list, in the format the digits name
+        counted, out2 = build(tmp_path, text, **{**opts, "auto_numbering": True})
+        with zipfile.ZipFile(out2) as zf:
+            numbering2 = zf.read("word/numbering.xml").decode()
+            said2 = fi.docx_text({n: zf.read(n) for n in zf.namelist()}, 1)
+        assert counted["ok"] and counted["findings"] == []
+        assert numbering2.count("w:numFmt") == 18 and numbering2.count('w:numFmt w:val="' + ("thaiNumbers" if thai else "decimal") + '"') == 9
+        assert [t for t in said2 if t.endswith(("หนึ่ง", "สอง"))] == ["หนึ่ง", "สอง"]
+        assert "ปี 2567 ข้อ 12" in said, "a digit the author typed is never translated"
     _, out = build(tmp_path, "ก", thai_digits=True)
     assert "footnotePr" not in zipfile.ZipFile(out).read("word/document.xml").decode(), "no footnotes, no footnote format"
 

@@ -164,14 +164,21 @@ function numberText(n, fmt, thai) {
   return thai ? thaiDigits(String(n)) : String(n);
 }
 const SECTION_MARK = "\x00"; // between sections in the body; the input can hold no control character
-const LIST_FIELDS = { toc: 'TOC \\o "1-3" \\h \\z \\u', "list-of-tables": 'TOC \\h \\z \\c "Table"', "list-of-figures": 'TOC \\h \\z \\c "Figure"' };
+// A caption of each kind takes a style of its own, and a list collects that style: \c collects
+// SEQ fields, which a caption stopped carrying when its number became text (ADR 0036).
+const CAPTION_STYLE = { table: "TableCaption", figure: "FigureCaption" };
+const CAPTION_STYLE_NAME = { table: "Table Caption", figure: "Figure Caption" };
+const LIST_FIELDS = {
+  toc: 'TOC \\o "1-3" \\h \\z \\u',
+  "list-of-tables": 'TOC \\h \\z \\t "' + CAPTION_STYLE_NAME.table + ',1"',
+  "list-of-figures": 'TOC \\h \\z \\t "' + CAPTION_STYLE_NAME.figure + ',1"',
+};
 const CAPTION_PREFIX = { table: "Table:", figure: "Figure:" };
 // What a Thai writer reaches for instead. These make no caption — the prefix is one word,
 // written in English, so one rule holds in both languages — but a paragraph that opens with
 // one of them where a caption would go is a mistake worth naming (ADR 0021).
 const THAI_CAPTION_PREFIX = { table: ["ตาราง:", "ตารางที่:"], figure: ["รูป:", "รูปที่:", "ภาพ:", "ภาพที่:"] };
 const PLAIN_KEYS = ["link", "code", "b", "i", "strike", "u", "sup", "sub"];
-const thaiDigits = (s) => s.replace(/[0-9]/g, (d) => "๐๑๒๓๔๕๖๗๘๙"[Number(d)]);
 
 // "table" or "figure" for a paragraph that opens with plain `Table:` or `Figure:`.
 function captionKind(b) {
@@ -261,6 +268,7 @@ function layout(doc, opts) {
   let chapter = 0;
   let appendix = 0;
   let counters = { table: 0, figure: 0 };
+  const sub = [0, 0, 0, 0, 0, 0]; // the counter of each heading level (ADR 0036)
   let lastLevel = 0;  // the heading level before this one: a jump leaves a gap in the outline
   const blocks = doc.blocks;
   blocks.forEach((b, i) => {
@@ -288,6 +296,11 @@ function layout(doc, opts) {
         appendix += 1;
         item.number = opts.appendix_label + " " + numberText(appendix, opts.appendix_numbers, opts.thai_digits);
       }
+    }
+    if (b.t === "heading") {
+      countHeading(b.level, sub);
+      const number = headingNumber(b.level, sub, sectioned ? region : "chapters", sectioned, chapter, appendix, opts);
+      if (number !== null) item.number = number;
     }
     for (const n of b.inlines || []) {
       if (n.t === "image" && !stripChars(n.alt, " \t")) {
@@ -339,6 +352,38 @@ function layout(doc, opts) {
     items.push(item);
   });
   return [items, regions, warnings];
+}
+
+// A heading advances its own level's counter and starts the deeper ones again.
+function countHeading(level, sub) {
+  sub[level - 1] += 1;
+  for (let k = level; k < sub.length; k++) sub[k] = 0;
+}
+
+// The number a heading carries, or null for a heading that carries none. Written into the
+// document as text rather than left to the application to compute (ADR 0036).
+function headingNumber(level, sub, region, sectioned, chapter, appendix, opts) {
+  if (level > 1 && !opts.heading_numbers) return null;
+  if (sectioned && region !== "chapters" && region !== "appendices") return null;
+  const thai = opts.thai_digits;
+  let first, label;
+  if (region === "appendices") {
+    if (!appendix) return null;
+    first = numberText(appendix, opts.appendix_numbers, thai);
+    label = opts.appendix_label;
+  } else if (sectioned) {
+    if (!chapter) return null;
+    first = numberText(chapter, "decimal", thai);
+    label = opts.chapter_label;
+  } else {
+    if (!opts.heading_numbers) return null;
+    first = numberText(sub[0], "decimal", thai);
+    label = null;
+  }
+  if (level === 1) return label === null ? first + "." : label + " " + first;
+  const parts = [first];
+  for (let k = 1; k < level; k++) parts.push(numberText(sub[k], "decimal", thai));
+  return parts.join(".");
 }
 
 const LIST_KINDS = { "list-of-tables": "table", "list-of-figures": "figure" };

@@ -6,10 +6,10 @@ footnotes, headers and footers, core properties, content types and relationships
 
 from __future__ import annotations
 
-from .layout import list_entries
+from .layout import CAPTION_STYLE, CAPTION_STYLE_NAME, list_entries
 from .ooxml import W
 from .settings import APPENDIX_NUMBERS, FRONT_NUMBERS, half_up
-from .writer import CODE_FONT, LANG, NS_R, REL, SECTION_MARK, XML, Writer, attr, esc
+from .writer import CODE_FONT, DRAWING, NS_R, REL, SECTION_MARK, XML, Writer, attr, esc
 
 
 def _end_section(xml: str, sect: str) -> str:
@@ -93,7 +93,7 @@ class Package(Writer):
         return (
             XML + '<w:document xmlns:w="' + W + '" xmlns:r="' + NS_R + '" '
             'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
-            'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
+            'xmlns:a="' + DRAWING + '" '
             'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
             "<w:body>" + toc + body + "</w:body></w:document>"
         )
@@ -105,8 +105,8 @@ class Package(Writer):
             '<w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>'
             '<w:r><w:continuationSeparator/></w:r></w:p></w:footnote>',
         ]
-        mark = ('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + LANG + "</w:rPr><w:footnoteRef/></w:r>"
-                "<w:r><w:rPr>" + LANG + "</w:rPr><w:tab/></w:r>")
+        mark = ('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + self.lang + "</w:rPr><w:footnoteRef/></w:r>"
+                "<w:r><w:rPr>" + self.lang + "</w:rPr><w:tab/></w:r>")
         for fid, label in enumerate(self.doc.footnote_order, 1):
             self.counts["footnotes"] += 1
             blocks = self.doc.footnotes[label]
@@ -135,10 +135,10 @@ class Package(Writer):
             name, rest = self.heading_run(n)
             face = attr(name) if name is not None else ""
             rpr = ("<w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + " w:eastAsia=" + face + "/>" if face else "") + rest
-            num = ('<w:numPr><w:ilvl w:val="' + str(n - 1) + '"/><w:numId w:val="' + str(self.heading_num_id()) + '"/></w:numPr>'
-                   if n in self.numbered_levels() else "")
             spacing = '<w:spacing w:before="' + str(p.get("before", 240 if n == 1 else 200)) + '" w:after="' + str(p.get("after", 80)) + '"'
             spacing += (' w:line="' + str(p["line"]) + '" w:lineRule="auto"/>') if "line" in p else "/>"
+            num = ('<w:numPr><w:ilvl w:val="' + str(n - 1) + '"/><w:numId w:val="' + str(self.heading_num_id()) + '"/></w:numPr>'
+                   if self.heading_numbering() and n in self.numbered_levels() else "")
             ind = ""
             if "left" in p or "first" in p:
                 ind = "<w:ind" + (' w:left="' + str(p["left"]) + '"' if "left" in p else "")
@@ -169,8 +169,14 @@ class Package(Writer):
             applied += own("TOC1", "toc 1") + own("TOC2", "toc 2", '<w:ind w:left="240"/>') + own("TOC3", "toc 3", '<w:ind w:left="480"/>')
         for kind in self.page_parts():
             applied += own(kind.capitalize(), kind)
-        if any("caption" in item for item in self.items):
+        kinds = {item["caption"]["kind"] for item in self.items if "caption" in item}
+        if kinds:
+            # a caption style of its own for each kind: the list of tables and the list of figures
+            # collect the paragraphs in one style, where they used to collect SEQ fields (ADR 0036)
             applied += own("Caption", "caption", '<w:spacing w:before="120" w:after="120"/>')
+            for kind in sorted(kinds):
+                applied += ('<w:style w:type="paragraph" w:styleId="' + CAPTION_STYLE[kind] + '"><w:name w:val="'
+                            + CAPTION_STYLE_NAME[kind] + '"/><w:basedOn w:val="Caption"/><w:next w:val="Normal"/></w:style>')
         if any(item["block"]["t"] == "directive" and item["block"]["name"] != "toc" for item in self.items):
             applied += own("TableofFigures", "table of figures")
         if any(item["block"]["t"] == "directive" and item["block"]["name"] == "toc" for item in self.items) and not self.opts["toc"]:
@@ -184,7 +190,8 @@ class Package(Writer):
             XML + '<w:styles xmlns:w="' + W + '">'
             "<w:docDefaults><w:rPrDefault><w:rPr>"
             "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>"
-            '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/><w:cs/><w:lang w:val="en-US" w:eastAsia="en-US" w:bidi="th-TH"/>'
+            '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/><w:cs/><w:lang w:val="en-US" w:eastAsia="en-US"'
+            + (' w:bidi="th-TH"' if self.opts["thai_language"] else "") + "/>"
             "</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr>"
             '<w:spacing w:after="120" w:line="' + str(half_up(self.opts["line_spacing"] * 240)) + '" w:lineRule="auto"/>' + jc
             + "</w:pPr></w:pPrDefault></w:docDefaults>"
@@ -192,7 +199,7 @@ class Package(Writer):
             # styles but not w:docDefaults (WPS numbers one) then still has the font and size
             '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:rPr>'
             "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>"
-            '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + LANG + "</w:rPr></w:style>"
+            '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + self.lang + "</w:rPr></w:style>"
             + "".join(heading(n) for n in range(1, 7))
             + '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/>'
             '<w:pPr><w:ind w:left="720"/><w:contextualSpacing/></w:pPr></w:style>'
@@ -213,18 +220,22 @@ class Package(Writer):
             "</w:styles>"
         )
 
-    def heading_num_id(self) -> int:
-        """After every ordered list's numId, which the body has handed out by the time styles are written."""
-        return len(self.nums) + 2
+    def heading_numbering(self) -> bool:
+        """Whether the package numbers the headings: not where the numbers are the build's own
+        text, and not where no heading takes a number at all."""
+        return not self.numbers_are_text() and any(
+            "number" in item and item["region"] != "appendices" for item in self.items)
 
     def numbering_xml(self) -> str:
+        """The bullet list, and — unless the numbers are the build's own text (ADR 0036) — the
+        ordered lists, the headings and the appendices."""
         font, size = attr(self.opts["font"]), self.opts["size"]
         fmt = "thaiNumbers" if self.opts["thai_digits"] else "decimal"
         # a level with no font of its own is drawn in the application's default, which need
         # not carry Thai: WPS showed "บทที่ ๑" as Latin letters until every level named one
         half = str(half_up(size * 2))
         level_font = ("<w:rPr><w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + "/>"
-                      '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + LANG + "</w:rPr>")
+                      '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + self.lang + "</w:rPr>")
 
         def heading_font(ilvl: int) -> str:
             """A heading level's number is drawn as its heading is — "บทที่ 1" at Heading 1's size,
@@ -233,7 +244,7 @@ class Package(Writer):
                 return level_font
             name, rest = self.heading_run(ilvl + 1)
             face = attr(name) if name is not None else font
-            return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + LANG + "</w:rPr>"
+            return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + self.lang + "</w:rPr>"
         bullet = "".join(
             '<w:lvl w:ilvl="' + str(ilvl) + '"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/>'
             '<w:pPr><w:ind w:left="' + str(720 * (ilvl + 1)) + '" w:hanging="360"/></w:pPr>' + level_font + "</w:lvl>"
@@ -250,8 +261,16 @@ class Package(Writer):
             + '"><w:startOverride w:val="' + str(start) + '"/></w:lvlOverride></w:num>'
             for nid, start, level in self.nums
         )
+        if self.numbers_are_text():
+            return (
+                XML + '<w:numbering xmlns:w="' + W + '">'
+                '<w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>' + bullet + "</w:abstractNum>"
+                '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num></w:numbering>'
+            )
         headings = ""
-        levels_on = self.numbered_levels()
+        # a list only where a heading takes a number: a label that reaches no heading changes no
+        # byte, and the settings registry says so (ADR 0028)
+        levels_on = self.numbered_levels() if self.heading_numbering() else set()
         if levels_on:
             # "1." for a # heading — "บทที่ 1" with chapters — then "1.1", "1.1.1" ... followed by a space, no hanging indent
             def lvl_text(ilvl: int) -> str:
@@ -267,7 +286,7 @@ class Package(Writer):
             )
             headings = '<w:abstractNum w:abstractNumId="2"><w:multiLevelType w:val="multilevel"/>' + levels + "</w:abstractNum>"
             nums += '<w:num w:numId="' + str(self.heading_num_id()) + '"><w:abstractNumId w:val="2"/></w:num>'
-        if "appendices" in self.regions:
+        if any("number" in item and item["region"] == "appendices" for item in self.items):
             # "ภาคผนวก ก", then "ก.1", "ก.1.1" with --heading-numbers; set on each heading, linked to no style
             first = APPENDIX_NUMBERS[self.opts["appendix_numbers"]]
             first = "thaiNumbers" if first == "decimal" and self.opts["thai_digits"] else first
@@ -282,8 +301,76 @@ class Package(Writer):
         return (
             XML + '<w:numbering xmlns:w="' + W + '">'
             '<w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>' + bullet + "</w:abstractNum>"
-            '<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>' + decimal + "</w:abstractNum>"
+            # the ordered lists' definition only where there is one: a flag that reaches nothing
+            # changes no byte, and the settings registry says so (ADR 0028)
+            + ('<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>' + decimal + "</w:abstractNum>"
+               if self.nums else "")
             + headings + nums + "</w:numbering>"
+        )
+
+    def captions_xml(self) -> str:
+        """The caption labels the document uses, so Word's own Insert Caption offers them.
+
+        Only where the application counts (`--auto-numbering`): a reader who inserts a caption
+        there continues the document's numbering, and one who inserts a caption into a document
+        whose numbers are text would start a counter of its own beside them — the half-numbered
+        document ADR 0036 refuses. Word keeps a label the user makes in their own profile, not in
+        the file; written here, the label travels with the document, already carrying its number
+        format, its chapter number and the side of the table or figure it belongs on."""
+        if self.numbers_are_text():
+            return ""
+        kinds = [k for k in ("table", "figure") if any(item.get("caption", {}).get("kind") == k for item in self.items)]
+        if not kinds:
+            return ""
+        fmt = "thaiNumbers" if self.opts["thai_digits"] else "decimal"
+        chapter = "1" if self.regions else "0"
+        # a table's caption goes above it and a figure's below it, as the build writes them
+        pos = {"table": "above", "figure": "below"}
+        return "<w:captions>" + "".join(
+            "<w:caption w:name=" + attr(self.opts[kind + "_label"]) + ' w:pos="' + pos[kind] + '" w:chapNum="' + chapter
+            + '" w:heading="0" w:noLabel="0" w:numFmt="' + fmt + '" w:sep="hyphen"/>'
+            for kind in kinds
+        ) + "</w:captions>"
+
+    def theme_xml(self) -> str:
+        """The theme, naming this document's font as the document's own.
+
+        A package with no theme leaves Word to resolve `+Body` and `+Headings` against its own
+        built-in Office theme, and everything Word makes afterwards — a table it inserts, the
+        `Caption` style it creates the first time a caption is inserted — comes out in that
+        theme's Latin font instead of the document's, with the font box showing no name at all.
+        `w:themeFontLang` in settings.xml already says which language takes which theme font; this
+        is the part it points at. Generated matter carries what an application would otherwise
+        supply (ADR 0027).
+
+        Nothing in the document refers to the theme: every style names its fonts outright, so the
+        theme changes no run this build writes. It is there for what the reader adds."""
+        font = attr(self.opts["font"])
+        faces = "".join("<a:" + tag + " typeface=" + font + "/>" for tag in ("latin", "ea", "cs"))
+        # a colour scheme is required, and these are the twelve the Office theme names
+        colours = "".join(
+            "<a:" + tag + ">" + ('<a:sysClr val="' + val + '" lastClr="' + last + '"/>' if val.startswith("window")
+                                 else '<a:srgbClr val="' + val + '"/>') + "</a:" + tag + ">"
+            for tag, val, last in (
+                ("dk1", "windowText", "000000"), ("lt1", "window", "FFFFFF"), ("dk2", "44546A", ""),
+                ("lt2", "E7E6E6", ""), ("accent1", "4472C4", ""), ("accent2", "ED7D31", ""),
+                ("accent3", "A5A5A5", ""), ("accent4", "FFC000", ""), ("accent5", "5B9BD5", ""),
+                ("accent6", "70AD47", ""), ("hlink", "0563C1", ""), ("folHlink", "954F72", ""))
+        )
+        # three of each is what the format asks for; a document this skill writes uses none of them
+        fill = '<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'
+        line = '<a:ln w="6350" cap="flat" cmpd="sng" algn="ctr">' + fill + '<a:prstDash val="solid"/></a:ln>'
+        return (
+            XML + '<a:theme xmlns:a="' + DRAWING + '" name="Office Theme"><a:themeElements>'
+            '<a:clrScheme name="Office">' + colours + "</a:clrScheme>"
+            '<a:fontScheme name="Office"><a:majorFont>' + faces + "</a:majorFont>"
+            "<a:minorFont>" + faces + "</a:minorFont></a:fontScheme>"
+            '<a:fmtScheme name="Office">'
+            "<a:fillStyleLst>" + fill * 3 + "</a:fillStyleLst>"
+            "<a:lnStyleLst>" + line * 3 + "</a:lnStyleLst>"
+            "<a:effectStyleLst>" + "<a:effectStyle><a:effectLst/></a:effectStyle>" * 3 + "</a:effectStyleLst>"
+            "<a:bgFillStyleLst>" + fill * 3 + "</a:bgFillStyleLst>"
+            "</a:fmtScheme></a:themeElements></a:theme>"
         )
 
     def settings_xml(self) -> str:
@@ -309,8 +396,9 @@ class Package(Writer):
             '<w:compatSetting w:name="doNotFlipMirrorIndents"' + uri + 'w:val="1"/>'
             '<w:compatSetting w:name="differentiateMultirowTableHeaders"' + uri + 'w:val="1"/>'
             "</w:compat>"
-            '<w:themeFontLang w:val="en-US" w:bidi="th-TH"/>'
+            '<w:themeFontLang w:val="en-US"' + (' w:bidi="th-TH"' if self.opts["thai_language"] else "") + "/>"
         )
+        parts.append(self.captions_xml())
         return XML + '<w:settings xmlns:w="' + W + '">' + "".join(parts) + "</w:settings>"
 
     def footnote_format(self) -> str:
@@ -341,7 +429,7 @@ class Package(Writer):
         style = '<w:pStyle w:val="' + kind.capitalize() + '"/>'
         body = ""
         if self.opts[kind] is not None:
-            body += ("<w:p><w:pPr>" + style + '<w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + LANG + '</w:rPr><w:t xml:space="preserve">'
+            body += ("<w:p><w:pPr>" + style + '<w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + self.lang + '</w:rPr><w:t xml:space="preserve">'
                      + esc(self.opts[kind]) + "</w:t></w:r></w:p>")
         if self.opts["page_numbers"] and self.page_number_part() == kind and not first:
             body += self.field("PAGE", style + '<w:jc w:val="' + self.opts["page_numbers"].split("-")[1] + '"/>')
@@ -368,11 +456,13 @@ class Package(Writer):
             ("/word/styles.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"),
             ("/word/settings.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"),
             ("/word/numbering.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"),
+            ("/word/theme/theme1.xml", "application/vnd.openxmlformats-officedocument.theme+xml"),
             ("/docProps/core.xml", "application/vnd.openxmlformats-package.core-properties+xml"),
         ]
         self.rel(REL + "styles", "styles.xml")
         self.rel(REL + "settings", "settings.xml")
         self.rel(REL + "numbering", "numbering.xml")
+        self.rel(REL + "theme", "theme/theme1.xml")
         footnotes = None
         if self.doc.footnote_order:
             self.rel(REL + "footnotes", "footnotes.xml")
@@ -400,6 +490,7 @@ class Package(Writer):
             ("word/styles.xml", self.styles_xml()),
             ("word/settings.xml", self.settings_xml()),
             ("word/numbering.xml", self.numbering_xml()),
+            ("word/theme/theme1.xml", self.theme_xml()),
         ]
         if footnotes is not None:
             parts.append(("word/footnotes.xml", footnotes))

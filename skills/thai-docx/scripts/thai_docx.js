@@ -202,7 +202,7 @@ function sticky(source, flags) {
 
 // ---- 10-zip.js -------------------------------------------------------------
 // thai-docx — zip: writing stored entries, and reading stored or deflated entries
-// by the rules ADR 0017 numbers, as thai_docx/package.py does (ADR 0008, 0011 §7).
+// by the rules ADR 0017 numbers, as thai_docx/package.py does (ADR 0008, 0030 §9).
 
 class ZipError extends Error {}
 
@@ -249,7 +249,7 @@ function packZip(parts) {
 
 // The package again, in the order it had: an entry named in `replace` is written anew, every
 // other entry keeps the bytes it already had — its method, its checksum, its sizes and its
-// date (ADR 0032). A rewritten entry is compressed by this project's own deflate, which both
+// date (ADR 0037). A rewritten entry is compressed by this project's own deflate, which both
 // implementations run to the same bytes by construction (ADR 0008).
 function repackZip(b, ents, replace) {
   const names = new Set(ents.map((e) => e.name));
@@ -1018,7 +1018,7 @@ function parseXml(source) {
 
 // ---- 30-check.js -----------------------------------------------------------
 // thai-docx — check: the JavaScript port of scripts/thai_docx/check.py. Findings,
-// messages, counts and their order match it exactly (ADR 0004, 0005, 0008, 0011).
+// messages, counts and their order match it exactly (ADR 0004, 0023, 0008, 0030).
 
 const OOXML = {"invisible":{"\u200b":"U+200B ZERO WIDTH SPACE","\u200c":"U+200C ZERO WIDTH NON-JOINER","\u200d":"U+200D ZERO WIDTH JOINER","\u2060":"U+2060 WORD JOINER","\ufeff":"U+FEFF ZERO WIDTH NO-BREAK SPACE"},"ppr_order":["pStyle","keepNext","keepLines","pageBreakBefore","framePr","widowControl","numPr","suppressLineNumbers","pBdr","shd","tabs","suppressAutoHyphens","kinsoku","wordWrap","overflowPunct","topLinePunct","autoSpaceDE","autoSpaceDN","bidi","adjustRightInd","snapToGrid","spacing","ind","contextualSpacing","mirrorIndents","suppressOverlap","jc","textDirection","textAlignment","textboxTightWrap","outlineLvl","divId","cnfStyle","rPr","sectPr","pPrChange"],"rpr_order":["rStyle","rFonts","b","bCs","i","iCs","caps","smallCaps","strike","dstrike","outline","shadow","emboss","imprint","noProof","snapToGrid","vanish","webHidden","color","spacing","w","kern","position","sz","szCs","highlight","u","effect","bdr","shd","fitText","vertAlign","rtl","cs","em","lang","eastAsianLayout","specVanish","oMath","rPrChange"],"settings_order":["writeProtection","view","zoom","removePersonalInformation","removeDateAndTime","doNotDisplayPageBoundaries","displayBackgroundShape","printPostScriptOverText","printFractionalCharacterWidth","printFormsData","embedTrueTypeFonts","embedSystemFonts","saveSubsetFonts","saveFormsData","mirrorMargins","alignBordersAndEdges","bordersDoNotSurroundHeader","bordersDoNotSurroundFooter","gutterAtTop","hideSpellingErrors","hideGrammaticalErrors","activeWritingStyle","proofState","formsDesign","attachedTemplate","linkStyles","stylePaneFormatFilter","stylePaneSortMethod","documentType","mailMerge","revisionView","trackRevisions","doNotTrackMoves","doNotTrackFormatting","documentProtection","autoFormatOverride","styleLockTheme","styleLockQFSet","defaultTabStop","autoHyphenation","consecutiveHyphenLimit","hyphenationZone","doNotHyphenateCaps","showEnvelope","summaryLength","clickAndTypeStyle","defaultTableStyle","evenAndOddHeaders","bookFoldRevPrinting","bookFoldPrinting","bookFoldPrintingSheets","drawingGridHorizontalSpacing","drawingGridVerticalSpacing","displayHorizontalDrawingGridEvery","displayVerticalDrawingGridEvery","doNotUseMarginsForDrawingGridOrigin","drawingGridHorizontalOrigin","drawingGridVerticalOrigin","doNotShadeFormData","noPunctuationKerning","characterSpacingControl","printTwoOnOne","strictFirstAndLastChars","noLineBreaksAfter","noLineBreaksBefore","savePreviewPicture","doNotValidateAgainstSchema","saveInvalidXml","ignoreMixedContent","alwaysShowPlaceholderText","doNotDemarcateInvalidXml","saveXmlDataOnly","useXSLTWhenSaving","saveThroughXslt","showXMLTags","alwaysMergeEmptyNamespace","updateFields","hdrShapeDefaults","footnotePr","endnotePr","compat","docVars","rsids","mathPr","attachedSchema","themeFontLang","clrSchemeMapping","doNotIncludeSubdocsInStats","doNotAutoCompressPictures","forceUpgrade","captions","readModeInkLockDown","smartTagType","schemaLibrary","shapeDefaults","doNotEmbedSmartTags","decimalSymbol","listSeparator"],"thai_fonts":["angsana new","angsanaupc","anuphan","arial unicode ms","athiti","ayuthaya","bai jamjuree","browallia new","browalliaupc","chakra petch","charm","charmonman","chonburi","cordia new","cordiaupc","dilleniaupc","eucrosiaupc","fahkwang","freesiaupc","garuda","ibm plex sans thai","ibm plex sans thai looped","irisupc","itim","jasmineupc","k2d","kanit","kinnari","kodchasan","kodchiangupc","koho","krub","krungthep","laksaman","leelawadee","leelawadee ui","libre sarabun","lilyupc","loma","maitree","mali","microsoft sans serif","mitr","niramit","norasi","noto sans thai","noto sans thai looped","noto sans thai ui","noto serif thai","pattaya","pridi","prompt","purisa","sarabun","sathu","sawasdee","segoe ui","silom","sriracha","srisakdi","tahoma","taviraj","th baijam","th chakra petch","th charm of au","th charmonman","th fah kwang","th k2d july8","th kodchasal","th koho","th krub","th mali grade6","th niramit as","th sarabun new","th sarabun psk","th sarabunpsk","th srisakdi","thasadith","thonburi","tlwg typist","tlwg typo","tlwgmono","trirong","umpush","waree"]};
 
@@ -1240,7 +1240,9 @@ function checkTextPart(name, root, report) {
           report.find("2", name, "a run with text has no <w:cs/> element");
         } else {
           const lang = rpr.find(w("lang"));
-          if (lang === null || lang.get(w("bidi")) !== "th-TH") report.find("2", name, 'a run with text has no <w:lang w:bidi="th-TH"/>');
+          if (lang !== null && lang.get(w("bidi")) === "th-TH") {
+            report.counts.thai_language_runs = (report.counts.thai_language_runs || 0) + 1;
+          }
         }
         for (const t of texts) {
           for (const ch of Object.keys(INVISIBLE)) {
@@ -3009,7 +3011,7 @@ function parseMarkdown(text) {
   for (let no = 1; no <= rawLines.length; no++) {
     for (const ch of rawLines[no - 1]) {
       const label = forbiddenChar(ch);
-      if (label !== null) throw new Unsupported(no, "text contains " + label + "; the build refuses it (ADR 0005, 0015)");
+      if (label !== null) throw new Unsupported(no, "text contains " + label + "; the build refuses it (ADR 0023, 0015)");
     }
     // ำ written the long way. No normalisation joins these: NFC leaves them apart and NFKC
     // takes ำ the other way, into these two. So it is named and left alone (ADR 0034).
@@ -3024,7 +3026,7 @@ function parseMarkdown(text) {
   doc.blocks = toBlocks(bp, root, doc);
   for (const [label, fn] of bp.footnoteDefs) {
     if (!doc.footnotes.has(label)) {
-      throw new Unsupported(fn.line, "footnote [^" + fn.label + "] is defined but never referenced; nothing may be dropped silently (ADR 0005)");
+      throw new Unsupported(fn.line, "footnote [^" + fn.label + "] is defined but never referenced; nothing may be dropped silently (ADR 0023)");
     }
   }
   // a link definition nobody refers to is dropped by CommonMark itself. This project promises
@@ -3287,17 +3289,42 @@ function toBlocks(bp, node, doc) {
   return out;
 }
 
-function plainText(blocks) {
+const THAI_DIGITS = { "0": "\u0e50", "1": "\u0e51", "2": "\u0e52", "3": "\u0e53", "4": "\u0e54",
+  "5": "\u0e55", "6": "\u0e56", "7": "\u0e57", "8": "\u0e58", "9": "\u0e59" };
+
+function thaiDigits(text) {
+  let out = "";
+  for (const ch of text) out += THAI_DIGITS[ch] === undefined ? ch : THAI_DIGITS[ch];
+  return out;
+}
+
+// Every paragraph's text, in document order. Hard breaks are newlines; task markers are □/■
+// (ADR 0033); an ordered list's number is text and comes with the tab after it (ADR 0036); a
+// bullet is drawn by the numbering part and is not text.
+function plainText(blocks, numbersAreText, thai) {
   const out = [];
   for (const b of blocks) {
     const t = b.t;
     if (t === "paragraph" || t === "heading") out.push(inlineText(b.inlines));
     else if (t === "code") out.push(...(b.lines.length ? b.lines : [""]));
-    else if (t === "quote") out.push(...plainText(b.blocks));
+    else if (t === "quote") out.push(...plainText(b.blocks, numbersAreText, thai));
     else if (t === "list") {
-      for (const item of b.items) {
-        if (!item.length || item[0].t !== "paragraph") out.push("");
-        out.push(...plainText(item));
+      for (let n = 0; n < b.items.length; n++) {
+        const item = b.items[n];
+        const task = item.length && item[0].t === "paragraph" && item[0].inlines.length && item[0].inlines[0].t === "task";
+        let marker = "";
+        if (numbersAreText && b.ordered && !task) {
+          const number = String(b.start + n);
+          marker = (thai ? thaiDigits(number) : number) + ".\t";
+        }
+        if (!item.length || item[0].t !== "paragraph") {
+          out.push(marker);
+          out.push(...plainText(item, numbersAreText, thai));
+          continue;
+        }
+        const lines = plainText(item, numbersAreText, thai);
+        if (lines.length) out.push(marker + lines[0], ...lines.slice(1));
+        else out.push(marker);
       }
     } else if (t === "table") {
       for (const row of b.rows) for (const cell of row) out.push(inlineText(cell));
@@ -3334,10 +3361,15 @@ const STRUCTURES = {
   tables: "the document has no table",
   "table captions": "the document has no 'Table:' caption",
   "figure captions": "the document has no 'Figure:' caption",
+  captions: "the document has no 'Table:' or 'Figure:' caption",
+  images: "the document has no image on a line of its own",
   "chapters or appendices": "the document has no <!-- chapters --> or <!-- appendices --> comment",
   "numbered headings": "no heading carries a chapter or appendix number; a # heading under <!-- chapters --> or <!-- appendices --> does",
   appendices: "the document has no <!-- appendices --> comment",
+  "appendix headings": "no heading carries an appendix letter; a # heading under <!-- appendices --> does",
+  "chapter headings": "no heading carries a chapter number; a # heading under <!-- chapters --> does",
   front: "the document has no <!-- front --> comment",
+  numbers: "the document has no numbered heading, ordered list or caption",
 };
 const CLASHES = {
   "toc comment": "the document places a table of contents with <!-- toc --> as well, so it now has two",
@@ -3371,8 +3403,12 @@ const SETTINGS = [
     read: ["text", 200, "\t\n"], takes: "text of 1 to 200 characters on one line", usage: "TEXT", report: ["header", "value"] },
   { key: "footer", flag: "--footer", kind: "option", default: null, layer: 2, // centred at the bottom of every page
     read: ["text", 200, "\t\n"], takes: "text of 1 to 200 characters on one line", usage: "TEXT", report: ["footer", "value"] },
+  { key: "thai_language", flag: "--thai-language", kind: "switch", default: false, layer: 1,
+    report: ["thai_language", "value"] },
   { key: "thai_digits", flag: "--thai-digits", kind: "switch", default: false, layer: 2, // numbers Word generates; never the text
     report: ["thai_digits", "value"] },
+  { key: "auto_numbering", flag: "--auto-numbering", kind: "switch", default: false, layer: 2, // who counts: the build, or the application
+    needs: "numbers", report: ["auto_numbering", "value"] },
   { key: "hide_spelling_errors", flag: "--hide-spelling-errors", kind: "switch", default: false, layer: 1,
     report: ["hide_spelling_errors", "value"] },
   { key: "repeat_table_header", flag: "--no-repeat-table-header", kind: "off", default: true, layer: 3,
@@ -3382,17 +3418,24 @@ const SETTINGS = [
   { key: "table_size", flag: "--table-size", kind: "option", default: null, layer: 3, // null: the body size
     read: ["points", 1, 400], takes: "a number of points from 1 to 400", usage: "PT", report: ["table_size_pt", "value"] },
   { key: "chapter_label", flag: "--chapter-label", kind: "value", default: "บทที่", layer: 5,
-    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "chapters or appendices", report: ["chapter_label", "value"] },
+    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "chapter headings", report: ["chapter_label", "value"] },
   { key: "table_label", flag: "--table-label", kind: "value", default: "ตารางที่", layer: 5,
     read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "table captions", report: ["table_label", "value"] },
   { key: "figure_label", flag: "--figure-label", kind: "value", default: "รูปที่", layer: 5,
     read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "figure captions", report: ["figure_label", "value"] },
+  { key: "caption_hanging_indent", flag: "--caption-hanging-indent", kind: "value", default: 0.0, layer: 5, // inches
+    read: ["number", 0, 4], takes: "a number of inches from 0 to 4", usage: "IN",
+    needs: "captions", report: ["caption_hanging_indent_in", "float"] },
+  { key: "center_images", flag: "--center-images", kind: "switch", default: false, layer: 5,
+    needs: "images", report: ["center_images", "value"] },
+  { key: "caption_matches_object", flag: "--caption-matches-object", kind: "switch", default: false, layer: 5,
+    needs: "figure captions", report: ["caption_matches_object", "value"] },
   { key: "front_page_numbers", flag: "--front-page-numbers", kind: "value", default: "thai-letters", layer: 5,
     read: ["choice", Object.keys(FRONT_NUMBERS)], takes: Object.keys(FRONT_NUMBERS).join(", "), needs: "front", report: ["front_page_numbers", "value"] },
   { key: "appendix_label", flag: "--appendix-label", kind: "value", default: "ภาคผนวก", layer: 5,
-    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "appendices", report: ["appendix_label", "value"] },
+    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "appendix headings", report: ["appendix_label", "value"] },
   { key: "appendix_numbers", flag: "--appendix-numbers", kind: "value", default: "thai-letters", layer: 5,
-    read: ["choice", Object.keys(APPENDIX_NUMBERS)], takes: Object.keys(APPENDIX_NUMBERS).join(", "), needs: "appendices", report: ["appendix_numbers", "value"] },
+    read: ["choice", Object.keys(APPENDIX_NUMBERS)], takes: Object.keys(APPENDIX_NUMBERS).join(", "), needs: "appendix headings", report: ["appendix_numbers", "value"] },
   { key: "chapter_title_on_new_line", flag: "--chapter-title-on-new-line", kind: "switch", default: false, layer: 5,
     needs: "numbered headings", report: ["chapter_title_on_new_line", "value"] },
 ];
@@ -3757,14 +3800,21 @@ function numberText(n, fmt, thai) {
   return thai ? thaiDigits(String(n)) : String(n);
 }
 const SECTION_MARK = "\x00"; // between sections in the body; the input can hold no control character
-const LIST_FIELDS = { toc: 'TOC \\o "1-3" \\h \\z \\u', "list-of-tables": 'TOC \\h \\z \\c "Table"', "list-of-figures": 'TOC \\h \\z \\c "Figure"' };
+// A caption of each kind takes a style of its own, and a list collects that style: \c collects
+// SEQ fields, which a caption stopped carrying when its number became text (ADR 0036).
+const CAPTION_STYLE = { table: "TableCaption", figure: "FigureCaption" };
+const CAPTION_STYLE_NAME = { table: "Table Caption", figure: "Figure Caption" };
+const LIST_FIELDS = {
+  toc: 'TOC \\o "1-3" \\h \\z \\u',
+  "list-of-tables": 'TOC \\h \\z \\t "' + CAPTION_STYLE_NAME.table + ',1"',
+  "list-of-figures": 'TOC \\h \\z \\t "' + CAPTION_STYLE_NAME.figure + ',1"',
+};
 const CAPTION_PREFIX = { table: "Table:", figure: "Figure:" };
 // What a Thai writer reaches for instead. These make no caption — the prefix is one word,
 // written in English, so one rule holds in both languages — but a paragraph that opens with
 // one of them where a caption would go is a mistake worth naming (ADR 0021).
 const THAI_CAPTION_PREFIX = { table: ["ตาราง:", "ตารางที่:"], figure: ["รูป:", "รูปที่:", "ภาพ:", "ภาพที่:"] };
 const PLAIN_KEYS = ["link", "code", "b", "i", "strike", "u", "sup", "sub"];
-const thaiDigits = (s) => s.replace(/[0-9]/g, (d) => "๐๑๒๓๔๕๖๗๘๙"[Number(d)]);
 
 // "table" or "figure" for a paragraph that opens with plain `Table:` or `Figure:`.
 function captionKind(b) {
@@ -3854,6 +3904,7 @@ function layout(doc, opts) {
   let chapter = 0;
   let appendix = 0;
   let counters = { table: 0, figure: 0 };
+  const sub = [0, 0, 0, 0, 0, 0]; // the counter of each heading level (ADR 0036)
   let lastLevel = 0;  // the heading level before this one: a jump leaves a gap in the outline
   const blocks = doc.blocks;
   blocks.forEach((b, i) => {
@@ -3881,6 +3932,11 @@ function layout(doc, opts) {
         appendix += 1;
         item.number = opts.appendix_label + " " + numberText(appendix, opts.appendix_numbers, opts.thai_digits);
       }
+    }
+    if (b.t === "heading") {
+      countHeading(b.level, sub);
+      const number = headingNumber(b.level, sub, sectioned ? region : "chapters", sectioned, chapter, appendix, opts);
+      if (number !== null) item.number = number;
     }
     for (const n of b.inlines || []) {
       if (n.t === "image" && !stripChars(n.alt, " \t")) {
@@ -3934,6 +3990,38 @@ function layout(doc, opts) {
   return [items, regions, warnings];
 }
 
+// A heading advances its own level's counter and starts the deeper ones again.
+function countHeading(level, sub) {
+  sub[level - 1] += 1;
+  for (let k = level; k < sub.length; k++) sub[k] = 0;
+}
+
+// The number a heading carries, or null for a heading that carries none. Written into the
+// document as text rather than left to the application to compute (ADR 0036).
+function headingNumber(level, sub, region, sectioned, chapter, appendix, opts) {
+  if (level > 1 && !opts.heading_numbers) return null;
+  if (sectioned && region !== "chapters" && region !== "appendices") return null;
+  const thai = opts.thai_digits;
+  let first, label;
+  if (region === "appendices") {
+    if (!appendix) return null;
+    first = numberText(appendix, opts.appendix_numbers, thai);
+    label = opts.appendix_label;
+  } else if (sectioned) {
+    if (!chapter) return null;
+    first = numberText(chapter, "decimal", thai);
+    label = opts.chapter_label;
+  } else {
+    if (!opts.heading_numbers) return null;
+    first = numberText(sub[0], "decimal", thai);
+    label = null;
+  }
+  if (level === 1) return label === null ? first + "." : label + " " + first;
+  const parts = [first];
+  for (let k = 1; k < level; k++) parts.push(numberText(sub[k], "decimal", thai));
+  return parts.join(".");
+}
+
 const LIST_KINDS = { "list-of-tables": "table", "list-of-figures": "figure" };
 
 // An entry is one line: a heading broken over two lines reads as one in the list.
@@ -3971,6 +4059,16 @@ function captionText(c) {
 // Package in 51-parts.js adds the other parts. The same Markdown, images and settings give
 // the same bytes (ADR 0008).
 
+// A text inline whose run properties are the ones a caption's label carries: bold, nothing else.
+function isBoldOnly(node) {
+  return Boolean(node.b) && !(node.i || node.strike || node.code || node.u || node.sup || node.sub || node.link);
+}
+
+// A text inline that carries any formatting of its own.
+function isFormatted(node) {
+  return Boolean(node.b || node.i || node.strike || node.code || node.u || node.sup || node.sub || node.link);
+}
+
 const CODE_FONT = "Consolas";
 // Styles whose own definition fixes the alignment — the styles part writes a <w:jc> into each
 // of them. A paragraph in one of these takes its style's alignment, so latinJc leaves it alone.
@@ -3985,9 +4083,15 @@ const BOX = "□ ", BOX_CHECKED = "■ ";
 const NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 const REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
 const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+const DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main"; // the theme, and a picture's own namespace
 const EMU_PER_PX = 9525;
 const EMU_PER_TWIP = 635;
-let LANG = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>';
+// Every run says it is complex script (ADR 0004, cause 1). Whether it also says *which*
+// complex-script language is --thai-language's to decide (ADR 0038): w:bidi="th-TH" is what tells
+// Word the text is Thai on a machine whose own complex-script language is not, and it is what
+// makes WPS Writer place SARA AM (ำ) over the wrong letter.
+const LANG = '<w:cs/><w:lang w:val="en-US"/>';
+const LANG_THAI = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>';
 // Thai marks above and below a consonant take no width of their own when a column is measured
 const THAI_MARKS = new Set([0x0e31, 0x0e34, 0x0e35, 0x0e36, 0x0e37, 0x0e38, 0x0e39, 0x0e3a, 0x0e47, 0x0e48, 0x0e49, 0x0e4a, 0x0e4b, 0x0e4c, 0x0e4d, 0x0e4e]);
 // Word's own table default; with no table style it would otherwise be 0 and text touches the borders
@@ -4056,10 +4160,13 @@ class Writer {
     this.rels = [];
     this.media = [];
     this.imageRel = new Map();
-    this.nums = [];
     this.docPr = 0;
+    this.hasOrderedList = false; // whether --auto-numbering has anything to count (ADR 0028)
+    this.imageTwips = 0; // the width the last image was drawn at, for --caption-matches-object
+    this.lang = opts.thai_language ? LANG_THAI : LANG;
     [this.headingProps, this.styleWarnings] = headingStyles(doc);
     [this.items, this.regions, this.layoutWarnings] = layout(doc, opts);
+    this.nums = [];
     this.hasChapters = this.regions.includes("chapters") || this.regions.includes("appendices"); // headings Word numbers by region
     this.counts = { headings: 0, paragraphs: 0, list_items: 0, tables: 0, table_rows: 0, code_blocks: 0, images: 0, footnotes: 0, links: 0 };
     const [pw, ph] = pageSize(opts);
@@ -4084,7 +4191,7 @@ class Writer {
     if (node.u) p.push('<w:u w:val="single"/>');
     if (node.sup) p.push('<w:vertAlign w:val="superscript"/>');
     else if (node.sub) p.push('<w:vertAlign w:val="subscript"/>');
-    p.push(LANG);
+    p.push(this.lang);
     return "<w:rPr>" + p.join("") + "</w:rPr>";
   }
 
@@ -4110,19 +4217,19 @@ class Writer {
       }
       const t = n.t;
       if (t === "text") out.push(this.textRun(n, bold));
-      else if (t === "hardbreak") out.push("<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>");
+      else if (t === "hardbreak") out.push("<w:r><w:rPr>" + this.lang + "</w:rPr><w:br/></w:r>");
       else if (t === "task") {
         const mark = n.checked ? BOX_CHECKED : BOX;
         out.push('<w:r><w:rPr><w:rFonts w:ascii="' + SYMBOL_FONT + '" w:hAnsi="' + SYMBOL_FONT + '" w:cs="' + SYMBOL_FONT + '"/>' +
-          LANG + '</w:rPr><w:t xml:space="preserve">' + mark + "</w:t></w:r>");
+          this.lang + '</w:rPr><w:t xml:space="preserve">' + mark + "</w:t></w:r>");
       } else if (t === "footnote_ref") {
-        out.push('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + LANG + '</w:rPr><w:footnoteReference w:id="' + n.id + '"/></w:r>');
+        out.push('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + this.lang + '</w:rPr><w:footnoteReference w:id="' + n.id + '"/></w:r>');
       } else if (t === "image") {
         out.push(this.image(n));
       }
       i++;
     }
-    if (!out.length) out.push("<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve"></w:t></w:r>');
+    if (!out.length) out.push("<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve"></w:t></w:r>');
     return out.join("");
   }
 
@@ -4148,10 +4255,11 @@ class Writer {
       cy = (cy * maxCx) / cx;
       cx = maxCx;
     }
+    this.imageTwips = Number(cx / BigInt(EMU_PER_TWIP)); // what --caption-matches-object measures against
     this.docPr += 1;
     const k = String(this.docPr);
     return (
-      "<w:r><w:rPr>" + LANG + "</w:rPr><w:drawing>" +
+      "<w:r><w:rPr>" + this.lang + "</w:rPr><w:drawing>" +
       '<wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + cx + '" cy="' + cy + '"/>' +
       '<wp:docPr id="' + k + '" name="Picture ' + k + '" descr=' + attr(node.alt) + "/>" +
       '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
@@ -4179,12 +4287,72 @@ class Writer {
     return '<w:jc w:val="left"/>';
   }
 
-  // --chapter-title-on-new-line: the number Word writes keeps the first line and the
-  // heading's own text starts the next one. OOXML gives a level no such suffix — nothing, a
-  // space or a tab — so the break belongs to the heading (ADR 0027).
+  // --chapter-title-on-new-line: the number keeps the first line and the heading's own text
+  // starts the next one.
   titleBreak(item) {
     if (!this.opts.chapter_title_on_new_line || item.number === undefined) return "";
-    return "<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>";
+    return "<w:r><w:rPr>" + this.lang + "</w:rPr><w:br/></w:r>";
+  }
+
+  // Whether the build writes this document's numbers itself (ADR 0036). One answer for the
+  // whole document, never a number here and a field there: a document that renumbers its
+  // headings but not its captions goes wrong silently the first time a reader inserts a
+  // chapter. The build writes them unless --auto-numbering asks otherwise, because a written
+  // number reads the same in all five applications and a counted one does not: LibreOffice
+  // draws thaiNumbers as 1, 2, 3, and answers a caption's STYLEREF with the chapter's title.
+  // With --auto-numbering the application counts, whole, and references/numbering.md says
+  // what each of the other four draws.
+  numbersAreText() {
+    return !this.opts.auto_numbering;
+  }
+
+  // A field and the result the build already knows, between `separate` and `end`.
+  fieldRuns(instr, result, rpr) {
+    return (
+      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>' +
+      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>" +
+      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>' +
+      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>" +
+      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
+    );
+  }
+
+  // Heading levels the numbering part numbers.
+  numberedLevels() {
+    const rest = this.opts.heading_numbers ? [2, 3, 4, 5, 6] : [];
+    if (this.hasChapters) return new Set([1, ...rest]);
+    return new Set(this.opts.heading_numbers ? [1, ...rest] : []);
+  }
+
+  headingNumId() {
+    return this.nums.length + 2;
+  }
+
+  // A heading's inlines and what goes before them: its number, written into the paragraph as
+  // text (ADR 0036). The number carries no run properties of its own, so it takes the heading
+  // style's. Where the first word is unformatted the number joins its run rather than sitting
+  // in one beside it, formatted alike (cause 4).
+  numberedHeading(item) {
+    const b = item.block;
+    const inlines = b.inlines;
+    if (!this.numbersAreText()) {
+      // the numbering part numbers the heading, through its style or its own list
+      let ppr = "";
+      if (this.regions.length && item.region !== "chapters" && this.numberedLevels().has(b.level)) {
+        // appendices take their own list ("ภาคผนวก ก"); headings in any other region, none
+        ppr = item.region === "appendices"
+          ? '<w:numPr><w:ilvl w:val="' + (b.level - 1) + '"/><w:numId w:val="' + (this.headingNumId() + 1) + '"/></w:numPr>'
+          : '<w:numPr><w:numId w:val="0"/></w:numPr>';
+      }
+      return [inlines, ppr, this.titleBreak(item)];
+    }
+    if (item.number === undefined) return [inlines, "", ""];
+    const brk = this.titleBreak(item);
+    if (!brk && inlines.length && inlines[0].t === "text" && !isFormatted(inlines[0])) {
+      return [[{ ...inlines[0], s: item.number + " " + inlines[0].s }, ...inlines.slice(1)], "", ""];
+    }
+    const text = brk ? item.number : item.number + " ";
+    return [inlines, "", "<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + brk];
   }
 
   // `body` marks the document's own top level: only its paragraphs take the first-line
@@ -4200,16 +4368,10 @@ class Writer {
         out.push(this.caption(item.caption, Boolean(item.keep_next)));
       } else if (b.t === "directive") {
         out.push(this.field(LIST_FIELDS[b.name], "", listEntries(this.items, b.name)));
-      } else if (b.t === "heading" && this.regions.length && item.region !== "chapters" && this.numberedLevels().has(b.level)) {
-        // appendices take their own list ("ภาคผนวก ก"); headings in any other region, none
+      } else if (b.t === "heading") {
         this.counts.headings += 1;
-        const num = item.region === "appendices"
-          ? '<w:numPr><w:ilvl w:val="' + (b.level - 1) + '"/><w:numId w:val="' + (this.headingNumId() + 1) + '"/></w:numPr>'
-          : '<w:numPr><w:numId w:val="0"/></w:numPr>';
-        out.push(this.paragraph(b.inlines, "Heading" + b.level, num, false, this.titleBreak(item)));
-      } else if (b.t === "heading" && this.titleBreak(item)) {
-        this.counts.headings += 1;
-        out.push(this.paragraph(b.inlines, "Heading" + b.level, "", false, this.titleBreak(item)));
+        const [inlines, ppr, lead] = this.numberedHeading(item);
+        out.push(this.paragraph(inlines, "Heading" + b.level, ppr, false, lead));
       } else {
         out.push(this.blocks([b], 0, false, true, Boolean(item.keep_next)));
       }
@@ -4217,19 +4379,45 @@ class Writer {
     return out.join("");
   }
 
-  // Label, chapter number and SEQ number, bold, with their results written in — an
-  // application that never updates fields still shows them — then the caption text.
+  // Label and number, bold, then the caption text. Where the document's numbers are the
+  // build's own (ADR 0036) the number is text. With --auto-numbering it is the pair of fields
+  // Word's own Insert Caption writes — the chapter from a STYLEREF, the count from a SEQ named
+  // after the label and starting again at each chapter, in Thai digits when those are asked for
+  // — with the results written in, so an application that never updates fields still shows them.
+  // settings.xml carries the label itself (captionsXml).
   caption(c, keepNext) {
     this.counts.paragraphs += 1;
     const bold = "<w:b/><w:bCs/>";
-    const run = (text, rpr) => "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>";
-    let ppr = '<w:pStyle w:val="Caption"/>' + (keepNext ? "<w:keepNext/>" : "") + (c.kind === "figure" ? '<w:jc w:val="center"/>' : "");
+    const run = (text, rpr) => "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>";
+    // --caption-hanging-indent: the label and number keep the margin and every line after the
+    // first is indented, so a caption that runs on reads as one block beside its number
+    const hang = halfUp(this.opts.caption_hanging_indent * 1440);
+    const [boxLeft, boxRight] = this.captionBox(c);
+    const attrs = (boxLeft + hang ? ' w:left="' + (boxLeft + hang) + '"' : "") + (boxRight ? ' w:right="' + boxRight + '"' : "");
+    const ind = attrs || hang ? "<w:ind" + attrs + (hang ? ' w:hanging="' + hang + '"' : "") + "/>" : "";
+    let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + ind +
+      (c.kind === "figure" ? '<w:jc w:val="center"/>' : "");
     ppr += this.latinJc(ppr, captionText(c));
-    let out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c.label + " ", bold);
-    if (c.chapter) out += this.fieldRuns("STYLEREF 1 \\s", c.chapter, bold) + run("-", bold);
-    const seq = "SEQ " + c.kind[0].toUpperCase() + c.kind.slice(1) + " \\* " + (this.opts.thai_digits ? "ThaiArabic" : "ARABIC") + (c.reset ? " \\s 1" : "");
-    out += this.fieldRuns(seq, c.seq, bold);
     const rest = c.inlines;
+    if (!this.numbersAreText()) {
+      let plain = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c.label + " ", bold);
+      if (c.chapter) plain += this.fieldRuns("STYLEREF 1 \\s", c.chapter, bold) + run("-", bold);
+      // the counter is named after the label, which is what Word's own Insert Caption names it:
+      // a caption a reader inserts then continues this document's numbering instead of
+      // starting a second count beside it
+      const seq = "SEQ " + c.label + " \\* " + (this.opts.thai_digits ? "ThaiArabic" : "ARABIC") +
+        (c.reset ? " \\s 1" : "");
+      plain += this.fieldRuns(seq, c.seq, bold);
+      if (rest.length && rest[0].t === "text") plain += this.inlines([{ ...rest[0], s: " " + rest[0].s }, ...rest.slice(1)]);
+      else if (rest.length) plain += run(" ", "") + this.inlines(rest);
+      return plain + "</w:p>";
+    }
+    const head = c.label + " " + ((c.chapter ? c.chapter + "-" : "") + c.seq);
+    if (rest.length && rest[0].t === "text" && isBoldOnly(rest[0])) {
+      // the caption opens in bold, as the label does: one run, or two formatted alike (cause 4)
+      return "<w:p><w:pPr>" + ppr + "</w:pPr>" + this.inlines([{ ...rest[0], s: head + " " + rest[0].s }, ...rest.slice(1)]) + "</w:p>";
+    }
+    let out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(head, bold);
     if (rest.length && rest[0].t === "text") {
       // the space joins the first text run: a run of its own would sit beside one formatted alike (cause 4)
       out += this.inlines([{ ...rest[0], s: " " + rest[0].s }, ...rest.slice(1)]);
@@ -4239,21 +4427,19 @@ class Writer {
     return out + "</w:p>";
   }
 
-  fieldRuns(instr, result, rpr) {
-    return (
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>' +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>" +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>' +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>" +
-      "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
-    );
-  }
-
-  // Heading levels Word numbers: the chapter level whenever there are chapters, the rest with --heading-numbers.
-  numberedLevels() {
-    const rest = this.opts.heading_numbers ? [2, 3, 4, 5, 6] : [];
-    if (this.hasChapters) return new Set([1, ...rest]);
-    return new Set(this.opts.heading_numbers ? [1, ...rest] : []);
+  // The indents that make a caption as wide as the picture it belongs to, in twips
+  // (--caption-matches-object), or [0, 0] for a caption that fills the text width. Only a
+  // picture: a table is written at the full width of the text, so its caption already ends
+  // where it does. The width is the one the image was drawn at — its own, or the text width
+  // where the picture was wider — and where --center-images centres the picture the slack is
+  // split, so the caption's box is the picture's box. The width is the last picture written,
+  // which is this caption's: a Figure: caption is made only where the paragraph just before it
+  // holds a picture and nothing else (48-layout.js).
+  captionBox(c) {
+    if (!(this.opts.caption_matches_object && c.kind === "figure" && this.imageTwips)) return [0, 0];
+    const slack = Math.max(this.textWidthTwips - this.imageTwips, 0);
+    const left = this.opts.center_images ? Math.floor(slack / 2) : 0;
+    return [left, slack - left];
   }
 
   blocks(blocks, level, quote, body, keepNext) {
@@ -4267,6 +4453,12 @@ class Writer {
         this.counts.headings += 1;
         out.push(this.paragraph(b.inlines, "Heading" + b.level));
       } else if (t === "paragraph") {
+        if (this.opts.center_images && imageOnly(b)) {
+          // a picture on a line of its own is centred, and takes no first-line indent: an
+          // indent would move it off the centre its caption is measured against
+          out.push(this.paragraph(b.inlines, null, (keepNext ? "<w:keepNext/>" : "") + '<w:jc w:val="center"/>'));
+          continue;
+        }
         const ppr = (keepNext ? "<w:keepNext/>" : "") + (firstLine ? '<w:ind w:firstLine="' + firstLine + '"/>' : ind);
         out.push(this.paragraph(b.inlines, quote ? "Quote" : level ? "ListParagraph" : null, ppr));
       } else if (t === "code") {
@@ -4288,16 +4480,22 @@ class Writer {
     return out.join("");
   }
 
+  // A bullet is drawn by the numbering part, which every application reads the same way. An
+  // ordered list's number is written as text instead (ADR 0036): its format is one a reader may
+  // not have — LibreOffice draws thaiNumbers as 1, 2, 3 — and the hanging indent and the tab
+  // after the marker put it where the numbering put it.
   list(b, level, quote) {
-    let numId;
-    if (b.ordered) {
+    const out = [];
+    const written = this.numbersAreText();
+    this.hasOrderedList = this.hasOrderedList || b.ordered;
+    let numId = 0;
+    if (b.ordered && !written) {
       numId = this.nums.length + 2;
       this.nums.push([numId, b.start, level]);
-    } else {
-      numId = 1;
     }
-    const out = [];
-    for (const item of b.items) {
+    const indent = '<w:ind w:left="' + 720 * (level + 1) + '" w:hanging="360"/>';
+    for (let n = 0; n < b.items.length; n++) {
+      const item = b.items[n];
       this.counts.list_items += 1;
       let first, rest;
       if (item.length && item[0].t === "paragraph") {
@@ -4307,10 +4505,20 @@ class Writer {
         first = [];
         rest = item;
       }
-      let ppr;
-      if (first.length && first[0].t === "task") ppr = '<w:ind w:left="' + 720 * (level + 1) + '"/>';
-      else ppr = '<w:numPr><w:ilvl w:val="' + Math.min(level, 8) + '"/><w:numId w:val="' + numId + '"/></w:numPr>';
-      out.push(this.paragraph(first, "ListParagraph", ppr));
+      let ppr, lead = "";
+      if (first.length && first[0].t === "task") {
+        ppr = '<w:ind w:left="' + 720 * (level + 1) + '"/>';
+      } else if (b.ordered && !written) {
+        ppr = '<w:numPr><w:ilvl w:val="' + Math.min(level, 8) + '"/><w:numId w:val="' + numId + '"/></w:numPr>';
+      } else if (b.ordered) {
+        const marker = numberText(b.start + n, "decimal", this.opts.thai_digits) + ".";
+        ppr = indent;
+        lead = "<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(marker) + "</w:t></w:r>" +
+          "<w:r><w:rPr>" + this.lang + "</w:rPr><w:tab/></w:r>";
+      } else {
+        ppr = '<w:numPr><w:ilvl w:val="' + Math.min(level, 8) + '"/><w:numId w:val="1"/></w:numPr>';
+      }
+      out.push(this.paragraph(first, "ListParagraph", ppr, false, lead));
       out.push(this.blocks(rest, level + 1, quote));
     }
     return out.join("");
@@ -4367,8 +4575,8 @@ class Writer {
   // already holds between `separate` and `end`, one paragraph each (ADR 0027). The field
   // opens in the first entry and closes in the last, as Word writes it.
   field(instr, ppr, entries) {
-    const char = (kind) => "<w:r><w:rPr>" + LANG + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>';
-    const instruction = "<w:r><w:rPr>" + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>";
+    const char = (kind) => "<w:r><w:rPr>" + this.lang + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>';
+    const instruction = "<w:r><w:rPr>" + this.lang + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>";
     if (!entries || !entries.length) {
       return "<w:p><w:pPr>" + (ppr || "") + "</w:pPr>" + char("begin") + instruction + char("separate") + char("end") + "</w:p>";
     }
@@ -4380,7 +4588,7 @@ class Writer {
       const entryPpr = '<w:pStyle w:val="TOC' + Math.min(level, 3) + '"/>';
       out.push(
         "<w:p><w:pPr>" + entryPpr + this.latinJc(entryPpr, text) + "</w:pPr>" + opening +
-        "<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + closing + "</w:p>"
+        "<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + closing + "</w:p>"
       );
     });
     return out.join("");
@@ -4472,7 +4680,7 @@ class Package extends Writer {
     return (
       XML_DECL + '<w:document xmlns:w="' + W + '" xmlns:r="' + NS_R + '" ' +
       'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" ' +
-      'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
+      'xmlns:a="' + DRAWING + '" ' +
       'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
       "<w:body>" + toc + body + "</w:body></w:document>"
     );
@@ -4483,8 +4691,8 @@ class Package extends Writer {
       '<w:footnote w:type="separator" w:id="-1"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:separator/></w:r></w:p></w:footnote>',
       '<w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>',
     ];
-    const mark = '<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + LANG + "</w:rPr><w:footnoteRef/></w:r>" +
-      "<w:r><w:rPr>" + LANG + "</w:rPr><w:tab/></w:r>";
+    const mark = '<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + this.lang + "</w:rPr><w:footnoteRef/></w:r>" +
+      "<w:r><w:rPr>" + this.lang + "</w:rPr><w:tab/></w:r>";
     this.doc.footnoteOrder.forEach((label, k) => {
       const fid = k + 1;
       this.counts.footnotes += 1;
@@ -4516,9 +4724,10 @@ class Package extends Writer {
       const [name, rest] = this.headingRun(n);
       const face = name !== null ? attr(name) : "";
       const rpr = (face ? "<w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + " w:eastAsia=" + face + "/>" : "") + rest;
-      const num = this.numberedLevels().has(n) ? '<w:numPr><w:ilvl w:val="' + (n - 1) + '"/><w:numId w:val="' + this.headingNumId() + '"/></w:numPr>' : "";
       let spacing = '<w:spacing w:before="' + (has(p, "before") ? p.before : n === 1 ? 240 : 200) + '" w:after="' + (has(p, "after") ? p.after : 80) + '"';
       spacing += has(p, "line") ? ' w:line="' + p.line + '" w:lineRule="auto"/>' : "/>";
+      const num = this.headingNumbering() && this.numberedLevels().has(n)
+        ? '<w:numPr><w:ilvl w:val="' + (n - 1) + '"/><w:numId w:val="' + this.headingNumId() + '"/></w:numPr>' : "";
       let ind = "";
       if (has(p, "left") || has(p, "first")) {
         ind = "<w:ind" + (has(p, "left") ? ' w:left="' + p.left + '"' : "");
@@ -4542,7 +4751,16 @@ class Package extends Writer {
     let applied = "";
     if (this.opts.toc) applied += own("TOC1", "toc 1") + own("TOC2", "toc 2", '<w:ind w:left="240"/>') + own("TOC3", "toc 3", '<w:ind w:left="480"/>');
     for (const kind of this.pageParts()) applied += own(kind[0].toUpperCase() + kind.slice(1), kind);
-    if (this.items.some((item) => item.caption)) applied += own("Caption", "caption", '<w:spacing w:before="120" w:after="120"/>');
+    const kinds = [...new Set(this.items.filter((item) => item.caption).map((item) => item.caption.kind))].sort();
+    if (kinds.length) {
+      // a caption style of its own for each kind: the list of tables and the list of figures
+      // collect the paragraphs in one style, where they used to collect SEQ fields (ADR 0036)
+      applied += own("Caption", "caption", '<w:spacing w:before="120" w:after="120"/>');
+      for (const kind of kinds) {
+        applied += '<w:style w:type="paragraph" w:styleId="' + CAPTION_STYLE[kind] + '"><w:name w:val="' +
+          CAPTION_STYLE_NAME[kind] + '"/><w:basedOn w:val="Caption"/><w:next w:val="Normal"/></w:style>';
+      }
+    }
     if (this.items.some((item) => item.block.t === "directive" && item.block.name !== "toc")) applied += own("TableofFigures", "table of figures");
     if (this.items.some((item) => item.block.t === "directive" && item.block.name === "toc") && !this.opts.toc) {
       applied += own("TOC1", "toc 1") + own("TOC2", "toc 2", '<w:ind w:left="240"/>') + own("TOC3", "toc 3", '<w:ind w:left="480"/>');
@@ -4556,7 +4774,7 @@ class Package extends Writer {
       XML_DECL + '<w:styles xmlns:w="' + W + '">' +
       "<w:docDefaults><w:rPrDefault><w:rPr>" +
       "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>" +
-      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/><w:cs/><w:lang w:val="en-US" w:eastAsia="en-US" w:bidi="th-TH"/>' +
+      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/><w:cs/><w:lang w:val="en-US" w:eastAsia="en-US"' + (this.opts.thai_language ? ' w:bidi="th-TH"' : "") + "/>" +
       "</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr>" +
       '<w:spacing w:after="120" w:line="' + halfUp(this.opts.line_spacing * 240) + '" w:lineRule="auto"/>' + jc +
       "</w:pPr></w:pPrDefault></w:docDefaults>" +
@@ -4564,7 +4782,7 @@ class Package extends Writer {
       // but not w:docDefaults (WPS numbers one) then still has the font and size
       '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:rPr>' +
       "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>" +
-      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + LANG + "</w:rPr></w:style>" +
+      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + this.lang + "</w:rPr></w:style>" +
       [1, 2, 3, 4, 5, 6].map((n) => heading(n)).join("") +
       '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720"/><w:contextualSpacing/></w:pPr></w:style>' +
       '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720" w:right="720"/></w:pPr><w:rPr><w:i/><w:iCs/></w:rPr></w:style>' +
@@ -4579,11 +4797,22 @@ class Package extends Writer {
     );
   }
 
-  // After every ordered list's numId, which the body has handed out by the time styles are written.
+  // Only the bullet list is numbered by the package now: every other marker and number is
+  // written into the document as text (ADR 0036), because an application that does not know a
+  // format draws it its own way — thaiNumbers as 1, 2, 3 — and then the same file reads
+  // differently in two readers.
   headingNumId() {
     return this.nums.length + 2;
   }
 
+  // Whether the package numbers the headings: not where the numbers are the build's own text,
+  // and not where no heading outside the appendices takes a number at all.
+  headingNumbering() {
+    return !this.numbersAreText() && this.items.some((item) => item.number !== undefined && item.region !== "appendices");
+  }
+
+  // The bullet list, and — unless the numbers are the build's own text (ADR 0036) — the ordered
+  // lists, the headings and the appendices.
   numberingXml() {
     const font = attr(this.opts.font);
     const fmt = this.opts.thai_digits ? "thaiNumbers" : "decimal";
@@ -4593,14 +4822,14 @@ class Package extends Writer {
     // carry Thai: WPS showed "บทที่ ๑" as Latin letters until every level named one
     const half = String(halfUp(this.opts.size * 2));
     const levelFont = "<w:rPr><w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + "/>" +
-      '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + LANG + "</w:rPr>";
+      '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + this.lang + "</w:rPr>";
     // A heading level's number is drawn as its heading is — "บทที่ 1" at Heading 1's size, not
     // the body's — naming the font all the same; levels past Heading 6 have none.
     const headingFont = (l) => {
       if (l >= HEADING_LOOK.length) return levelFont;
       const [name, rest] = this.headingRun(l + 1);
       const face = name !== null ? attr(name) : font;
-      return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + LANG + "</w:rPr>";
+      return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + this.lang + "</w:rPr>";
     };
     for (let l = 0; l < 9; l++) {
       bullet += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/>' +
@@ -4611,8 +4840,15 @@ class Package extends Writer {
     let nums = '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>' + this.nums.map(([nid, start, level]) =>
       '<w:num w:numId="' + nid + '"><w:abstractNumId w:val="1"/><w:lvlOverride w:ilvl="' + Math.min(level, 8) +
       '"><w:startOverride w:val="' + start + '"/></w:lvlOverride></w:num>').join("");
+    if (this.numbersAreText()) {
+      return (
+        XML_DECL + '<w:numbering xmlns:w="' + W + '">' +
+        '<w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>' + bullet + "</w:abstractNum>" +
+        '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num></w:numbering>'
+      );
+    }
     let headings = "";
-    const levelsOn = this.numberedLevels();
+    const levelsOn = this.headingNumbering() ? this.numberedLevels() : new Set();
     if (levelsOn.size) {
       // "1." for a # heading — "บทที่ 1" with chapters — then "1.1", "1.1.1" ... followed by a space, no hanging indent
       let levels = "";
@@ -4625,7 +4861,7 @@ class Package extends Writer {
       headings = '<w:abstractNum w:abstractNumId="2"><w:multiLevelType w:val="multilevel"/>' + levels + "</w:abstractNum>";
       nums += '<w:num w:numId="' + this.headingNumId() + '"><w:abstractNumId w:val="2"/></w:num>';
     }
-    if (this.regions.includes("appendices")) {
+    if (this.items.some((item) => item.number !== undefined && item.region === "appendices")) {
       // "ภาคผนวก ก", then "ก.1", "ก.1.1" with --heading-numbers; set on each heading, linked to no style
       let first = APPENDIX_NUMBERS[this.opts.appendix_numbers];
       if (first === "decimal" && this.opts.thai_digits) first = "thaiNumbers";
@@ -4641,8 +4877,47 @@ class Package extends Writer {
     return (
       XML_DECL + '<w:numbering xmlns:w="' + W + '">' +
       '<w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="hybridMultilevel"/>' + bullet + "</w:abstractNum>" +
-      '<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>' + decimal + "</w:abstractNum>" +
+      // the ordered lists' definition only where there is one: a flag that reaches nothing
+      // changes no byte, and the settings registry says so (ADR 0028)
+      (this.nums.length ? '<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="hybridMultilevel"/>' + decimal + "</w:abstractNum>" : "") +
       headings + nums + "</w:numbering>"
+    );
+  }
+
+  // The theme, naming this document's font as the document's own. A package with no theme leaves
+  // Word to resolve +Body and +Headings against its own built-in Office theme, and everything
+  // Word makes afterwards — a table it inserts, the Caption style it creates the first time a
+  // caption is inserted — comes out in that theme's Latin font instead of the document's, with
+  // the font box showing no name at all. w:themeFontLang in settings.xml already says which
+  // language takes which theme font; this is the part it points at (ADR 0027). Nothing in the
+  // document refers to the theme: every style names its fonts outright, so the theme changes no
+  // run this build writes. It is there for what the reader adds.
+  themeXml() {
+    const font = attr(this.opts.font);
+    const faces = ["latin", "ea", "cs"].map((tag) => "<a:" + tag + " typeface=" + font + "/>").join("");
+    // a colour scheme is required, and these are the twelve the Office theme names
+    const colours = [
+      ["dk1", "windowText", "000000"], ["lt1", "window", "FFFFFF"], ["dk2", "44546A", ""],
+      ["lt2", "E7E6E6", ""], ["accent1", "4472C4", ""], ["accent2", "ED7D31", ""],
+      ["accent3", "A5A5A5", ""], ["accent4", "FFC000", ""], ["accent5", "5B9BD5", ""],
+      ["accent6", "70AD47", ""], ["hlink", "0563C1", ""], ["folHlink", "954F72", ""],
+    ].map(([tag, val, last]) => "<a:" + tag + ">" +
+      (val.startsWith("window") ? '<a:sysClr val="' + val + '" lastClr="' + last + '"/>' : '<a:srgbClr val="' + val + '"/>') +
+      "</a:" + tag + ">").join("");
+    // three of each is what the format asks for; a document this skill writes uses none of them
+    const fill = '<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>';
+    const line = '<a:ln w="6350" cap="flat" cmpd="sng" algn="ctr">' + fill + '<a:prstDash val="solid"/></a:ln>';
+    return (
+      XML_DECL + '<a:theme xmlns:a="' + DRAWING + '" name="Office Theme"><a:themeElements>' +
+      '<a:clrScheme name="Office">' + colours + "</a:clrScheme>" +
+      '<a:fontScheme name="Office"><a:majorFont>' + faces + "</a:majorFont>" +
+      "<a:minorFont>" + faces + "</a:minorFont></a:fontScheme>" +
+      '<a:fmtScheme name="Office">' +
+      "<a:fillStyleLst>" + fill.repeat(3) + "</a:fillStyleLst>" +
+      "<a:lnStyleLst>" + line.repeat(3) + "</a:lnStyleLst>" +
+      "<a:effectStyleLst>" + "<a:effectStyle><a:effectLst/></a:effectStyle>".repeat(3) + "</a:effectStyleLst>" +
+      "<a:bgFillStyleLst>" + fill.repeat(3) + "</a:bgFillStyleLst>" +
+      "</a:fmtScheme></a:themeElements></a:theme>"
     );
   }
 
@@ -4668,9 +4943,30 @@ class Package extends Writer {
       '<w:compatSetting w:name="doNotFlipMirrorIndents"' + uri + 'w:val="1"/>' +
       '<w:compatSetting w:name="differentiateMultirowTableHeaders"' + uri + 'w:val="1"/>' +
       "</w:compat>" +
-      '<w:themeFontLang w:val="en-US" w:bidi="th-TH"/>'
+      '<w:themeFontLang w:val="en-US"' + (this.opts.thai_language ? ' w:bidi="th-TH"' : "") + "/>"
     );
+    parts.push(this.captionsXml());
     return XML_DECL + '<w:settings xmlns:w="' + W + '">' + parts.join("") + "</w:settings>";
+  }
+
+  // The caption labels the document uses, so Word's own Insert Caption offers them. Only where
+  // the application counts (--auto-numbering): a reader who inserts a caption there continues
+  // the document's numbering, and one who inserts a caption into a document whose numbers are
+  // text would start a counter of its own beside them — the half-numbered document ADR 0036
+  // refuses. Word keeps a label the user makes in their own profile, not in the file; written
+  // here, the label travels with the document, already carrying its number format, its chapter
+  // number and the side of the table or figure it belongs on.
+  captionsXml() {
+    if (this.numbersAreText()) return "";
+    const kinds = ["table", "figure"].filter((k) => this.items.some((item) => item.caption && item.caption.kind === k));
+    if (!kinds.length) return "";
+    const fmt = this.opts.thai_digits ? "thaiNumbers" : "decimal";
+    const chapter = this.regions.length ? "1" : "0";
+    // a table's caption goes above it and a figure's below it, as the build writes them
+    const pos = { table: "above", figure: "below" };
+    return "<w:captions>" + kinds.map((kind) =>
+      "<w:caption w:name=" + attr(this.opts[kind + "_label"]) + ' w:pos="' + pos[kind] + '" w:chapNum="' + chapter +
+      '" w:heading="0" w:noLabel="0" w:numFmt="' + fmt + '" w:sep="hyphen"/>').join("") + "</w:captions>";
   }
 
   // Thai-digit footnote marks, for the section; settings.xml says the same for the document.
@@ -4704,7 +5000,7 @@ class Package extends Writer {
     const style = '<w:pStyle w:val="' + kind[0].toUpperCase() + kind.slice(1) + '"/>';
     let body = "";
     if (this.opts[kind] !== null) {
-      body += "<w:p><w:pPr>" + style + '<w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + LANG + '</w:rPr><w:t xml:space="preserve">' +
+      body += "<w:p><w:pPr>" + style + '<w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + this.lang + '</w:rPr><w:t xml:space="preserve">' +
         esc(this.opts[kind]) + "</w:t></w:r></w:p>";
     }
     if (this.opts.page_numbers && this.pageNumberPart() === kind && !first) {
@@ -4733,11 +5029,13 @@ class Package extends Writer {
       ["/word/styles.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"],
       ["/word/settings.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"],
       ["/word/numbering.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"],
+      ["/word/theme/theme1.xml", "application/vnd.openxmlformats-officedocument.theme+xml"],
       ["/docProps/core.xml", "application/vnd.openxmlformats-package.core-properties+xml"],
     ];
     this.rel(REL + "styles", "styles.xml");
     this.rel(REL + "settings", "settings.xml");
     this.rel(REL + "numbering", "numbering.xml");
+    this.rel(REL + "theme", "theme/theme1.xml");
     let footnotes = null;
     if (this.doc.footnoteOrder.length) {
       this.rel(REL + "footnotes", "footnotes.xml");
@@ -4766,6 +5064,7 @@ class Package extends Writer {
       ["word/styles.xml", this.stylesXml()],
       ["word/settings.xml", this.settingsXml()],
       ["word/numbering.xml", this.numberingXml()],
+      ["word/theme/theme1.xml", this.themeXml()],
     ];
     if (footnotes !== null) parts.push(["word/footnotes.xml", footnotes]);
     parts.push(...pageParts);
@@ -4822,20 +5121,27 @@ function docxText(parts, footnoteCount) {
 function expectedText(doc, opts) {
   const out = [];
   opts = opts || DEFAULTS;
-  const items = layout(doc, opts)[0];
+  const [items] = layout(doc, opts);
+  // one answer for the whole document, as the writer takes it (ADR 0036)
+  const numbersAreText = !opts.auto_numbering;
   if (opts.toc) out.push(...listEntries(items, "toc").map(([, text]) => text)); // the entries the field carries
   for (const item of items) {
     if (item.caption) out.push(captionText(item.caption));
     else if (item.block.t === "directive" && LIST_FIELDS[item.block.name] !== undefined) {
       out.push(...listEntries(items, item.block.name).map(([, text]) => text));
-    } else if (opts.chapter_title_on_new_line && item.number !== undefined && item.block.t === "heading") {
+    } else if (item.block.t === "heading" && item.number !== undefined && numbersAreText) {
+      // the number is text in the heading's own paragraph, not one an application draws (ADR 0036)
+      const join = opts.chapter_title_on_new_line ? "\n" : " ";
+      out.push(...plainText([item.block], true, opts.thai_digits).map((line) => item.number + join + line));
+    } else if (item.block.t === "heading" && item.number !== undefined && opts.chapter_title_on_new_line) {
+      // the application draws the number; the break after it is still the build's
       out.push(...plainText([item.block]).map((line) => "\n" + line));
-    } else out.push(...plainText([item.block]));
+    } else out.push(...plainText([item.block], numbersAreText, opts.thai_digits));
   }
   for (const label of doc.footnoteOrder) {
     const blocks = doc.footnotes.get(label);
     if (!blocks.length || blocks[0].t !== "paragraph") out.push("");
-    out.push(...plainText(blocks));
+    out.push(...plainText(blocks, numbersAreText, opts.thai_digits));
   }
   return out.map((s) => s.normalize("NFC"));
 }
@@ -4885,10 +5191,15 @@ function buildText(text, opts, readImage) {
     ["tables", writer.counts.tables > 0],
     ["table captions", items.some((item) => item.caption && item.caption.kind === "table")],
     ["figure captions", items.some((item) => item.caption && item.caption.kind === "figure")],
+    ["captions", items.some((item) => item.caption !== undefined)],
+    ["images", items.some((item) => imageOnly(item.block))],
     ["chapters or appendices", writer.hasChapters],
     ["numbered headings", items.some((item) => item.number !== undefined)],
     ["appendices", writer.regions.includes("appendices")],
+    ["appendix headings", items.some((item) => item.number !== undefined && item.region === "appendices")],
+    ["chapter headings", items.some((item) => item.number !== undefined && item.region === "chapters")],
     ["front", writer.regions.includes("front")],
+    ["numbers", writer.hasOrderedList || items.some((item) => item.number !== undefined || item.caption !== undefined)],
     ["toc comment", items.some((item) => item.block.t === "directive" && item.block.name === "toc")],
   ].filter(([, there]) => there).map(([name]) => name));
   const outcome = {
@@ -4915,17 +5226,17 @@ function buildText(text, opts, readImage) {
 
 // ---- 54-repair.js ----------------------------------------------------------
 // Repair a .docx this skill did not write: the attributes that break Thai, never the text
-// (ADR 0032) — the port of thai_docx/repair.py. This version repairs two findings and
+// (ADR 0037) — the port of thai_docx/repair.py. This version repairs two findings and
 // reports every other one:
 //
 //   1  compatibilityMode is not exactly one 15 — set it, or drop the ones that are not 15
 //   3  <w:noProof/> switches Thai proofing, and Thai line breaking, off — remove it
 //
 // A part is edited as text, not re-serialised from a tree: a tree would rewrite prefixes,
-// attribute order and empty-element spelling across the whole part, and ADR 0032 allows only
+// attribute order and empty-element spelling across the whole part, and ADR 0037 allows only
 // the attributes named. Both elements below are empty ones, so the shapes are few.
 
-const REPAIR_USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"]';
+const REPAIR_USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"] [--thai-language]';
 
 class RepairError extends Error {}
 const RE_NO_PROOF = /<w:noProof(?:\s[^>]*?)?\/>|<w:noProof(?:\s[^>]*?)?>\s*<\/w:noProof>/g;
@@ -5033,10 +5344,10 @@ function insertChild(children, name, element) {
 }
 
 // One w:rPr put right: [its new inner XML, code 2 repairs, code 5 repairs].
-function fixRpr(inner, font, markThai) {
+function fixRpr(inner, font, markThai, thaiLanguage) {
   let children = childrenOf(inner);
   const byName = new Map(children);
-  let two = 0, five = 0;
+  let two = 0, five = 0, marked = 0;
 
   for (const [latin, twin] of [["w:sz", "w:szCs"], ["w:b", "w:bCs"], ["w:i", "w:iCs"]]) {
     if (byName.has(latin) && !byName.has(twin)) {
@@ -5063,20 +5374,23 @@ function fixRpr(inner, font, markThai) {
       children = insertChild(children, "w:cs", "<w:cs/>");
       two += 1;
     }
-    const lang = byName.get("w:lang");
-    if (lang === undefined) {
-      children = insertChild(children, "w:lang", '<w:lang w:bidi="th-TH"/>');
-      two += 1;
-    } else if (!/w:bidi\s*=\s*"th-TH"/.test(lang)) {
-      const put = /w:bidi\s*=\s*"/.test(lang)
-        ? lang.replace(/w:bidi\s*=\s*"[^"]*"/, 'w:bidi="th-TH"')
-        : lang.slice(0, -2).replace(/\s+$/, "") + ' w:bidi="th-TH"/>';
-      children = children.map(([n, raw]) => [n, n === "w:lang" ? put : raw]);
-      two += 1;
+    if (thaiLanguage) {
+      // the Thai complex-script language, only where the caller asked for it (ADR 0038)
+      const lang = byName.get("w:lang");
+      if (lang === undefined) {
+        children = insertChild(children, "w:lang", '<w:lang w:bidi="th-TH"/>');
+        marked += 1;
+      } else if (!/w:bidi\s*=\s*"th-TH"/.test(lang)) {
+        const put = /w:bidi\s*=\s*"/.test(lang)
+          ? lang.replace(/w:bidi\s*=\s*"[^"]*"/, 'w:bidi="th-TH"')
+          : lang.slice(0, -2).replace(/\s+$/, "") + ' w:bidi="th-TH"/>';
+        children = children.map(([n, raw]) => [n, n === "w:lang" ? put : raw]);
+        marked += 1;
+      }
     }
   }
 
-  return [children.map(([, raw]) => raw).join(""), two, five];
+  return [children.map(([, raw]) => raw).join(""), two, five, marked];
 }
 
 // Every `element` in the part with its children in the order the schema fixes.
@@ -5114,21 +5428,21 @@ function reorder(xml, element, order) {
   return [xml, count];
 }
 
-function fixRuns(xml, font, counts) {
+function fixRuns(xml, font, counts, thaiLanguage) {
   let out = "", pos = 0;
   const re = new RegExp(RE_RUN_START.source, "g");
   for (let m = re.exec(xml); m !== null; m = re.exec(xml)) {
     if (m.index < pos) continue;
     const startEnd = m.index + m[0].length;
     const [innerEnd] = endOf(xml, startEnd, "w:r");
-    out += xml.slice(pos, startEnd) + fixRun(xml.slice(startEnd, innerEnd), font, counts);
+    out += xml.slice(pos, startEnd) + fixRun(xml.slice(startEnd, innerEnd), font, counts, thaiLanguage);
     pos = innerEnd;
     re.lastIndex = pos;
   }
   return out + xml.slice(pos);
 }
 
-function fixRun(inner, font, counts) {
+function fixRun(inner, font, counts, thaiLanguage) {
   const hasText = /<w:t(?:\s[^<>]*?)?>/.test(inner);
   const rpr = /^<w:rPr(?:\s[^<>]*?)?(\/?)>/.exec(inner);
   let body, restFrom, head = "";
@@ -5143,19 +5457,20 @@ function fixRun(inner, font, counts) {
     body = "";
     restFrom = 0;
   } else {
-    return fixRuns(inner, font, counts); // nothing of ours here; look deeper
+    return fixRuns(inner, font, counts, thaiLanguage); // nothing of ours here; look deeper
   }
-  const [newBody, two, five] = fixRpr(body, font, hasText);
+  const [newBody, two, five, marked] = fixRpr(body, font, hasText, thaiLanguage);
   counts["2"] = (counts["2"] || 0) + two;
   counts["5"] = (counts["5"] || 0) + five;
+  counts["thai-language"] = (counts["thai-language"] || 0) + marked;
   if (newBody) head = "<w:rPr>" + newBody + "</w:rPr>";
   else if (rpr !== null) head = inner.slice(0, restFrom);
-  return head + fixRuns(inner.slice(restFrom), font, counts);
+  return head + fixRuns(inner.slice(restFrom), font, counts, thaiLanguage);
 }
 
-function fixTextPart(xml, font) {
+function fixTextPart(xml, font, thaiLanguage) {
   const counts = {};
-  const out = fixRuns(xml, font, counts);
+  const out = fixRuns(xml, font, counts, thaiLanguage);
   const kept = {};
   for (const [k, v] of Object.entries(counts)) if (v) kept[k] = v;
   return [out, kept];
@@ -5169,7 +5484,7 @@ function fixStyles(xml, font) {
     if (m.index < pos) continue;
     const startEnd = m.index + m[0].length;
     const [innerEnd] = endOf(xml, startEnd, "w:rPr");
-    const [newBody, , n] = fixRpr(xml.slice(startEnd, innerEnd), font, false);
+    const [newBody, , n] = fixRpr(xml.slice(startEnd, innerEnd), font, false, false);
     five += n;
     out += xml.slice(pos, startEnd) + newBody;
     pos = innerEnd;
@@ -5202,7 +5517,7 @@ function fixNumbering(xml, font) {
   return [out + xml.slice(pos), five];
 }
 
-// The font a run that names none is given, and why (ADR 0032): what the user asked for, else
+// The font a run that names none is given, and why (ADR 0037): what the user asked for, else
 // the complex-script font this document already uses most, else the skill's default.
 function complexScriptFont(parts, asked) {
   if (asked) return [asked, "the font the command was given"];
@@ -5227,7 +5542,7 @@ function complexScriptFont(parts, asked) {
 }
 
 // The parts to write anew, and how many of each code were repaired.
-function repairParts(parts, findings, font) {
+function repairParts(parts, findings, font, thaiLanguage) {
   const codes = new Set(findings.map((f) => f.code));
   const replace = new Map();
   const repaired = {};
@@ -5268,11 +5583,11 @@ function repairParts(parts, findings, font) {
     }
   }
   let chosen = null;
-  if (codes.has("2") || codes.has("5")) {
+  if (codes.has("2") || codes.has("5") || thaiLanguage) {
     const [csFont, why] = complexScriptFont(parts, font);
     for (const [name, bytes] of parts) {
       if (!TEXT_PARTS.test(name)) continue;
-      const [put, counts] = fixTextPart(fromUtf8(replace.get(name) || bytes), csFont);
+      const [put, counts] = fixTextPart(fromUtf8(replace.get(name) || bytes), csFont, thaiLanguage);
       if (Object.keys(counts).length) {
         replace.set(name, utf8(put));
         for (const [code, n] of Object.entries(counts)) repaired[code] = (repaired[code] || 0) + n;
@@ -5544,7 +5859,7 @@ function profileValidate(data, where) {
   return data;
 }
 
-// Where a name is looked for, first match winning (ADR 0024, 0025).
+// Where a name is looked for, first match winning (ADR 0024, 0030).
 function profileDirectories() {
   const path = require("path");
   const os = require("os");
@@ -5819,13 +6134,13 @@ function profileExpand(argv) {
 }
 
 // ---- 56-grill.js -----------------------------------------------------------
-// Grill mode is the user's word, not the agent's choice (ADR 0026, restated by 0029) — the
+// Grill mode is the user's word, not the agent's choice (ADR 0029, restating 0026) — the
 // port of thai_docx/grill.py. The agent hands the command the user's own message; the
 // command, not the model, says which mode the build is in — and, in grill mode, which
 // questions to ask, which choice each setting holds now, and what every choice means.
 
 const GRILL_USAGE = "usage: thai_docx grill --said \"the user's own message, word for word\"";
-// grillFold reads `_` as `-`; the space is the third way ADR 0026 lets the two words of
+// grillFold reads `_` as `-`; the space is the third way ADR 0029 lets the two words of
 // the name be joined, and it cannot be folded — a space is what separates the phrase's
 // own words — so the pattern allows it there and nowhere else.
 const GRILL_PHRASE = /thai[- ]docx grill/;
@@ -6030,7 +6345,7 @@ function grillRun(argv) {
 
 // ---- 90-entry.js -----------------------------------------------------------
 // thai-docx — entry: the command line under Node.js, and the ThaiDocx object for a
-// sandbox that runs JavaScript with no file system (ADR 0007, 0008, 0011).
+// sandbox that runs JavaScript with no file system (ADR 0007, 0008, 0030).
 
 const OS_ERRORS = { ENOENT: "No such file or directory", EACCES: "Permission denied", EISDIR: "Is a directory", ENOTDIR: "Not a directory" };
 
@@ -6185,6 +6500,11 @@ function nodeCheck(argv) {
 
 function nodeRepair(argv) {
   let font = null;
+  let thaiLanguage = false;
+  if (argv.indexOf("--thai-language") !== -1) {
+    argv = argv.filter((a) => a !== "--thai-language");
+    thaiLanguage = true;
+  }
   if (argv.length === 4 && argv[2] === "--font") {
     font = argv[3];
     argv = argv.slice(0, 2);
@@ -6215,7 +6535,7 @@ function nodeRepair(argv) {
   }
   const ents = readZipDirectory(data);
   const parts = new Map(ents.map((e) => [e.name, readZipEntry(data, e)]));
-  const [replace, repaired, chosen] = repairParts(parts, before.findings, font);
+  const [replace, repaired, chosen] = repairParts(parts, before.findings, font, thaiLanguage);
   if (!replace.size) {
     result.repaired = {};
     result.remaining = before.findings;
@@ -6228,13 +6548,15 @@ function nodeRepair(argv) {
   const footnotes = before.counts.footnotes || 0;
   const now = new Map(parts);
   for (const [k, v] of replace) now.set(k, v);
-  // the text is the user's (ADR 0023, 0032): a difference of one character writes nothing
+  // the text is the user's (ADR 0023, 0037): a difference of one character writes nothing
   const was = docxText(parts, footnotes), is = docxText(now, footnotes);
   if (was.length !== is.length || was.some((t, i) => t !== is[i])) {
     result.error = "the repair would have changed the document's text; nothing was written";
     process.stdout.write(pyDumps(result) + "\n");
     return 2;
   }
+  const marked = repaired["thai-language"] || 0;
+  delete repaired["thai-language"];
   const still = new Set(after.findings.map((f) => f.code));
   for (const code of Object.keys(repaired)) {
     if (still.has(code)) {
@@ -6254,6 +6576,11 @@ function nodeRepair(argv) {
   result.repaired = repaired;
   result.remaining = after.findings;
   result.warnings = chosen ? [chosen, ...after.warnings] : after.warnings;
+  if (marked) {
+    result.warnings = result.warnings.concat([{ code: "thai-language", message:
+      'the Thai complex-script language w:bidi="th-TH" was written into ' + marked +
+      " run properties, as --thai-language asked" }]);
+  }
   result.sha256 = sha256Hex(out);
   result.bytes = out.length;
   process.stdout.write(pyDumps(result) + "\n");

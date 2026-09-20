@@ -10,6 +10,20 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Added
 
+- **The rules this project decides by, written down** (`docs/rules.md`): the scope the skill
+  answers for, what an output must be, what it must never introduce, the contract the five office
+  applications are held to, and the limitations that must be said out loud. The Thai is the rule,
+  in the maintainer's own words; the English below it is a translation marked as one. Its last
+  table is the trace — which decision record applied each rule, and what was seen. GOVERNANCE.md
+  carries the rules at its head and `docs/architecture.md` says the design is one way of meeting
+  them; neither repeats them, because two copies of a deciding text drift.
+- **A gate on the project's own citations** (`live-pages-cite-the-record-in-force`): no page that
+  states a rule now may point at a record the index marks superseded, unless it names the record in
+  force on the same line. Twenty-three files were doing so when it was written — among them two
+  messages a user reads, which named ADR 0005 where 0023 has held since 2026-09-16 — and each was
+  mapped to the record in force, section numbers included. The check is the one ROADMAP.md had been
+  carrying since the drift of 2026-09-18 was found by a reviewer rather than a gate.
+
 - A release carries its own attestation. The build-provenance bundle is attached beside the archive
   as `thai-docx-<version>.intoto.jsonl`, so the proof travels with the file and a reader can check
   it offline, with no GitHub account: `gh attestation verify thai-docx-<version>.zip --bundle
@@ -19,6 +33,31 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Changed
 
+- **The build writes every number itself, in every document, unless `--auto-numbering` asks the
+  application to count — one answer for the whole document (ADR 0036, which restates 0035).** A
+  heading's number (`บทที่ ๑`, `๑.๑`, `ภาคผนวก ก`, `1.`), an ordered list's marker and a caption's
+  number are runs in the paragraph they belong to, in Arabic digits or Thai, so the file reads the
+  same in all five applications. The reason was measured: LibreOffice Writer drew a thesis's
+  captions as `ตารางที่ บทนำ-ก` — the chapter's *title* where Word gives its number, from a
+  `STYLEREF`, and a Thai letter that never restarted, from a `SEQ` — and drew `บทที่ 1`, `1.1`,
+  `1.` where Word drew Thai digits, because `thaiNumbers` is a format it does not implement
+  (26.8; `ก ข ค`, `A`, `I`, `i` and `1` are all right). **The cost is said where the user meets
+  it: written numbers do not renumber themselves.** A reader who inserts a chapter in the .docx
+  renumbers by hand from there, or changes the Markdown and builds again. Half-and-half is the one
+  thing not on offer — a document that renumbers its headings but not its captions puts
+  `ตารางที่ 1-1` in chapter 2 and says nothing. What only a laid-out page knows stays a field:
+  page numbers, footnote marks, and the page numbers a list shows after an update. A bullet stays
+  a numbering level, since `•` is written out and every reader drew it. **The three lists stay
+  `TOC` fields**, which is what an application, and a person who edits the file afterwards, knows
+  how to update — but a caption now takes a paragraph style of its own, `Table Caption` or
+  `Figure Caption`, and the list collects that style with `\t` instead of a caption's `SEQ`
+  fields, so it holds whoever counts. **The bytes of every document change**; the goldens were
+  regenerated.
+- The table of contents now carries sub-heading numbers too (`1.1 ที่มา`), because the build
+  writes them and so knows them; before, an application that never updated fields showed the
+  heading's words alone.
+- `--chapter-label` and `--appendix-label` say they changed nothing unless a heading actually
+  carries a chapter number or an appendix letter, which is what they always meant.
 - The task-list box is now `□` and, when checked, `■`, in Arial (ADR 0033). It was `☐`/`☑` in Segoe
   UI Symbol — a Microsoft font, so on every machine without it the box was drawn as **nothing**, in
   every reader, which the WPS re-check found. No font carrying `☐` is present on Windows, macOS and
@@ -27,6 +66,16 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Added
 
+- **`--auto-numbering`: the application counts, and Word renumbers as the reader edits** (ADR
+  0036). Headings take a multilevel list tied to the heading styles, ordered lists a numbering
+  level, and a caption the pair of fields Word's own Insert Caption writes — `STYLEREF 1 \s` and
+  a `SEQ` that starts again at each chapter — in `thaiNumbers` and `\* ThaiArabic` with
+  `--thai-digits`. Every field's result is still written in. It is for a document someone will go
+  on working on in Microsoft Word; what LibreOffice Writer, WPS Writer, Google Docs and Word for
+  macOS draw with it is in the new `references/numbering.md`, measured or marked not measured.
+  The flag says it changed nothing in a document with nothing to count. The release oracle gains
+  a variant, `sample-auto`, whose checklist asks that an inserted heading, list item and caption
+  renumber what follows; the reference application must pass it.
 - WPS Writer re-checked (11.1.0.11723): both fixes of 0.1.0 hold there, the three lists fill on
   open, and what WPS draws its own way is recorded — including a new one, the numbering value 1
   drawn as ๕ under `--thai-digits`. The check also found that the task-list boxes `☐` and `☑` are
@@ -77,6 +126,25 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   (ADR 0034, ADR 0023), and the form NFKC would leave everywhere is the one WPS already misplaces.
   `&nbsp;` keeps CommonMark's reading, which `references/markdown.md` states, and gets no warning.
   No document's bytes change.
+
+- `references/specs.md` — everything the Markdown can say, in one page, for an assistant writing
+  a document of a shape the user asked for. It was four files and an inference before: what the
+  parser accepts, how a long document is marked up, what the front matter styles, what the flags
+  set, what stops the build and what only warns. SKILL.md sends the agent there when a user shows
+  an example of their own. **It describes a format, not a house style** — the skill carries no
+  ministry's, university's or company's form, and the page says so in its own second paragraph;
+  the assistant follows the user's example, not one of ours. The page's single example uses every
+  construct at once and a test builds it, so the page cannot drift from the parser. Scenario 14
+  of both guides walks the flow: show the example, read the specs, see the Markdown, then build.
+
+- The skill ships one profile, `thesis`, and the document it belongs to. The profile loader has
+  looked in the skill's own directory since ADR 0024 and found nothing there; a user who
+  installed the skill saw rules about บทที่ and ตารางที่ and no example, which reads as a format
+  the skill imposes rather than one it offers. `examples/README.md` says in its first line that
+  it is an example and not a standard, which parts of a document a profile holds and which
+  belong to the Markdown, and what it costs — a document with regions or Thai digits does not
+  renumber itself. Every name in the example is invented; no real institution's format is
+  reproduced.
 
 ### Fixed
 

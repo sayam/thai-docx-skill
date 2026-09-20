@@ -19,6 +19,7 @@ Every document has these.
 | first-line indent, inches | none | `--indent 0.5` (body paragraphs only) |
 | line spacing | 1 | `--line-spacing 1.5` (1–3; code and footnotes stay single) |
 | alignment | left | `--align thai` (Thai distributed; a paragraph with no Thai stays left) |
+| the complex-script language of the text | left to the reader's machine | `--thai-language` (writes `w:bidi="th-TH"`; see [limits.md](limits.md) §3) |
 | spelling squiggles | shown | `--hide-spelling-errors` |
 
 ## Page furniture
@@ -32,6 +33,9 @@ The header and footer, and how Word draws the numbers it generates.
 | header text | none | `--header "ลับ"` (centred, above a page number there) |
 | footer text | none | `--footer "TEXT"` (centred, above a page number there) |
 | page, list and footnote numbers | 1 2 3 | `--thai-digits` (๑ ๒ ๓; the text itself is never changed) |
+| heading, list and caption numbers | written by the build, the same in every application | `--auto-numbering` (the application counts, and Word renumbers as you edit; what each application draws is in [numbering.md](numbering.md)) |
+
+Without a numbered heading, an ordered list or a caption, `--auto-numbering` changes nothing, and the build says so.
 
 ## Tables
 
@@ -65,19 +69,26 @@ For a report or thesis: region comments and `Table:` / `Figure:` captions — [c
 | chapter label | บทที่ | `--chapter-label "บท"` |
 | table caption label | ตารางที่ | `--table-label "ตาราง"` |
 | figure caption label | รูปที่ | `--figure-label "ภาพที่"` |
+| caption lines after the first | start at the margin, like the first | `--caption-hanging-indent 0.75` (0–4 in; independent of `--indent`) |
+| an image on a line of its own | starts at the left margin | `--center-images` |
+| the width of a caption | the width of the text | `--caption-matches-object` (as wide as the picture it belongs to) |
 | page numbers before the chapters | ก ข ค | `--front-page-numbers lower-roman` (or `upper-roman`, `decimal`) |
 | appendix label | ภาคผนวก | `--appendix-label "Appendix"` |
 | appendix numbers | ก ข ค | `--appendix-numbers upper-letters` (or `decimal`, `upper-roman`) |
 | chapter title | beside its number | `--chapter-title-on-new-line` (บทที่ 1 on one line, the title under it) |
 
-Without a `<!-- chapters -->` or `<!-- appendices -->` comment, `--chapter-label` changes nothing, and the build says so.
+Without a `#` heading under `<!-- chapters -->`, `--chapter-label` changes nothing, and the build says so.
 
 Without a `Table:` caption, `--table-label` changes nothing, and the build says so.
 
-Without a `Figure:` caption, `--figure-label` changes nothing, and the build says so.
+Without a `Figure:` caption, `--figure-label` and `--caption-matches-object` change nothing, and the build says so.
+
+Without a `Table:` or `Figure:` caption, `--caption-hanging-indent` changes nothing, and the build says so.
+
+Without an image on a line of its own, `--center-images` changes nothing, and the build says so.
 
 Without a `<!-- front -->` comment, `--front-page-numbers` changes nothing, and the build says so.
 
-Without an `<!-- appendices -->` comment, `--appendix-label` and `--appendix-numbers` change nothing, and the build says so.
+Without a `#` heading under `<!-- appendices -->`, `--appendix-label` and `--appendix-numbers` change nothing, and the build says so.
 
 Without a `#` heading under `<!-- chapters -->` or `<!-- appendices -->`, `--chapter-title-on-new-line` changes nothing, and the build says so.

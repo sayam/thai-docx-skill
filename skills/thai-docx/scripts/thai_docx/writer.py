@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
 """The body of word/document.xml: paragraphs, runs, tables, images, captions and fields,
-as layout() arranged the document (ADR 0005, 0021, 0027).
+as layout() arranged the document (ADR 0023, 0021, 0027).
 
 `Package` in parts.py adds the package's other parts to this class.
 """
@@ -12,8 +12,22 @@ import re
 import struct
 
 from . import markdown as md
-from .layout import LIST_FIELDS, SECTION_MARK, caption_text, has_thai, heading_styles, layout, list_entries
+from .layout import CAPTION_STYLE, LIST_FIELDS, SECTION_MARK, caption_text, has_thai, heading_styles, image_only, layout, list_entries, number_text
 from .settings import BuildError, half_up, page_size
+
+def _bold_only(node: dict) -> bool:
+    """A text inline whose run properties are the ones a caption's label carries: bold, nothing
+    else — so the label, the number and the words after them belong in one run."""
+    return bool(node.get("b")) and not (node.get("i") or node.get("strike") or node.get("code")
+                                        or node.get("u") or node.get("sup") or node.get("sub") or node.get("link"))
+
+
+def _formatted(node: dict) -> bool:
+    """A text inline that carries any formatting of its own, so a number joined to it would
+    take that formatting rather than the heading style's."""
+    return bool(node.get("b") or node.get("i") or node.get("strike") or node.get("code")
+                or node.get("u") or node.get("sup") or node.get("sub") or node.get("link"))
+
 
 CODE_FONT = "Consolas"
 # Styles whose own definition fixes the alignment — parts.py writes a <w:jc> into each of them.
@@ -30,9 +44,15 @@ BOX, BOX_CHECKED = "□ ", "■ "
 NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
 XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main"  # the theme, and a picture's own namespace
 EMU_PER_PX = 9525  # at 96 dpi
 EMU_PER_TWIP = 635
-LANG = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>'
+# Every run says it is complex script (ADR 0004, cause 1). Whether it also says *which*
+# complex-script language is --thai-language's to decide (ADR 0038): `w:bidi="th-TH"` is what
+# tells Word the text is Thai on a machine whose own complex-script language is not, and it is
+# what makes WPS Writer place SARA AM (ำ) over the wrong letter.
+LANG = '<w:cs/><w:lang w:val="en-US"/>'
+LANG_THAI = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>'
 # Thai marks above and below a consonant take no width of their own when a column is measured
 THAI_MARKS = frozenset([0x0E31, *range(0x0E34, 0x0E3B), *range(0x0E47, 0x0E4F)])
 # Word's own table default; with no table style it would otherwise be 0 and text touches the borders
@@ -95,10 +115,13 @@ class Writer:
         self.rels: list[tuple[str, str, str, bool]] = []  # id, type, target, external
         self.media: list[tuple[str, bytes]] = []  # part name, bytes
         self.image_rel: dict[str, tuple[str, int, int]] = {}
-        self.nums: list[tuple[int, int, int]] = []  # numId, start, level
         self.doc_pr = 0
+        self.has_ordered_list = False  # whether --auto-numbering has anything to count (ADR 0028)
+        self.image_twips = 0  # the width the last image was drawn at, for --caption-matches-object
+        self.lang = LANG_THAI if opts["thai_language"] else LANG
         self.heading_props, self.style_warnings = heading_styles(doc)
         self.items, self.regions, self.layout_warnings = layout(doc, opts)
+        self.nums: list[tuple[int, int, int]] = []  # numId, start, level
         self.has_chapters = "chapters" in self.regions or "appendices" in self.regions  # headings Word numbers by region
         self.counts = {"headings": 0, "paragraphs": 0, "list_items": 0, "tables": 0, "table_rows": 0,
                        "code_blocks": 0, "images": 0, "footnotes": 0, "links": 0}
@@ -132,7 +155,7 @@ class Writer:
             p.append('<w:vertAlign w:val="superscript"/>')
         elif node.get("sub"):
             p.append('<w:vertAlign w:val="subscript"/>')
-        p.append(LANG)
+        p.append(self.lang)
         return "<w:rPr>" + "".join(p) + "</w:rPr>"
 
     def text_run(self, node: dict, bold: bool = False) -> str:
@@ -159,19 +182,19 @@ class Writer:
             if t == "text":
                 out.append(self.text_run(n, bold))
             elif t == "hardbreak":
-                out.append("<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>")
+                out.append("<w:r><w:rPr>" + self.lang + "</w:rPr><w:br/></w:r>")
             elif t == "task":
                 mark = BOX_CHECKED if n["checked"] else BOX
                 out.append('<w:r><w:rPr><w:rFonts w:ascii="' + SYMBOL_FONT + '" w:hAnsi="' + SYMBOL_FONT + '" w:cs="' + SYMBOL_FONT + '"/>'
-                           + LANG + '</w:rPr><w:t xml:space="preserve">' + mark + "</w:t></w:r>")
+                           + self.lang + '</w:rPr><w:t xml:space="preserve">' + mark + "</w:t></w:r>")
             elif t == "footnote_ref":
-                out.append('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + LANG + '</w:rPr><w:footnoteReference w:id="' + str(n["id"])
+                out.append('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + self.lang + '</w:rPr><w:footnoteReference w:id="' + str(n["id"])
                            + '"/></w:r>')
             elif t == "image":
                 out.append(self.image(n))
             i += 1
         if not out:  # an empty paragraph still carries a run, so fidelity reads it
-            out.append("<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve"></w:t></w:r>')
+            out.append("<w:r><w:rPr>" + self.lang + '</w:rPr><w:t xml:space="preserve"></w:t></w:r>')
         return "".join(out)
 
     def image(self, node: dict) -> str:
@@ -192,10 +215,11 @@ class Writer:
         if cx > max_cx:
             cy = cy * max_cx // cx
             cx = max_cx
+        self.image_twips = cx // EMU_PER_TWIP  # what --caption-matches-object measures the caption against
         self.doc_pr += 1
         k = str(self.doc_pr)
         return (
-            "<w:r><w:rPr>" + LANG + "</w:rPr><w:drawing>"
+            "<w:r><w:rPr>" + self.lang + "</w:rPr><w:drawing>"
             '<wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + str(cx) + '" cy="' + str(cy) + '"/>'
             '<wp:docPr id="' + k + '" name="Picture ' + k + '" descr=' + attr(node["alt"]) + "/>"
             '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
@@ -230,12 +254,75 @@ class Writer:
         return '<w:jc w:val="left"/>'
 
     def title_break(self, item: dict) -> str:
-        """--chapter-title-on-new-line: the number Word writes keeps the first line and the
-        heading's own text starts the next one. OOXML gives a level no such suffix — nothing,
-        a space or a tab — so the break belongs to the heading (ADR 0027)."""
+        """--chapter-title-on-new-line: the number keeps the first line and the heading's own
+        text starts the next one."""
         if not self.opts["chapter_title_on_new_line"] or "number" not in item:
             return ""
-        return "<w:r><w:rPr>" + LANG + "</w:rPr><w:br/></w:r>"
+        return "<w:r><w:rPr>" + self.lang + "</w:rPr><w:br/></w:r>"
+
+    def numbers_are_text(self) -> bool:
+        """Whether the build writes this document's numbers itself, instead of asking the
+        application for them (ADR 0036). It is one answer for the whole document, never a
+        number here and a field there: a document that renumbers its headings but not its
+        captions goes wrong silently the first time a reader inserts a chapter.
+
+        The build writes them unless `--auto-numbering` asks otherwise, because a written
+        number reads the same in all five applications and a counted one does not — both
+        measured on 2026-09-19:
+
+        - **Thai digits.** LibreOffice draws `thaiNumbers` as 1, 2, 3, and does not read a
+          `custom` format at all.
+        - **Regions.** A caption inside chapters takes its number from `STYLEREF 1 \\s`, which
+          LibreOffice answers with the chapter's *title*, and from a `SEQ` whose restart at each
+          chapter it ignores.
+
+        With `--auto-numbering` the application counts, whole: headings, ordered lists and
+        captions renumber themselves as a reader edits, in Word — and `references/numbering.md`
+        says what each of the other four draws."""
+        return not self.opts["auto_numbering"]
+
+    def field_runs(self, instr: str, result: str, rpr: str) -> str:
+        """A field and the result the build already knows, between `separate` and `end`."""
+        return (
+            "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>'
+            "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
+            "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>'
+            "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>"
+            "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
+        )
+
+    def numbered_levels(self) -> set[int]:
+        """Heading levels the numbering part numbers: the chapter level whenever there are
+        chapters, the rest with --heading-numbers."""
+        rest = set(range(2, 7)) if self.opts["heading_numbers"] else set()
+        return ({1} | rest) if self.has_chapters else ({1} | rest if self.opts["heading_numbers"] else set())
+
+    def heading_num_id(self) -> int:
+        """After every ordered list's numId, which the body has handed out by the time styles are written."""
+        return len(self.nums) + 2
+
+    def numbered_heading(self, item: dict) -> tuple[list[dict], str, str]:
+        """A heading's inlines and what goes before them: its number, written into the paragraph
+        as text (ADR 0036). The number carries no run properties of its own, so it takes the
+        heading style's — the size, weight and colour of the words beside it, which is what ADR
+        0027 asked a numbering level to repeat. Where the first word is unformatted the number
+        joins its run rather than sitting in one beside it, formatted alike (cause 4)."""
+        b, inlines = item["block"], item["block"]["inlines"]
+        if not self.numbers_are_text():
+            # the numbering part numbers the heading, through its style or its own list
+            ppr = ""
+            if self.regions and item["region"] != "chapters" and b["level"] in self.numbered_levels():
+                # appendices take their own list ("ภาคผนวก ก"); headings in any other region, none
+                ppr = ('<w:numPr><w:ilvl w:val="' + str(b["level"] - 1) + '"/><w:numId w:val="' + str(self.heading_num_id() + 1) + '"/></w:numPr>'
+                       if item["region"] == "appendices" else '<w:numPr><w:numId w:val="0"/></w:numPr>')
+            return inlines, ppr, self.title_break(item)
+        if "number" not in item:
+            return inlines, "", ""
+        brk = self.title_break(item)
+        if not brk and inlines and inlines[0]["t"] == "text" and not _formatted(inlines[0]):
+            return [dict(inlines[0], s=item["number"] + " " + inlines[0]["s"])] + inlines[1:], "", ""
+        text = item["number"] if brk else item["number"] + " "
+        return inlines, "", ("<w:r><w:rPr>" + self.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + brk)
 
     def body(self) -> str:
         """The document's own top level, as layout() arranged it: sections apart by
@@ -249,38 +336,59 @@ class Writer:
                 out.append(self.caption(item["caption"], item.get("keep_next", False)))
             elif b["t"] == "directive":
                 out.append(self.field(LIST_FIELDS[b["name"]], entries=list_entries(self.items, b["name"])))
-            elif b["t"] == "heading" and self.regions and item["region"] != "chapters" and b["level"] in self.numbered_levels():
-                # appendices take their own list ("ภาคผนวก ก"); headings in any other region, none
+            elif b["t"] == "heading":
                 self.counts["headings"] += 1
-                if item["region"] == "appendices":
-                    num = '<w:numPr><w:ilvl w:val="' + str(b["level"] - 1) + '"/><w:numId w:val="' + str(self.heading_num_id() + 1) + '"/></w:numPr>'
-                else:
-                    num = '<w:numPr><w:numId w:val="0"/></w:numPr>'
-                out.append(self.paragraph(b["inlines"], "Heading" + str(b["level"]), num, lead=self.title_break(item)))
-            elif b["t"] == "heading" and self.title_break(item):
-                self.counts["headings"] += 1
-                out.append(self.paragraph(b["inlines"], "Heading" + str(b["level"]), lead=self.title_break(item)))
+                inlines, ppr, lead = self.numbered_heading(item)
+                out.append(self.paragraph(inlines, "Heading" + str(b["level"]), ppr, lead=lead))
             else:
                 out.append(self.blocks([b], body=True, keep_next=item.get("keep_next", False)))
         return "".join(out)
 
     def caption(self, c: dict, keep_next: bool) -> str:
-        """Label, chapter number and SEQ number, bold, with their results written in — an
-        application that never updates fields still shows them — then the caption text."""
+        """Label and number, bold, then the caption text. Where the document's numbers are the
+        build's own (ADR 0036) the number is text. With `--auto-numbering` it is the pair of
+        fields Word's own Insert Caption writes — the chapter from a STYLEREF, the count from a
+        SEQ named after the label and starting again at each chapter, in Thai digits when those
+        are asked for — with the results written in, so an application that never updates fields
+        still shows them. `settings.xml` carries the label itself (`captions_xml`)."""
         self.counts["paragraphs"] += 1
         bold = "<w:b/><w:bCs/>"
 
         def run(text: str, rpr: str) -> str:
-            return "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>"
+            return "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>"
 
-        ppr = '<w:pStyle w:val="Caption"/>' + ("<w:keepNext/>" if keep_next else "") + ('<w:jc w:val="center"/>' if c["kind"] == "figure" else "")
+        # --caption-hanging-indent: the label and number keep the margin and every line after
+        # the first is indented, so a caption that runs on reads as one block beside its number
+        hang = half_up(self.opts["caption_hanging_indent"] * 1440)
+        left, right = self.caption_box(c)
+        attrs = ([' w:left="' + str(left + hang) + '"'] if left + hang else []) + ([' w:right="' + str(right) + '"'] if right else [])
+        ind = ("<w:ind" + "".join(attrs) + (' w:hanging="' + str(hang) + '"' if hang else "") + "/>") if attrs or hang else ""
+        ppr = ('<w:pStyle w:val="' + CAPTION_STYLE[c["kind"]] + '"/>' + ("<w:keepNext/>" if keep_next else "")
+               + ind + ('<w:jc w:val="center"/>' if c["kind"] == "figure" else ""))
         ppr += self.latin_jc(ppr, caption_text(c))
-        out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c["label"] + " ", bold)
-        if c["chapter"]:
-            out += self.field_runs("STYLEREF 1 \\s", c["chapter"], bold) + run("-", bold)
-        seq = "SEQ " + c["kind"].capitalize() + " \\* " + ("ThaiArabic" if self.opts["thai_digits"] else "ARABIC") + (" \\s 1" if c["reset"] else "")
-        out += self.field_runs(seq, c["seq"], bold)
         rest = c["inlines"]
+        if not self.numbers_are_text():
+            out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(c["label"] + " ", bold)
+            if c["chapter"]:
+                out += self.field_runs("STYLEREF 1 \\s", c["chapter"], bold) + run("-", bold)
+            # the counter is named after the label, which is what Word's own Insert Caption
+            # names it: a caption a reader inserts then continues this document's numbering
+            # instead of starting a second count beside it
+            seq = ("SEQ " + c["label"] + " \\* " + ("ThaiArabic" if self.opts["thai_digits"] else "ARABIC")
+                   + (" \\s 1" if c["reset"] else ""))
+            out += self.field_runs(seq, c["seq"], bold)
+            if rest and rest[0]["t"] == "text":
+                out += self.inlines([dict(rest[0], s=" " + rest[0]["s"])] + rest[1:])
+            elif rest:
+                out += run(" ", "") + self.inlines(rest)
+            return out + "</w:p>"
+        number = (c["chapter"] + "-" if c["chapter"] else "") + c["seq"]
+        head = c["label"] + " " + number
+        if rest and rest[0]["t"] == "text" and _bold_only(rest[0]):
+            # the caption opens in bold, as the label does: one run, or two formatted alike (cause 4)
+            out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + self.inlines([dict(rest[0], s=head + " " + rest[0]["s"])] + rest[1:])
+            return out + "</w:p>"
+        out = "<w:p><w:pPr>" + ppr + "</w:pPr>" + run(head, bold)
         if rest and rest[0]["t"] == "text":
             # the space joins the first text run: a run of its own would sit beside one formatted alike (cause 4)
             out += self.inlines([dict(rest[0], s=" " + rest[0]["s"])] + rest[1:])
@@ -288,19 +396,21 @@ class Writer:
             out += run(" ", "") + self.inlines(rest)
         return out + "</w:p>"
 
-    def field_runs(self, instr: str, result: str, rpr: str) -> str:
-        return (
-            "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>'
-            "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
-            "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>'
-            "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>"
-            "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
-        )
+    def caption_box(self, c: dict) -> tuple[int, int]:
+        """The indents that make a caption as wide as the picture it belongs to, in twips
+        (`--caption-matches-object`), or (0, 0) for a caption that fills the text width.
 
-    def numbered_levels(self) -> set[int]:
-        """Heading levels Word numbers: the chapter level whenever there are chapters, the rest with --heading-numbers."""
-        rest = set(range(2, 7)) if self.opts["heading_numbers"] else set()
-        return ({1} | rest) if self.has_chapters else ({1} | rest if self.opts["heading_numbers"] else set())
+        Only a picture: a table is written at the full width of the text, so its caption already
+        ends where it does. The width is the one the image was drawn at — its own, or the text
+        width where the picture was wider — and where `--center-images` centres the picture the
+        slack is split, so the caption's box is the picture's box. The width is the last picture
+        written, which is this caption's: a `Figure:` caption is made only where the paragraph
+        just before it holds a picture and nothing else (layout.py)."""
+        if not (self.opts["caption_matches_object"] and c["kind"] == "figure" and self.image_twips):
+            return 0, 0
+        slack = max(self.text_width_twips - self.image_twips, 0)
+        left = slack // 2 if self.opts["center_images"] else 0
+        return left, slack - left
 
     def blocks(self, blocks: list[dict], level: int = 0, quote: bool = False, body: bool = False, keep_next: bool = False) -> str:
         """`body` marks the document's own top level: only its paragraphs take the
@@ -314,6 +424,12 @@ class Writer:
                 self.counts["headings"] += 1
                 out.append(self.paragraph(b["inlines"], "Heading" + str(b["level"])))
             elif t == "paragraph":
+                if self.opts["center_images"] and image_only(b):
+                    # a picture on a line of its own is centred, and takes no first-line indent:
+                    # an indent would move it off the centre its caption is measured against
+                    ppr = ("<w:keepNext/>" if keep_next else "") + '<w:jc w:val="center"/>'
+                    out.append(self.paragraph(b["inlines"], None, ppr))
+                    continue
                 ppr = '<w:ind w:firstLine="' + str(first_line) + '"/>' if first_line else ind
                 ppr = ("<w:keepNext/>" if keep_next else "") + ppr
                 out.append(self.paragraph(b["inlines"], "Quote" if quote else ("ListParagraph" if level else None), ppr))
@@ -333,23 +449,35 @@ class Writer:
         return "".join(out)
 
     def list(self, b: dict, level: int, quote: bool) -> str:
-        if b["ordered"]:
+        """A bullet is drawn by the numbering part, which every application reads the same way.
+        An ordered list's number is written as text instead (ADR 0036): its format is one a
+        reader may not have — LibreOffice draws thaiNumbers as 1, 2, 3 — and the hanging indent
+        and the tab after the marker put it where the numbering put it."""
+        ordered, out = b["ordered"], []
+        self.has_ordered_list = self.has_ordered_list or ordered
+        written = self.numbers_are_text()
+        if ordered and not written:
             num_id = len(self.nums) + 2
             self.nums.append((num_id, b["start"], level))
-        else:
-            num_id = 1
-        out = []
-        for item in b["items"]:
+        indent = '<w:ind w:left="' + str(720 * (level + 1)) + '" w:hanging="360"/>'
+        for n, item in enumerate(b["items"]):
             self.counts["list_items"] += 1
             if item and item[0]["t"] == "paragraph":
                 first, rest = item[0]["inlines"], item[1:]
             else:
                 first, rest = [], item  # the marker still shows on an item that opens with no paragraph
             if first and first[0]["t"] == "task":
-                ppr = '<w:ind w:left="' + str(720 * (level + 1)) + '"/>'
+                ppr, lead = '<w:ind w:left="' + str(720 * (level + 1)) + '"/>', ""
+            elif ordered and not written:
+                ppr, lead = '<w:numPr><w:ilvl w:val="' + str(min(level, 8)) + '"/><w:numId w:val="' + str(num_id) + '"/></w:numPr>', ""
+            elif ordered:
+                marker = number_text(b["start"] + n, "decimal", self.opts["thai_digits"]) + "."
+                ppr = indent
+                lead = ("<w:r><w:rPr>" + self.lang + '</w:rPr><w:t xml:space="preserve">' + esc(marker) + "</w:t></w:r>"
+                        "<w:r><w:rPr>" + self.lang + "</w:rPr><w:tab/></w:r>")
             else:
-                ppr = '<w:numPr><w:ilvl w:val="' + str(min(level, 8)) + '"/><w:numId w:val="' + str(num_id) + '"/></w:numPr>'
-            out.append(self.paragraph(first, "ListParagraph", ppr))
+                ppr, lead = '<w:numPr><w:ilvl w:val="' + str(min(level, 8)) + '"/><w:numId w:val="1"/></w:numPr>', ""
+            out.append(self.paragraph(first, "ListParagraph", ppr, lead=lead))
             out.append(self.blocks(rest, level + 1, quote))
         return "".join(out)
 
@@ -404,9 +532,9 @@ class Writer:
         The field opens in the first entry and closes in the last, as Word writes it."""
 
         def char(kind: str) -> str:
-            return "<w:r><w:rPr>" + LANG + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>'
+            return "<w:r><w:rPr>" + self.lang + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>'
 
-        instruction = "<w:r><w:rPr>" + LANG + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
+        instruction = "<w:r><w:rPr>" + self.lang + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
         if not entries:
             return "<w:p><w:pPr>" + ppr + "</w:pPr>" + char("begin") + instruction + char("separate") + char("end") + "</w:p>"
         self.counts["paragraphs"] += len(entries)
@@ -417,6 +545,6 @@ class Writer:
             entry_ppr = '<w:pStyle w:val="TOC' + str(min(level, 3)) + '"/>'
             out.append(
                 "<w:p><w:pPr>" + entry_ppr + self.latin_jc(entry_ppr, text) + "</w:pPr>" + opening
-                + "<w:r><w:rPr>" + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + closing + "</w:p>"
+                + "<w:r><w:rPr>" + self.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + closing + "</w:p>"
             )
         return "".join(out)

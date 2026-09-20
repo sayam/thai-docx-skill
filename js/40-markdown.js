@@ -1691,7 +1691,7 @@ function parseMarkdown(text) {
   for (let no = 1; no <= rawLines.length; no++) {
     for (const ch of rawLines[no - 1]) {
       const label = forbiddenChar(ch);
-      if (label !== null) throw new Unsupported(no, "text contains " + label + "; the build refuses it (ADR 0005, 0015)");
+      if (label !== null) throw new Unsupported(no, "text contains " + label + "; the build refuses it (ADR 0023, 0015)");
     }
     // ำ written the long way. No normalisation joins these: NFC leaves them apart and NFKC
     // takes ำ the other way, into these two. So it is named and left alone (ADR 0034).
@@ -1706,7 +1706,7 @@ function parseMarkdown(text) {
   doc.blocks = toBlocks(bp, root, doc);
   for (const [label, fn] of bp.footnoteDefs) {
     if (!doc.footnotes.has(label)) {
-      throw new Unsupported(fn.line, "footnote [^" + fn.label + "] is defined but never referenced; nothing may be dropped silently (ADR 0005)");
+      throw new Unsupported(fn.line, "footnote [^" + fn.label + "] is defined but never referenced; nothing may be dropped silently (ADR 0023)");
     }
   }
   // a link definition nobody refers to is dropped by CommonMark itself. This project promises
@@ -1969,17 +1969,42 @@ function toBlocks(bp, node, doc) {
   return out;
 }
 
-function plainText(blocks) {
+const THAI_DIGITS = { "0": "\u0e50", "1": "\u0e51", "2": "\u0e52", "3": "\u0e53", "4": "\u0e54",
+  "5": "\u0e55", "6": "\u0e56", "7": "\u0e57", "8": "\u0e58", "9": "\u0e59" };
+
+function thaiDigits(text) {
+  let out = "";
+  for (const ch of text) out += THAI_DIGITS[ch] === undefined ? ch : THAI_DIGITS[ch];
+  return out;
+}
+
+// Every paragraph's text, in document order. Hard breaks are newlines; task markers are □/■
+// (ADR 0033); an ordered list's number is text and comes with the tab after it (ADR 0036); a
+// bullet is drawn by the numbering part and is not text.
+function plainText(blocks, numbersAreText, thai) {
   const out = [];
   for (const b of blocks) {
     const t = b.t;
     if (t === "paragraph" || t === "heading") out.push(inlineText(b.inlines));
     else if (t === "code") out.push(...(b.lines.length ? b.lines : [""]));
-    else if (t === "quote") out.push(...plainText(b.blocks));
+    else if (t === "quote") out.push(...plainText(b.blocks, numbersAreText, thai));
     else if (t === "list") {
-      for (const item of b.items) {
-        if (!item.length || item[0].t !== "paragraph") out.push("");
-        out.push(...plainText(item));
+      for (let n = 0; n < b.items.length; n++) {
+        const item = b.items[n];
+        const task = item.length && item[0].t === "paragraph" && item[0].inlines.length && item[0].inlines[0].t === "task";
+        let marker = "";
+        if (numbersAreText && b.ordered && !task) {
+          const number = String(b.start + n);
+          marker = (thai ? thaiDigits(number) : number) + ".\t";
+        }
+        if (!item.length || item[0].t !== "paragraph") {
+          out.push(marker);
+          out.push(...plainText(item, numbersAreText, thai));
+          continue;
+        }
+        const lines = plainText(item, numbersAreText, thai);
+        if (lines.length) out.push(marker + lines[0], ...lines.slice(1));
+        else out.push(marker);
       }
     } else if (t === "table") {
       for (const row of b.rows) for (const cell of row) out.push(inlineText(cell));

@@ -277,7 +277,7 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
         ["check", "not-a-zip.docx"],
         ["check", "huge.docx"],
         ["check", "missing.docx"],
-        # repair: the same file out of both, or the same refusal (ADR 0032, 0008)
+        # repair: the same file out of both, or the same refusal (ADR 0037, 0008)
         ["repair", "legacy.docx", "repaired.docx"],
         ["repair", "out-of-order.docx", "ordered.docx"],   # properties in the wrong order
         ["repair", "sample-default.docx", "clean.docx"],   # nothing to repair: nothing written
@@ -291,7 +291,7 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
         [],
         ["convert", "x"],
         # the release oracle's thesis variants, whose goldens are held below
-        *(["build", "thesis/thesis.md", out, *flags] for source, flags, _golden, _about in list(oracle_set.VARIANTS.values())[1:]),
+        *(["build", "thesis/thesis.md", out, *flags] for source, flags, *_ in list(oracle_set.VARIANTS.values())[1:]),
         # profiles (ADR 0024): saved, listed, shown, exported, imported, built with
         ["profile"],
         ["profile", "list"],
@@ -327,7 +327,7 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
         ["build", "doc/in.md", out, "--chapter-label", "บท", "--appendix-label", "Appendix", "--appendix-numbers", "decimal", "--front-page-numbers",
          "decimal", "--figure-label", "ภาพ"],
         ["build", "doc/sub/เอกสาร.md", out, "--table-widths", "auto", "--no-repeat-table-header", "--table-label", "ตาราง"],
-        # grill mode is the user's word (ADR 0026): both read the message the same way
+        # grill mode is the user's word (ADR 0029): both read the message the same way
         ["grill", "--said", "thai-docx grill"],
         ["grill", "--said", "ขอ THAI_DOCX\tGRILL หน่อย"],
         ["grill", "--said", "ทำไฟล์ word ให้หน่อย ใส่สารบัญ เลขหน้า บทที่ ตารางที่"],
@@ -374,16 +374,17 @@ def _run(cmd: list[str], args: list[str], cwd: pathlib.Path) -> tuple:
 def test_a_writer_defect_is_refused_the_same_way(tmp_path):
     """The one road to exit 1 from build: the writer breaks a cause and its own check
     refuses the package. No input reaches it, so the same defect is planted in both."""
-    python_lang = "LANG = '<w:cs/><w:lang w:val=\"en-US\" w:bidi=\"th-TH\"/>'"
-    js_lang = "let LANG = '<w:cs/><w:lang w:val=\"en-US\" w:bidi=\"th-TH\"/>';"
+    python_lang = "LANG = '<w:cs/><w:lang w:val=\"en-US\"/>'"
+    js_lang = "const LANG = '<w:cs/><w:lang w:val=\"en-US\"/>';"
     assert python_lang in (ROOT / "skills/thai-docx/scripts/thai_docx/writer.py").read_text(encoding="utf-8")
     source = BUNDLE.read_text(encoding="utf-8")
     assert source.count(js_lang) == 1
     broken = tmp_path / "broken.cjs"
-    broken.write_text(source.replace(js_lang, "let LANG = '<w:cs/>';"), encoding="utf-8")
+    # the run loses <w:cs/>, which is cause 1's fix and finding 2 (ADR 0038)
+    broken.write_text(source.replace(js_lang, "const LANG = '<w:lang w:val=\"en-US\"/>';"), encoding="utf-8")
     (tmp_path / "in.md").write_text("ก\n", encoding="utf-8")
-    planted = ("import sys; sys.path.insert(0, sys.argv[1]); from thai_docx import writer, parts, __main__; "
-               "writer.LANG = parts.LANG = '<w:cs/>'; sys.exit(__main__.main(sys.argv[2:]))")
+    planted = ("import sys; sys.path.insert(0, sys.argv[1]); from thai_docx import writer, __main__; "
+               "writer.LANG = '<w:lang w:val=\"en-US\"/>'; sys.exit(__main__.main(sys.argv[2:]))")
     args = ["build", "in.md", "out.docx"]
     py = _run([sys.executable, "-c", planted, str(ROOT / "skills/thai-docx/scripts")], args, tmp_path)
     js = _run(["node", str(broken)], args, tmp_path)
@@ -408,8 +409,8 @@ def test_command_line_is_the_same(tmp_path):
     assert all_flags[3]["out.docx"] == (parity.GOLDEN / "sample-all-flags.docx").read_bytes()
     thesis = [(a, r) for a, r in runs if a[:2] == ["build", "thesis/thesis.md"]]
     # thesis has one more run
-    for (args, run), (_source, _flags, golden, _about) in zip(thesis, list(oracle_set.VARIANTS.values())[1:], strict=False):
+    for (args, run), (_source, _flags, golden, *_) in zip(thesis, list(oracle_set.VARIANTS.values())[1:], strict=False):
         assert run[0] == 0 and run[3]["out.docx"] == (parity.GOLDEN / f"{golden}.docx").read_bytes(), args
-    assert len(thesis) == 4  # the three golden variants, then --chapter-title-on-new-line
-    assert thesis[3][1][3]["out.docx"] not in [(parity.GOLDEN / f"{g}.docx").read_bytes()
-                                               for _s, _f, g, _a in oracle_set.VARIANTS.values()]
+    assert len(thesis) == 5  # the four golden variants, then --chapter-title-on-new-line
+    assert thesis[4][1][3]["out.docx"] not in [(parity.GOLDEN / f"{g}.docx").read_bytes()
+                                               for _s, _f, g, *_ in oracle_set.VARIANTS.values()]

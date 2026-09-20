@@ -94,7 +94,7 @@ def normalize_label(label: str) -> str:
 
 def forbidden_char(ch: str) -> str | None:
     """A character this skill refuses in its input: controls, noncharacters and the
-    invisible characters of ADR 0005. Returns a label, or None."""
+    invisible characters of ADR 0023. Returns a label, or None."""
     cp = ord(ch)
     if ch in INVISIBLE:
         return INVISIBLE[ch]
@@ -1782,7 +1782,7 @@ def parse(text: str) -> Document:
         for ch in ln:
             label = forbidden_char(ch)
             if label is not None:
-                raise Unsupported(no, f"text contains {label}; the build refuses it (ADR 0005, 0015)")
+                raise Unsupported(no, f"text contains {label}; the build refuses it (ADR 0023, 0015)")
         # ำ written the long way. No normalisation joins these: NFC leaves them apart and NFKC
         # takes ำ the other way, into these two. So it is named and left alone (ADR 0034).
         if NIKHAHIT + SARA_AA in ln:
@@ -1798,7 +1798,7 @@ def parse(text: str) -> Document:
     unreferenced = [label for label in bp.footnote_defs if label not in doc.footnotes]
     if unreferenced:
         fn = bp.footnote_defs[unreferenced[0]]
-        raise Unsupported(fn.line, f"footnote [^{fn.label}] is defined but never referenced; nothing may be dropped silently (ADR 0005)")
+        raise Unsupported(fn.line, f"footnote [^{fn.label}] is defined but never referenced; nothing may be dropped silently (ADR 0023)")
     # a link definition nobody refers to is dropped by CommonMark itself. This project promises
     # that nothing goes silently (references/markdown.md), so it is named — a warning, not a
     # refusal, because unlike a footnote it takes no room in the document either way.
@@ -2068,12 +2068,19 @@ def _blocks(bp: BlockParser, node: Node, doc: Document) -> list[dict]:
     return out
 
 
-# --- what the .docx must carry (ADR 0005) -------------------------------------
+# --- what the .docx must carry (ADR 0023) -------------------------------------
 
 
-def plain_text(blocks: list[dict]) -> list[str]:
-    """Every paragraph's text, in document order. Hard breaks are newlines; task
-    markers are □/■ (ADR 0033); images and footnote marks contribute nothing."""
+THAI_DIGITS = str.maketrans("0123456789", "๐๑๒๓๔๕๖๗๘๙")
+
+
+def plain_text(blocks: list[dict], numbers_are_text: bool = False, thai_digits: bool = False) -> list[str]:
+    """Every paragraph's text, in document order. Hard breaks are newlines; task markers are
+    □/■ (ADR 0033); images and footnote marks contribute nothing. `numbers_are_text` is the
+    document whose numbers the build writes rather than the application (ADR 0036): there an
+    ordered list's marker is text, in the document's own digits, and comes with the tab after
+    it. Elsewhere
+    the numbering part draws it, as it draws a bullet, and it is not text."""
     out: list[str] = []
     for b in blocks:
         t = b["t"]
@@ -2082,12 +2089,20 @@ def plain_text(blocks: list[dict]) -> list[str]:
         elif t == "code":
             out.extend(b["lines"] or [""])
         elif t == "quote":
-            out.extend(plain_text(b["blocks"]))
+            out.extend(plain_text(b["blocks"], numbers_are_text, thai_digits))
         elif t == "list":
-            for item in b["items"]:
+            for n, item in enumerate(b["items"]):
+                marker = ""
+                if numbers_are_text and b["ordered"] and not (item and item[0]["t"] == "paragraph"
+                                                             and item[0]["inlines"] and item[0]["inlines"][0]["t"] == "task"):
+                    number = str(b["start"] + n)
+                    marker = (number.translate(THAI_DIGITS) if thai_digits else number) + ".\t"
                 if not item or item[0]["t"] != "paragraph":
-                    out.append("")  # the writer gives such an item an empty numbered paragraph
-                out.extend(plain_text(item))
+                    out.append(marker)  # the writer gives such an item a paragraph with the marker alone
+                    out.extend(plain_text(item, numbers_are_text, thai_digits))
+                    continue
+                lines = plain_text(item, numbers_are_text, thai_digits)
+                out.extend([marker + lines[0]] + lines[1:] if lines else [marker])
         elif t == "table":
             for row in b["rows"]:
                 for cell in row:

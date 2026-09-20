@@ -250,7 +250,7 @@ function profileValidate(data, where) {
   return data;
 }
 
-// Where a name is looked for, first match winning (ADR 0024, 0025).
+// Where a name is looked for, first match winning (ADR 0024, 0030).
 function profileDirectories() {
   const path = require("path");
   const os = require("os");

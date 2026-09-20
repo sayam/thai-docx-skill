@@ -31,7 +31,10 @@ bundled command writes every attribute Thai needs. Your part is the Markdown.
    tables, strikethrough, task lists and footnotes; local PNG or JPEG images; no HTML
    beyond `<br>`, `<sup>`, `<sub>`, `<u>`, `<kbd>` and comments. What else stops the build:
    [references/markdown.md](references/markdown.md). A Markdown file the user gave you is
-   used as it is.
+   used as it is. **When the user wants a document of a particular shape** — a letter, a form, a
+   report — and shows you one of their own or describes it, read
+   [references/specs.md](references/specs.md) first: it is everything the format can express, in
+   one page. Match their example, never a form of your own; show the Markdown before building.
 2. **Run the build** with the first runtime you have:
 
    ```sh
@@ -74,6 +77,22 @@ again with the flags and report the new settings. Add a flag only for what the u
 for; every other setting keeps its default. A font without Thai glyphs, or a flag the
 document gives nothing to act on, is a warning, not an error.
 
+Heading, list and caption numbers are text the build writes: the same in every application,
+but they do not renumber when the .docx is edited. Only when the user will go on editing in
+Microsoft Word and wants the numbers to follow, add `--auto-numbering` — and tell them what
+[references/numbering.md](references/numbering.md) says other applications draw.
+
+By default the document does not say which complex-script language its Thai is, so Word takes it
+from the reader's machine — which every machine that types Thai has (ADR 0038). Add
+`--thai-language` when the user says the file goes to a machine that may not, and say in the same
+breath that WPS Writer then places ำ over the wrong letter.
+
+**What the file is handed over on is written down once**, in
+[references/limits.md](references/limits.md): what the skill promises, what the reader must do
+after opening the file, what does not renumber itself once they edit it, where the five
+applications differ, and what `repair` will and will not touch. Read it before promising anything
+about a file, and pass on the items that apply — a warning the build printed is one of them.
+
 ## Grill mode
 
 You do not choose this mode and an argument you were invoked with is not the user's word.
@@ -109,7 +128,9 @@ python3 <skill>/scripts/thai_docx profile export thesis thesis.json
 python3 <skill>/scripts/thai_docx profile import thesis.json
 ```
 
-`profile list` shows the names there are. A flag typed after `--profile` wins. Details:
+`profile list` shows the names there are. A flag typed after `--profile` wins. The skill ships
+one, `thesis` — an example to copy and change, never a format the user must follow; the document
+beside it is [examples/README.md](examples/README.md). Details:
 [references/profiles.md](references/profiles.md).
 
 ## Chapters, captions and lists

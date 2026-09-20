@@ -25,7 +25,7 @@ def types(text: str) -> list[str]:
     return [b["t"] for b in md.parse(text).blocks]
 
 
-# --- the soft-break rule (ADR 0005 transformation 1) ---
+# --- the soft-break rule (ADR 0023 transformation 1) ---
 
 
 def test_soft_break_between_thai_characters_adds_nothing():

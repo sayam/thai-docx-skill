@@ -164,8 +164,14 @@ THAI_LETTERS = "กขคงจฉชซฌญฎฏฐฑฒณดตถทธ�
 ROMAN = ((1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"),
          (1, "I"))
 SECTION_MARK = "\x00"  # between sections in the body; the input can hold no control character
-LIST_FIELDS = {"toc": 'TOC \\o "1-3" \\h \\z \\u', "list-of-tables": 'TOC \\h \\z \\c "Table"', "list-of-figures": 'TOC \\h \\z \\c "Figure"'}
-THAI_DIGITS = str.maketrans("0123456789", "๐๑๒๓๔๕๖๗๘๙")
+# A caption of each kind takes a style of its own, and a list collects that style: `\\c` collects
+# SEQ fields, which a caption stopped carrying when its number became text (ADR 0036).
+CAPTION_STYLE = {"table": "TableCaption", "figure": "FigureCaption"}
+CAPTION_STYLE_NAME = {"table": "Table Caption", "figure": "Figure Caption"}
+LIST_FIELDS = {"toc": 'TOC \\o "1-3" \\h \\z \\u',
+               "list-of-tables": 'TOC \\h \\z \\t "' + CAPTION_STYLE_NAME["table"] + ',1"',
+               "list-of-figures": 'TOC \\h \\z \\t "' + CAPTION_STYLE_NAME["figure"] + ',1"'}
+THAI_DIGITS = md.THAI_DIGITS  # the translation lives beside plain_text, which also writes numbers
 CAPTION_PREFIX = {"table": "Table:", "figure": "Figure:"}
 # What a Thai writer reaches for instead. These make no caption — the prefix is one word,
 # written in English, so one rule holds in both languages — but a paragraph that opens with
@@ -250,7 +256,9 @@ def _thai_caption_kind(b: dict) -> str | None:
     return None
 
 
-def _image_only(b: dict) -> bool:
+def image_only(b: dict) -> bool:
+    """A paragraph that holds an image and nothing but whitespace beside it: what a `Figure:`
+    caption belongs to, and what `--center-images` centres."""
     return b["t"] == "paragraph" and any(n["t"] == "image" for n in b["inlines"]) and all(
         n["t"] == "image" or (n["t"] == "text" and not n["s"].strip(" \t")) for n in b["inlines"])
 
@@ -276,6 +284,7 @@ def layout(doc: md.Document, opts: dict) -> tuple[list[dict], list[str], list[st
     warnings: list[str] = []
     region, pending, has_content, chapter, appendix = "cover", None, False, 0, 0
     counters = {"table": 0, "figure": 0}
+    sub = [0] * 6  # the counter of each heading level, for the numbers the build writes (ADR 0036)
     last_level = 0  # the heading level before this one: a jump leaves a gap in the outline
     blocks = doc.blocks
     for i, b in enumerate(blocks):
@@ -298,6 +307,12 @@ def layout(doc: md.Document, opts: dict) -> tuple[list[dict], list[str], list[st
             elif region == "appendices":
                 appendix += 1
                 item["number"] = opts["appendix_label"] + " " + number_text(appendix, opts["appendix_numbers"], opts["thai_digits"])
+        if b["t"] == "heading":
+            _count_heading(b["level"], sub)
+            number = _heading_number(b["level"], sub, region if sectioned else "chapters",
+                                     sectioned, chapter, appendix, opts)
+            if number is not None:
+                item["number"] = number
         for n in b.get("inlines", []):
             if n["t"] == "image" and not n["alt"].strip():
                 warnings.append("line " + str(b["line"]) + ": the image '" + n["src"]
@@ -312,7 +327,7 @@ def layout(doc: md.Document, opts: dict) -> tuple[list[dict], list[str], list[st
         if kind == "table" and not (i + 1 < len(blocks) and blocks[i + 1]["t"] == "table"):
             warnings.append("line " + str(b["line"]) + ": 'Table:' makes a caption only in the paragraph just before a table; kept as text")
             kind = None
-        if kind == "figure" and not (i > 0 and _image_only(blocks[i - 1])):
+        if kind == "figure" and not (i > 0 and image_only(blocks[i - 1])):
             warnings.append("line " + str(b["line"])
                             + ": 'Figure:' makes a caption only in the paragraph just after an image on its own; kept as text")
             kind = None
@@ -322,7 +337,7 @@ def layout(doc: md.Document, opts: dict) -> tuple[list[dict], list[str], list[st
         if kind is None:
             thai = _thai_caption_kind(b)
             in_place = (thai == "table" and i + 1 < len(blocks) and blocks[i + 1]["t"] == "table") or (
-                thai == "figure" and i > 0 and _image_only(blocks[i - 1]))
+                thai == "figure" and i > 0 and image_only(blocks[i - 1]))
             if in_place:
                 warnings.append("line " + str(b["line"]) + ": a caption is written '" + CAPTION_PREFIX[thai]
                                 + "' in English, in every language; this paragraph is kept as text")
@@ -345,6 +360,44 @@ def layout(doc: md.Document, opts: dict) -> tuple[list[dict], list[str], list[st
                 items[-1]["keep_next"] = True
         items.append(item)
     return items, regions, warnings
+
+
+def _count_heading(level: int, sub: list[int]) -> None:
+    """A heading advances its own level's counter and starts the deeper ones again."""
+    sub[level - 1] += 1
+    for k in range(level, len(sub)):
+        sub[k] = 0
+
+
+def _heading_number(level: int, sub: list[int], region: str, sectioned: bool,
+                    chapter: int, appendix: int, opts: dict) -> str | None:
+    """The number a heading carries, or None for a heading that carries none. Written into the
+    document as text rather than left to the application to compute (ADR 0036), so it reads the
+    same in every reader — the shapes are the ones Word's numbering drew before: "บทที่ ๑",
+    "ภาคผนวก ก", "๑.๑", "ก.๑.๑", and "1." for a document with no regions."""
+    if level > 1 and not opts["heading_numbers"]:
+        return None
+    if sectioned and region not in ("chapters", "appendices"):
+        return None
+    thai = opts["thai_digits"]
+    if region == "appendices":
+        if not appendix:
+            return None
+        first = number_text(appendix, opts["appendix_numbers"], thai)
+        label = opts["appendix_label"]
+    elif sectioned:
+        if not chapter:
+            return None
+        first = number_text(chapter, "decimal", thai)
+        label = opts["chapter_label"]
+    else:
+        if not opts["heading_numbers"]:
+            return None
+        first = number_text(sub[0], "decimal", thai)
+        label = None
+    if level == 1:
+        return (label + " " + first) if label is not None else first + "."
+    return ".".join([first] + [number_text(sub[k], "decimal", thai) for k in range(1, level)])
 
 
 LIST_KINDS = {"list-of-tables": "table", "list-of-figures": "figure"}
