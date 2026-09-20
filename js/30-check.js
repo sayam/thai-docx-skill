@@ -223,7 +223,9 @@ function checkTextPart(name, root, report) {
           report.find("2", name, "a run with text has no <w:cs/> element");
         } else {
           const lang = rpr.find(w("lang"));
-          if (lang === null || lang.get(w("bidi")) !== "th-TH") report.find("2", name, 'a run with text has no <w:lang w:bidi="th-TH"/>');
+          if (lang !== null && lang.get(w("bidi")) === "th-TH") {
+            report.counts.thai_language_runs = (report.counts.thai_language_runs || 0) + 1;
+          }
         }
         for (const t of texts) {
           for (const ch of Object.keys(INVISIBLE)) {

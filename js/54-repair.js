@@ -11,7 +11,7 @@
 // attribute order and empty-element spelling across the whole part, and ADR 0037 allows only
 // the attributes named. Both elements below are empty ones, so the shapes are few.
 
-const REPAIR_USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"]';
+const REPAIR_USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"] [--thai-language]';
 
 class RepairError extends Error {}
 const RE_NO_PROOF = /<w:noProof(?:\s[^>]*?)?\/>|<w:noProof(?:\s[^>]*?)?>\s*<\/w:noProof>/g;
@@ -119,10 +119,10 @@ function insertChild(children, name, element) {
 }
 
 // One w:rPr put right: [its new inner XML, code 2 repairs, code 5 repairs].
-function fixRpr(inner, font, markThai) {
+function fixRpr(inner, font, markThai, thaiLanguage) {
   let children = childrenOf(inner);
   const byName = new Map(children);
-  let two = 0, five = 0;
+  let two = 0, five = 0, marked = 0;
 
   for (const [latin, twin] of [["w:sz", "w:szCs"], ["w:b", "w:bCs"], ["w:i", "w:iCs"]]) {
     if (byName.has(latin) && !byName.has(twin)) {
@@ -149,20 +149,23 @@ function fixRpr(inner, font, markThai) {
       children = insertChild(children, "w:cs", "<w:cs/>");
       two += 1;
     }
-    const lang = byName.get("w:lang");
-    if (lang === undefined) {
-      children = insertChild(children, "w:lang", '<w:lang w:bidi="th-TH"/>');
-      two += 1;
-    } else if (!/w:bidi\s*=\s*"th-TH"/.test(lang)) {
-      const put = /w:bidi\s*=\s*"/.test(lang)
-        ? lang.replace(/w:bidi\s*=\s*"[^"]*"/, 'w:bidi="th-TH"')
-        : lang.slice(0, -2).replace(/\s+$/, "") + ' w:bidi="th-TH"/>';
-      children = children.map(([n, raw]) => [n, n === "w:lang" ? put : raw]);
-      two += 1;
+    if (thaiLanguage) {
+      // the Thai complex-script language, only where the caller asked for it (ADR 0038)
+      const lang = byName.get("w:lang");
+      if (lang === undefined) {
+        children = insertChild(children, "w:lang", '<w:lang w:bidi="th-TH"/>');
+        marked += 1;
+      } else if (!/w:bidi\s*=\s*"th-TH"/.test(lang)) {
+        const put = /w:bidi\s*=\s*"/.test(lang)
+          ? lang.replace(/w:bidi\s*=\s*"[^"]*"/, 'w:bidi="th-TH"')
+          : lang.slice(0, -2).replace(/\s+$/, "") + ' w:bidi="th-TH"/>';
+        children = children.map(([n, raw]) => [n, n === "w:lang" ? put : raw]);
+        marked += 1;
+      }
     }
   }
 
-  return [children.map(([, raw]) => raw).join(""), two, five];
+  return [children.map(([, raw]) => raw).join(""), two, five, marked];
 }
 
 // Every `element` in the part with its children in the order the schema fixes.
@@ -200,21 +203,21 @@ function reorder(xml, element, order) {
   return [xml, count];
 }
 
-function fixRuns(xml, font, counts) {
+function fixRuns(xml, font, counts, thaiLanguage) {
   let out = "", pos = 0;
   const re = new RegExp(RE_RUN_START.source, "g");
   for (let m = re.exec(xml); m !== null; m = re.exec(xml)) {
     if (m.index < pos) continue;
     const startEnd = m.index + m[0].length;
     const [innerEnd] = endOf(xml, startEnd, "w:r");
-    out += xml.slice(pos, startEnd) + fixRun(xml.slice(startEnd, innerEnd), font, counts);
+    out += xml.slice(pos, startEnd) + fixRun(xml.slice(startEnd, innerEnd), font, counts, thaiLanguage);
     pos = innerEnd;
     re.lastIndex = pos;
   }
   return out + xml.slice(pos);
 }
 
-function fixRun(inner, font, counts) {
+function fixRun(inner, font, counts, thaiLanguage) {
   const hasText = /<w:t(?:\s[^<>]*?)?>/.test(inner);
   const rpr = /^<w:rPr(?:\s[^<>]*?)?(\/?)>/.exec(inner);
   let body, restFrom, head = "";
@@ -229,19 +232,20 @@ function fixRun(inner, font, counts) {
     body = "";
     restFrom = 0;
   } else {
-    return fixRuns(inner, font, counts); // nothing of ours here; look deeper
+    return fixRuns(inner, font, counts, thaiLanguage); // nothing of ours here; look deeper
   }
-  const [newBody, two, five] = fixRpr(body, font, hasText);
+  const [newBody, two, five, marked] = fixRpr(body, font, hasText, thaiLanguage);
   counts["2"] = (counts["2"] || 0) + two;
   counts["5"] = (counts["5"] || 0) + five;
+  counts["thai-language"] = (counts["thai-language"] || 0) + marked;
   if (newBody) head = "<w:rPr>" + newBody + "</w:rPr>";
   else if (rpr !== null) head = inner.slice(0, restFrom);
-  return head + fixRuns(inner.slice(restFrom), font, counts);
+  return head + fixRuns(inner.slice(restFrom), font, counts, thaiLanguage);
 }
 
-function fixTextPart(xml, font) {
+function fixTextPart(xml, font, thaiLanguage) {
   const counts = {};
-  const out = fixRuns(xml, font, counts);
+  const out = fixRuns(xml, font, counts, thaiLanguage);
   const kept = {};
   for (const [k, v] of Object.entries(counts)) if (v) kept[k] = v;
   return [out, kept];
@@ -255,7 +259,7 @@ function fixStyles(xml, font) {
     if (m.index < pos) continue;
     const startEnd = m.index + m[0].length;
     const [innerEnd] = endOf(xml, startEnd, "w:rPr");
-    const [newBody, , n] = fixRpr(xml.slice(startEnd, innerEnd), font, false);
+    const [newBody, , n] = fixRpr(xml.slice(startEnd, innerEnd), font, false, false);
     five += n;
     out += xml.slice(pos, startEnd) + newBody;
     pos = innerEnd;
@@ -313,7 +317,7 @@ function complexScriptFont(parts, asked) {
 }
 
 // The parts to write anew, and how many of each code were repaired.
-function repairParts(parts, findings, font) {
+function repairParts(parts, findings, font, thaiLanguage) {
   const codes = new Set(findings.map((f) => f.code));
   const replace = new Map();
   const repaired = {};
@@ -354,11 +358,11 @@ function repairParts(parts, findings, font) {
     }
   }
   let chosen = null;
-  if (codes.has("2") || codes.has("5")) {
+  if (codes.has("2") || codes.has("5") || thaiLanguage) {
     const [csFont, why] = complexScriptFont(parts, font);
     for (const [name, bytes] of parts) {
       if (!TEXT_PARTS.test(name)) continue;
-      const [put, counts] = fixTextPart(fromUtf8(replace.get(name) || bytes), csFont);
+      const [put, counts] = fixTextPart(fromUtf8(replace.get(name) || bytes), csFont, thaiLanguage);
       if (Object.keys(counts).length) {
         replace.set(name, utf8(put));
         for (const [code, n] of Object.entries(counts)) repaired[code] = (repaired[code] || 0) + n;

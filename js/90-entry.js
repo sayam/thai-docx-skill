@@ -156,6 +156,11 @@ function nodeCheck(argv) {
 
 function nodeRepair(argv) {
   let font = null;
+  let thaiLanguage = false;
+  if (argv.indexOf("--thai-language") !== -1) {
+    argv = argv.filter((a) => a !== "--thai-language");
+    thaiLanguage = true;
+  }
   if (argv.length === 4 && argv[2] === "--font") {
     font = argv[3];
     argv = argv.slice(0, 2);
@@ -186,7 +191,7 @@ function nodeRepair(argv) {
   }
   const ents = readZipDirectory(data);
   const parts = new Map(ents.map((e) => [e.name, readZipEntry(data, e)]));
-  const [replace, repaired, chosen] = repairParts(parts, before.findings, font);
+  const [replace, repaired, chosen] = repairParts(parts, before.findings, font, thaiLanguage);
   if (!replace.size) {
     result.repaired = {};
     result.remaining = before.findings;
@@ -206,6 +211,8 @@ function nodeRepair(argv) {
     process.stdout.write(pyDumps(result) + "\n");
     return 2;
   }
+  const marked = repaired["thai-language"] || 0;
+  delete repaired["thai-language"];
   const still = new Set(after.findings.map((f) => f.code));
   for (const code of Object.keys(repaired)) {
     if (still.has(code)) {
@@ -225,6 +232,11 @@ function nodeRepair(argv) {
   result.repaired = repaired;
   result.remaining = after.findings;
   result.warnings = chosen ? [chosen, ...after.warnings] : after.warnings;
+  if (marked) {
+    result.warnings = result.warnings.concat([{ code: "thai-language", message:
+      'the Thai complex-script language w:bidi="th-TH" was written into ' + marked +
+      " run properties, as --thai-language asked" }]);
+  }
   result.sha256 = sha256Hex(out);
   result.bytes = out.length;
   process.stdout.write(pyDumps(result) + "\n");

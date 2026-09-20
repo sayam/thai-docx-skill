@@ -24,7 +24,6 @@ from thai_docx import build as b
 from thai_docx import fidelity as fi
 from thai_docx import layout as lo
 from thai_docx import markdown as md
-from thai_docx import parts as pa
 from thai_docx import writer as wr
 from thai_docx.check import check
 
@@ -126,8 +125,10 @@ def test_a_writer_that_drops_a_character_is_refused(tmp_path, monkeypatch):
 
 
 def test_a_writer_that_breaks_a_cause_is_refused(tmp_path, monkeypatch):
-    monkeypatch.setattr(wr, "LANG", "<w:cs/>")
-    monkeypatch.setattr(pa, "LANG", "<w:cs/>")  # the package's other parts name it too
+    """The build checks its own package before it writes it: a run that lost <w:cs/> is cause 1's
+    own symptom and finding 2, and no file is written."""
+    monkeypatch.setattr(wr, "LANG", '<w:lang w:val="en-US"/>')
+    monkeypatch.setattr(wr, "LANG_THAI", '<w:lang w:val="en-US" w:bidi="th-TH"/>')
     result, out = build(tmp_path, "ก")
     assert not result["ok"] and {f["code"] for f in result["findings"]} == {"2"}
     assert not out.exists()
@@ -256,7 +257,8 @@ def test_defaults_are_announced_and_flags_change_the_package(tmp_path):
         "font": "TH Sarabun New", "size_pt": 16, "paper": "a4", "landscape": False,
         "margins_in": {"top": 1.0, "right": 1.0, "bottom": 1.0, "left": 1.5},
         "first_line_indent_in": 0.0, "line_spacing": 1.0, "align": "left", "toc": False, "heading_numbers": False, "page_numbers": False,
-        "page_number_on_first": True, "header": None, "footer": None, "thai_digits": False, "auto_numbering": False,
+        "page_number_on_first": True, "header": None, "footer": None, "thai_language": False,
+        "thai_digits": False, "auto_numbering": False,
         "hide_spelling_errors": False,
         "repeat_table_header": True, "table_widths": "equal", "table_size_pt": None,
         "chapter_label": "บทที่", "table_label": "ตารางที่", "figure_label": "รูปที่", "caption_hanging_indent_in": 0.0,

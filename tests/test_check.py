@@ -37,7 +37,7 @@ def test_clean_package_passes(tmp_path):
     report = check(written(tmp_path, good()))
     assert report.findings == []
     assert report.warnings == []
-    assert report.counts == {"runs": 5, "paragraphs": 3, "tables": 0}
+    assert report.counts == {"runs": 5, "paragraphs": 3, "tables": 0, "thai_language_runs": 5}
 
 
 def test_cause_1_compat_mode_missing(tmp_path):
@@ -62,9 +62,17 @@ def test_cause_2_run_without_cs_element(tmp_path):
     assert codes(check(written(tmp_path, parts))) == {"2"}
 
 
-def test_cause_2_run_without_thai_bidi(tmp_path):
-    parts = replaced(good(), "word/document.xml", 'w:bidi="th-TH"', 'w:bidi="ar-SA"')
-    assert codes(check(written(tmp_path, parts))) == {"2"}
+def test_a_language_that_is_not_thai_is_counted_not_a_finding(tmp_path):
+    """ADR 0038: the complex-script *language* is `--thai-language`'s to write, so its absence is
+    no longer a defect in a file. What the checker does is count the runs that carry it, which is
+    what tells a reader whether this document proofs as Thai on a machine that is not set to it."""
+    whole = check(written(tmp_path, good())).counts["thai_language_runs"]
+    assert whole == 5, "the fixture's runs all carry it"
+    for swap in (' w:bidi="ar-SA"', ""):
+        parts = replaced(good(), "word/document.xml", ' w:bidi="th-TH"', swap, count=-1)
+        report = check(written(tmp_path, parts))
+        assert codes(report) == set(), swap
+        assert report.counts.get("thai_language_runs", 0) == 0, swap
 
 
 def test_cause_2_font_attribute_alone_is_not_enough(tmp_path):

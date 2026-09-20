@@ -176,14 +176,26 @@ def test_findings_this_version_does_not_repair_are_reported_and_left(tmp_path):
 
 
 def test_a_run_with_no_marks_at_all_is_marked(tmp_path):
-    """Code 2, the commonest finding: <w:cs/> and a Thai w:lang, in schema order."""
+    """Code 2, the commonest finding: the run is marked complex script, in schema order. The
+    complex-script *language* is not written unless it is asked for (ADR 0038): it is what makes
+    WPS Writer misplace ำ, and what a machine without Thai needs."""
     parts = replaced(good(), "word/document.xml", run("ข้อความทดสอบ "), "<w:r><w:t>ข้อความทดสอบ </w:t></w:r>")
     out = tmp_path / "out.docx"
     result = rp.repair(str(written(tmp_path, parts)), str(out))
-    assert result["ok"] and result["repaired"] == {"2": 2} and result["remaining"] == []
+    assert result["ok"] and result["repaired"] == {"2": 1} and result["remaining"] == []
     document = parts_of(out)["word/document.xml"]
-    assert b'<w:rPr><w:cs/><w:lang w:bidi="th-TH"/></w:rPr><w:t>' in document
+    assert b"<w:rPr><w:cs/></w:rPr><w:t>" in document and b'w:bidi="th-TH"/></w:rPr><w:t>' not in document
     assert check(out).findings == []
+    assert [w["code"] for w in result["warnings"] if w["code"] == "thai-language"] == []
+
+    asked = tmp_path / "asked.docx"
+    result = rp.repair(str(written(tmp_path, parts)), str(asked), None, True)
+    assert result["ok"] and result["repaired"] == {"2": 1}
+    assert b'<w:rPr><w:cs/><w:lang w:bidi="th-TH"/></w:rPr><w:t>' in parts_of(asked)["word/document.xml"]
+    said = [w["message"] for w in result["warnings"] if w["code"] == "thai-language"]
+    assert said == ['the Thai complex-script language w:bidi="th-TH" was written into 1 run properties,'
+                    " as --thai-language asked"], result["warnings"]
+    assert check(asked).findings == []
 
 
 def test_a_latin_property_gets_its_complex_script_twin(tmp_path):

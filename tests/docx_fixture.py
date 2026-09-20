@@ -87,7 +87,9 @@ def pack(parts: dict[str, str | bytes]) -> bytes:
 
 
 def replaced(parts: dict[str, str], part: str, old: str, new: str, count: int = 1) -> dict[str, str]:
-    """`parts` with `old` swapped for `new` in one part — and proof the swap happened."""
+    """`parts` with `old` swapped for `new` in one part — and proof the swap happened.
+
+    `count` is `str.replace`'s: one occurrence by default, -1 for every one."""
     assert old in parts[part], f"{old!r} is not in {part}; the mutation would be a no-op"
     out = dict(parts)
     out[part] = parts[part].replace(old, new, count)

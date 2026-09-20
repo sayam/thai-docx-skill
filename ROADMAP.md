@@ -48,6 +48,16 @@ so they drew as nothing outside Windows. Fixed by ADR 0033 — `□` and `■` i
 the bytes of any document with a task list, so the five applications of ADR 0012 are due a look
 before the next release.
 
+**SARA AM in WPS Writer, and the language the document declares.** Seven rounds of probes, opened
+by eye in WPS Writer and in Word, found the one attribute behind a difference recorded since the
+first release: `w:bidi="th-TH"`, the Thai complex-script language
+([evidence](docs/evidence/2026-09-20-sara-am-and-the-thai-language.md)). It is now written only
+when `--thai-language` asks ([ADR 0038](docs/adr/0038-the-thai-language-is-written-only-when-asked.md)),
+and the default takes the language from the reader's machine. **Owed before the tag:** the five
+applications again — every document's bytes changed — and, if it can be found, a Windows machine
+with no Thai among its languages, which is the one case the default gives up and which no machine
+in this round could test.
+
 **Repair puts a document's own numbering back.** The terms a document is handed over on are now
 written down once, in `skills/thai-docx/references/limits.md`: what the skill promises, what the
 reader does after opening the file, what does not renumber itself once they edit it, where the five

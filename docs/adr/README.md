@@ -43,3 +43,4 @@ file that is gone, a repeated number or a gap in the numbering is red.
 | 0035 | [Every number the build can know is written as text, not left to the application](0035-numbers-the-build-writes.md) | 2026-09-19 | superseded by 0036 |
 | 0036 | [The build writes every number, unless `--auto-numbering` asks the application to count (restated)](0036-who-counts-is-one-switch.md) | 2026-09-19 | accepted |
 | 0037 | [Repair puts a document's own numbering back, and asks which kind it is before it starts](0037-repair-renumbers-what-the-build-would-have-written.md) | 2026-09-20 | accepted |
+| 0038 | [Every run says it is complex script; only `--thai-language` says the language is Thai](0038-the-thai-language-is-written-only-when-asked.md) | 2026-09-20 | accepted |

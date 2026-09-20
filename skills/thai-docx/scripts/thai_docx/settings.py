@@ -120,6 +120,10 @@ SETTINGS: tuple[dict, ...] = (
      "read": ("text", 200, "\t\n"), "takes": "text of 1 to 200 characters on one line", "usage": "TEXT",
      "report": ("footer", "value"),
      "doc": ("footer text", "none", '`--footer "TEXT"` (centred, above a page number there)')},
+    {"key": "thai_language", "flag": "--thai-language", "kind": "switch", "default": False, "layer": 1,
+     "report": ("thai_language", "value"),
+     "doc": ("the complex-script language of the text", "left to the reader's machine",
+             "`--thai-language` (writes `w:bidi=\"th-TH\"`; see [limits.md](limits.md) §3)")},
     {"key": "thai_digits", "flag": "--thai-digits", "kind": "switch", "default": False, "layer": 2,  # numbers Word generates; never the text
      "report": ("thai_digits", "value"),
      "doc": ("page, list and footnote numbers", "1 2 3", "`--thai-digits` (๑ ๒ ๓; the text itself is never changed)")},
