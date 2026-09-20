@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
-"""Repair: the attributes that break Thai, never the text (ADR 0032; gate
+"""Repair: the attributes that break Thai, never the text (ADR 0037; gate
 `repair-changes-only-what-it-names`). This version repairs findings 1 and 3 and reports
 every other one.
 """
@@ -135,7 +135,7 @@ def test_the_text_comes_through_character_for_character(tmp_path):
 
 
 def test_every_part_it_did_not_write_keeps_its_bytes(tmp_path):
-    """ADR 0032: everything untouched comes through byte for byte, still compressed."""
+    """ADR 0037: everything untouched comes through byte for byte, still compressed."""
     src = FIXTURES / "legacy-python-docx-default.docx"
     b = src.read_bytes()
     out = tmp_path / "out.docx"
@@ -195,7 +195,7 @@ def test_a_latin_property_gets_its_complex_script_twin(tmp_path):
 
 
 def test_the_font_for_a_run_that_names_none_is_chosen_and_reported(tmp_path):
-    """ADR 0032's order: what the command was given, else the document's own, else ours."""
+    """ADR 0037's order: what the command was given, else the document's own, else ours."""
     parts = replaced(good(), "word/document.xml", "<w:rPr>", '<w:rPr><w:rFonts w:ascii="Calibri"/>', count=1)
     src = written(tmp_path, parts)
     out = tmp_path / "out.docx"
@@ -229,7 +229,7 @@ def test_a_clean_file_is_left_alone(tmp_path):
 
 
 def test_repairing_a_repaired_file_changes_nothing(tmp_path):
-    """Idempotent, as ADR 0032 requires: the second run has nothing left to do."""
+    """Idempotent, as ADR 0037 requires: the second run has nothing left to do."""
     once = tmp_path / "once.docx"
     assert rp.repair(str(FIXTURES / "legacy-python-docx-default.docx"), str(once))["ok"]
     twice = tmp_path / "twice.docx"

@@ -199,7 +199,7 @@ function nodeRepair(argv) {
   const footnotes = before.counts.footnotes || 0;
   const now = new Map(parts);
   for (const [k, v] of replace) now.set(k, v);
-  // the text is the user's (ADR 0023, 0032): a difference of one character writes nothing
+  // the text is the user's (ADR 0023, 0037): a difference of one character writes nothing
   const was = docxText(parts, footnotes), is = docxText(now, footnotes);
   if (was.length !== is.length || was.some((t, i) => t !== is[i])) {
     result.error = "the repair would have changed the document's text; nothing was written";

@@ -1,5 +1,9 @@
 # Fix a problem
 
+Every limit in one place — what the skill promises, what you must do after opening the file,
+what does not renumber itself, and where the five applications differ:
+`skills/thai-docx/references/limits.md`.
+
 Find what you see in the left column.
 
 [Guide home](../en.md) · [ภาษาไทย](../th/troubleshooting.md)

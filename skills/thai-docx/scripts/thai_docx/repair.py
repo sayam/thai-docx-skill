@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
 """Repair a .docx this skill did not write: the attributes that break Thai, never the text
-(ADR 0032).
+(ADR 0037).
 
     thai_docx repair IN.docx OUT.docx
 
@@ -32,7 +32,7 @@ from .fidelity import docx_text
 USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"]'
 
 # A part is edited as bytes, not re-serialised from a tree: a tree would rewrite prefixes,
-# attribute order and empty-element spelling across the whole part, and ADR 0032 allows only
+# attribute order and empty-element spelling across the whole part, and ADR 0037 allows only
 # the attributes named. Both elements below are empty ones, so the shapes are few.
 NO_PROOF = re.compile(rb"<w:noProof(?:\s[^>]*?)?/>|<w:noProof(?:\s[^>]*?)?>\s*</w:noProof>")
 COMPAT_SETTING = re.compile(rb"<w:compatSetting\s[^>]*?/>")
@@ -267,7 +267,7 @@ def fix_numbering(xml: bytes, font: bytes) -> tuple[bytes, int]:
 
 
 def complex_script_font(parts: dict[str, bytes], asked: str | None) -> tuple[bytes, str]:
-    """The font a run that names none is given, and why (ADR 0032): what the user asked for,
+    """The font a run that names none is given, and why (ADR 0037): what the user asked for,
     else the complex-script font this document already uses most, else the skill's default."""
     if asked:
         return asked.encode("utf-8"), "the font the command was given"
@@ -374,7 +374,7 @@ def repair(in_path: str, out_path: str, font: str | None = None) -> dict:
 
     out = package.repack(data, ents, replace)
 
-    # the text is the user's (ADR 0023, 0032): a difference of one character writes nothing
+    # the text is the user's (ADR 0023, 0037): a difference of one character writes nothing
     after = check_mod.check(io.BytesIO(out))
     footnotes = before.counts.get("footnotes", 0)
     was, now = docx_text(parts, footnotes), docx_text({**parts, **replace}, footnotes)

@@ -66,19 +66,19 @@ gates:
     enforced_by: {job: tests, tests: [tests/test_oracle.py]}
     proved_by: docs/evidence/2026-09-15-parser-held-to-references.md
   - id: deflate-is-defined-not-borrowed
-    title: The compressor is this project's own, defined so that both implementations write the same bytes, and what it writes inflates back through zlib and through the skill's own reader (ADR 0008, 0032)
+    title: The compressor is this project's own, defined so that both implementations write the same bytes, and what it writes inflates back through zlib and through the skill's own reader (ADR 0008, 0037)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_deflate.py]}
     proved_by: docs/evidence/2026-09-19-a-deflate-of-our-own.md
   - id: repack-keeps-what-it-did-not-write
-    title: A package written back with nothing replaced is the same bytes; a package with one part rewritten compresses that part with this project's own deflate and keeps every other entry's compressed bytes, method, checksum and date, in both implementations (ADR 0032, 0008)
+    title: A package written back with nothing replaced is the same bytes; a package with one part rewritten compresses that part with this project's own deflate and keeps every other entry's compressed bytes, method, checksum and date, in both implementations (ADR 0037, 0008)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_repack.py]}
     proved_by: docs/evidence/2026-09-18-a-package-comes-back-as-it-went-in.md
   - id: repair-changes-only-what-it-names
-    title: Repair writes a new file with findings 1, 2, 3, 5 and order gone and the complex-script font it chose reported, reports every other finding, changes no character of the text, keeps every part it did not rewrite byte for byte, refuses a file the checker refuses, and gives the same bytes from both implementations (ADR 0032, 0023, 0008)
+    title: Repair writes a new file with findings 1, 2, 3, 5 and order gone and the complex-script font it chose reported, reports every other finding, changes no character of the text, keeps every part it did not rewrite byte for byte, refuses a file the checker refuses, and gives the same bytes from both implementations (ADR 0037, 0023, 0008)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_repair.py]}

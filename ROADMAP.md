@@ -9,7 +9,7 @@ Four things, decided 2026-09-18.
 
 | | what | where it is decided | state |
 |---|---|---|---|
-| 1 | **Repair a `.docx` this skill did not write** — attributes only, never the text | [ADR 0032](docs/adr/0032-repair-rewrites-attributes-never-the-text.md) | done: findings 1, 2, 3, 5 and the property order, in a file about the size it was; the split word waits for v0.3 and invisible characters are never removed |
+| 1 | **Repair a `.docx` this skill did not write** — today attributes only, never the text | [ADR 0037](docs/adr/0037-repair-renumbers-what-the-build-would-have-written.md) | done: findings 1, 2, 3, 5 and the property order, in a file about the size it was; the split word waits for v0.3 and invisible characters are never removed |
 | 2 | **`gh skill install` and `npx skills add`** held by a test, and the difference between them written in the guides | below | done 2026-09-19 |
 | 3 | **The attestation attached to the release as a file** | [evidence](docs/evidence/2026-09-18-the-release-carries-its-attestation.md) | done 2026-09-18 |
 | 4 | **WPS Writer re-checked** after the fixes of 0.1.0, and what it still draws its own way recorded | [evidence](docs/evidence/2026-09-19-wps-writer.md) | done 2026-09-19 |
@@ -47,6 +47,25 @@ that **was** ours: the task-list boxes were written in Segoe UI Symbol, which no
 so they drew as nothing outside Windows. Fixed by ADR 0033 — `□` and `■` in Arial — which changes
 the bytes of any document with a task list, so the five applications of ADR 0012 are due a look
 before the next release.
+
+**Repair puts a document's own numbering back.** The terms a document is handed over on are now
+written down once, in `skills/thai-docx/references/limits.md`: what the skill promises, what the
+reader does after opening the file, what does not renumber itself once they edit it, where the five
+applications differ, and what `repair` will and will not touch. The five-application contract covers
+the ready-to-use document; `--auto-numbering` is made for Word and its variant is opened there
+alone. [ADR 0037](docs/adr/0037-repair-renumbers-what-the-build-would-have-written.md) decided the
+next step and it is **not yet shipped**, in this order:
+
+1. **repair reads a document's numbering kind** — automatic (`w:numPr` on headings, `SEQ`/`STYLEREF`
+   captions, numbered list items) or written (numbers as text) — and says which it is. Where it is
+   automatic, repair writes nothing: the assistant asks the user which the document should be.
+2. **repair re-runs the written numbers** — a heading's, a caption's, an ordered list's — to the
+   document's own pattern, reporting every one it changed, with the author's words still compared
+   character for character.
+3. **repair brings a paragraph's indent and a run's font to the document's own majority pattern**,
+   not to this skill's defaults.
+
+Until all three ship, no page may describe repair as doing any of it.
 
 **Who counts.** The build writes every heading, list and caption number as text, in every
 document, so a file reads the same in all five applications; `--auto-numbering` hands the counting

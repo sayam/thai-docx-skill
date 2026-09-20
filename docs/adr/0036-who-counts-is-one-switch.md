@@ -88,6 +88,12 @@ too, and a name that suggests otherwise would send people to the wrong one.
 **The flag is said to have changed nothing** when the document holds no numbered heading, no
 ordered list and no caption (ADR 0028) — then there is nothing to count, and no byte differs.
 
+**The five-application contract of ADR 0012 covers the default**, the document the skill hands
+over ready to use. A document built with `--auto-numbering` is made for Word: it is opened in the
+reference application, and what the other four draw with it is recorded below and in
+`references/numbering.md` rather than held to the contract. The release oracle says the same — the
+`sample-auto` variant is built for Word 365 for Windows alone.
+
 ## What `--auto-numbering` draws outside Word, as measured
 
 Only what has been seen is written here; `references/numbering.md` carries the same table for the

@@ -159,7 +159,7 @@ change the text. The report also names the font it wrote where a run named none;
 `--font "Sarabun"` chooses it yourself.
 
 The new file is about the size of the old one. When you have the Markdown, rebuilding fixes
-everything, including the three faults repair leaves alone.
+everything, including the two faults repair leaves alone.
 
 ## Ask the questions yourself
 

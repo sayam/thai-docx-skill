@@ -1,7 +1,8 @@
 # 0032 — Repair rewrites the attributes that break Thai, never the text
 
-- Status: accepted
+- Status: superseded
 - Decided: 2026-09-18
+- Superseded by: 0037
 - Supersedes: nothing; it takes up what 0006 left for v0.2
 
 ## Where it came from

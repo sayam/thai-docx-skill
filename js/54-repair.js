@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 Sayam Sriphua
 // SPDX-License-Identifier: MIT
 // Repair a .docx this skill did not write: the attributes that break Thai, never the text
-// (ADR 0032) — the port of thai_docx/repair.py. This version repairs two findings and
+// (ADR 0037) — the port of thai_docx/repair.py. This version repairs two findings and
 // reports every other one:
 //
 //   1  compatibilityMode is not exactly one 15 — set it, or drop the ones that are not 15
 //   3  <w:noProof/> switches Thai proofing, and Thai line breaking, off — remove it
 //
 // A part is edited as text, not re-serialised from a tree: a tree would rewrite prefixes,
-// attribute order and empty-element spelling across the whole part, and ADR 0032 allows only
+// attribute order and empty-element spelling across the whole part, and ADR 0037 allows only
 // the attributes named. Both elements below are empty ones, so the shapes are few.
 
 const REPAIR_USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"]';
@@ -288,7 +288,7 @@ function fixNumbering(xml, font) {
   return [out + xml.slice(pos), five];
 }
 
-// The font a run that names none is given, and why (ADR 0032): what the user asked for, else
+// The font a run that names none is given, and why (ADR 0037): what the user asked for, else
 // the complex-script font this document already uses most, else the skill's default.
 function complexScriptFont(parts, asked) {
   if (asked) return [asked, "the font the command was given"];
