@@ -4599,10 +4599,27 @@ class Writer {
 // thai-docx — parts: the port of scripts/thai_docx/parts.py. The package around the body: sections,
 // styles, numbering, settings, footnotes, headers and footers, and the package in order.
 
+// The paragraph at `at` belongs to a field: it carries part of one, or a field opened in an
+// earlier paragraph and has not closed by the time this one starts.
+function holdsAField(xml, at) {
+  const last = xml.slice(at);
+  if (last.includes("<w:fldChar") || last.includes("<w:instrText")) return true;
+  const before = xml.slice(0, at);
+  const times = (needle) => before.split(needle).length - 1;
+  return times('w:fldCharType="begin"') > times('w:fldCharType="end"');
+}
+
 // Close a section in the properties of its last top-level paragraph — a table's is the
 // empty paragraph after it — so no empty paragraph can spill onto a page of its own.
+//
+// A paragraph a field holds is not one to close in. Updating a field rewrites every paragraph
+// between its begin and its end, and a section break sitting on one of them goes with it; a list
+// of contents, tables or figures at the end of a region would hand Word the whole region to lose
+// (docs/evidence/2026-09-20-the-field-keeps-nothing-of-the-section.md). Such a section gets a
+// paragraph of its own after the list, which is what --toc has always written.
 function endSection(xml, sect) {
   const at = xml.lastIndexOf("<w:p>");
+  if (holdsAField(xml, at)) return xml + "<w:p><w:pPr>" + sect + "</w:pPr></w:p>";
   if (xml.startsWith("<w:p><w:pPr/>", at)) return xml.slice(0, at) + "<w:p><w:pPr>" + sect + "</w:pPr>" + xml.slice(at + "<w:p><w:pPr/>".length);
   const end = xml.indexOf("</w:pPr>", at);
   return xml.slice(0, end) + sect + xml.slice(end);

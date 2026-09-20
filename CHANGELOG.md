@@ -159,6 +159,16 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Fixed
 
+- **A section break no longer sits inside a table of contents, tables or figures.** A section's
+  properties live on its last paragraph, and where a region ended in one of the three lists that
+  paragraph was the field's own last entry. Updating a field rewrites every paragraph it holds, so
+  the break was rewritten with them: Word 365 on the desktop keeps the final paragraph mark and
+  never showed it, while **Word for the web** dropped the break, reflowed the pages and lost the
+  heading that followed — on the *second* update, not the first. Three of the seventeen breaks in
+  every thesis document were in this position. A section that ends in a list now closes in a
+  paragraph of its own after it, which is the shape `--toc` has always written.
+  **The bytes of a document whose region ends in a list change** (the four thesis goldens were
+  regenerated, 78 bytes each); `sample-default` and `sample-all-flags` are unchanged to the byte.
 - An English heading is aligned like its Thai twin. Under `--align thai`, a paragraph with no Thai
   in it is given `left` so English does not come out spread across the page — and a heading is a
   paragraph, so `# Abstract` was given it too, overriding the `text-align: center` its own style
