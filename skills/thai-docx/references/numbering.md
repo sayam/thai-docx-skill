@@ -65,6 +65,19 @@ caption, and a caption is not indented until this flag asks for it.
 A figure's caption is centred, so the indent there moves the block in from the left and each line
 is centred in what is left; a table's caption is left-aligned and hangs as the flag describes.
 
+## A caption as wide as the picture it belongs to
+
+By default a caption fills the width of the text, whatever the size of the picture above it, so a
+caption under a small picture runs on past both its edges. `--caption-matches-object` indents a
+figure's caption to the picture's own box: the caption then starts and ends where the picture
+does. `--center-images` centres a picture that stands alone on its line, and the caption's box is
+centred with it; without it the picture keeps the left margin and all the indent goes on the right.
+Each flag works on its own, and both are off unless asked for.
+
+A table is written at the full width of the text, so its caption is already as wide as it is and
+neither flag moves it. A picture wider than the text is drawn at the text width, so there is
+nothing to indent.
+
 ## What written numbers cost
 
 Nothing renumbers itself. After inserting a chapter in the .docx, every later `บทที่`, every

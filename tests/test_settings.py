@@ -122,6 +122,8 @@ def test_the_reference_states_each_default():
         "table_widths": d["table_widths"], "table_size": "as the body" if d["table_size"] is None else f"{d['table_size']} pt",
         "chapter_label": d["chapter_label"], "table_label": d["table_label"], "figure_label": d["figure_label"],
         "caption_hanging_indent": "start at the margin, like the first" if not d["caption_hanging_indent"] else f"{d['caption_hanging_indent']:g}",
+        "center_images": "centred" if d["center_images"] else "starts at the left margin",
+        "caption_matches_object": "as wide as the picture" if d["caption_matches_object"] else "the width of the text",
         "front_page_numbers": {"thai-letters": "ก ข ค"}[d["front_page_numbers"]],
         "appendix_label": d["appendix_label"], "appendix_numbers": {"thai-letters": "ก ข ค"}[d["appendix_numbers"]],
         "chapter_title_on_new_line": "beside its number" if not d["chapter_title_on_new_line"] else "under its number",

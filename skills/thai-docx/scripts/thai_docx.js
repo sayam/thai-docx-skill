@@ -3360,6 +3360,7 @@ const STRUCTURES = {
   "table captions": "the document has no 'Table:' caption",
   "figure captions": "the document has no 'Figure:' caption",
   captions: "the document has no 'Table:' or 'Figure:' caption",
+  images: "the document has no image on a line of its own",
   "chapters or appendices": "the document has no <!-- chapters --> or <!-- appendices --> comment",
   "numbered headings": "no heading carries a chapter or appendix number; a # heading under <!-- chapters --> or <!-- appendices --> does",
   appendices: "the document has no <!-- appendices --> comment",
@@ -3421,6 +3422,10 @@ const SETTINGS = [
   { key: "caption_hanging_indent", flag: "--caption-hanging-indent", kind: "value", default: 0.0, layer: 5, // inches
     read: ["number", 0, 4], takes: "a number of inches from 0 to 4", usage: "IN",
     needs: "captions", report: ["caption_hanging_indent_in", "float"] },
+  { key: "center_images", flag: "--center-images", kind: "switch", default: false, layer: 5,
+    needs: "images", report: ["center_images", "value"] },
+  { key: "caption_matches_object", flag: "--caption-matches-object", kind: "switch", default: false, layer: 5,
+    needs: "figure captions", report: ["caption_matches_object", "value"] },
   { key: "front_page_numbers", flag: "--front-page-numbers", kind: "value", default: "thai-letters", layer: 5,
     read: ["choice", Object.keys(FRONT_NUMBERS)], takes: Object.keys(FRONT_NUMBERS).join(", "), needs: "front", report: ["front_page_numbers", "value"] },
   { key: "appendix_label", flag: "--appendix-label", kind: "value", default: "ภาคผนวก", layer: 5,
@@ -4147,6 +4152,7 @@ class Writer {
     this.imageRel = new Map();
     this.docPr = 0;
     this.hasOrderedList = false; // whether --auto-numbering has anything to count (ADR 0028)
+    this.imageTwips = 0; // the width the last image was drawn at, for --caption-matches-object
     [this.headingProps, this.styleWarnings] = headingStyles(doc);
     [this.items, this.regions, this.layoutWarnings] = layout(doc, opts);
     this.nums = [];
@@ -4238,6 +4244,7 @@ class Writer {
       cy = (cy * maxCx) / cx;
       cx = maxCx;
     }
+    this.imageTwips = Number(cx / BigInt(EMU_PER_TWIP)); // what --caption-matches-object measures against
     this.docPr += 1;
     const k = String(this.docPr);
     return (
@@ -4374,7 +4381,9 @@ class Writer {
     // --caption-hanging-indent: the label and number keep the margin and every line after the
     // first is indented, so a caption that runs on reads as one block beside its number
     const hang = halfUp(this.opts.caption_hanging_indent * 1440);
-    const ind = hang ? '<w:ind w:left="' + hang + '" w:hanging="' + hang + '"/>' : "";
+    const [boxLeft, boxRight] = this.captionBox(c);
+    const attrs = (boxLeft + hang ? ' w:left="' + (boxLeft + hang) + '"' : "") + (boxRight ? ' w:right="' + boxRight + '"' : "");
+    const ind = attrs || hang ? "<w:ind" + attrs + (hang ? ' w:hanging="' + hang + '"' : "") + "/>" : "";
     let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + ind +
       (c.kind === "figure" ? '<w:jc w:val="center"/>' : "");
     ppr += this.latinJc(ppr, captionText(c));
@@ -4407,6 +4416,21 @@ class Writer {
     return out + "</w:p>";
   }
 
+  // The indents that make a caption as wide as the picture it belongs to, in twips
+  // (--caption-matches-object), or [0, 0] for a caption that fills the text width. Only a
+  // picture: a table is written at the full width of the text, so its caption already ends
+  // where it does. The width is the one the image was drawn at — its own, or the text width
+  // where the picture was wider — and where --center-images centres the picture the slack is
+  // split, so the caption's box is the picture's box. The width is the last picture written,
+  // which is this caption's: a Figure: caption is made only where the paragraph just before it
+  // holds a picture and nothing else (48-layout.js).
+  captionBox(c) {
+    if (!(this.opts.caption_matches_object && c.kind === "figure" && this.imageTwips)) return [0, 0];
+    const slack = Math.max(this.textWidthTwips - this.imageTwips, 0);
+    const left = this.opts.center_images ? Math.floor(slack / 2) : 0;
+    return [left, slack - left];
+  }
+
   blocks(blocks, level, quote, body, keepNext) {
     level = level || 0;
     const out = [];
@@ -4418,6 +4442,12 @@ class Writer {
         this.counts.headings += 1;
         out.push(this.paragraph(b.inlines, "Heading" + b.level));
       } else if (t === "paragraph") {
+        if (this.opts.center_images && imageOnly(b)) {
+          // a picture on a line of its own is centred, and takes no first-line indent: an
+          // indent would move it off the centre its caption is measured against
+          out.push(this.paragraph(b.inlines, null, (keepNext ? "<w:keepNext/>" : "") + '<w:jc w:val="center"/>'));
+          continue;
+        }
         const ppr = (keepNext ? "<w:keepNext/>" : "") + (firstLine ? '<w:ind w:firstLine="' + firstLine + '"/>' : ind);
         out.push(this.paragraph(b.inlines, quote ? "Quote" : level ? "ListParagraph" : null, ppr));
       } else if (t === "code") {
@@ -5111,6 +5141,7 @@ function buildText(text, opts, readImage) {
     ["table captions", items.some((item) => item.caption && item.caption.kind === "table")],
     ["figure captions", items.some((item) => item.caption && item.caption.kind === "figure")],
     ["captions", items.some((item) => item.caption !== undefined)],
+    ["images", items.some((item) => imageOnly(item.block))],
     ["chapters or appendices", writer.hasChapters],
     ["numbered headings", items.some((item) => item.number !== undefined)],
     ["appendices", writer.regions.includes("appendices")],

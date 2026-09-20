@@ -256,7 +256,9 @@ def _thai_caption_kind(b: dict) -> str | None:
     return None
 
 
-def _image_only(b: dict) -> bool:
+def image_only(b: dict) -> bool:
+    """A paragraph that holds an image and nothing but whitespace beside it: what a `Figure:`
+    caption belongs to, and what `--center-images` centres."""
     return b["t"] == "paragraph" and any(n["t"] == "image" for n in b["inlines"]) and all(
         n["t"] == "image" or (n["t"] == "text" and not n["s"].strip(" \t")) for n in b["inlines"])
 
@@ -325,7 +327,7 @@ def layout(doc: md.Document, opts: dict) -> tuple[list[dict], list[str], list[st
         if kind == "table" and not (i + 1 < len(blocks) and blocks[i + 1]["t"] == "table"):
             warnings.append("line " + str(b["line"]) + ": 'Table:' makes a caption only in the paragraph just before a table; kept as text")
             kind = None
-        if kind == "figure" and not (i > 0 and _image_only(blocks[i - 1])):
+        if kind == "figure" and not (i > 0 and image_only(blocks[i - 1])):
             warnings.append("line " + str(b["line"])
                             + ": 'Figure:' makes a caption only in the paragraph just after an image on its own; kept as text")
             kind = None
@@ -335,7 +337,7 @@ def layout(doc: md.Document, opts: dict) -> tuple[list[dict], list[str], list[st
         if kind is None:
             thai = _thai_caption_kind(b)
             in_place = (thai == "table" and i + 1 < len(blocks) and blocks[i + 1]["t"] == "table") or (
-                thai == "figure" and i > 0 and _image_only(blocks[i - 1]))
+                thai == "figure" and i > 0 and image_only(blocks[i - 1]))
             if in_place:
                 warnings.append("line " + str(b["line"]) + ": a caption is written '" + CAPTION_PREFIX[thai]
                                 + "' in English, in every language; this paragraph is kept as text")

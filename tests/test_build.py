@@ -12,9 +12,11 @@ import json
 import pathlib
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import zipfile
+import zlib
 
 import pytest
 
@@ -23,6 +25,7 @@ from thai_docx import fidelity as fi
 from thai_docx import layout as lo
 from thai_docx import markdown as md
 from thai_docx import parts as pa
+from thai_docx import settings as st
 from thai_docx import writer as wr
 from thai_docx.check import check
 
@@ -42,6 +45,17 @@ def run_cli(*args) -> tuple[int, dict]:
     done = subprocess.run([sys.executable, str(SCRIPT), "build", *map(str, args)], capture_output=True, text=True)
     assert done.stderr == "", done.stderr
     return done.returncode, json.loads(done.stdout)
+
+
+def _png(w: int, h: int) -> bytes:
+    """A PNG of the given size in pixels: what the build measures a picture by."""
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        body = tag + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
+
+    raw = b"".join(b"\x00" + b"\xff\x00\x00" * w for _ in range(h))
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
 
 
 def build(tmp_path, text: str, **opts) -> tuple[dict, pathlib.Path]:
@@ -247,6 +261,7 @@ def test_defaults_are_announced_and_flags_change_the_package(tmp_path):
         "hide_spelling_errors": False,
         "repeat_table_header": True, "table_widths": "equal", "table_size_pt": None,
         "chapter_label": "บทที่", "table_label": "ตารางที่", "figure_label": "รูปที่", "caption_hanging_indent_in": 0.0,
+        "center_images": False, "caption_matches_object": False,
         "front_page_numbers": "thai-letters", "appendix_label": "ภาคผนวก", "appendix_numbers": "thai-letters",
         "chapter_title_on_new_line": False,
     }
@@ -731,10 +746,10 @@ def test_a_caption_s_lines_after_the_first_are_indented_only_when_asked(tmp_path
     body's first line and changes no caption, and the default indents nothing."""
     shutil.copy(FIXTURES / "pixel.png", tmp_path / "p.png")
     text = ("Table: ก\n\n| ก |\n|---|\n| 1 |\n\n![ผัง](p.png)\n\nFigure: ข\n")
-    plain = zipfile.ZipFile(build(tmp_path, text, allow=[str(tmp_path)])[1]).read("word/document.xml").decode()
+    plain = zipfile.ZipFile(build(tmp_path, text)[1]).read("word/document.xml").decode()
     assert "w:hanging" not in plain, "nothing is indented until it is asked for"
     # the body's first-line indent is not the caption's, in either mode
-    indented = zipfile.ZipFile(build(tmp_path, text, indent=0.5, allow=[str(tmp_path)])[1]).read("word/document.xml").decode()
+    indented = zipfile.ZipFile(build(tmp_path, text, indent=0.5)[1]).read("word/document.xml").decode()
     assert "w:hanging" not in indented and '<w:ind w:firstLine="720"/>' in indented
     for flags, twips in ((["--caption-hanging-indent", "0.75"], 1080), (["--caption-hanging-indent", "0.3"], 432)):
         opts, _, allow = b.parse_args([*flags, "--allow-dir", str(tmp_path), "in.md", "out.docx"])
@@ -753,6 +768,58 @@ def test_a_caption_s_lines_after_the_first_are_indented_only_when_asked(tmp_path
     for bad in (["--caption-hanging-indent", "5"], ["--caption-hanging-indent", "-1"], ["--caption-hanging-indent", "x"]):
         with pytest.raises(b.BuildError, match="takes a number of inches from 0 to 4"):
             b.parse_args(bad + ["in.md", "out.docx"])
+
+
+def test_a_caption_is_as_wide_as_the_picture_it_belongs_to_only_when_asked(tmp_path):
+    """`--caption-matches-object` indents a figure's caption to the picture's own box, so the
+    caption ends where the picture does; `--center-images` centres the picture, and the box is
+    then split evenly. A table is written at the full width of the text, so its caption is
+    already as wide as it is and neither flag moves it."""
+    (tmp_path / "wide.png").write_bytes(_png(200, 100))  # 200 px = 3000 twips
+    text = "![ผัง](wide.png)\n\nFigure: รูป\n\nTable: ตาราง\n\n| ก |\n|---|\n| 1 |\n"
+    # A4 (11906 twips) less the default margins, right 1 in and left 1.5 in
+    assert st.page_size(b.DEFAULTS)[0] - st.half_up((1 + 1.5) * 1440) == 8306
+
+    def doc(**opts):
+        result, out = build(tmp_path, text, **opts)
+        assert result["ok"] and result["findings"] == [] and result["warnings"] == []
+        return zipfile.ZipFile(out).read("word/document.xml").decode()
+
+    plain = doc()
+    assert "w:ind" not in plain and "</w:pPr><w:r><w:rPr>" + wr.LANG + "</w:rPr><w:drawing>" in plain, "the picture starts at the margin"
+
+    # the picture keeps the left margin, so all the slack goes on the right
+    left_aligned = doc(caption_matches_object=True)
+    assert '<w:pStyle w:val="FigureCaption"/><w:ind w:right="5306"/><w:jc w:val="center"/>' in left_aligned
+    assert left_aligned.count("w:ind") == 1, "the table's caption is already as wide as its table"
+
+    # centred: the slack is split, and the picture's own paragraph is centred with no indent
+    centred = doc(caption_matches_object=True, center_images=True)
+    assert '<w:pStyle w:val="FigureCaption"/><w:ind w:left="2653" w:right="2653"/><w:jc w:val="center"/>' in centred
+    # the picture is kept with its caption, then centred
+    assert '<w:p><w:pPr><w:keepNext/><w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + wr.LANG + "</w:rPr><w:drawing>" in centred
+    # centring the picture alone leaves every caption where it was, and the picture takes no
+    # first-line indent: an indent would move it off the centre a caption is measured against
+    assert "w:ind" not in doc(center_images=True)
+    with_indent = doc(center_images=True, indent=0.5)
+    assert '<w:pPr><w:keepNext/><w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + wr.LANG + "</w:rPr><w:drawing>" in with_indent
+    assert with_indent.count('<w:ind w:firstLine="720"/>') == 0
+
+    # a hanging indent is added to the box, and the table's caption still gets only the hang
+    both = doc(caption_matches_object=True, center_images=True, caption_hanging_indent=0.5)
+    assert '<w:pStyle w:val="FigureCaption"/><w:ind w:left="3373" w:right="2653" w:hanging="720"/>' in both
+    assert '<w:pStyle w:val="TableCaption"/><w:keepNext/><w:ind w:left="720" w:hanging="720"/>' in both
+
+    # a picture wider than the text is drawn at the text width, so there is no slack to give
+    (tmp_path / "wide.png").write_bytes(_png(2000, 100))
+    assert "w:ind" not in doc(caption_matches_object=True, center_images=True)
+
+    # and each flag says it changed nothing where the document gives it nothing to act on
+    result, _ = build(tmp_path, "Table: ก\n\n| ก |\n|---|\n| 1 |\n", caption_matches_object=True, center_images=True)
+    assert sorted(w["message"] for w in result["warnings"]) == [
+        "--caption-matches-object changed nothing: the document has no 'Figure:' caption",
+        "--center-images changed nothing: the document has no image on a line of its own",
+    ]
 
 
 def test_region_comments_and_captions_refuse_or_warn_with_their_line(tmp_path):

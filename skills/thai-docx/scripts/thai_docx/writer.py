@@ -12,7 +12,7 @@ import re
 import struct
 
 from . import markdown as md
-from .layout import CAPTION_STYLE, LIST_FIELDS, SECTION_MARK, caption_text, has_thai, heading_styles, layout, list_entries, number_text
+from .layout import CAPTION_STYLE, LIST_FIELDS, SECTION_MARK, caption_text, has_thai, heading_styles, image_only, layout, list_entries, number_text
 from .settings import BuildError, half_up, page_size
 
 def _bold_only(node: dict) -> bool:
@@ -111,6 +111,7 @@ class Writer:
         self.image_rel: dict[str, tuple[str, int, int]] = {}
         self.doc_pr = 0
         self.has_ordered_list = False  # whether --auto-numbering has anything to count (ADR 0028)
+        self.image_twips = 0  # the width the last image was drawn at, for --caption-matches-object
         self.heading_props, self.style_warnings = heading_styles(doc)
         self.items, self.regions, self.layout_warnings = layout(doc, opts)
         self.nums: list[tuple[int, int, int]] = []  # numId, start, level
@@ -207,6 +208,7 @@ class Writer:
         if cx > max_cx:
             cy = cy * max_cx // cx
             cx = max_cx
+        self.image_twips = cx // EMU_PER_TWIP  # what --caption-matches-object measures the caption against
         self.doc_pr += 1
         k = str(self.doc_pr)
         return (
@@ -351,7 +353,9 @@ class Writer:
         # --caption-hanging-indent: the label and number keep the margin and every line after
         # the first is indented, so a caption that runs on reads as one block beside its number
         hang = half_up(self.opts["caption_hanging_indent"] * 1440)
-        ind = ('<w:ind w:left="' + str(hang) + '" w:hanging="' + str(hang) + '"/>') if hang else ""
+        left, right = self.caption_box(c)
+        attrs = ([' w:left="' + str(left + hang) + '"'] if left + hang else []) + ([' w:right="' + str(right) + '"'] if right else [])
+        ind = ("<w:ind" + "".join(attrs) + (' w:hanging="' + str(hang) + '"' if hang else "") + "/>") if attrs or hang else ""
         ppr = ('<w:pStyle w:val="' + CAPTION_STYLE[c["kind"]] + '"/>' + ("<w:keepNext/>" if keep_next else "")
                + ind + ('<w:jc w:val="center"/>' if c["kind"] == "figure" else ""))
         ppr += self.latin_jc(ppr, caption_text(c))
@@ -385,6 +389,22 @@ class Writer:
             out += run(" ", "") + self.inlines(rest)
         return out + "</w:p>"
 
+    def caption_box(self, c: dict) -> tuple[int, int]:
+        """The indents that make a caption as wide as the picture it belongs to, in twips
+        (`--caption-matches-object`), or (0, 0) for a caption that fills the text width.
+
+        Only a picture: a table is written at the full width of the text, so its caption already
+        ends where it does. The width is the one the image was drawn at — its own, or the text
+        width where the picture was wider — and where `--center-images` centres the picture the
+        slack is split, so the caption's box is the picture's box. The width is the last picture
+        written, which is this caption's: a `Figure:` caption is made only where the paragraph
+        just before it holds a picture and nothing else (layout.py)."""
+        if not (self.opts["caption_matches_object"] and c["kind"] == "figure" and self.image_twips):
+            return 0, 0
+        slack = max(self.text_width_twips - self.image_twips, 0)
+        left = slack // 2 if self.opts["center_images"] else 0
+        return left, slack - left
+
     def blocks(self, blocks: list[dict], level: int = 0, quote: bool = False, body: bool = False, keep_next: bool = False) -> str:
         """`body` marks the document's own top level: only its paragraphs take the
         first-line indent — not headings, lists, quotes, tables, code or footnotes."""
@@ -397,6 +417,12 @@ class Writer:
                 self.counts["headings"] += 1
                 out.append(self.paragraph(b["inlines"], "Heading" + str(b["level"])))
             elif t == "paragraph":
+                if self.opts["center_images"] and image_only(b):
+                    # a picture on a line of its own is centred, and takes no first-line indent:
+                    # an indent would move it off the centre its caption is measured against
+                    ppr = ("<w:keepNext/>" if keep_next else "") + '<w:jc w:val="center"/>'
+                    out.append(self.paragraph(b["inlines"], None, ppr))
+                    continue
                 ppr = '<w:ind w:firstLine="' + str(first_line) + '"/>' if first_line else ind
                 ppr = ("<w:keepNext/>" if keep_next else "") + ppr
                 out.append(self.paragraph(b["inlines"], "Quote" if quote else ("ListParagraph" if level else None), ppr))
