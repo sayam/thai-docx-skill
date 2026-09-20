@@ -54,6 +54,17 @@ takes the next number and the ones after it move on when fields are updated (Ctr
 
 A label carrying a space is not one Word's `SEQ` field can name; keep a caption label to one word.
 
+## A caption that runs to a second line
+
+By default every line of a caption starts at the margin, so a caption that runs on continues under
+its own number. `--caption-hanging-indent 0.75` (inches, 0 to 4) keeps the label and number at the
+margin and indents every line after the first, which puts the caption's text in one block beside
+its number. It is its own setting: `--indent` is the first line of a body paragraph and changes no
+caption, and a caption is not indented until this flag asks for it.
+
+A figure's caption is centred, so the indent there moves the block in from the left and each line
+is centred in what is left; a table's caption is left-aligned and hangs as the flag describes.
+
 ## What written numbers cost
 
 Nothing renumbers itself. After inserting a chapter in the .docx, every later `บทที่`, every

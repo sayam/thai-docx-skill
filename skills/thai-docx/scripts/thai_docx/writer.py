@@ -348,8 +348,12 @@ class Writer:
         def run(text: str, rpr: str) -> str:
             return "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>"
 
+        # --caption-hanging-indent: the label and number keep the margin and every line after
+        # the first is indented, so a caption that runs on reads as one block beside its number
+        hang = half_up(self.opts["caption_hanging_indent"] * 1440)
+        ind = ('<w:ind w:left="' + str(hang) + '" w:hanging="' + str(hang) + '"/>') if hang else ""
         ppr = ('<w:pStyle w:val="' + CAPTION_STYLE[c["kind"]] + '"/>' + ("<w:keepNext/>" if keep_next else "")
-               + ('<w:jc w:val="center"/>' if c["kind"] == "figure" else ""))
+               + ind + ('<w:jc w:val="center"/>' if c["kind"] == "figure" else ""))
         ppr += self.latin_jc(ppr, caption_text(c))
         rest = c["inlines"]
         if not self.numbers_are_text():

@@ -3359,6 +3359,7 @@ const STRUCTURES = {
   tables: "the document has no table",
   "table captions": "the document has no 'Table:' caption",
   "figure captions": "the document has no 'Figure:' caption",
+  captions: "the document has no 'Table:' or 'Figure:' caption",
   "chapters or appendices": "the document has no <!-- chapters --> or <!-- appendices --> comment",
   "numbered headings": "no heading carries a chapter or appendix number; a # heading under <!-- chapters --> or <!-- appendices --> does",
   appendices: "the document has no <!-- appendices --> comment",
@@ -3417,6 +3418,9 @@ const SETTINGS = [
     read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "table captions", report: ["table_label", "value"] },
   { key: "figure_label", flag: "--figure-label", kind: "value", default: "รูปที่", layer: 5,
     read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "figure captions", report: ["figure_label", "value"] },
+  { key: "caption_hanging_indent", flag: "--caption-hanging-indent", kind: "value", default: 0.0, layer: 5, // inches
+    read: ["number", 0, 4], takes: "a number of inches from 0 to 4", usage: "IN",
+    needs: "captions", report: ["caption_hanging_indent_in", "float"] },
   { key: "front_page_numbers", flag: "--front-page-numbers", kind: "value", default: "thai-letters", layer: 5,
     read: ["choice", Object.keys(FRONT_NUMBERS)], takes: Object.keys(FRONT_NUMBERS).join(", "), needs: "front", report: ["front_page_numbers", "value"] },
   { key: "appendix_label", flag: "--appendix-label", kind: "value", default: "ภาคผนวก", layer: 5,
@@ -4367,7 +4371,12 @@ class Writer {
     this.counts.paragraphs += 1;
     const bold = "<w:b/><w:bCs/>";
     const run = (text, rpr) => "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>";
-    let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + (c.kind === "figure" ? '<w:jc w:val="center"/>' : "");
+    // --caption-hanging-indent: the label and number keep the margin and every line after the
+    // first is indented, so a caption that runs on reads as one block beside its number
+    const hang = halfUp(this.opts.caption_hanging_indent * 1440);
+    const ind = hang ? '<w:ind w:left="' + hang + '" w:hanging="' + hang + '"/>' : "";
+    let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + ind +
+      (c.kind === "figure" ? '<w:jc w:val="center"/>' : "");
     ppr += this.latinJc(ppr, captionText(c));
     const rest = c.inlines;
     if (!this.numbersAreText()) {
@@ -5101,6 +5110,7 @@ function buildText(text, opts, readImage) {
     ["tables", writer.counts.tables > 0],
     ["table captions", items.some((item) => item.caption && item.caption.kind === "table")],
     ["figure captions", items.some((item) => item.caption && item.caption.kind === "figure")],
+    ["captions", items.some((item) => item.caption !== undefined)],
     ["chapters or appendices", writer.hasChapters],
     ["numbered headings", items.some((item) => item.number !== undefined)],
     ["appendices", writer.regions.includes("appendices")],

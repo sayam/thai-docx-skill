@@ -44,6 +44,7 @@ function buildText(text, opts, readImage) {
     ["tables", writer.counts.tables > 0],
     ["table captions", items.some((item) => item.caption && item.caption.kind === "table")],
     ["figure captions", items.some((item) => item.caption && item.caption.kind === "figure")],
+    ["captions", items.some((item) => item.caption !== undefined)],
     ["chapters or appendices", writer.hasChapters],
     ["numbered headings", items.some((item) => item.number !== undefined)],
     ["appendices", writer.regions.includes("appendices")],

@@ -325,7 +325,12 @@ class Writer {
     this.counts.paragraphs += 1;
     const bold = "<w:b/><w:bCs/>";
     const run = (text, rpr) => "<w:r><w:rPr>" + rpr + LANG + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>";
-    let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + (c.kind === "figure" ? '<w:jc w:val="center"/>' : "");
+    // --caption-hanging-indent: the label and number keep the margin and every line after the
+    // first is indented, so a caption that runs on reads as one block beside its number
+    const hang = halfUp(this.opts.caption_hanging_indent * 1440);
+    const ind = hang ? '<w:ind w:left="' + hang + '" w:hanging="' + hang + '"/>' : "";
+    let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + ind +
+      (c.kind === "figure" ? '<w:jc w:val="center"/>' : "");
     ppr += this.latinJc(ppr, captionText(c));
     const rest = c.inlines;
     if (!this.numbersAreText()) {

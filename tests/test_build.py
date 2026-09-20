@@ -246,7 +246,7 @@ def test_defaults_are_announced_and_flags_change_the_package(tmp_path):
         "page_number_on_first": True, "header": None, "footer": None, "thai_digits": False, "auto_numbering": False,
         "hide_spelling_errors": False,
         "repeat_table_header": True, "table_widths": "equal", "table_size_pt": None,
-        "chapter_label": "บทที่", "table_label": "ตารางที่", "figure_label": "รูปที่",
+        "chapter_label": "บทที่", "table_label": "ตารางที่", "figure_label": "รูปที่", "caption_hanging_indent_in": 0.0,
         "front_page_numbers": "thai-letters", "appendix_label": "ภาคผนวก", "appendix_numbers": "thai-letters",
         "chapter_title_on_new_line": False,
     }
@@ -723,6 +723,36 @@ def test_asked_to_count_the_sample_is_byte_for_byte_what_it_was_before_the_build
     out = tmp_path / "out.docx"
     code, result = run_cli(str(FIXTURES / "sample.md"), str(out), "--auto-numbering")
     assert code == 0 and result["sha256"] == "50776ea25c454dfd820a8c8d28e601ab8039ae5814521f976367fdf1b0fde95f"
+
+
+def test_a_caption_s_lines_after_the_first_are_indented_only_when_asked(tmp_path):
+    """`--caption-hanging-indent` moves every line of a caption after the first, so a caption that
+    runs on sits beside its number rather than under it. It stands on its own: `--indent` is the
+    body's first line and changes no caption, and the default indents nothing."""
+    shutil.copy(FIXTURES / "pixel.png", tmp_path / "p.png")
+    text = ("Table: ก\n\n| ก |\n|---|\n| 1 |\n\n![ผัง](p.png)\n\nFigure: ข\n")
+    plain = zipfile.ZipFile(build(tmp_path, text, allow=[str(tmp_path)])[1]).read("word/document.xml").decode()
+    assert "w:hanging" not in plain, "nothing is indented until it is asked for"
+    # the body's first-line indent is not the caption's, in either mode
+    indented = zipfile.ZipFile(build(tmp_path, text, indent=0.5, allow=[str(tmp_path)])[1]).read("word/document.xml").decode()
+    assert "w:hanging" not in indented and '<w:ind w:firstLine="720"/>' in indented
+    for flags, twips in ((["--caption-hanging-indent", "0.75"], 1080), (["--caption-hanging-indent", "0.3"], 432)):
+        opts, _, allow = b.parse_args([*flags, "--allow-dir", str(tmp_path), "in.md", "out.docx"])
+        result, out = build(tmp_path, text, **opts)
+        doc = zipfile.ZipFile(out).read("word/document.xml").decode()
+        assert result["ok"] and result["findings"] == [] and result["warnings"] == []
+        ind = '<w:ind w:left="' + str(twips) + '" w:hanging="' + str(twips) + '"/>'
+        # both kinds, and before the alignment a figure's caption carries (w:ind before w:jc)
+        assert '<w:pStyle w:val="TableCaption"/><w:keepNext/>' + ind + "</w:pPr>" in doc
+        assert '<w:pStyle w:val="FigureCaption"/>' + ind + '<w:jc w:val="center"/>' in doc
+        assert doc.count(ind) == 2, "one caption of each kind, and nothing else moved"
+    # a document with no caption is not changed, and the build says the flag did nothing
+    result, _ = build(tmp_path, "ข้อความ\n", caption_hanging_indent=0.75)
+    assert [w["message"] for w in result["warnings"]] == [
+        "--caption-hanging-indent changed nothing: the document has no 'Table:' or 'Figure:' caption"]
+    for bad in (["--caption-hanging-indent", "5"], ["--caption-hanging-indent", "-1"], ["--caption-hanging-indent", "x"]):
+        with pytest.raises(b.BuildError, match="takes a number of inches from 0 to 4"):
+            b.parse_args(bad + ["in.md", "out.docx"])
 
 
 def test_region_comments_and_captions_refuse_or_warn_with_their_line(tmp_path):
