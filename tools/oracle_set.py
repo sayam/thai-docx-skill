@@ -33,27 +33,34 @@ APPLICATIONS = ("word365_windows", "word_mac", "libreoffice_writer", "google_doc
 # than held to the contract. A variant names the applications it is opened in.
 WORD = ("word365_windows",)
 
+# the paragraph, number, page and table options, which sample-options and sample-auto share:
+# the pair differs in who counts the numbers and in nothing else
+VARIANTS_OPTIONS_FLAGS = [
+    "--heading-numbers", "--align", "thai", "--indent", "0.5", "--line-spacing", "1.5", "--thai-digits",
+    "--page-numbers", "top-center", "--no-page-number-first", "--header", "ข้อมูลสังเคราะห์ ใช้ทดสอบเท่านั้น",
+    "--footer", "มหาวิทยาลัยตัวอย่าง", "--front-page-numbers", "lower-roman", "--appendix-numbers", "upper-letters",
+    "--appendix-label", "Appendix", "--table-widths", "auto", "--table-size", "14",
+]
+
 # name → (fixture, flags, golden in tests/golden, what this variant is there to show)
 VARIANTS = {
     "sample-basic": (FIXTURES / "sample.md", [], "sample-default",
                      "Every Markdown construct once, on the defaults.", APPLICATIONS),
     "sample-text": (FIXTURES / "thesis" / "thesis.md", ["--heading-numbers", "--page-numbers", "bottom-center"], "thesis-text",
                     "A thesis: cover, front pages, chapters, bibliography, appendices; captions and lists; long paragraphs.", APPLICATIONS),
-    "sample-options": (FIXTURES / "thesis" / "thesis.md", [
-        "--heading-numbers", "--align", "thai", "--indent", "0.5", "--line-spacing", "1.5", "--thai-digits",
-        "--page-numbers", "top-center", "--no-page-number-first", "--header", "ข้อมูลสังเคราะห์ ใช้ทดสอบเท่านั้น",
-        "--footer", "มหาวิทยาลัยตัวอย่าง", "--front-page-numbers", "lower-roman", "--appendix-numbers", "upper-letters",
-        "--appendix-label", "Appendix", "--table-widths", "auto", "--table-size", "14",
-    ], "thesis-options", "The same thesis with the paragraph, number, page and table options.", APPLICATIONS),
+    "sample-options": (FIXTURES / "thesis" / "thesis.md", VARIANTS_OPTIONS_FLAGS, "thesis-options",
+                       "The same thesis with the paragraph, number, page and table options.", APPLICATIONS),
     "sample-layout": (FIXTURES / "thesis" / "thesis.md", [
         "--paper", "f14", "--landscape", "--size", "15", "--margins", "1,1,1,1", "--toc",
         "--no-repeat-table-header", "--hide-spelling-errors", "--table-widths", "auto",
     ], "thesis-layout", "The same thesis on F14 landscape, with the settings flags.", APPLICATIONS),
-    "sample-auto": (FIXTURES / "thesis" / "thesis.md", [
-        "--heading-numbers", "--thai-digits", "--auto-numbering", "--page-numbers", "bottom-center",
-    ], "thesis-auto", "The same thesis with the application counting (ADR 0036): open it, then edit it. "
-                      "Made for Word, so it is opened in the reference application alone — the contract of ADR 0012 covers the "
-                      "ready-to-use documents above, and what the other four draw with --auto-numbering is recorded in "
+    # the same thesis as sample-options, with the same flags, and the application counting: the
+    # two files differ in the numbering and in nothing else, which is what this mode promises
+    "sample-auto": (FIXTURES / "thesis" / "thesis.md", [*VARIANTS_OPTIONS_FLAGS, "--auto-numbering"], "thesis-auto",
+                    "The same thesis with the application counting (ADR 0036): open it, then edit it. "
+                      "Made for Word 365 for Windows on the desktop, so it is opened there and nowhere else. The contract of "
+                      "ADR 0012 covers the ready-to-use documents above; Word on the web is not covered for this mode (it cannot "
+                      "insert a section break), and what every other application draws with --auto-numbering is recorded in "
                       "references/numbering.md.", WORD),
 }
 
@@ -109,6 +116,8 @@ SHOWS = {
         "(edit) A new Heading 1 typed before บทที่ ๒ takes บทที่ ๒; after updating fields the captions below it read ตารางที่ ๓-๑, รูปที่ ๓-๑",
         "(edit) A table caption copied and pasted later in the same chapter takes the next number after updating fields, "
         "and the list of tables gains it",
+        "(edit) Everything the ready-to-use variants carry is here too: Thai distributed body, the first-line indent, "
+        "line spacing, the heading styles, the chapter and appendix labels, the page numbering of each region",
         "(edit) References → Insert Caption already offers the document's labels (ตารางที่, รูปที่), "
         "numbered by chapter in the document's digits, above a table and below a figure — and the caption it inserts "
         "continues the document's count instead of starting again at 1",

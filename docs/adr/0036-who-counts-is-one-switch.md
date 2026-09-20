@@ -89,10 +89,17 @@ too, and a name that suggests otherwise would send people to the wrong one.
 ordered list and no caption (ADR 0028) — then there is nothing to count, and no byte differs.
 
 **The five-application contract of ADR 0012 covers the default**, the document the skill hands
-over ready to use. A document built with `--auto-numbering` is made for Word: it is opened in the
-reference application, and what the other four draw with it is recorded below and in
-`references/numbering.md` rather than held to the contract. The release oracle says the same — the
-`sample-auto` variant is built for Word 365 for Windows alone.
+over ready to use. A document built with `--auto-numbering` is made for **Word 365 for Windows, on
+the desktop, and for nothing else**: it is opened there and nowhere else, and what every other
+application draws with it — Word on the web included, which cannot insert a section break at all —
+is recorded below and in `references/numbering.md` rather than held to the contract. A document
+that will be edited on the web is a ready-to-use one. The release oracle says the same: the
+`sample-auto` variant is built for the reference application alone.
+
+**Neither is a decision to revisit soon.** Carrying both kinds in one document would mean a
+package that holds the numbering definitions and the written numbers together, for a document that
+still goes wrong in silence the first time a chapter is inserted — more of the package than a skill
+should cost, for a worse document. Not in this version, nor the next few.
 
 ## What `--auto-numbering` draws outside Word, as measured
 

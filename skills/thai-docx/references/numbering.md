@@ -27,14 +27,28 @@ figures fill in and update in both.
 When the user has not said, leave it off, and mention in one line that `--auto-numbering` exists
 for a document they will keep editing in Word.
 
+**One kind or the other, never both.** A document that numbers itself is the second kind
+throughout. Mixing the two is not offered in this version or the next few: a document that
+renumbers its headings but not its captions goes wrong in silence, and carrying both would cost
+more of the package than a skill should.
+
+**Every other setting works in both.** The paragraph layout, the indents, Thai distributed
+alignment, line spacing, heading styles, chapter and appendix labels, caption labels, table
+widths and page numbering are the same either way — including `--indent`,
+`--caption-hanging-indent`, `--caption-matches-object` and `--center-images`. Only the numbering
+differs.
+
 ## What each application draws with `--auto-numbering`
 
 Only what has been measured is here. A blank is not a promise.
 
+**Only Word 365 for Windows, on the desktop, is held to this.** A document built with
+`--auto-numbering` is made for editing there; everything below is recorded, not promised.
+
 | application | Arabic digits | with `--thai-digits` | chapter-numbered captions (region comments) |
 |---|---|---|---|
-| Word 365 for Windows | correct; a heading, chapter, list item or caption inserted renumbers what follows | correct, in Thai digits | correct |
-| Word on the web | headings and lists as the desktop; **no section break can be inserted** (Layout → Breaks offers Page and Column only), and Format Painter does not carry a heading's number — apply the Heading style instead | correct, in Thai digits | correct |
+| **Word 365 for Windows** (the one this mode is for) | correct; a heading, chapter, list item or caption inserted renumbers what follows | correct, in Thai digits | correct |
+| Word on the web | numbers as the desktop does, but **not covered for this mode**: no section break can be inserted at all (Layout → Breaks offers Page and Column only), and Format Painter does not carry a heading's number — apply the Heading style instead. A document to be edited there is a ready-to-use one | correct, in Thai digits | correct |
 | Word for macOS | correct | headings correct (`บทที่ ๑`, `๑.๑`), at the heading's size | not measured on its own |
 | Google Docs | correct as opened; renumbering on edit not measured | not measured | correct as opened |
 | LibreOffice Writer | correct | **draws 1, 2, 3** — it has no Thai-digit numbering | **wrong**: `ตารางที่ บทนำ-ก` — it answers the chapter-number field with the chapter's *title*, and ignores the restart at each chapter |
