@@ -9,7 +9,7 @@ from __future__ import annotations
 from .layout import CAPTION_STYLE, CAPTION_STYLE_NAME, list_entries
 from .ooxml import W
 from .settings import APPENDIX_NUMBERS, FRONT_NUMBERS, half_up
-from .writer import CODE_FONT, LANG, NS_R, REL, SECTION_MARK, XML, Writer, attr, esc
+from .writer import CODE_FONT, DRAWING, LANG, NS_R, REL, SECTION_MARK, XML, Writer, attr, esc
 
 
 def _end_section(xml: str, sect: str) -> str:
@@ -93,7 +93,7 @@ class Package(Writer):
         return (
             XML + '<w:document xmlns:w="' + W + '" xmlns:r="' + NS_R + '" '
             'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
-            'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
+            'xmlns:a="' + DRAWING + '" '
             'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
             "<w:body>" + toc + body + "</w:body></w:document>"
         )
@@ -331,6 +331,47 @@ class Package(Writer):
             for kind in kinds
         ) + "</w:captions>"
 
+    def theme_xml(self) -> str:
+        """The theme, naming this document's font as the document's own.
+
+        A package with no theme leaves Word to resolve `+Body` and `+Headings` against its own
+        built-in Office theme, and everything Word makes afterwards — a table it inserts, the
+        `Caption` style it creates the first time a caption is inserted — comes out in that
+        theme's Latin font instead of the document's, with the font box showing no name at all.
+        `w:themeFontLang` in settings.xml already says which language takes which theme font; this
+        is the part it points at. Generated matter carries what an application would otherwise
+        supply (ADR 0027).
+
+        Nothing in the document refers to the theme: every style names its fonts outright, so the
+        theme changes no run this build writes. It is there for what the reader adds."""
+        font = attr(self.opts["font"])
+        faces = "".join("<a:" + tag + " typeface=" + font + "/>" for tag in ("latin", "ea", "cs"))
+        # a colour scheme is required, and these are the twelve the Office theme names
+        colours = "".join(
+            "<a:" + tag + ">" + ('<a:sysClr val="' + val + '" lastClr="' + last + '"/>' if val.startswith("window")
+                                 else '<a:srgbClr val="' + val + '"/>') + "</a:" + tag + ">"
+            for tag, val, last in (
+                ("dk1", "windowText", "000000"), ("lt1", "window", "FFFFFF"), ("dk2", "44546A", ""),
+                ("lt2", "E7E6E6", ""), ("accent1", "4472C4", ""), ("accent2", "ED7D31", ""),
+                ("accent3", "A5A5A5", ""), ("accent4", "FFC000", ""), ("accent5", "5B9BD5", ""),
+                ("accent6", "70AD47", ""), ("hlink", "0563C1", ""), ("folHlink", "954F72", ""))
+        )
+        # three of each is what the format asks for; a document this skill writes uses none of them
+        fill = '<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>'
+        line = '<a:ln w="6350" cap="flat" cmpd="sng" algn="ctr">' + fill + '<a:prstDash val="solid"/></a:ln>'
+        return (
+            XML + '<a:theme xmlns:a="' + DRAWING + '" name="Office Theme"><a:themeElements>'
+            '<a:clrScheme name="Office">' + colours + "</a:clrScheme>"
+            '<a:fontScheme name="Office"><a:majorFont>' + faces + "</a:majorFont>"
+            "<a:minorFont>" + faces + "</a:minorFont></a:fontScheme>"
+            '<a:fmtScheme name="Office">'
+            "<a:fillStyleLst>" + fill * 3 + "</a:fillStyleLst>"
+            "<a:lnStyleLst>" + line * 3 + "</a:lnStyleLst>"
+            "<a:effectStyleLst>" + "<a:effectStyle><a:effectLst/></a:effectStyle>" * 3 + "</a:effectStyleLst>"
+            "<a:bgFillStyleLst>" + fill * 3 + "</a:bgFillStyleLst>"
+            "</a:fmtScheme></a:themeElements></a:theme>"
+        )
+
     def settings_xml(self) -> str:
         parts = []
         if self.opts["hide_spelling_errors"]:
@@ -414,11 +455,13 @@ class Package(Writer):
             ("/word/styles.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"),
             ("/word/settings.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"),
             ("/word/numbering.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"),
+            ("/word/theme/theme1.xml", "application/vnd.openxmlformats-officedocument.theme+xml"),
             ("/docProps/core.xml", "application/vnd.openxmlformats-package.core-properties+xml"),
         ]
         self.rel(REL + "styles", "styles.xml")
         self.rel(REL + "settings", "settings.xml")
         self.rel(REL + "numbering", "numbering.xml")
+        self.rel(REL + "theme", "theme/theme1.xml")
         footnotes = None
         if self.doc.footnote_order:
             self.rel(REL + "footnotes", "footnotes.xml")
@@ -446,6 +489,7 @@ class Package(Writer):
             ("word/styles.xml", self.styles_xml()),
             ("word/settings.xml", self.settings_xml()),
             ("word/numbering.xml", self.numbering_xml()),
+            ("word/theme/theme1.xml", self.theme_xml()),
         ]
         if footnotes is not None:
             parts.append(("word/footnotes.xml", footnotes))

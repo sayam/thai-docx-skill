@@ -67,6 +67,8 @@ VARIANTS = {
 # ADR 0012's items, then what each variant adds
 EVERY_APPLICATION = (
     "Content complete: nothing missing against the Markdown",
+    "(Word) Type a Latin word into a paragraph, and insert a table from the ribbon: both come out in the document's "
+    "font, and the font box names it",
     "Bold and italic render on Thai",
     "Bullets show as •; numbered lists count on",
     "Thai lines break inside words, not only at spaces",

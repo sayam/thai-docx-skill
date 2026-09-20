@@ -28,6 +28,7 @@ const BOX = "□ ", BOX_CHECKED = "■ ";
 const NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 const REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
 const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+const DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main"; // the theme, and a picture's own namespace
 const EMU_PER_PX = 9525;
 const EMU_PER_TWIP = 635;
 let LANG = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>';

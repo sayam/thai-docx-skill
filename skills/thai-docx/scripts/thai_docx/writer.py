@@ -44,6 +44,7 @@ BOX, BOX_CHECKED = "□ ", "■ "
 NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 REL = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/"
 XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main"  # the theme, and a picture's own namespace
 EMU_PER_PX = 9525  # at 96 dpi
 EMU_PER_TWIP = 635
 LANG = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>'
