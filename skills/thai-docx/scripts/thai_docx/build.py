@@ -78,6 +78,7 @@ def build_text(text: str, opts: dict, read_image) -> tuple[dict, bytes | None]:
         ("tables", writer.counts["tables"] > 0),
         ("table captions", any(item.get("caption", {}).get("kind") == "table" for item in items)),
         ("figure captions", any(item.get("caption", {}).get("kind") == "figure" for item in items)),
+        ("captions", any("caption" in item for item in items)),
         ("chapters or appendices", writer.has_chapters),
         ("numbered headings", any("number" in item for item in items)),
         ("appendices", "appendices" in writer.regions),
