@@ -24,6 +24,17 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   mapped to the record in force, section numbers included. The check is the one ROADMAP.md had been
   carrying since the drift of 2026-09-18 was found by a reviewer rather than a gate.
 
+- **Two limits of the applications, written where a user meets them** (`references/limits.md` §3
+  and §7, and both guides' troubleshooting tables). **Google Docs must never be asked to update
+  the lists**: it has no list of tables and no list of figures of its own, so an update rewrites
+  all three as a contents built from headings and the two lose their entries — the entries are
+  already in the file, so they are read there as they came, and the way back from an update is to
+  download the document again. **Word for the web has no TH Sarabun New** in its font list, only
+  TH SarabunPSK; asked for a font it does not have it substitutes one whose mark metrics are not
+  the font's, and the tone marks float above the letter throughout the document, text typed in by
+  hand included. A document to be read or edited there is built with `--font "TH SarabunPSK"`.
+  Neither is reachable by anything the file could say differently, and the default font is
+  unchanged.
 - A release carries its own attestation. The build-provenance bundle is attached beside the archive
   as `thai-docx-<version>.intoto.jsonl`, so the proof travels with the file and a reader can check
   it offline, with no GitHub account: `gh attestation verify thai-docx-<version>.zip --bundle
