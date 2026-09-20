@@ -101,3 +101,4 @@ row names, in those words or plainly the same; a request that names none of them
 | the chapter title on its own line under "บทที่ 1" | `--chapter-title-on-new-line` |
 | Thai digits (๑ ๒ ๓) in page, heading and caption numbers | `--thai-digits` |
 | A caption that runs to a second line, indented under its text rather than under its number | `--caption-hanging-indent 0.75` (inches; on its own, not with `--indent`) |
+| A caption no wider than the picture above it, and a picture centred on its line | `--caption-matches-object`, `--center-images` |

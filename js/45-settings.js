@@ -18,6 +18,7 @@ const STRUCTURES = {
   "table captions": "the document has no 'Table:' caption",
   "figure captions": "the document has no 'Figure:' caption",
   captions: "the document has no 'Table:' or 'Figure:' caption",
+  images: "the document has no image on a line of its own",
   "chapters or appendices": "the document has no <!-- chapters --> or <!-- appendices --> comment",
   "numbered headings": "no heading carries a chapter or appendix number; a # heading under <!-- chapters --> or <!-- appendices --> does",
   appendices: "the document has no <!-- appendices --> comment",
@@ -79,6 +80,10 @@ const SETTINGS = [
   { key: "caption_hanging_indent", flag: "--caption-hanging-indent", kind: "value", default: 0.0, layer: 5, // inches
     read: ["number", 0, 4], takes: "a number of inches from 0 to 4", usage: "IN",
     needs: "captions", report: ["caption_hanging_indent_in", "float"] },
+  { key: "center_images", flag: "--center-images", kind: "switch", default: false, layer: 5,
+    needs: "images", report: ["center_images", "value"] },
+  { key: "caption_matches_object", flag: "--caption-matches-object", kind: "switch", default: false, layer: 5,
+    needs: "figure captions", report: ["caption_matches_object", "value"] },
   { key: "front_page_numbers", flag: "--front-page-numbers", kind: "value", default: "thai-letters", layer: 5,
     read: ["choice", Object.keys(FRONT_NUMBERS)], takes: Object.keys(FRONT_NUMBERS).join(", "), needs: "front", report: ["front_page_numbers", "value"] },
   { key: "appendix_label", flag: "--appendix-label", kind: "value", default: "ภาคผนวก", layer: 5,
