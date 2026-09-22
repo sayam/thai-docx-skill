@@ -382,7 +382,7 @@ class Writer {
       if (item.caption) {
         out.push(this.caption(item.caption, Boolean(item.keep_next)));
       } else if (b.t === "directive") {
-        out.push(this.field(LIST_FIELDS[b.name], "", listEntries(this.items, b.name)));
+        out.push(this.field(listField(b.name, this.opts), "", listEntries(this.items, b.name)));
       } else if (b.t === "heading") {
         this.counts.headings += 1;
         const [inlines, ppr, lead] = this.numberedHeading(item);

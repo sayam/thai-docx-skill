@@ -12,7 +12,8 @@ import re
 import struct
 
 from . import markdown as md
-from .layout import CAPTION_STYLE, LIST_FIELDS, SECTION_MARK, caption_text, has_thai, heading_styles, image_only, layout, list_entries, number_text
+from .layout import (CAPTION_STYLE, SECTION_MARK, caption_text, has_thai, heading_styles, image_only, layout,
+                     list_entries, list_field, number_text)
 from .settings import BuildError, half_up, page_size
 
 def _bold_only(node: dict) -> bool:
@@ -410,7 +411,7 @@ class Writer:
             if "caption" in item:
                 out.append(self.caption(item["caption"], item.get("keep_next", False)))
             elif b["t"] == "directive":
-                out.append(self.field(LIST_FIELDS[b["name"]], entries=list_entries(self.items, b["name"])))
+                out.append(self.field(list_field(b["name"], self.opts), entries=list_entries(self.items, b["name"])))
             elif b["t"] == "heading":
                 self.counts["headings"] += 1
                 inlines, ppr, lead = self.numbered_heading(item)

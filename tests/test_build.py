@@ -737,8 +737,11 @@ def test_asked_to_count_a_caption_is_the_fields_word_s_own_insert_caption_writes
                 '<w:caption w:name="รูปที่" w:pos="below" w:chapNum="1" w:heading="0" w:noLabel="0" w:numFmt="'
                 + ("thaiNumbers" if digits else "decimal") + '" w:sep="hyphen"/></w:captions>') in settings, settings[-400:]
         assert [t for t in said if t.startswith(("ตารางที่", "รูปที่"))][:4] == captions, "the results are written in"
-        # the list still collects the caption's style, so it holds whether the number is text or a field
-        assert 'TOC \\h \\z \\t "Table Caption,1"' in doc and "\\c " not in doc
+        # where the application counts, the list collects the *counter*, not the caption style:
+        # a caption the reader inserts with References -> Insert Caption, or pastes from another,
+        # carries the same SEQ and joins the list. Collecting by style never took either of them,
+        # however many times the fields were updated (2026-09-23, Word 365 for Windows).
+        assert 'TOC \\h \\z \\c "ตารางที่"' in doc and '\\t "Table Caption,1"' not in doc
     # without regions there is no chapter and no restart: the field every application counts alike
     opts, _, _ = b.parse_args(["--auto-numbering", "--table-label", "Table", "in.md", "out.docx"])
     _, out = build(tmp_path, "Table: หนึ่ง\n\n| ก |\n|---|\n| 1 |\n", **opts)
@@ -1217,3 +1220,29 @@ def test_cli_exit_codes(tmp_path):
     assert code == 0 and result["ok"] and (tmp_path / "o.docx").exists()
     assert "ข้อความทดสอบ" not in json.dumps(result, ensure_ascii=False)
     assert check(tmp_path / "o.docx").ok
+
+
+def test_a_list_collects_the_counter_where_the_application_counts(tmp_path):
+    """Who counts decides how a list of tables or figures finds its entries (ADR 0036).
+
+    The build writes the numbers by default, and a caption whose number is text carries no `SEQ`
+    field, so the list can only collect the caption's style. Under `--auto-numbering` every
+    caption carries a `SEQ` named after its label -- and so does one the reader adds with
+    References -> Insert Caption or pastes from another -- so the list collects that instead and
+    gains them when the fields are updated. Collecting by style took neither, measured in Word
+    365 for Windows on 2026-09-23.
+    """
+    text = ("<!-- chapters -->\n\n# หนึ่ง\n\nTable: หนึ่ง\n\n| ก |\n|---|\n| 1 |\n\n"
+            "<!-- list-of-tables -->\n\n<!-- list-of-figures -->\n")
+
+    def instructions(*flags):
+        opts, _, _ = b.parse_args([*flags, "in.md", "out.docx"])
+        _, out = build(tmp_path, text, **opts)
+        doc = zipfile.ZipFile(out).read("word/document.xml").decode()
+        return [i.strip() for i in re.findall(r"<w:instrText[^>]*>(.*?)</w:instrText>", doc) if "TOC" in i]
+
+    assert instructions() == ['TOC \\h \\z \\t "Table Caption,1"', 'TOC \\h \\z \\t "Figure Caption,1"']
+    assert instructions("--auto-numbering") == ['TOC \\h \\z \\c "ตารางที่"', 'TOC \\h \\z \\c "รูปที่"']
+    # the counter is the label, so a document that renames its captions renames its lists with them
+    assert instructions("--auto-numbering", "--table-label", "Table", "--figure-label", "Figure") == [
+        'TOC \\h \\z \\c "Table"', 'TOC \\h \\z \\c "Figure"']

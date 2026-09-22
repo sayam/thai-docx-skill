@@ -164,13 +164,33 @@ THAI_LETTERS = "กขคงจฉชซฌญฎฏฐฑฒณดตถทธ�
 ROMAN = ((1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"),
          (1, "I"))
 SECTION_MARK = "\x00"  # between sections in the body; the input can hold no control character
-# A caption of each kind takes a style of its own, and a list collects that style: `\\c` collects
-# SEQ fields, which a caption stopped carrying when its number became text (ADR 0036).
+# A caption of each kind takes a style of its own.
 CAPTION_STYLE = {"table": "TableCaption", "figure": "FigureCaption"}
 CAPTION_STYLE_NAME = {"table": "Table Caption", "figure": "Figure Caption"}
+# which kind of caption each list collects
+LIST_KINDS = {"list-of-tables": "table", "list-of-figures": "figure"}
 LIST_FIELDS = {"toc": 'TOC \\o "1-3" \\h \\z \\u',
                "list-of-tables": 'TOC \\h \\z \\t "' + CAPTION_STYLE_NAME["table"] + ',1"',
                "list-of-figures": 'TOC \\h \\z \\t "' + CAPTION_STYLE_NAME["figure"] + ',1"'}
+
+
+def list_field(name: str, opts: dict) -> str:
+    """The instruction a list of contents, tables or figures carries.
+
+    A list of tables or figures collects by the **caption style** where the build writes the
+    numbers, because a caption whose number is text carries no `SEQ` field to collect
+    (ADR 0036). Where the application counts, every caption carries one — and so does a caption
+    the reader adds with References → Insert Caption, or pastes from another — so the list
+    collects by the **counter's name** instead. Measured in Word 365 for Windows on 2026-09-23:
+    collecting by style, neither an inserted nor a pasted caption joined the list however many
+    times the fields were updated, although both numbered themselves correctly.
+    """
+    kind = LIST_KINDS.get(name)
+    if kind is None or not opts["auto_numbering"]:
+        return LIST_FIELDS[name]
+    return 'TOC \\h \\z \\c "' + opts[kind + "_label"] + '"'
+
+
 THAI_DIGITS = md.THAI_DIGITS  # the translation lives beside plain_text, which also writes numbers
 CAPTION_PREFIX = {"table": "Table:", "figure": "Figure:"}
 # What a Thai writer reaches for instead. These make no caption — the prefix is one word,
@@ -400,7 +420,6 @@ def _heading_number(level: int, sub: list[int], region: str, sectioned: bool,
     return ".".join([first] + [number_text(sub[k], "decimal", thai) for k in range(1, level)])
 
 
-LIST_KINDS = {"list-of-tables": "table", "list-of-figures": "figure"}
 
 
 def list_entries(items: list[dict], name: str) -> list[tuple[int, str]]:
