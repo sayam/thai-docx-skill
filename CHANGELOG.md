@@ -164,6 +164,18 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Fixed
 
+- **`repair` marks a run where its text is complex script, and cuts a run that holds both.**
+  It used to mark every run that held text, the same defect the build had, so a repaired
+  document underlined English exactly as a built one did. It now takes the marker off a run
+  whose text is not complex script — and off the document defaults and the styles, without which
+  a run that leaves it off only inherits it again — and cuts a run that holds both scripts where
+  the script changes. Measured on the thesis fixture, attributes alone would have reached about a
+  third of the English: 462 Latin letters sit in runs that are Latin only against 924 inside runs
+  that hold Thai as well. It carries `--force-cs-whole-doc` too, with the same meaning as the
+  build's. A run carrying a field, a picture, a tab, a break or a numeric character reference is
+  never cut, because it could not be written again without touching the text, and
+  `references/limits.md` §10 says so beside the rest of the repair contract.
+
 - **Correctly spelled English words are no longer underlined.** Every run this skill wrote said it
   was complex script, including a run holding nothing but Latin letters, so Word proofed English
   with a complex-script language — and no complex-script language spells English. A run now says

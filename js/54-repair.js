@@ -11,7 +11,10 @@
 // attribute order and empty-element spelling across the whole part, and ADR 0037 allows only
 // the attributes named. Both elements below are empty ones, so the shapes are few.
 
-const REPAIR_USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"] [--thai-language]';
+const REPAIR_USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"] [--thai-language]' +
+  " [--force-cs-whole-doc]";
+// the one run shape a split may touch: properties, if any, then one w:t and nothing else
+const RE_SIMPLE_INNER = /^(<w:rPr(?:\s[^<>]*?)?>[\s\S]*?<\/w:rPr>)?(<w:t(?:\s[^<>]*?)?>)([\s\S]*)<\/w:t>$/;
 
 class RepairError extends Error {}
 const RE_NO_PROOF = /<w:noProof(?:\s[^>]*?)?\/>|<w:noProof(?:\s[^>]*?)?>\s*<\/w:noProof>/g;
@@ -118,11 +121,20 @@ function insertChild(children, name, element) {
   return [...children, [name, element]];
 }
 
-// One w:rPr put right: [its new inner XML, code 2 repairs, code 5 repairs].
-function fixRpr(inner, font, markThai, thaiLanguage) {
+// `children` without `name`. Removing the marker is how a run says it is not complex script:
+// the element has no "off" spelling that Word writes (ADR 0039).
+function dropChild(children, name) {
+  return children.filter(([there]) => there !== name);
+}
+
+// One w:rPr put right: [its new inner XML, code 2 repairs, code 5 repairs, language marks,
+// markers taken off a run whose text is not complex script]. `mark` true writes the marker,
+// false takes it away, null leaves it as it is — which is what a style gets when the caller
+// asked for every run to be marked instead.
+function fixRpr(inner, font, mark, thaiLanguage) {
   let children = childrenOf(inner);
   const byName = new Map(children);
-  let two = 0, five = 0, marked = 0;
+  let two = 0, five = 0, marked = 0, unmarked = 0;
 
   for (const [latin, twin] of [["w:sz", "w:szCs"], ["w:b", "w:bCs"], ["w:i", "w:iCs"]]) {
     if (byName.has(latin) && !byName.has(twin)) {
@@ -144,7 +156,11 @@ function fixRpr(inner, font, markThai, thaiLanguage) {
     }
   }
 
-  if (markThai) {
+  if (mark === false && byName.has("w:cs")) {
+    children = dropChild(children, "w:cs");
+    unmarked += 1; // not a finding of its own, so it is counted apart from the code 2 repairs
+  }
+  if (mark) {
     if (!byName.has("w:cs")) {
       children = insertChild(children, "w:cs", "<w:cs/>");
       two += 1;
@@ -165,7 +181,7 @@ function fixRpr(inner, font, markThai, thaiLanguage) {
     }
   }
 
-  return [children.map(([, raw]) => raw).join(""), two, five, marked];
+  return [children.map(([, raw]) => raw).join(""), two, five, marked, unmarked];
 }
 
 // Every `element` in the part with its children in the order the schema fixes.
@@ -203,22 +219,71 @@ function reorder(xml, element, order) {
   return [xml, count];
 }
 
-function fixRuns(xml, font, counts, thaiLanguage) {
+// The five named entities XML defines, back to the characters they stand for. A numeric
+// reference is never unescaped here: a run whose text holds one is not split at all.
+function unescapeXml(text) {
+  return text.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+}
+
+// Everything the run's own w:t elements hold, as the text reads.
+function runText(inner) {
+  let text = "";
+  const re = /<w:t(?:\s[^<>]*?)?>([\s\S]*?)<\/w:t>/g;
+  for (let m = re.exec(inner); m !== null; m = re.exec(inner)) text += unescapeXml(m[1]);
+  return text;
+}
+
+// A run whose text holds both scripts, cut where the script changes (ADR 0039) — or null when
+// this run is not one to cut. Only the plain shape is cut: run properties, if any, then one w:t
+// and nothing else. A run carrying a field, a drawing, a tab or a break is left whole, and so is
+// one whose text holds a numeric character reference, because re-escaping that would change the
+// text, which repair may never do (ADR 0023).
+function splitRun(start, inner, font, counts, thaiLanguage) {
+  const m = RE_SIMPLE_INNER.exec(inner);
+  if (m === null || m[3].indexOf("&#") !== -1) return null;
+  const [, rprRaw, topen, body] = m;
+  const pieces = scriptRuns(unescapeXml(body));
+  if (pieces.length < 2) return null;
+  const rprInner = rprRaw === undefined ? "" : rprRaw.slice(rprRaw.indexOf(">") + 1, -"</w:rPr>".length);
+  let out = "";
+  for (const [complexScript, piece] of pieces) {
+    const [newBody, two, five, marked, unmarked] = fixRpr(rprInner, font, complexScript, thaiLanguage);
+    counts["2"] = (counts["2"] || 0) + two;
+    counts["5"] = (counts["5"] || 0) + five;
+    counts["thai-language"] = (counts["thai-language"] || 0) + marked;
+    counts.unmarked = (counts.unmarked || 0) + unmarked;
+    out += start + (newBody ? "<w:rPr>" + newBody + "</w:rPr>" : "") + topen + esc(piece) + "</w:t></w:r>";
+  }
+  counts.split = (counts.split || 0) + 1;
+  return out;
+}
+
+function fixRuns(xml, font, counts, thaiLanguage, csAll) {
   let out = "", pos = 0;
   const re = new RegExp(RE_RUN_START.source, "g");
   for (let m = re.exec(xml); m !== null; m = re.exec(xml)) {
     if (m.index < pos) continue;
     const startEnd = m.index + m[0].length;
-    const [innerEnd] = endOf(xml, startEnd, "w:r");
-    out += xml.slice(pos, startEnd) + fixRun(xml.slice(startEnd, innerEnd), font, counts, thaiLanguage);
+    const [innerEnd, elementEnd] = endOf(xml, startEnd, "w:r");
+    const inner = xml.slice(startEnd, innerEnd);
+    const split = csAll ? null : splitRun(xml.slice(m.index, startEnd), inner, font, counts, thaiLanguage);
+    if (split !== null) {
+      out += xml.slice(pos, m.index) + split;
+      pos = elementEnd;
+      re.lastIndex = pos;
+      continue;
+    }
+    out += xml.slice(pos, startEnd) + fixRun(inner, font, counts, thaiLanguage, csAll);
     pos = innerEnd;
     re.lastIndex = pos;
   }
   return out + xml.slice(pos);
 }
 
-function fixRun(inner, font, counts, thaiLanguage) {
+function fixRun(inner, font, counts, thaiLanguage, csAll) {
   const hasText = /<w:t(?:\s[^<>]*?)?>/.test(inner);
+  const mark = csAll ? true : hasText && Array.from(runText(inner)).some(isThai);
   const rpr = /^<w:rPr(?:\s[^<>]*?)?(\/?)>/.exec(inner);
   let body, restFrom, head = "";
   if (rpr !== null && rpr[1]) {
@@ -228,44 +293,51 @@ function fixRun(inner, font, counts, thaiLanguage) {
     const [bodyEnd, elementEnd] = endOf(inner, rpr[0].length, "w:rPr");
     body = inner.slice(rpr[0].length, bodyEnd);
     restFrom = elementEnd;
-  } else if (hasText) {
+  } else if (mark) {
     body = "";
     restFrom = 0;
   } else {
-    return fixRuns(inner, font, counts, thaiLanguage); // nothing of ours here; look deeper
+    return fixRuns(inner, font, counts, thaiLanguage, csAll); // nothing of ours here; look deeper
   }
-  const [newBody, two, five, marked] = fixRpr(body, font, hasText, thaiLanguage);
+  const [newBody, two, five, marked, unmarked] = fixRpr(body, font, hasText ? mark : null, thaiLanguage);
   counts["2"] = (counts["2"] || 0) + two;
   counts["5"] = (counts["5"] || 0) + five;
   counts["thai-language"] = (counts["thai-language"] || 0) + marked;
+  counts.unmarked = (counts.unmarked || 0) + unmarked;
   if (newBody) head = "<w:rPr>" + newBody + "</w:rPr>";
   else if (rpr !== null) head = inner.slice(0, restFrom);
-  return head + fixRuns(inner.slice(restFrom), font, counts, thaiLanguage);
+  return head + fixRuns(inner.slice(restFrom), font, counts, thaiLanguage, csAll);
 }
 
-function fixTextPart(xml, font, thaiLanguage) {
+function fixTextPart(xml, font, thaiLanguage, csAll) {
   const counts = {};
-  const out = fixRuns(xml, font, counts, thaiLanguage);
+  const out = fixRuns(xml, font, counts, thaiLanguage, csAll);
   const kept = {};
   for (const [k, v] of Object.entries(counts)) if (v) kept[k] = v;
   return [out, kept];
 }
 
 // A style's w:rPr needs its twins; it formats no text, so no Thai marks are added.
-function fixStyles(xml, font) {
-  let out = "", pos = 0, five = 0;
+// A style's w:rPr needs its twins; it formats no text, so no marker is written into one. The
+// marker is taken *out*, though, and that is the half without which the rest does nothing: w:cs
+// inherits down docDefaults and the styles to a run, so a run that leaves it off is only saying
+// "whatever the chain says" (ADR 0039). Asked to mark every run instead, the chain is left
+// exactly as it was — each run then says it for itself.
+function fixStyles(xml, font, csAll) {
+  let out = "", pos = 0, five = 0, unmarked = 0;
   const re = /<w:rPr(?:\s[^<>]*?)?>/g;
   for (let m = re.exec(xml); m !== null; m = re.exec(xml)) {
     if (m.index < pos) continue;
     const startEnd = m.index + m[0].length;
     const [innerEnd] = endOf(xml, startEnd, "w:rPr");
-    const [newBody, , n] = fixRpr(xml.slice(startEnd, innerEnd), font, false, false);
+    const [newBody, , n, , off] = fixRpr(xml.slice(startEnd, innerEnd), font, csAll ? null : false, false);
     five += n;
+    unmarked += off;
     out += xml.slice(pos, startEnd) + newBody;
     pos = innerEnd;
     re.lastIndex = pos;
   }
-  return [out + xml.slice(pos), five];
+  return [out + xml.slice(pos), five, unmarked];
 }
 
 // A bullet level drawn in Symbol has no Thai glyphs; give it the document's font.
@@ -298,7 +370,9 @@ function complexScriptFont(parts, asked) {
   if (asked) return [asked, "the font the command was given"];
   const counted = new Map();
   for (const [name, bytes] of parts) {
-    if (!name.startsWith("word/")) continue;
+    // the XML parts only: an image or a font holds no run properties, and reading one as text
+    // is how the two implementations came apart (a picture is not valid UTF-8)
+    if (!name.startsWith("word/") || !name.endsWith(".xml")) continue;
     for (const m of fromUtf8(bytes).matchAll(/w:cs\s*=\s*"([^"]+)"/g)) {
       // only a font the checker itself would accept: writing one it warns about would trade
       // a finding for a warning, which is not a repair
@@ -317,7 +391,7 @@ function complexScriptFont(parts, asked) {
 }
 
 // The parts to write anew, and how many of each code were repaired.
-function repairParts(parts, findings, font, thaiLanguage) {
+function repairParts(parts, findings, font, thaiLanguage, csAll) {
   const codes = new Set(findings.map((f) => f.code));
   const replace = new Map();
   const repaired = {};
@@ -358,21 +432,31 @@ function repairParts(parts, findings, font, thaiLanguage) {
     }
   }
   let chosen = null;
-  if (codes.has("2") || codes.has("5") || thaiLanguage) {
+  // by default there is always something to look at: a run of Latin that carries the marker is
+  // not a finding, so nothing in `codes` would ask for this pass, and taking it off is the
+  // repair (ADR 0039). Asked to mark every run instead, this is the work it always was.
+  if (codes.has("2") || codes.has("5") || thaiLanguage || !csAll) {
     const [csFont, why] = complexScriptFont(parts, font);
     for (const [name, bytes] of parts) {
       if (!TEXT_PARTS.test(name)) continue;
-      const [put, counts] = fixTextPart(fromUtf8(replace.get(name) || bytes), csFont, thaiLanguage);
+      const [put, counts] = fixTextPart(fromUtf8(replace.get(name) || bytes), csFont, thaiLanguage, csAll);
       if (Object.keys(counts).length) {
         replace.set(name, utf8(put));
         for (const [code, n] of Object.entries(counts)) repaired[code] = (repaired[code] || 0) + n;
       }
     }
-    for (const [name, fix] of [["word/styles.xml", fixStyles], ["word/numbering.xml", fixNumbering]]) {
-      if (!parts.has(name)) continue;
-      const [put, n] = fix(fromUtf8(replace.get(name) || parts.get(name)), csFont);
+    if (parts.has("word/styles.xml")) {
+      const [put, n, off] = fixStyles(fromUtf8(replace.get("word/styles.xml") || parts.get("word/styles.xml")), csFont, csAll);
+      if (n || off) {
+        replace.set("word/styles.xml", utf8(put));
+        if (n) repaired["5"] = (repaired["5"] || 0) + n;
+        if (off) repaired.unmarked = (repaired.unmarked || 0) + off;
+      }
+    }
+    if (parts.has("word/numbering.xml")) {
+      const [put, n] = fixNumbering(fromUtf8(replace.get("word/numbering.xml") || parts.get("word/numbering.xml")), csFont);
       if (n) {
-        replace.set(name, utf8(put));
+        replace.set("word/numbering.xml", utf8(put));
         repaired["5"] = (repaired["5"] || 0) + n;
       }
     }

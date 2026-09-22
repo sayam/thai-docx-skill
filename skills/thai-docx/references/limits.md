@@ -98,7 +98,7 @@ text; it does not watch it afterwards.
   afresh. That is what the skill is for, and it is the answer whenever the Markdown still exists.
 - **Bringing the edited file back to `repair`** so that it re-runs the numbers and brings a
   paragraph into line with its neighbours is decided (ADR 0037) and **not yet shipped**. Today
-  repair changes attributes only — see §9. Do not offer it.
+  repair changes attributes only — see §10. Do not offer it.
 
 ## 5. What the reader adds to the document, in either kind
 
@@ -146,7 +146,22 @@ Two more that are not any application's fault:
 - **A difference may change when the other side updates.** Every one here is re-measured whenever
   a document's bytes change, and CI passing is a proxy — not the applications passing.
 
-## 8. What the build refuses, and what it only warns about
+## 8. Two things that changed with 0.2.0, which a reader will notice
+
+**A code span is drawn in the monospace font the document names for it.** Every release before
+0.2.0 marked every run as complex script, and that marking tells Word to take the font from the
+complex-script slot — so a code span was drawn in the body font, not in the monospace one the
+build had asked for all along. Now that only complex-script runs are marked, Word uses the font
+the run names. Word draws its own red underline under a code span that is not an English word;
+that underline does not print, and `--hide-spelling-errors` hides it on screen.
+
+**Word may count a different number of words.** Nothing in the text changed, but a run no longer
+repeats the language the document already declares, and Word segments differently for the count.
+The thesis fixture went from 3,177 words to 3,135 on the same text. The figure the new files give
+is the one Word produces for a document written the way Word writes them; if a rule counts words,
+count them in the application that will be used to check.
+
+## 9. What the build refuses, and what it only warns about
 
 **Refused — no file is written, and the line is named:** any HTML but `<br> <sup> <sub> <u>
 <kbd>`; invisible characters in the text; nesting past 100 deep; a footnote defined and never
@@ -169,16 +184,24 @@ a region comment inside a list, quotation or footnote; `$…$` math kept as lite
 **Exit 1 with `findings` means a defect in this skill**: nothing was written, do not retry, quote
 the codes.
 
-## 9. What `repair` does, and what it never does
+## 10. What `repair` does, and what it never does
 
 `repair` is for a Word file the user has and cannot rebuild from Markdown.
 
-**It does:** set compatibility mode 15; mark every run with text as complex-script Thai; remove
-`noProof`; write the missing twin of a size, bold or italic; give a run that names only a Latin
-font a complex-script one; put properties back into schema order.
+**It does:** set compatibility mode 15; **mark a run as complex script where its text is complex
+script, and take the marker off where it is not** — off the document defaults and the styles too,
+without which a run that leaves it off only inherits it again; **cut a run that holds both scripts
+where the script changes**, so the English inside a Thai sentence stops being proofed with a
+complex-script dictionary; remove `noProof`; write the missing twin of a size, bold or italic;
+give a run that names only a Latin font a complex-script one; put properties back into schema
+order. `--force-cs-whole-doc` marks every run instead and cuts nothing, which is the shape
+releases before 0.2.0 wrote.
 
 **It never:** changes a character of the text — the output's text is compared with the input's and
-a one-character difference writes nothing; merges a word split across two runs (reported, left);
+a one-character difference writes nothing; **cuts a run that carries anything but its own text** —
+a field, a picture, a tab, a line break, or a numeric character reference such as `&#x20;`, which
+could not be written again without changing the text, so each of those keeps its whole run and the
+English inside it keeps its underline; merges a word split across two runs (reported, left);
 removes an invisible character (reported, left); touches fonts, styles, layout, tracked changes,
 fields or document properties beyond the list above; or overwrites the original — a new file is
 written, always, and both paths are given to the user.
@@ -189,7 +212,7 @@ names none is a decision it made: it is in `warnings`, so read it out. `repair` 
 about the layout of a document somebody else made; it is measured only by its own contract.
 **Rebuilding from Markdown is better whenever the content exists.**
 
-## 10. What this skill is not
+## 11. What this skill is not
 
 - **It carries no institution's form.** The `thesis` profile and `examples/thesis.md` are an
   example to copy, not a standard, and every word and number in them is invented. The skill will

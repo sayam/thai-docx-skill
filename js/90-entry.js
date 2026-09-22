@@ -157,9 +157,14 @@ function nodeCheck(argv) {
 function nodeRepair(argv) {
   let font = null;
   let thaiLanguage = false;
+  let csAll = false;
   if (argv.indexOf("--thai-language") !== -1) {
     argv = argv.filter((a) => a !== "--thai-language");
     thaiLanguage = true;
+  }
+  if (argv.indexOf("--force-cs-whole-doc") !== -1) {
+    argv = argv.filter((a) => a !== "--force-cs-whole-doc");
+    csAll = true;
   }
   if (argv.length === 4 && argv[2] === "--font") {
     font = argv[3];
@@ -191,7 +196,7 @@ function nodeRepair(argv) {
   }
   const ents = readZipDirectory(data);
   const parts = new Map(ents.map((e) => [e.name, readZipEntry(data, e)]));
-  const [replace, repaired, chosen] = repairParts(parts, before.findings, font, thaiLanguage);
+  const [replace, repaired, chosen] = repairParts(parts, before.findings, font, thaiLanguage, csAll);
   if (!replace.size) {
     result.repaired = {};
     result.remaining = before.findings;
