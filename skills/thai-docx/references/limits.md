@@ -146,20 +146,31 @@ Two more that are not any application's fault:
 - **A difference may change when the other side updates.** Every one here is re-measured whenever
   a document's bytes change, and CI passing is a proxy — not the applications passing.
 
-## 8. Two things that changed with 0.2.0, which a reader will notice
+## 8. What changed with 0.2.0 that a reader will notice
 
-**A code span is drawn in the monospace font the document names for it.** Every release before
-0.2.0 marked every run as complex script, and that marking tells Word to take the font from the
-complex-script slot — so a code span was drawn in the body font, not in the monospace one the
-build had asked for all along. Now that only complex-script runs are marked, Word uses the font
-the run names. Word draws its own red underline under a code span that is not an English word;
-that underline does not print, and `--hide-spelling-errors` hides it on screen.
+**Code is drawn in the monospace font the document names for it.** Every release before 0.2.0
+marked every run as complex script, and that marking tells an application to take the font from
+the complex-script slot — so a code span and a code block were drawn in the body font, not in the
+monospace one the build had asked for all along. Now that only complex-script runs are marked, the
+font the run names is the one used. Measured in Word 365 for Windows and in Google Docs on
+2026-09-23; both draw `Consolas`.
 
-**Word may count a different number of words.** Nothing in the text changed, but a run no longer
-repeats the language the document already declares, and Word segments differently for the count.
-The thesis fixture went from 3,177 words to 3,135 on the same text. The figure the new files give
-is the one Word produces for a document written the way Word writes them; if a rule counts words,
-count them in the application that will be used to check.
+**An application draws its own red underline under code**, because `w:ascii` and `w:szCs` are not
+words in any language. Word does; Google Docs does not. The underline does not print, and
+`--hide-spelling-errors` hides it on screen.
+
+**`--force-cs-whole-doc` restores the body font for a code span, but not for a code block, in
+Google Docs.** A code span carries its own `w:rFonts`, and Google Docs honours the complex-script
+slot there; a code block takes its font from the `CodeBlock` style, and Google Docs ignores the
+complex-script slot in a style. So a document built with that flag still shows its code blocks in
+the monospace font there. Not yet measured in Word.
+
+**What did not change: the number of words an application counts.** A run no longer repeats the
+language the document already declares, which could have changed how Word segments text for its
+count, and one file made by hand during the investigation did count differently. **It did not
+happen to the files this project builds**: the thesis fixture counts 3,177 words in Word 365 for
+Windows on 2026-09-23, exactly as it did before. This is written down because the earlier figure
+was published here in error.
 
 ## 9. What the build refuses, and what it only warns about
 

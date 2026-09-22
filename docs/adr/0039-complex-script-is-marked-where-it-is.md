@@ -94,13 +94,13 @@ The build follows the seven rules above, which are Word's own, with one exceptio
   `<w:lang w:bidi="th-TH"/>` **on the marked runs only** — a run that holds no complex script has
   no complex-script language to name. Where the flag once wrote it on all 497 runs of
   `sample-text`, it now writes it on 308. This is decided on its own evidence
-  rather than carried along by the `<w:cs/>` rule, because it is the only part of this record with
-  a visible effect that has no explanation: with run-level `w:lang` gone, Word counts **3,135
-  words where it counted 3,177**, on text that did not change by one character. Word is segmenting
-  differently for the count. A thesis writer reads that number, so `references/limits.md` says the
-  count may move, and says that the new figure is the one Word produces for a document written the
-  way Word writes them. Underlining is identical either way — it was measured both ways in the
-  reference application on the same day.
+  rather than carried along by the `<w:cs/>` rule. A file made by hand while this was being
+  investigated counted 3,135 words in Word where the control counted 3,177, which looked like a
+  visible effect with no explanation and was written down as one. **It did not survive the
+  release bytes**: the built `sample-text`, which carries no `w:lang` on any of its 705 runs,
+  counts 3,177 in Word 365 for Windows, exactly as before (2026-09-23,
+  `.local/work/2026-09-22-release-check-on-0039-bytes/RESULTS-word365_windows.md`). Underlining is
+  identical either way, measured both ways in the reference application.
 
 **The exception: `w:bidi="th-TH"` still never goes in `docDefaults`.** Five documents opened in
 WPS Writer on 2026-09-22 ([record](../evidence/2026-09-22-where-wps-trips-over-the-thai-language.md))
@@ -187,10 +187,11 @@ WPS Writer opened the same file with SARA AM correct throughout. It showed 21 pa
 against 29 for the split arms, which Word does not reproduce on the same bytes; that difference is
 recorded as WPS's own and is not treated as a cost here.
 
-One difference has no explanation yet: with `w:lang` dropped from runs, Word counts 3,135 words
-where the control counts 3,177. Nothing about the text changed, so this is Word segmenting
-differently for the count. A thesis writer reads that number, so it is written down rather than
-waved away, and the document Word itself produced carries no run-level `w:lang` either.
+One difference in these files had no explanation: with `w:lang` dropped from runs, Word counted
+3,135 words where the control counted 3,177, on text that did not change by one character. It was
+written down rather than waved away — and then it did not reproduce. The built documents count
+3,177, so whatever produced the difference belongs to the hand-made file and not to the shape this
+record decides. A measurement that holds only in the probe is a property of the probe.
 
 ## What this costs
 
