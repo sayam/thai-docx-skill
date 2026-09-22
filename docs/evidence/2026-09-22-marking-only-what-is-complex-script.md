@@ -87,10 +87,15 @@ decided on 2026-09-22 that this is the default, because it is what Word does wit
 and that `--force-cs-whole-doc` will offer the old uniform look for a finished document — a red
 underline does not print.
 
-**Word counts 3,135 words instead of 3,177** when `w:lang` is off the runs. The text did not change
-by one character; Word is segmenting differently for the count. The underlining is identical either
-way. It is recorded because a thesis writer reads that number, and `references/limits.md` will say
-so.
+**Word counted 3,135 words instead of 3,177** in these files when `w:lang` was off the runs. The
+text did not change by one character, so it looked like Word segmenting differently for the count,
+and it was recorded because a thesis writer reads that number.
+
+**It did not reproduce.** The build shipped the same shape — `sample-text` carries no `w:lang` on
+any of its 705 runs — and Word 365 for Windows counted 3,177 on 2026-09-23, exactly as the control
+had. Whatever produced the difference belongs to these hand-edited files, not to the change. The
+figure was published in `references/limits.md` before that was known and has been corrected there.
+The underlining is identical either way, which is what these files were made to measure.
 
 ## 5. Not proved here
 
