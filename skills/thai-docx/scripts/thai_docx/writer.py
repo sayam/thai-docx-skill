@@ -47,12 +47,56 @@ XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
 DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main"  # the theme, and a picture's own namespace
 EMU_PER_PX = 9525  # at 96 dpi
 EMU_PER_TWIP = 635
-# Every run says it is complex script (ADR 0004, cause 1). Whether it also says *which*
-# complex-script language is --thai-language's to decide (ADR 0038): `w:bidi="th-TH"` is what
-# tells Word the text is Thai on a machine whose own complex-script language is not, and it is
-# what makes WPS Writer place SARA AM (ำ) over the wrong letter.
-LANG = '<w:cs/><w:lang w:val="en-US"/>'
-LANG_THAI = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>'
+# A run says it is complex script where its text is complex script, and says nothing where it is
+# not (ADR 0039, amending cause 2 of ADR 0004). Omission is how it says nothing: no style and no
+# document default carries the element either, so there is nothing to inherit. Whether the text
+# also says *which* complex-script language it is in is --thai-language's to decide (ADR 0038);
+# `w:bidi="th-TH"` reaches no run that holds no complex script, so it goes on the marked runs.
+# No run carries `w:lang` otherwise: docDefaults declares the Latin and East Asian languages once.
+CS = "<w:cs/>"
+CS_THAI = '<w:cs/><w:lang w:bidi="th-TH"/>'
+THAI_FIRST, THAI_LAST = "\u0e00", "\u0e7f"
+
+
+def _script(ch: str) -> str:
+    """`C` complex script, `L` not, `N` neutral — it takes the script of the letter beside it.
+
+    Thai is the complex script this skill writes. Arabic digits and ASCII punctuation are not
+    complex script, which is measured, not assumed: Word cuts `120 ` out of a Thai sentence and
+    leaves it unmarked (2026-09-22, what Word writes when a person types).
+    """
+    if THAI_FIRST <= ch <= THAI_LAST:
+        return "C"
+    return "N" if ch.isspace() else "L"
+
+
+def script_runs(text: str) -> list[tuple[bool, str]]:
+    """`text` cut where the script changes, as Word cuts it (ADR 0039).
+
+    A neutral character takes the script of the strong character before it. One that opens the
+    text has none before it, so it takes the first strong character instead, and text that is
+    neutral throughout is not complex script — neither case was measured in Word, and neither is
+    visible while a run's Latin and complex-script fonts and sizes are the same. An empty string
+    is one piece, so an empty paragraph still carries a run for fidelity to read.
+    """
+    if not text:
+        return [(False, "")]
+    marks = [_script(ch) for ch in text]
+    first = next((m for m in marks if m != "N"), "L")
+    out: list[str] = []
+    prev = ""
+    for m in marks:
+        if m == "N":
+            out.append(prev or first)
+        else:
+            out.append(m)
+            prev = m
+    pieces, start = [], 0
+    for i in range(1, len(text) + 1):
+        if i == len(text) or out[i] != out[start]:
+            pieces.append((out[start] == "C", text[start:i]))
+            start = i
+    return pieces
 # Thai marks above and below a consonant take no width of their own when a column is measured
 THAI_MARKS = frozenset([0x0E31, *range(0x0E34, 0x0E3B), *range(0x0E47, 0x0E4F)])
 # Word's own table default; with no table style it would otherwise be 0 and text touches the borders
@@ -118,7 +162,11 @@ class Writer:
         self.doc_pr = 0
         self.has_ordered_list = False  # whether --auto-numbering has anything to count (ADR 0028)
         self.image_twips = 0  # the width the last image was drawn at, for --caption-matches-object
-        self.lang = LANG_THAI if opts["thai_language"] else LANG
+        self.cs = CS_THAI if opts["thai_language"] else CS
+        self.cs_all = opts["force_cs_whole_doc"]  # mark every run, as releases before 0.2.0 did
+        # a style is not a run: it names the Latin language for an application that reads
+        # styles but not docDefaults, and never says complex script, which each run says
+        self.style_lang = '<w:lang w:val="en-US"' + (' w:bidi="th-TH"' if opts["thai_language"] else "") + "/>"
         self.heading_props, self.style_warnings = heading_styles(doc)
         self.items, self.regions, self.layout_warnings = layout(doc, opts)
         self.nums: list[tuple[int, int, int]] = []  # numId, start, level
@@ -136,6 +184,36 @@ class Writer:
         return rid
 
     # -- inlines --
+
+    def marker(self, complex_script: bool) -> str:
+        """What says a run is complex script, or nothing when its text is not."""
+        return self.cs if complex_script or self.cs_all else ""
+
+    @staticmethod
+    def rpr(props: str) -> str:
+        """A run's properties, or nothing at all rather than an empty element."""
+        return "<w:rPr>" + props + "</w:rPr>" if props else ""
+
+    def runs(self, text: str, props: str = "") -> str:
+        """`text` as runs, one per stretch of a single script (ADR 0039).
+
+        Two stretches that end up with the same run properties are one run again: cause 4 of
+        ADR 0004 says contiguous text with the same formatting is one run, and the checker holds
+        the build to it. Under --force-cs-whole-doc every stretch carries the same marker, so
+        this puts the whole text back into the one run releases before 0.2.0 wrote.
+        """
+        grouped: list[list] = []
+        for complex_script, piece in script_runs(text):
+            rpr = self.rpr(props + self.marker(complex_script))
+            if grouped and grouped[-1][0] == rpr:
+                grouped[-1][1] += piece
+            else:
+                grouped.append([rpr, piece])
+        out = []
+        for rpr, piece in grouped:
+            body = "<w:tab/>".join('<w:t xml:space="preserve">' + esc(part) + "</w:t>" for part in piece.split("\t"))
+            out.append("<w:r>" + rpr + body + "</w:r>")
+        return "".join(out)
 
     def run_props(self, node: dict, bold: bool = False) -> str:
         p = []
@@ -155,13 +233,10 @@ class Writer:
             p.append('<w:vertAlign w:val="superscript"/>')
         elif node.get("sub"):
             p.append('<w:vertAlign w:val="subscript"/>')
-        p.append(self.lang)
-        return "<w:rPr>" + "".join(p) + "</w:rPr>"
+        return "".join(p)
 
     def text_run(self, node: dict, bold: bool = False) -> str:
-        pieces = node["s"].split("\t")
-        body = "<w:tab/>".join('<w:t xml:space="preserve">' + esc(piece) + "</w:t>" for piece in pieces)
-        return "<w:r>" + self.run_props(node, bold) + body + "</w:r>"
+        return self.runs(node["s"], self.run_props(node, bold))
 
     def inlines(self, nodes: list[dict], bold: bool = False) -> str:
         out = []
@@ -182,19 +257,19 @@ class Writer:
             if t == "text":
                 out.append(self.text_run(n, bold))
             elif t == "hardbreak":
-                out.append("<w:r><w:rPr>" + self.lang + "</w:rPr><w:br/></w:r>")
+                out.append("<w:r>" + self.rpr(self.marker(False)) + "<w:br/></w:r>")
             elif t == "task":
                 mark = BOX_CHECKED if n["checked"] else BOX
-                out.append('<w:r><w:rPr><w:rFonts w:ascii="' + SYMBOL_FONT + '" w:hAnsi="' + SYMBOL_FONT + '" w:cs="' + SYMBOL_FONT + '"/>'
-                           + self.lang + '</w:rPr><w:t xml:space="preserve">' + mark + "</w:t></w:r>")
+                out.append(self.runs(mark, '<w:rFonts w:ascii="' + SYMBOL_FONT + '" w:hAnsi="' + SYMBOL_FONT
+                                     + '" w:cs="' + SYMBOL_FONT + '"/>'))
             elif t == "footnote_ref":
-                out.append('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + self.lang + '</w:rPr><w:footnoteReference w:id="' + str(n["id"])
-                           + '"/></w:r>')
+                out.append("<w:r>" + self.rpr('<w:rStyle w:val="FootnoteReference"/>' + self.marker(False))
+                           + '<w:footnoteReference w:id="' + str(n["id"]) + '"/></w:r>')
             elif t == "image":
                 out.append(self.image(n))
             i += 1
         if not out:  # an empty paragraph still carries a run, so fidelity reads it
-            out.append("<w:r><w:rPr>" + self.lang + '</w:rPr><w:t xml:space="preserve"></w:t></w:r>')
+            out.append(self.runs(""))
         return "".join(out)
 
     def image(self, node: dict) -> str:
@@ -219,7 +294,7 @@ class Writer:
         self.doc_pr += 1
         k = str(self.doc_pr)
         return (
-            "<w:r><w:rPr>" + self.lang + "</w:rPr><w:drawing>"
+            "<w:r>" + self.rpr(self.marker(False)) + "<w:drawing>"
             '<wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + str(cx) + '" cy="' + str(cy) + '"/>'
             '<wp:docPr id="' + k + '" name="Picture ' + k + '" descr=' + attr(node["alt"]) + "/>"
             '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
@@ -258,7 +333,7 @@ class Writer:
         text starts the next one."""
         if not self.opts["chapter_title_on_new_line"] or "number" not in item:
             return ""
-        return "<w:r><w:rPr>" + self.lang + "</w:rPr><w:br/></w:r>"
+        return "<w:r>" + self.rpr(self.marker(False)) + "<w:br/></w:r>"
 
     def numbers_are_text(self) -> bool:
         """Whether the build writes this document's numbers itself, instead of asking the
@@ -284,11 +359,11 @@ class Writer:
     def field_runs(self, instr: str, result: str, rpr: str) -> str:
         """A field and the result the build already knows, between `separate` and `end`."""
         return (
-            "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>'
-            "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
-            "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>'
-            "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>"
-            "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
+            "<w:r>" + self.rpr(rpr + self.marker(False)) + '<w:fldChar w:fldCharType="begin"/></w:r>'
+            "<w:r>" + self.rpr(rpr + self.marker(False)) + '<w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
+            "<w:r>" + self.rpr(rpr + self.marker(False)) + '<w:fldChar w:fldCharType="separate"/></w:r>'
+            + self.runs(result, rpr)
+            + "<w:r>" + self.rpr(rpr + self.marker(False)) + '<w:fldChar w:fldCharType="end"/></w:r>'
         )
 
     def numbered_levels(self) -> set[int]:
@@ -322,7 +397,7 @@ class Writer:
         if not brk and inlines and inlines[0]["t"] == "text" and not _formatted(inlines[0]):
             return [dict(inlines[0], s=item["number"] + " " + inlines[0]["s"])] + inlines[1:], "", ""
         text = item["number"] if brk else item["number"] + " "
-        return inlines, "", ("<w:r><w:rPr>" + self.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + brk)
+        return inlines, "", (self.runs(text) + brk)
 
     def body(self) -> str:
         """The document's own top level, as layout() arranged it: sections apart by
@@ -355,7 +430,7 @@ class Writer:
         bold = "<w:b/><w:bCs/>"
 
         def run(text: str, rpr: str) -> str:
-            return "<w:r><w:rPr>" + rpr + self.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>"
+            return self.runs(text, rpr)
 
         # --caption-hanging-indent: the label and number keep the margin and every line after
         # the first is indented, so a caption that runs on reads as one block beside its number
@@ -473,8 +548,8 @@ class Writer:
             elif ordered:
                 marker = number_text(b["start"] + n, "decimal", self.opts["thai_digits"]) + "."
                 ppr = indent
-                lead = ("<w:r><w:rPr>" + self.lang + '</w:rPr><w:t xml:space="preserve">' + esc(marker) + "</w:t></w:r>"
-                        "<w:r><w:rPr>" + self.lang + "</w:rPr><w:tab/></w:r>")
+                lead = (self.runs(marker)
+                        + "<w:r>" + self.rpr(self.marker(False)) + "<w:tab/></w:r>")
             else:
                 ppr, lead = '<w:numPr><w:ilvl w:val="' + str(min(level, 8)) + '"/><w:numId w:val="1"/></w:numPr>', ""
             out.append(self.paragraph(first, "ListParagraph", ppr, lead=lead))
@@ -532,9 +607,9 @@ class Writer:
         The field opens in the first entry and closes in the last, as Word writes it."""
 
         def char(kind: str) -> str:
-            return "<w:r><w:rPr>" + self.lang + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>'
+            return "<w:r>" + self.rpr(self.marker(False)) + '<w:fldChar w:fldCharType="' + kind + '"/></w:r>'
 
-        instruction = "<w:r><w:rPr>" + self.lang + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
+        instruction = "<w:r>" + self.rpr(self.marker(False)) + '<w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
         if not entries:
             return "<w:p><w:pPr>" + ppr + "</w:pPr>" + char("begin") + instruction + char("separate") + char("end") + "</w:p>"
         self.counts["paragraphs"] += len(entries)
@@ -545,6 +620,6 @@ class Writer:
             entry_ppr = '<w:pStyle w:val="TOC' + str(min(level, 3)) + '"/>'
             out.append(
                 "<w:p><w:pPr>" + entry_ppr + self.latin_jc(entry_ppr, text) + "</w:pPr>" + opening
-                + "<w:r><w:rPr>" + self.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + closing + "</w:p>"
+                + self.runs(text) + closing + "</w:p>"
             )
         return "".join(out)

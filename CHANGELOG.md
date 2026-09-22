@@ -164,6 +164,21 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Fixed
 
+- **Correctly spelled English words are no longer underlined.** Every run this skill wrote said it
+  was complex script, including a run holding nothing but Latin letters, so Word proofed English
+  with a complex-script language — and no complex-script language spells English. A run now says
+  it where its text says it: runs are cut at the boundary between complex script and not, the
+  marker goes on the complex-script ones and is left off the others, and neither `docDefaults` nor
+  the `Normal` style carries it any more, so leaving it off means off. No run repeats the Latin
+  language that `docDefaults` already declares; `--thai-language` still names the complex-script
+  language, now on the marked runs only. Digits and ASCII punctuation are not complex script, and
+  a space takes the script before it, both as Word writes them (ADR 0039).
+  **Every document's bytes change** — `word/document.xml` of the thesis fixture is 4.96 per cent
+  smaller — and **code spans now render in the font the document has always named for them**,
+  which is Consolas rather than the body font. `--force-cs-whole-doc` writes the marker on every
+  run instead, the shape releases before this one wrote, for a finished document meant to be read
+  with one font throughout.
+
 - **A section break no longer sits inside a table of contents, tables or figures.** A section's
   properties live on its last paragraph, and where a region ended in one of the three lists that
   paragraph was the field's own last entry. Updating a field rewrites every paragraph it holds, so

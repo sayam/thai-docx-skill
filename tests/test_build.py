@@ -125,10 +125,10 @@ def test_a_writer_that_drops_a_character_is_refused(tmp_path, monkeypatch):
 
 
 def test_a_writer_that_breaks_a_cause_is_refused(tmp_path, monkeypatch):
-    """The build checks its own package before it writes it: a run that lost <w:cs/> is cause 1's
-    own symptom and finding 2, and no file is written."""
-    monkeypatch.setattr(wr, "LANG", '<w:lang w:val="en-US"/>')
-    monkeypatch.setattr(wr, "LANG_THAI", '<w:lang w:val="en-US" w:bidi="th-TH"/>')
+    """The build checks its own package before it writes it: a run of Thai that lost <w:cs/> is
+    cause 2's own symptom and finding 2, and no file is written (ADR 0039)."""
+    monkeypatch.setattr(wr, "CS", "")
+    monkeypatch.setattr(wr, "CS_THAI", '<w:lang w:bidi="th-TH"/>')
     result, out = build(tmp_path, "ก")
     assert not result["ok"] and {f["code"] for f in result["findings"]} == {"2"}
     assert not out.exists()
@@ -258,6 +258,7 @@ def test_defaults_are_announced_and_flags_change_the_package(tmp_path):
         "margins_in": {"top": 1.0, "right": 1.0, "bottom": 1.0, "left": 1.5},
         "first_line_indent_in": 0.0, "line_spacing": 1.0, "align": "left", "toc": False, "heading_numbers": False, "page_numbers": False,
         "page_number_on_first": True, "header": None, "footer": None, "thai_language": False,
+        "force_cs_whole_doc": False,
         "thai_digits": False, "auto_numbering": False,
         "hide_spelling_errors": False,
         "repeat_table_header": True, "table_widths": "equal", "table_size_pt": None,
@@ -551,12 +552,12 @@ def test_regions_make_a_section_of_every_chapter_and_page_before_and_after(tmp_p
         # the entry carries the sub-heading's number too: the build writes it, so it knows it
     assert text[4:10] == ["บทคัดย่อ", "สารบัญ", "บทที่ 1 บทนำ", "1.1 ที่มา", "บทที่ 2 ทฤษฎี", "ภาคผนวก ก"], text[:12]
     assert doc.count('<w:pStyle w:val="TOC1"/>') == 8 and doc.count('<w:pStyle w:val="TOC2"/>') == 1
-    assert '<w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr>' + wr.LANG + '</w:rPr><w:t xml:space="preserve">บทคัดย่อ</w:t>' in doc
+    assert '<w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr>' + wr.CS + '</w:rPr><w:t xml:space="preserve">บทคัดย่อ</w:t>' in doc
     # the number is the build's own text: a STYLEREF gave the chapter's title in LibreOffice
     # and a SEQ gave a Thai letter that never restarted (ADR 0036)
     assert "STYLEREF" not in doc and "SEQ " not in doc
     assert '<w:pPr><w:pStyle w:val="TableCaption"/><w:keepNext/></w:pPr>' in doc, "a table caption stays with its table"
-    assert '<w:pPr><w:keepNext/></w:pPr><w:r><w:rPr>' + wr.LANG + '</w:rPr><w:drawing>' in doc, "an image stays with its caption"
+    assert '<w:pPr><w:keepNext/></w:pPr><w:r><w:drawing>' in doc, "an image stays with its caption"
     assert '<w:pPr><w:pStyle w:val="FigureCaption"/><w:jc w:val="center"/><w:sectPr>' in doc, "the figure's caption ends chapter 1"
 
 
@@ -756,7 +757,8 @@ def test_asked_to_count_a_caption_is_the_fields_word_s_own_insert_caption_writes
         result, out = build(tmp_path, "Table:\\\nขึ้นบรรทัดใหม่\n\n| ก |\n|---|\n| 1 |\n", auto_numbering=counted)
         doc = zipfile.ZipFile(out).read("word/document.xml").decode()
         assert result["ok"] and result["findings"] == [] and ("SEQ ตารางที่" in doc) is counted
-        assert re.search(r'<w:t xml:space="preserve"> </w:t></w:r><w:r><w:rPr>(?:(?!</w:rPr>).)*</w:rPr><w:br/>', doc), "a space, then the break"
+        # the break holds no text, so it is not complex script and carries no properties (ADR 0039)
+        assert re.search(r'<w:t xml:space="preserve"> </w:t></w:r><w:r>(?:<w:rPr>(?:(?!</w:rPr>).)*</w:rPr>)?<w:br/>', doc), "a space, then the break"
 
 
 def test_the_package_carries_a_theme_naming_the_document_s_own_font(tmp_path):
@@ -874,14 +876,22 @@ def _page_parts(out) -> dict[str, str]:
 
 
 def test_header_and_footer_text_share_their_place_with_the_page_number(tmp_path):
-    centre = ('<w:pPr><w:pStyle w:val="{}"/><w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + wr.LANG
-              + '</w:rPr><w:t xml:space="preserve">{}</w:t></w:r></w:p>')
+    def centre(style: str, *pieces: tuple[bool, str]) -> str:
+        """The paragraph, with its text as runs — one per stretch of a single script (ADR 0039).
+
+        `ลับ & <ด่วน>` is four of them: the space after `ลับ` is neutral and takes the Thai
+        before it, while `&` and `<` are not complex script and take the Latin side, as Word
+        does with a comma between Thai and English.
+        """
+        runs = "".join("<w:r>" + ("<w:rPr>" + wr.CS + "</w:rPr>" if cs else "")
+                       + '<w:t xml:space="preserve">' + text + "</w:t></w:r>" for cs, text in pieces)
+        return '<w:pPr><w:pStyle w:val="' + style + '"/><w:jc w:val="center"/></w:pPr>' + runs + "</w:p>"
     # text alone: one part, no number
     opts, _, _ = b.parse_args(["--header", "ลับ & <ด่วน>", "in.md", "out.docx"])
     result, out = build(tmp_path, "ก", **opts)
     parts = _page_parts(out)
     assert result["ok"] and result["findings"] == [] and result["settings"]["header"] == "ลับ & <ด่วน>"
-    assert list(parts) == ["word/header1.xml"] and centre.format("Header", "ลับ &amp; &lt;ด่วน&gt;") in parts["word/header1.xml"]
+    assert list(parts) == ["word/header1.xml"] and centre("Header", (True, "ลับ "), (False, "&amp; &lt;"), (True, "ด่วน"), (False, "&gt;")) in parts["word/header1.xml"]
     assert "PAGE" not in parts["word/header1.xml"]
     # header text, footer text and a footer number: the text comes first, then the number
     opts, _, _ = b.parse_args(["--header", "ลับ", "--footer", "สำนักงาน", "--page-numbers", "bottom-center", "in.md", "out.docx"])
@@ -891,7 +901,7 @@ def test_header_and_footer_text_share_their_place_with_the_page_number(tmp_path)
         doc, styles = zf.read("word/document.xml").decode(), zf.read("word/styles.xml").decode()
     assert result["ok"] and list(parts) == ["word/header1.xml", "word/footer1.xml"]
     footer = parts["word/footer1.xml"]
-    assert footer.index(centre.format("Footer", "สำนักงาน")) < footer.index(" PAGE ")
+    assert footer.index(centre("Footer", (True, "สำนักงาน"))) < footer.index(" PAGE ")
     assert '<w:sectPr><w:headerReference w:type="default" r:id="rId1"/><w:footerReference w:type="default" r:id="rId2"/><w:pgSz' in doc
     assert 'w:styleId="Header"' in styles and 'w:styleId="Footer"' in styles
     # a first page without its number keeps the text; the other place gets an empty first part
@@ -901,7 +911,7 @@ def test_header_and_footer_text_share_their_place_with_the_page_number(tmp_path)
     assert result["ok"] and sorted(parts) == ["word/footer1.xml", "word/footer2.xml", "word/header1.xml", "word/header2.xml"]
     assert " PAGE " in parts["word/header1.xml"]
     assert parts["word/header2.xml"].endswith('<w:p><w:pPr><w:pStyle w:val="Header"/></w:pPr></w:p></w:hdr>')
-    assert parts["word/footer1.xml"] == parts["word/footer2.xml"] and centre.format("Footer", "สำนักงาน") in parts["word/footer2.xml"]
+    assert parts["word/footer1.xml"] == parts["word/footer2.xml"] and centre("Footer", (True, "สำนักงาน")) in parts["word/footer2.xml"]
     for bad in (["--header", ""], ["--footer", "ก\tข"], ["--header", "x" * 201], ["--footer", "a​b"]):
         with pytest.raises(b.BuildError, match="takes text of 1 to 200 characters on one line"):
             b.parse_args(bad + ["in.md", "out.docx"])
@@ -986,7 +996,7 @@ def test_the_chapter_title_can_start_its_own_line(tmp_path):
         doc = zf.read("word/document.xml").decode()
         parts = {n: zf.read(n) for n in zf.namelist()}
     assert result["ok"] and result["findings"] == [] and result["warnings"] == []
-    breaks = "<w:r><w:rPr>" + wr.LANG + "</w:rPr><w:br/></w:r>"
+    breaks = "<w:r><w:br/></w:r>"
     assert doc.count(breaks) == 2, "the chapter and the appendix, not the ## heading"
     text_of = fi.docx_text(parts, 0)
     assert "บทที่ 1\nบทนำ" in text_of and "ภาคผนวก ก\nแบบสอบถาม" in text_of and "ที่มา" in text_of
@@ -1120,7 +1130,7 @@ def test_every_generated_run_names_the_font(tmp_path):
     font = '<w:rFonts w:ascii="Sarabun" w:hAnsi="Sarabun" w:cs="Sarabun"/>'
     # the font, the size, and the complex-script flag: without <w:cs/> WPS draws Thai in the
     # level's Latin font, which is where "บทที่ ๑" came out as Latin letters
-    body = "<w:rPr>" + font + '<w:sz w:val="32"/><w:szCs w:val="32"/>' + wr.LANG + "</w:rPr>"
+    body = "<w:rPr>" + font + '<w:sz w:val="32"/><w:szCs w:val="32"/>' + wr.CS + "</w:rPr>"
     abstract = dict(re.findall(r'<w:abstractNum w:abstractNumId="(\d)">(.*?)</w:abstractNum>', numbering))
     assert sorted(abstract) == ["0"], "the bullet list is all the package numbers now (ADR 0036)"
     assert abstract["0"].count(body + "</w:lvl>") == 9, "a bullet is the body's font and size"
@@ -1128,7 +1138,7 @@ def test_every_generated_run_names_the_font(tmp_path):
         doc = zf.read("word/document.xml").decode()
     # a heading's number is a run of the heading's own paragraph, so it takes the style's look
     # without naming it again: the size, the weight and the colour of the words beside it
-    assert '<w:pStyle w:val="Heading1"/></w:pPr><w:r><w:rPr>' + wr.LANG + '</w:rPr><w:t xml:space="preserve">บทที่ ๑ บทนำ' in doc
+    assert '<w:pStyle w:val="Heading1"/></w:pPr><w:r><w:rPr>' + wr.CS + '</w:rPr><w:t xml:space="preserve">บทที่ ๑ บทนำ' in doc
     heading1 = styles.split('w:styleId="Heading1"', 1)[1].split("</w:style>", 1)[0].split("<w:rPr>", 1)[1].split("</w:rPr>", 1)[0]
     psk = '<w:rFonts w:ascii="TH SarabunPSK" w:hAnsi="TH SarabunPSK" w:cs="TH SarabunPSK"'
     assert heading1.startswith(psk + ' w:eastAsia="TH SarabunPSK"/><w:b/><w:bCs/><w:color w:val="1F4E79"/><w:sz w:val="44"/>')

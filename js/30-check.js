@@ -211,17 +211,21 @@ function checkTextPart(name, root, report) {
       const rpr = run.find(w("rPr"));
       const texts = run.findall(w("t"));
       const hasText = texts.length > 0;
+      let thai = false;
+      for (const t of texts) for (const ch of t.text || "") if (isThai(ch)) thai = true;
       if (rpr !== null) {
         checkOrder(rpr, RPR_ORDER, name, report, "a run's w:rPr");
-        let thai = false;
-        for (const t of texts) for (const ch of t.text || "") if (isThai(ch)) thai = true;
         checkRprTwins(rpr, name, report, "a run", thai);
       }
       if (hasText) {
         report.counts.runs = (report.counts.runs || 0) + 1;
-        if (rpr === null || rpr.find(w("cs")) === null) {
-          report.find("2", name, "a run with text has no <w:cs/> element");
-        } else {
+        const marked = rpr !== null && rpr.find(w("cs")) !== null;
+        // one direction only: a run that holds no complex script may carry the marker, because
+        // --force-cs-whole-doc writes it on every run and that file is ours too
+        if (thai && !marked) {
+          report.find("2", name, "a run whose text is complex script has no <w:cs/> element");
+        }
+        if (marked) {
           const lang = rpr.find(w("lang"));
           if (lang !== null && lang.get(w("bidi")) === "th-TH") {
             report.counts.thai_language_runs = (report.counts.thai_language_runs || 0) + 1;

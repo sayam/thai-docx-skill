@@ -124,6 +124,11 @@ SETTINGS: tuple[dict, ...] = (
      "report": ("thai_language", "value"),
      "doc": ("the complex-script language of the text", "left to the reader's machine",
              "`--thai-language` (writes `w:bidi=\"th-TH\"`; see [limits.md](limits.md) §3)")},
+    {"key": "force_cs_whole_doc", "flag": "--force-cs-whole-doc", "kind": "switch", "default": False, "layer": 1,  # ADR 0039
+     "report": ("force_cs_whole_doc", "value"),
+     "doc": ("which runs are marked complex script", "the runs whose text is complex script",
+             '`--force-cs-whole-doc` (every run, as releases before 0.2.0 wrote: one font throughout, '
+             "and an application underlines correctly spelled English on screen)")},
     {"key": "thai_digits", "flag": "--thai-digits", "kind": "switch", "default": False, "layer": 2,  # numbers Word generates; never the text
      "report": ("thai_digits", "value"),
      "doc": ("page, list and footnote numbers", "1 2 3", "`--thai-digits` (๑ ๒ ๓; the text itself is never changed)")},

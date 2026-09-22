@@ -1228,17 +1228,21 @@ function checkTextPart(name, root, report) {
       const rpr = run.find(w("rPr"));
       const texts = run.findall(w("t"));
       const hasText = texts.length > 0;
+      let thai = false;
+      for (const t of texts) for (const ch of t.text || "") if (isThai(ch)) thai = true;
       if (rpr !== null) {
         checkOrder(rpr, RPR_ORDER, name, report, "a run's w:rPr");
-        let thai = false;
-        for (const t of texts) for (const ch of t.text || "") if (isThai(ch)) thai = true;
         checkRprTwins(rpr, name, report, "a run", thai);
       }
       if (hasText) {
         report.counts.runs = (report.counts.runs || 0) + 1;
-        if (rpr === null || rpr.find(w("cs")) === null) {
-          report.find("2", name, "a run with text has no <w:cs/> element");
-        } else {
+        const marked = rpr !== null && rpr.find(w("cs")) !== null;
+        // one direction only: a run that holds no complex script may carry the marker, because
+        // --force-cs-whole-doc writes it on every run and that file is ours too
+        if (thai && !marked) {
+          report.find("2", name, "a run whose text is complex script has no <w:cs/> element");
+        }
+        if (marked) {
           const lang = rpr.find(w("lang"));
           if (lang !== null && lang.get(w("bidi")) === "th-TH") {
             report.counts.thai_language_runs = (report.counts.thai_language_runs || 0) + 1;
@@ -3405,6 +3409,8 @@ const SETTINGS = [
     read: ["text", 200, "\t\n"], takes: "text of 1 to 200 characters on one line", usage: "TEXT", report: ["footer", "value"] },
   { key: "thai_language", flag: "--thai-language", kind: "switch", default: false, layer: 1,
     report: ["thai_language", "value"] },
+  { key: "force_cs_whole_doc", flag: "--force-cs-whole-doc", kind: "switch", default: false, layer: 1, // ADR 0039
+    report: ["force_cs_whole_doc", "value"] },
   { key: "thai_digits", flag: "--thai-digits", kind: "switch", default: false, layer: 2, // numbers Word generates; never the text
     report: ["thai_digits", "value"] },
   { key: "auto_numbering", flag: "--auto-numbering", kind: "switch", default: false, layer: 2, // who counts: the build, or the application
@@ -4086,12 +4092,54 @@ const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 const DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main"; // the theme, and a picture's own namespace
 const EMU_PER_PX = 9525;
 const EMU_PER_TWIP = 635;
-// Every run says it is complex script (ADR 0004, cause 1). Whether it also says *which*
-// complex-script language is --thai-language's to decide (ADR 0038): w:bidi="th-TH" is what tells
-// Word the text is Thai on a machine whose own complex-script language is not, and it is what
-// makes WPS Writer place SARA AM (ำ) over the wrong letter.
-const LANG = '<w:cs/><w:lang w:val="en-US"/>';
-const LANG_THAI = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>';
+// A run says it is complex script where its text is complex script, and says nothing where it is
+// not (ADR 0039, amending cause 2 of ADR 0004). Omission is how it says nothing: no style and no
+// document default carries the element either, so there is nothing to inherit. Whether the text
+// also says *which* complex-script language it is in is --thai-language's to decide (ADR 0038);
+// w:bidi="th-TH" reaches no run that holds no complex script, so it goes on the marked runs.
+// No run carries w:lang otherwise: docDefaults declares the Latin and East Asian languages once.
+const CS = "<w:cs/>";
+const CS_THAI = '<w:cs/><w:lang w:bidi="th-TH"/>';
+const THAI_FIRST = 0x0e00;
+const THAI_LAST = 0x0e7f;
+
+// `C` complex script, `L` not, `N` neutral — it takes the script of the letter beside it. Thai is
+// the complex script this skill writes. Arabic digits and ASCII punctuation are not complex
+// script, which is measured, not assumed: Word cuts `120 ` out of a Thai sentence and leaves it
+// unmarked (2026-09-22, what Word writes when a person types).
+function script(ch) {
+  const c = ch.codePointAt(0);
+  if (c >= THAI_FIRST && c <= THAI_LAST) return "C";
+  return /\s/.test(ch) ? "N" : "L";
+}
+
+// `text` cut where the script changes, as Word cuts it (ADR 0039). A neutral character takes the
+// script of the strong character before it. One that opens the text has none before it, so it
+// takes the first strong character instead, and text that is neutral throughout is not complex
+// script — neither case was measured in Word, and neither is visible while a run's Latin and
+// complex-script fonts and sizes are the same. An empty string is one piece, so an empty
+// paragraph still carries a run for fidelity to read.
+function scriptRuns(text) {
+  const chars = Array.from(text);
+  if (!chars.length) return [[false, ""]];
+  const marks = chars.map(script);
+  const first = marks.find((m) => m !== "N") || "L";
+  const out = [];
+  let prev = "";
+  for (const m of marks) {
+    if (m === "N") out.push(prev || first);
+    else { out.push(m); prev = m; }
+  }
+  const pieces = [];
+  let start = 0;
+  for (let i = 1; i <= chars.length; i += 1) {
+    if (i === chars.length || out[i] !== out[start]) {
+      pieces.push([out[start] === "C", chars.slice(start, i).join("")]);
+      start = i;
+    }
+  }
+  return pieces;
+}
 // Thai marks above and below a consonant take no width of their own when a column is measured
 const THAI_MARKS = new Set([0x0e31, 0x0e34, 0x0e35, 0x0e36, 0x0e37, 0x0e38, 0x0e39, 0x0e3a, 0x0e47, 0x0e48, 0x0e49, 0x0e4a, 0x0e4b, 0x0e4c, 0x0e4d, 0x0e4e]);
 // Word's own table default; with no table style it would otherwise be 0 and text touches the borders
@@ -4163,7 +4211,11 @@ class Writer {
     this.docPr = 0;
     this.hasOrderedList = false; // whether --auto-numbering has anything to count (ADR 0028)
     this.imageTwips = 0; // the width the last image was drawn at, for --caption-matches-object
-    this.lang = opts.thai_language ? LANG_THAI : LANG;
+    this.cs = opts.thai_language ? CS_THAI : CS;
+    this.csAll = opts.force_cs_whole_doc; // mark every run, as releases before 0.2.0 did
+    // a style is not a run: it names the Latin language for an application that reads styles but
+    // not docDefaults, and never says complex script, which each run says for itself
+    this.styleLang = '<w:lang w:val="en-US"' + (opts.thai_language ? ' w:bidi="th-TH"' : "") + "/>";
     [this.headingProps, this.styleWarnings] = headingStyles(doc);
     [this.items, this.regions, this.layoutWarnings] = layout(doc, opts);
     this.nums = [];
@@ -4181,6 +4233,33 @@ class Writer {
     return rid;
   }
 
+  // What says a run is complex script, or nothing when its text is not.
+  marker(complexScript) {
+    return complexScript || this.csAll ? this.cs : "";
+  }
+
+  // A run's properties, or nothing at all rather than an empty element.
+  rpr(props) {
+    return props ? "<w:rPr>" + props + "</w:rPr>" : "";
+  }
+
+  // `text` as runs, one per stretch of a single script (ADR 0039). Two stretches that end up with
+  // the same run properties are one run again: cause 4 of ADR 0004 says contiguous text with the
+  // same formatting is one run, and the checker holds the build to it. Under
+  // --force-cs-whole-doc every stretch carries the same marker, so this puts the whole text back
+  // into the one run releases before 0.2.0 wrote.
+  runs(text, props) {
+    const grouped = [];
+    for (const [complexScript, piece] of scriptRuns(text)) {
+      const rpr = this.rpr((props || "") + this.marker(complexScript));
+      if (grouped.length && grouped[grouped.length - 1][0] === rpr) grouped[grouped.length - 1][1] += piece;
+      else grouped.push([rpr, piece]);
+    }
+    return grouped.map(([rpr, piece]) =>
+      "<w:r>" + rpr + piece.split("\t").map((part) => '<w:t xml:space="preserve">' + esc(part) + "</w:t>").join("<w:tab/>") + "</w:r>"
+    ).join("");
+  }
+
   runProps(node, bold) {
     const p = [];
     if (node.link) p.push('<w:rStyle w:val="Hyperlink"/>');
@@ -4191,13 +4270,11 @@ class Writer {
     if (node.u) p.push('<w:u w:val="single"/>');
     if (node.sup) p.push('<w:vertAlign w:val="superscript"/>');
     else if (node.sub) p.push('<w:vertAlign w:val="subscript"/>');
-    p.push(this.lang);
-    return "<w:rPr>" + p.join("") + "</w:rPr>";
+    return p.join("");
   }
 
   textRun(node, bold) {
-    const body = node.s.split("\t").map((piece) => '<w:t xml:space="preserve">' + esc(piece) + "</w:t>").join("<w:tab/>");
-    return "<w:r>" + this.runProps(node, bold) + body + "</w:r>";
+    return this.runs(node.s, this.runProps(node, bold));
   }
 
   inlines(nodes, bold) {
@@ -4217,19 +4294,18 @@ class Writer {
       }
       const t = n.t;
       if (t === "text") out.push(this.textRun(n, bold));
-      else if (t === "hardbreak") out.push("<w:r><w:rPr>" + this.lang + "</w:rPr><w:br/></w:r>");
+      else if (t === "hardbreak") out.push("<w:r>" + this.rpr(this.marker(false)) + "<w:br/></w:r>");
       else if (t === "task") {
         const mark = n.checked ? BOX_CHECKED : BOX;
-        out.push('<w:r><w:rPr><w:rFonts w:ascii="' + SYMBOL_FONT + '" w:hAnsi="' + SYMBOL_FONT + '" w:cs="' + SYMBOL_FONT + '"/>' +
-          this.lang + '</w:rPr><w:t xml:space="preserve">' + mark + "</w:t></w:r>");
+        out.push(this.runs(mark, '<w:rFonts w:ascii="' + SYMBOL_FONT + '" w:hAnsi="' + SYMBOL_FONT + '" w:cs="' + SYMBOL_FONT + '"/>'));
       } else if (t === "footnote_ref") {
-        out.push('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + this.lang + '</w:rPr><w:footnoteReference w:id="' + n.id + '"/></w:r>');
+        out.push("<w:r>" + this.rpr('<w:rStyle w:val="FootnoteReference"/>' + this.marker(false)) + '<w:footnoteReference w:id="' + n.id + '"/></w:r>');
       } else if (t === "image") {
         out.push(this.image(n));
       }
       i++;
     }
-    if (!out.length) out.push("<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve"></w:t></w:r>');
+    if (!out.length) out.push(this.runs(""));
     return out.join("");
   }
 
@@ -4259,7 +4335,7 @@ class Writer {
     this.docPr += 1;
     const k = String(this.docPr);
     return (
-      "<w:r><w:rPr>" + this.lang + "</w:rPr><w:drawing>" +
+      "<w:r>" + this.rpr(this.marker(false)) + "<w:drawing>" +
       '<wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + cx + '" cy="' + cy + '"/>' +
       '<wp:docPr id="' + k + '" name="Picture ' + k + '" descr=' + attr(node.alt) + "/>" +
       '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
@@ -4291,7 +4367,7 @@ class Writer {
   // starts the next one.
   titleBreak(item) {
     if (!this.opts.chapter_title_on_new_line || item.number === undefined) return "";
-    return "<w:r><w:rPr>" + this.lang + "</w:rPr><w:br/></w:r>";
+    return "<w:r>" + this.rpr(this.marker(false)) + "<w:br/></w:r>";
   }
 
   // Whether the build writes this document's numbers itself (ADR 0036). One answer for the
@@ -4309,11 +4385,11 @@ class Writer {
   // A field and the result the build already knows, between `separate` and `end`.
   fieldRuns(instr, result, rpr) {
     return (
-      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>' +
-      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>" +
-      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:fldChar w:fldCharType="separate"/></w:r>' +
-      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:t xml:space="preserve">' + result + "</w:t></w:r>" +
-      "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:fldChar w:fldCharType="end"/></w:r>'
+      "<w:r>" + this.rpr(rpr + this.marker(false)) + '<w:fldChar w:fldCharType="begin"/></w:r>' +
+      "<w:r>" + this.rpr(rpr + this.marker(false)) + '<w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>" +
+      "<w:r>" + this.rpr(rpr + this.marker(false)) + '<w:fldChar w:fldCharType="separate"/></w:r>' +
+      this.runs(result, rpr) +
+      "<w:r>" + this.rpr(rpr + this.marker(false)) + '<w:fldChar w:fldCharType="end"/></w:r>'
     );
   }
 
@@ -4352,7 +4428,7 @@ class Writer {
       return [[{ ...inlines[0], s: item.number + " " + inlines[0].s }, ...inlines.slice(1)], "", ""];
     }
     const text = brk ? item.number : item.number + " ";
-    return [inlines, "", "<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + brk];
+    return [inlines, "", this.runs(text) + brk];
   }
 
   // `body` marks the document's own top level: only its paragraphs take the first-line
@@ -4388,7 +4464,7 @@ class Writer {
   caption(c, keepNext) {
     this.counts.paragraphs += 1;
     const bold = "<w:b/><w:bCs/>";
-    const run = (text, rpr) => "<w:r><w:rPr>" + rpr + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>";
+    const run = (text, rpr) => this.runs(text, rpr);
     // --caption-hanging-indent: the label and number keep the margin and every line after the
     // first is indented, so a caption that runs on reads as one block beside its number
     const hang = halfUp(this.opts.caption_hanging_indent * 1440);
@@ -4513,8 +4589,7 @@ class Writer {
       } else if (b.ordered) {
         const marker = numberText(b.start + n, "decimal", this.opts.thai_digits) + ".";
         ppr = indent;
-        lead = "<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(marker) + "</w:t></w:r>" +
-          "<w:r><w:rPr>" + this.lang + "</w:rPr><w:tab/></w:r>";
+        lead = this.runs(marker) + "<w:r>" + this.rpr(this.marker(false)) + "<w:tab/></w:r>";
       } else {
         ppr = '<w:numPr><w:ilvl w:val="' + Math.min(level, 8) + '"/><w:numId w:val="1"/></w:numPr>';
       }
@@ -4575,8 +4650,8 @@ class Writer {
   // already holds between `separate` and `end`, one paragraph each (ADR 0027). The field
   // opens in the first entry and closes in the last, as Word writes it.
   field(instr, ppr, entries) {
-    const char = (kind) => "<w:r><w:rPr>" + this.lang + '</w:rPr><w:fldChar w:fldCharType="' + kind + '"/></w:r>';
-    const instruction = "<w:r><w:rPr>" + this.lang + '</w:rPr><w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>";
+    const char = (kind) => "<w:r>" + this.rpr(this.marker(false)) + '<w:fldChar w:fldCharType="' + kind + '"/></w:r>';
+    const instruction = "<w:r>" + this.rpr(this.marker(false)) + '<w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>";
     if (!entries || !entries.length) {
       return "<w:p><w:pPr>" + (ppr || "") + "</w:pPr>" + char("begin") + instruction + char("separate") + char("end") + "</w:p>";
     }
@@ -4588,7 +4663,7 @@ class Writer {
       const entryPpr = '<w:pStyle w:val="TOC' + Math.min(level, 3) + '"/>';
       out.push(
         "<w:p><w:pPr>" + entryPpr + this.latinJc(entryPpr, text) + "</w:pPr>" + opening +
-        "<w:r><w:rPr>" + this.lang + '</w:rPr><w:t xml:space="preserve">' + esc(text) + "</w:t></w:r>" + closing + "</w:p>"
+        this.runs(text) + closing + "</w:p>"
       );
     });
     return out.join("");
@@ -4708,8 +4783,8 @@ class Package extends Writer {
       '<w:footnote w:type="separator" w:id="-1"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:separator/></w:r></w:p></w:footnote>',
       '<w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>',
     ];
-    const mark = '<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + this.lang + "</w:rPr><w:footnoteRef/></w:r>" +
-      "<w:r><w:rPr>" + this.lang + "</w:rPr><w:tab/></w:r>";
+    const mark = "<w:r>" + this.rpr('<w:rStyle w:val="FootnoteReference"/>' + this.marker(false)) + "<w:footnoteRef/></w:r>" +
+      "<w:r>" + this.rpr(this.marker(false)) + "<w:tab/></w:r>";
     this.doc.footnoteOrder.forEach((label, k) => {
       const fid = k + 1;
       this.counts.footnotes += 1;
@@ -4791,7 +4866,7 @@ class Package extends Writer {
       XML_DECL + '<w:styles xmlns:w="' + W + '">' +
       "<w:docDefaults><w:rPrDefault><w:rPr>" +
       "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>" +
-      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/><w:cs/><w:lang w:val="en-US" w:eastAsia="en-US"' + (this.opts.thai_language ? ' w:bidi="th-TH"' : "") + "/>" +
+      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/><w:lang w:val="en-US" w:eastAsia="en-US"' + (this.opts.thai_language ? ' w:bidi="th-TH"' : "") + "/>" +
       "</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr>" +
       '<w:spacing w:after="120" w:line="' + halfUp(this.opts.line_spacing * 240) + '" w:lineRule="auto"/>' + jc +
       "</w:pPr></w:pPrDefault></w:docDefaults>" +
@@ -4799,7 +4874,7 @@ class Package extends Writer {
       // but not w:docDefaults (WPS numbers one) then still has the font and size
       '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:rPr>' +
       "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>" +
-      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + this.lang + "</w:rPr></w:style>" +
+      '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + this.styleLang + "</w:rPr></w:style>" +
       [1, 2, 3, 4, 5, 6].map((n) => heading(n)).join("") +
       '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720"/><w:contextualSpacing/></w:pPr></w:style>' +
       '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:left="720" w:right="720"/></w:pPr><w:rPr><w:i/><w:iCs/></w:rPr></w:style>' +
@@ -4839,14 +4914,14 @@ class Package extends Writer {
     // carry Thai: WPS showed "บทที่ ๑" as Latin letters until every level named one
     const half = String(halfUp(this.opts.size * 2));
     const levelFont = "<w:rPr><w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + "/>" +
-      '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + this.lang + "</w:rPr>";
+      '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + this.cs + "</w:rPr>";
     // A heading level's number is drawn as its heading is — "บทที่ 1" at Heading 1's size, not
     // the body's — naming the font all the same; levels past Heading 6 have none.
     const headingFont = (l) => {
       if (l >= HEADING_LOOK.length) return levelFont;
       const [name, rest] = this.headingRun(l + 1);
       const face = name !== null ? attr(name) : font;
-      return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + this.lang + "</w:rPr>";
+      return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + this.cs + "</w:rPr>";
     };
     for (let l = 0; l < 9; l++) {
       bullet += '<w:lvl w:ilvl="' + l + '"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/>' +
@@ -5017,8 +5092,7 @@ class Package extends Writer {
     const style = '<w:pStyle w:val="' + kind[0].toUpperCase() + kind.slice(1) + '"/>';
     let body = "";
     if (this.opts[kind] !== null) {
-      body += "<w:p><w:pPr>" + style + '<w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + this.lang + '</w:rPr><w:t xml:space="preserve">' +
-        esc(this.opts[kind]) + "</w:t></w:r></w:p>";
+      body += "<w:p><w:pPr>" + style + '<w:jc w:val="center"/></w:pPr>' + this.runs(this.opts[kind]) + "</w:p>";
     }
     if (this.opts.page_numbers && this.pageNumberPart() === kind && !first) {
       body += this.field("PAGE", style + '<w:jc w:val="' + this.opts.page_numbers.split("-")[1] + '"/>');

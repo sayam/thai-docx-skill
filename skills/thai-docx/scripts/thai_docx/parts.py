@@ -123,8 +123,8 @@ class Package(Writer):
             '<w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>'
             '<w:r><w:continuationSeparator/></w:r></w:p></w:footnote>',
         ]
-        mark = ('<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>' + self.lang + "</w:rPr><w:footnoteRef/></w:r>"
-                "<w:r><w:rPr>" + self.lang + "</w:rPr><w:tab/></w:r>")
+        mark = ("<w:r>" + self.rpr('<w:rStyle w:val="FootnoteReference"/>' + self.marker(False)) + "<w:footnoteRef/></w:r>"
+                "<w:r>" + self.rpr(self.marker(False)) + "<w:tab/></w:r>")
         for fid, label in enumerate(self.doc.footnote_order, 1):
             self.counts["footnotes"] += 1
             blocks = self.doc.footnotes[label]
@@ -208,7 +208,7 @@ class Package(Writer):
             XML + '<w:styles xmlns:w="' + W + '">'
             "<w:docDefaults><w:rPrDefault><w:rPr>"
             "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>"
-            '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/><w:cs/><w:lang w:val="en-US" w:eastAsia="en-US"'
+            '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/><w:lang w:val="en-US" w:eastAsia="en-US"'
             + (' w:bidi="th-TH"' if self.opts["thai_language"] else "") + "/>"
             "</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr>"
             '<w:spacing w:after="120" w:line="' + str(half_up(self.opts["line_spacing"] * 240)) + '" w:lineRule="auto"/>' + jc
@@ -217,7 +217,7 @@ class Package(Writer):
             # styles but not w:docDefaults (WPS numbers one) then still has the font and size
             '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:rPr>'
             "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>"
-            '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + self.lang + "</w:rPr></w:style>"
+            '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + self.style_lang + "</w:rPr></w:style>"
             + "".join(heading(n) for n in range(1, 7))
             + '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/>'
             '<w:pPr><w:ind w:left="720"/><w:contextualSpacing/></w:pPr></w:style>'
@@ -253,7 +253,7 @@ class Package(Writer):
         # not carry Thai: WPS showed "บทที่ ๑" as Latin letters until every level named one
         half = str(half_up(size * 2))
         level_font = ("<w:rPr><w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + "/>"
-                      '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + self.lang + "</w:rPr>")
+                      '<w:sz w:val="' + half + '"/><w:szCs w:val="' + half + '"/>' + self.cs + "</w:rPr>")
 
         def heading_font(ilvl: int) -> str:
             """A heading level's number is drawn as its heading is — "บทที่ 1" at Heading 1's size,
@@ -262,7 +262,7 @@ class Package(Writer):
                 return level_font
             name, rest = self.heading_run(ilvl + 1)
             face = attr(name) if name is not None else font
-            return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + self.lang + "</w:rPr>"
+            return "<w:rPr><w:rFonts w:ascii=" + face + " w:hAnsi=" + face + " w:cs=" + face + "/>" + rest + self.cs + "</w:rPr>"
         bullet = "".join(
             '<w:lvl w:ilvl="' + str(ilvl) + '"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/>'
             '<w:pPr><w:ind w:left="' + str(720 * (ilvl + 1)) + '" w:hanging="360"/></w:pPr>' + level_font + "</w:lvl>"
@@ -447,8 +447,8 @@ class Package(Writer):
         style = '<w:pStyle w:val="' + kind.capitalize() + '"/>'
         body = ""
         if self.opts[kind] is not None:
-            body += ("<w:p><w:pPr>" + style + '<w:jc w:val="center"/></w:pPr><w:r><w:rPr>' + self.lang + '</w:rPr><w:t xml:space="preserve">'
-                     + esc(self.opts[kind]) + "</w:t></w:r></w:p>")
+            body += ("<w:p><w:pPr>" + style + '<w:jc w:val="center"/></w:pPr>'
+                     + self.runs(self.opts[kind]) + "</w:p>")
         if self.opts["page_numbers"] and self.page_number_part() == kind and not first:
             body += self.field("PAGE", style + '<w:jc w:val="' + self.opts["page_numbers"].split("-")[1] + '"/>')
         tag = "hdr" if kind == "header" else "ftr"

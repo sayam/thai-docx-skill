@@ -20,6 +20,7 @@ Every document has these.
 | line spacing | 1 | `--line-spacing 1.5` (1–3; code and footnotes stay single) |
 | alignment | left | `--align thai` (Thai distributed; a paragraph with no Thai stays left) |
 | the complex-script language of the text | left to the reader's machine | `--thai-language` (writes `w:bidi="th-TH"`; see [limits.md](limits.md) §3) |
+| which runs are marked complex script | the runs whose text is complex script | `--force-cs-whole-doc` (every run, as releases before 0.2.0 wrote: one font throughout, and an application underlines correctly spelled English on screen) |
 | spelling squiggles | shown | `--hide-spelling-errors` |
 
 ## Page furniture
