@@ -159,11 +159,15 @@ font the run names is the one used. Measured in Word 365 for Windows and in Goog
 words in any language. Word does; Google Docs does not. The underline does not print, and
 `--hide-spelling-errors` hides it on screen.
 
-**`--force-cs-whole-doc` restores the body font for a code span, but not for a code block, in
-Google Docs.** A code span carries its own `w:rFonts`, and Google Docs honours the complex-script
-slot there; a code block takes its font from the `CodeBlock` style, and Google Docs ignores the
-complex-script slot in a style. So a document built with that flag still shows its code blocks in
-the monospace font there. Not yet measured in Word.
+**`--force-cs-whole-doc` gives one font throughout in Word, and all but the code blocks in Google
+Docs.** The flag marks every run complex script, so an application takes the font from the
+complex-script slot and code is drawn in the body font again. Word does this for a code span and
+for a code block alike. **Google Docs does it for a code span only**: a code span carries its own
+`w:rFonts` and that application honours the complex-script slot there, while a code block takes
+its font from the `CodeBlock` style, where the slot is ignored — so code blocks stay monospace
+there. Measured in both on 2026-09-23. The flag brings the underlines back with it, everywhere the
+document has English; that is the exchange it exists to offer, and it is why it is not the
+default.
 
 **What did not change: the number of words an application counts.** A run no longer repeats the
 language the document already declares, which could have changed how Word segments text for its
