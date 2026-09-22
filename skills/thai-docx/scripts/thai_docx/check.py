@@ -6,7 +6,9 @@ still carries, plus the two things ADR 0023 and 0030 make the checker refuse.
 Findings, each with a `code`:
 
     1        compatibilityMode is not declared exactly once as 15
-    2        a run with text lacks <w:cs/>
+    2        a run whose text is complex script lacks <w:cs/> (ADR 0039: a run whose
+             text is not complex script must not be asked to carry it, and a file built
+             with --force-cs-whole-doc carries it everywhere, which is not a finding)
     3        <w:noProof/> appears somewhere
     4        two adjacent runs carry identical formatting (a word may be split)
     5        a complex-script twin is missing (cs font, szCs, bCs, iCs), or a bullet
@@ -216,15 +218,18 @@ def _check_text_part(name: str, root: ET.Element, report: Report) -> None:
             rpr = run.find(w("rPr"))
             texts = run.findall(w("t"))
             has_text = bool(texts)
+            thai = any(is_thai(ch) for t in texts for ch in (t.text or ""))
             if rpr is not None:
                 _check_order(rpr, RPR_ORDER, name, report, "a run's w:rPr")
-                thai = any(is_thai(ch) for t in texts for ch in (t.text or ""))
                 _check_rpr_twins(rpr, name, report, "a run", thai)
             if has_text:
                 report.counts["runs"] = report.counts.get("runs", 0) + 1
-                if rpr is None or rpr.find(w("cs")) is None:
-                    report.find("2", name, "a run with text has no <w:cs/> element")
-                else:
+                marked = rpr is not None and rpr.find(w("cs")) is not None
+                # one direction only: a run that holds no complex script may carry the marker,
+                # because --force-cs-whole-doc writes it on every run and that file is ours too
+                if thai and not marked:
+                    report.find("2", name, "a run whose text is complex script has no <w:cs/> element")
+                if marked:
                     lang = rpr.find(w("lang"))
                     if lang is not None and lang.get(w("bidi")) == "th-TH":
                         report.counts["thai_language_runs"] = report.counts.get("thai_language_runs", 0) + 1

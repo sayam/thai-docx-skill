@@ -374,17 +374,17 @@ def _run(cmd: list[str], args: list[str], cwd: pathlib.Path) -> tuple:
 def test_a_writer_defect_is_refused_the_same_way(tmp_path):
     """The one road to exit 1 from build: the writer breaks a cause and its own check
     refuses the package. No input reaches it, so the same defect is planted in both."""
-    python_lang = "LANG = '<w:cs/><w:lang w:val=\"en-US\"/>'"
-    js_lang = "const LANG = '<w:cs/><w:lang w:val=\"en-US\"/>';"
-    assert python_lang in (ROOT / "skills/thai-docx/scripts/thai_docx/writer.py").read_text(encoding="utf-8")
+    python_cs = 'CS = "<w:cs/>"'
+    js_cs = 'const CS = "<w:cs/>";'
+    assert python_cs in (ROOT / "skills/thai-docx/scripts/thai_docx/writer.py").read_text(encoding="utf-8")
     source = BUNDLE.read_text(encoding="utf-8")
-    assert source.count(js_lang) == 1
+    assert source.count(js_cs) == 1
     broken = tmp_path / "broken.cjs"
-    # the run loses <w:cs/>, which is cause 1's fix and finding 2 (ADR 0038)
-    broken.write_text(source.replace(js_lang, "const LANG = '<w:lang w:val=\"en-US\"/>';"), encoding="utf-8")
+    # a run of Thai loses <w:cs/>, which is cause 2's fix and finding 2 (ADR 0039)
+    broken.write_text(source.replace(js_cs, 'const CS = "";'), encoding="utf-8")
     (tmp_path / "in.md").write_text("ก\n", encoding="utf-8")
     planted = ("import sys; sys.path.insert(0, sys.argv[1]); from thai_docx import writer, __main__; "
-               "writer.LANG = '<w:lang w:val=\"en-US\"/>'; sys.exit(__main__.main(sys.argv[2:]))")
+               'writer.CS = ""; sys.exit(__main__.main(sys.argv[2:]))')
     args = ["build", "in.md", "out.docx"]
     py = _run([sys.executable, "-c", planted, str(ROOT / "skills/thai-docx/scripts")], args, tmp_path)
     js = _run(["node", str(broken)], args, tmp_path)

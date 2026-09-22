@@ -86,9 +86,14 @@ The build follows the seven rules above, which are Word's own, with one exceptio
   script of the strong character before it.
 - **`w:b` and `w:bCs` are still written together**, as are `w:i`/`w:iCs` and `w:sz`/`w:szCs`, so
   cause 5 of ADR 0004 is untouched.
-- **No run carries `w:lang` any more.** Word writes none — zero occurrences in the document the
-  maintainer typed — and `docDefaults` already declares `w:val="en-US" w:eastAsia="en-US"`, so a
-  run repeating it says nothing new at 28 characters a time. This is decided on its own evidence
+- **No run declares the Latin language any more.** Word writes no `w:lang` on a run at all — zero
+  occurrences in the document the maintainer typed — and `docDefaults` already declares
+  `w:val="en-US" w:eastAsia="en-US"`, so a run repeating it says nothing new at 28 characters a
+  time. `--thai-language` is the one thing a run still says about language, because nothing else
+  can say it: `w:bidi="th-TH"` may not go in `docDefaults` (below), and it is written as
+  `<w:lang w:bidi="th-TH"/>` **on the marked runs only** — a run that holds no complex script has
+  no complex-script language to name. Where the flag once wrote it on all 497 runs of
+  `sample-text`, it now writes it on 308. This is decided on its own evidence
   rather than carried along by the `<w:cs/>` rule, because it is the only part of this record with
   a visible effect that has no explanation: with run-level `w:lang` gone, Word counts **3,135
   words where it counted 3,177**, on text that did not change by one character. Word is segmenting
