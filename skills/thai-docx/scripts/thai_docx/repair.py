@@ -27,9 +27,12 @@ from . import check as check_mod
 from . import ooxml
 from . import package
 from . import settings as st
+from .ooxml import is_thai
 from .fidelity import docx_text
+from .writer import script_runs
 
-USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"] [--thai-language]'
+USAGE = ('usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"] [--thai-language]'
+         " [--force-cs-whole-doc]")
 
 # A part is edited as bytes, not re-serialised from a tree: a tree would rewrite prefixes,
 # attribute order and empty-element spelling across the whole part, and ADR 0037 allows only
@@ -80,6 +83,8 @@ def one_compatibility_mode(xml: bytes) -> tuple[bytes, int]:
 
 TAG = re.compile(rb"<(/?)(w:[\w.-]+)((?:[^<>\"']|\"[^\"]*\"|'[^']*')*?)(/?)>")
 RUN_START = re.compile(rb"<w:r(?:\s[^<>]*?)?>")
+# the one run shape a split may touch: properties, if any, then one w:t and nothing else
+SIMPLE_INNER = re.compile(rb"\A(<w:rPr(?:\s[^<>]*?)?>.*?</w:rPr>)?(<w:t(?:\s[^<>]*?)?>)(.*)</w:t>\Z", re.S)
 LATIN_FONT = (b"w:ascii", b"w:hAnsi", b"w:asciiTheme", b"w:hAnsiTheme")
 
 
@@ -123,11 +128,32 @@ def _insert(children: list[tuple[bytes, bytes]], name: bytes, element: bytes) ->
     return children + [(name, element)]
 
 
-def fix_rpr(inner: bytes, font: bytes, mark_thai: bool, thai_language: bool = False) -> tuple[bytes, int, int, int]:
-    """One w:rPr put right: (its new inner XML, code 2 repairs, code 5 repairs, language marks)."""
+def _drop(children: list[tuple[bytes, bytes]], name: bytes) -> list[tuple[bytes, bytes]]:
+    """`children` without `name`. Removing the marker is how a run says it is not complex
+    script: the element has no "off" spelling that Word writes (ADR 0039)."""
+    return [(there, raw) for there, raw in children if there != name]
+
+
+def _unescape(text: bytes) -> bytes:
+    return (text.replace(b"&lt;", b"<").replace(b"&gt;", b">").replace(b"&quot;", b'"')
+                .replace(b"&apos;", b"'").replace(b"&amp;", b"&"))
+
+
+def _escape(text: bytes) -> bytes:
+    return text.replace(b"&", b"&amp;").replace(b"<", b"&lt;").replace(b">", b"&gt;")
+
+
+def fix_rpr(inner: bytes, font: bytes, mark: bool | None,
+            thai_language: bool = False) -> tuple[bytes, int, int, int, int]:
+    """One w:rPr put right: its new inner XML, then code 2 repairs, code 5 repairs, language
+    marks, and markers taken off a run whose text is not complex script.
+
+    `mark` True writes the complex-script marker, False takes it away, None leaves it as it is —
+    which is what a style gets when the caller asked for every run to be marked instead.
+    """
     children = _children(inner)
     by_name = {name: raw for name, raw in children}
-    two = five = marked = 0
+    two = five = marked = unmarked = 0
 
     for latin, twin in ((b"w:sz", b"w:szCs"), (b"w:b", b"w:bCs"), (b"w:i", b"w:iCs")):
         if latin in by_name and twin not in by_name:
@@ -145,7 +171,10 @@ def fix_rpr(inner: bytes, font: bytes, mark_thai: bool, thai_language: bool = Fa
             children = [(n, new if n == b"w:rFonts" else raw) for n, raw in children]
             five += 1
 
-    if mark_thai:
+    if mark is False and b"w:cs" in by_name:
+        children = _drop(children, b"w:cs")
+        unmarked += 1  # not a finding of its own, so it is counted apart from the code 2 repairs
+    if mark:
         if b"w:cs" not in by_name:
             children = _insert(children, b"w:cs", b"<w:cs/>")
             two += 1
@@ -161,7 +190,7 @@ def fix_rpr(inner: bytes, font: bytes, mark_thai: bool, thai_language: bool = Fa
                 children = [(n, new if n == b"w:lang" else raw) for n, raw in children]
                 marked += 1
 
-    return b"".join(raw for _n, raw in children), two, five, marked
+    return b"".join(raw for _n, raw in children), two, five, marked, unmarked
 
 
 def reorder(xml: bytes, element: bytes, order: list[str]) -> tuple[bytes, int]:
@@ -194,21 +223,64 @@ def reorder(xml: bytes, element: bytes, order: list[str]) -> tuple[bytes, int]:
     return xml, count
 
 
-def _fix_runs(xml: bytes, font: bytes, counts: dict[str, int], thai_language: bool = False) -> bytes:
-    """Every run with text marked, every rPr's twins filled in — nested runs included."""
+def _run_text(inner: bytes) -> str:
+    """Everything the run's own w:t elements hold, as the text reads."""
+    return _unescape(b"".join(re.findall(rb"<w:t(?:\s[^<>]*?)?>(.*?)</w:t>", inner, re.S))).decode("utf-8", "replace")
+
+
+def _split_run(start: bytes, inner: bytes, font: bytes, counts: dict[str, int],
+               thai_language: bool) -> bytes | None:
+    """A run whose text holds both scripts, cut where the script changes (ADR 0039) — or None
+    when this run is not one to cut.
+
+    Only the plain shape is cut: run properties, if any, then one w:t and nothing else. A run
+    carrying a field, a drawing, a tab or a break is left whole, and so is one whose text holds
+    a numeric character reference, because re-escaping that would change the text, which repair
+    may never do (ADR 0023).
+    """
+    m = SIMPLE_INNER.match(inner)
+    if m is None or b"&#" in m.group(3):
+        return None
+    rpr_raw, topen, body = m.group(1), m.group(2), m.group(3)
+    pieces = script_runs(_unescape(body).decode("utf-8"))
+    if len(pieces) < 2:
+        return None
+    rpr_inner = b"" if rpr_raw is None else rpr_raw[rpr_raw.index(b">") + 1:-len(b"</w:rPr>")]
+    out = bytearray()
+    for complex_script, piece in pieces:
+        new_body, two, five, marked, unmarked = fix_rpr(rpr_inner, font, complex_script, thai_language)
+        for key, n in (("2", two), ("5", five), ("thai-language", marked), ("unmarked", unmarked)):
+            counts[key] = counts.get(key, 0) + n
+        head = b"<w:rPr>" + new_body + b"</w:rPr>" if new_body else b""
+        out += start + head + topen + _escape(piece.encode("utf-8")) + b"</w:t></w:r>"
+    counts["split"] = counts.get("split", 0) + 1
+    return bytes(out)
+
+
+def _fix_runs(xml: bytes, font: bytes, counts: dict[str, int], thai_language: bool = False,
+              cs_all: bool = False) -> bytes:
+    """Every run marked where its text is complex script, every rPr's twins filled in — nested
+    runs included, and a run that holds both scripts cut where the script changes."""
     out, pos = bytearray(), 0
     for m in RUN_START.finditer(xml):
         if m.start() < pos:
-            continue  # inside a run already put right
+            continue
         inner_end, element_end = _end_of(xml, m.end(), b"w:r")
-        inner = xml[m.end():inner_end]
-        out += xml[pos:m.end()] + _fix_run(inner, font, counts, thai_language)
+        inner, start = xml[m.end():inner_end], xml[m.start():m.end()]
+        split = None if cs_all else _split_run(start, inner, font, counts, thai_language)
+        if split is not None:
+            out += xml[pos:m.start()] + split
+            pos = element_end
+            continue
+        out += xml[pos:m.end()] + _fix_run(inner, font, counts, thai_language, cs_all)
         pos = inner_end
     return bytes(out) + xml[pos:]
 
 
-def _fix_run(inner: bytes, font: bytes, counts: dict[str, int], thai_language: bool = False) -> bytes:
+def _fix_run(inner: bytes, font: bytes, counts: dict[str, int], thai_language: bool = False,
+             cs_all: bool = False) -> bytes:
     has_text = re.search(rb"<w:t(?:\s[^<>]*?)?>", inner) is not None
+    mark = True if cs_all else (has_text and any(is_thai(ch) for ch in _run_text(inner)))
     rpr = re.match(rb"<w:rPr(?:\s[^<>]*?)?(/?)>", inner)
     rest_from = 0
     head = b""
@@ -217,38 +289,47 @@ def _fix_run(inner: bytes, font: bytes, counts: dict[str, int], thai_language: b
     elif rpr is not None:
         body_end, element_end = _end_of(inner, rpr.end(), b"w:rPr")
         body, rest_from = inner[rpr.end():body_end], element_end
-    elif has_text:
-        body, rest_from = b"", 0                    # a run with text and no rPr gets one
+    elif mark:
+        body, rest_from = b"", 0                    # a run that needs the marker and has no rPr gets one
     else:
-        return _fix_runs(inner, font, counts, thai_language)  # nothing of ours here; look deeper
-    new_body, two, five, marked = fix_rpr(body, font, has_text, thai_language)
+        return _fix_runs(inner, font, counts, thai_language, cs_all)  # nothing of ours here; look deeper
+    new_body, two, five, marked, unmarked = fix_rpr(body, font, mark if has_text else None, thai_language)
     counts["2"] = counts.get("2", 0) + two
     counts["5"] = counts.get("5", 0) + five
     counts["thai-language"] = counts.get("thai-language", 0) + marked
+    counts["unmarked"] = counts.get("unmarked", 0) + unmarked
     if new_body:
         head = b"<w:rPr>" + new_body + b"</w:rPr>"
     elif rpr is not None:
         head = inner[:rest_from]
-    return head + _fix_runs(inner[rest_from:], font, counts, thai_language)
+    return head + _fix_runs(inner[rest_from:], font, counts, thai_language, cs_all)
 
 
-def fix_text_part(xml: bytes, font: bytes, thai_language: bool = False) -> tuple[bytes, dict[str, int]]:
+def fix_text_part(xml: bytes, font: bytes, thai_language: bool = False,
+                  cs_all: bool = False) -> tuple[bytes, dict[str, int]]:
     counts: dict[str, int] = {}
-    return _fix_runs(xml, font, counts, thai_language), {k: v for k, v in counts.items() if v}
+    return _fix_runs(xml, font, counts, thai_language, cs_all), {k: v for k, v in counts.items() if v}
 
 
-def fix_styles(xml: bytes, font: bytes) -> tuple[bytes, int]:
-    """A style's w:rPr needs its twins; it formats no text, so no Thai marks are added."""
-    out, pos, five = bytearray(), 0, 0
+def fix_styles(xml: bytes, font: bytes, cs_all: bool = False) -> tuple[bytes, int, int]:
+    """A style's w:rPr needs its twins; it formats no text, so no marker is written into one.
+
+    The marker is taken *out*, though, and that is the half without which the rest does nothing:
+    `w:cs` inherits down docDefaults and the styles to a run, so a run that leaves it off is
+    only saying "whatever the chain says" (ADR 0039). Asked to mark every run instead, the chain
+    is left exactly as it was — each run then says it for itself.
+    """
+    out, pos, five, unmarked = bytearray(), 0, 0, 0
     for m in re.finditer(rb"<w:rPr(?:\s[^<>]*?)?>", xml):
         if m.start() < pos:
             continue
         inner_end, _element_end = _end_of(xml, m.end(), b"w:rPr")
-        new_body, _two, n, _marked = fix_rpr(xml[m.end():inner_end], font, False)
+        new_body, _two, n, _marked, off = fix_rpr(xml[m.end():inner_end], font, None if cs_all else False)
         five += n
+        unmarked += off
         out += xml[pos:m.end()] + new_body
         pos = inner_end
-    return bytes(out) + xml[pos:], five
+    return bytes(out) + xml[pos:], five, unmarked
 
 
 def fix_numbering(xml: bytes, font: bytes) -> tuple[bytes, int]:
@@ -276,7 +357,9 @@ def complex_script_font(parts: dict[str, bytes], asked: str | None) -> tuple[byt
         return asked.encode("utf-8"), "the font the command was given"
     counted: dict[bytes, int] = {}
     for name, xml in parts.items():
-        if name.startswith("word/"):
+        # the XML parts only: an image or a font holds no run properties, and reading one as
+        # text is how the two implementations came apart (a picture is not valid UTF-8)
+        if name.startswith("word/") and name.endswith(".xml"):
             for found in re.findall(rb'w:cs\s*=\s*"([^"]+)"', xml):
                 # only a font the checker itself would accept: writing one it warns about
                 # would trade a finding for a warning, which is not a repair
@@ -289,7 +372,7 @@ def complex_script_font(parts: dict[str, bytes], asked: str | None) -> tuple[byt
 
 
 def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None = None,
-                 thai_language: bool = False) -> tuple[dict[str, bytes], dict[str, int]]:
+                 thai_language: bool = False, cs_all: bool = False) -> tuple[dict[str, bytes], dict[str, int]]:
     """The parts to write anew, and how many of each code were repaired."""
     codes = {f["code"] for f in findings}
     replace: dict[str, bytes] = {}
@@ -322,21 +405,27 @@ def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None
                 replace[name] = out
                 repaired["order"] = repaired.get("order", 0) + n
     chosen = None
-    if codes & {"2", "5"} or thai_language:
+    # by default there is always something to look at: a run of Latin that carries the marker
+    # is not a finding, so nothing in `codes` would ask for this pass, and taking it off is the
+    # repair (ADR 0039). Asked to mark every run instead, this is the work it always was.
+    if codes & {"2", "5"} or thai_language or not cs_all:
         cs_font, why = complex_script_font(parts, font)
         for name, xml in parts.items():
             if not check_mod.TEXT_PARTS.fullmatch(name):
                 continue
-            new, counts = fix_text_part(replace.get(name, xml), cs_font, thai_language)
+            new, counts = fix_text_part(replace.get(name, xml), cs_font, thai_language, cs_all)
             if counts:
                 replace[name] = new
                 for code, n in counts.items():
                     repaired[code] = repaired.get(code, 0) + n
         if "word/styles.xml" in parts:
-            new, n = fix_styles(replace.get("word/styles.xml", parts["word/styles.xml"]), cs_font)
-            if n:
+            new, n, off = fix_styles(replace.get("word/styles.xml", parts["word/styles.xml"]), cs_font, cs_all)
+            if n or off:
                 replace["word/styles.xml"] = new
-                repaired["5"] = repaired.get("5", 0) + n
+                if n:
+                    repaired["5"] = repaired.get("5", 0) + n
+                if off:
+                    repaired["unmarked"] = repaired.get("unmarked", 0) + off
         if "word/numbering.xml" in parts:
             new, n = fix_numbering(replace.get("word/numbering.xml", parts["word/numbering.xml"]), cs_font)
             if n:
@@ -348,7 +437,8 @@ def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None
     return replace, repaired, chosen
 
 
-def repair(in_path: str, out_path: str, font: str | None = None, thai_language: bool = False) -> dict:
+def repair(in_path: str, out_path: str, font: str | None = None, thai_language: bool = False,
+           cs_all: bool = False) -> dict:
     result: dict = {"ok": False, "file": out_path}
     try:
         with open(in_path, "rb") as f:
@@ -369,7 +459,7 @@ def repair(in_path: str, out_path: str, font: str | None = None, thai_language: 
 
     ents = package.entries(data)
     parts = {e.name: package.read(data, e) for e in ents}
-    replace, repaired, chosen = repair_parts(parts, before.findings, font, thai_language)
+    replace, repaired, chosen = repair_parts(parts, before.findings, font, thai_language, cs_all)
     if not replace:
         result["repaired"] = {}
         result["remaining"] = before.findings
@@ -408,16 +498,19 @@ def repair(in_path: str, out_path: str, font: str | None = None, thai_language: 
 
 
 def main(argv: list[str]) -> int:
-    font, thai_language = None, False
+    font, thai_language, cs_all = None, False, False
     if "--thai-language" in argv:
         argv = [a for a in argv if a != "--thai-language"]
         thai_language = True
+    if "--force-cs-whole-doc" in argv:
+        argv = [a for a in argv if a != "--force-cs-whole-doc"]
+        cs_all = True
     if len(argv) == 4 and argv[2] == "--font":
         argv, font = argv[:2], argv[3]
     if len(argv) != 2:
         print(json.dumps({"ok": False, "error": USAGE}))
         return 2
-    result = repair(argv[0], argv[1], font, thai_language)
+    result = repair(argv[0], argv[1], font, thai_language, cs_all)
     print(json.dumps(result, ensure_ascii=False))
     if "error" in result:
         return 2
