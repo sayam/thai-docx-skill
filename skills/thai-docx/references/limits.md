@@ -122,6 +122,11 @@ A document built with a font that carries no Thai still warns, as it always did.
   never updates fields — but they carry no page numbers and no links until an update.
 - **An ordered list starts at the number the Markdown typed.** Nothing recounts it.
 - **`--auto-numbering` is one answer for the whole document**, never a mix.
+- **A caption the reader adds joins the lists, under `--auto-numbering` only.** Add a table or a
+  figure, give it a caption with References → Insert Caption or by copying one that is already
+  there, then update the fields: it numbers itself in this document's count and **appears in the
+  list of tables or figures**. Without the flag the numbers are text, nothing counts them, and a
+  caption the reader adds is the reader's to number and to list.
 - A flag that reaches nothing in the document changes no byte, and the build says which flag and
   what was missing. Pass that on.
 

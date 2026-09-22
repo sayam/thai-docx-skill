@@ -164,6 +164,17 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Fixed
 
+- **A caption the reader adds now joins the list of tables or figures**, where
+  `--auto-numbering` asked the application to count. The lists collected their entries by the
+  caption's *style*, which is the only thing to collect when a number is text — but a caption
+  added with References → Insert Caption carries Word's own `Caption` style, and one pasted from
+  another caption did not join the list either, however many times the fields were updated. Both
+  numbered themselves correctly the whole time, because every caption carries a `SEQ` field named
+  after its label. So under that flag the lists now collect **the counter** instead of the style,
+  and gain every caption that carries it, whichever way the reader added it. Without the flag
+  nothing changes: there are no `SEQ` fields to collect. Measured in Word 365 for Windows on
+  2026-09-23; `thesis-auto` is the only golden that moves.
+
 - **`repair` marks a run where its text is complex script, and cuts a run that holds both.**
   It used to mark every run that held text, the same defect the build had, so a repaired
   document underlined English exactly as a built one did. It now takes the marker off a run

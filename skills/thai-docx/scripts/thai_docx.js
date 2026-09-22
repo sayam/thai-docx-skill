@@ -3810,11 +3810,27 @@ const SECTION_MARK = "\x00"; // between sections in the body; the input can hold
 // SEQ fields, which a caption stopped carrying when its number became text (ADR 0036).
 const CAPTION_STYLE = { table: "TableCaption", figure: "FigureCaption" };
 const CAPTION_STYLE_NAME = { table: "Table Caption", figure: "Figure Caption" };
+// which kind of caption each list collects
+const LIST_KINDS = { "list-of-tables": "table", "list-of-figures": "figure" };
 const LIST_FIELDS = {
   toc: 'TOC \\o "1-3" \\h \\z \\u',
   "list-of-tables": 'TOC \\h \\z \\t "' + CAPTION_STYLE_NAME.table + ',1"',
   "list-of-figures": 'TOC \\h \\z \\t "' + CAPTION_STYLE_NAME.figure + ',1"',
 };
+
+// The instruction a list of contents, tables or figures carries. A list of tables or figures
+// collects by the *caption style* where the build writes the numbers, because a caption whose
+// number is text carries no SEQ field to collect (ADR 0036). Where the application counts, every
+// caption carries one — and so does a caption the reader adds with References -> Insert Caption,
+// or pastes from another — so the list collects by the *counter's name* instead. Measured in Word
+// 365 for Windows on 2026-09-23: collecting by style, neither an inserted nor a pasted caption
+// joined the list however many times the fields were updated, although both numbered themselves
+// correctly.
+function listField(name, opts) {
+  const kind = LIST_KINDS[name];
+  if (kind === undefined || !opts.auto_numbering) return LIST_FIELDS[name];
+  return 'TOC \\h \\z \\c "' + opts[kind + "_label"] + '"';
+}
 const CAPTION_PREFIX = { table: "Table:", figure: "Figure:" };
 // What a Thai writer reaches for instead. These make no caption — the prefix is one word,
 // written in English, so one rule holds in both languages — but a paragraph that opens with
@@ -4028,7 +4044,6 @@ function headingNumber(level, sub, region, sectioned, chapter, appendix, opts) {
   return parts.join(".");
 }
 
-const LIST_KINDS = { "list-of-tables": "table", "list-of-figures": "figure" };
 
 // An entry is one line: a heading broken over two lines reads as one in the list.
 function oneLine(text) {
@@ -4443,7 +4458,7 @@ class Writer {
       if (item.caption) {
         out.push(this.caption(item.caption, Boolean(item.keep_next)));
       } else if (b.t === "directive") {
-        out.push(this.field(LIST_FIELDS[b.name], "", listEntries(this.items, b.name)));
+        out.push(this.field(listField(b.name, this.opts), "", listEntries(this.items, b.name)));
       } else if (b.t === "heading") {
         this.counts.headings += 1;
         const [inlines, ppr, lead] = this.numberedHeading(item);
