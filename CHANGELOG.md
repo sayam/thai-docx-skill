@@ -42,40 +42,6 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   ways — against GitHub and against the file it is about to attach — and attaches nothing if a
   tampered archive passes either.
 
-### Changed
-
-- **The build writes every number itself, in every document, unless `--auto-numbering` asks the
-  application to count — one answer for the whole document (ADR 0036, which restates 0035).** A
-  heading's number (`บทที่ ๑`, `๑.๑`, `ภาคผนวก ก`, `1.`), an ordered list's marker and a caption's
-  number are runs in the paragraph they belong to, in Arabic digits or Thai, so the file reads the
-  same in all five applications. The reason was measured: LibreOffice Writer drew a thesis's
-  captions as `ตารางที่ บทนำ-ก` — the chapter's *title* where Word gives its number, from a
-  `STYLEREF`, and a Thai letter that never restarted, from a `SEQ` — and drew `บทที่ 1`, `1.1`,
-  `1.` where Word drew Thai digits, because `thaiNumbers` is a format it does not implement
-  (26.8; `ก ข ค`, `A`, `I`, `i` and `1` are all right). **The cost is said where the user meets
-  it: written numbers do not renumber themselves.** A reader who inserts a chapter in the .docx
-  renumbers by hand from there, or changes the Markdown and builds again. Half-and-half is the one
-  thing not on offer — a document that renumbers its headings but not its captions puts
-  `ตารางที่ 1-1` in chapter 2 and says nothing. What only a laid-out page knows stays a field:
-  page numbers, footnote marks, and the page numbers a list shows after an update. A bullet stays
-  a numbering level, since `•` is written out and every reader drew it. **The three lists stay
-  `TOC` fields**, which is what an application, and a person who edits the file afterwards, knows
-  how to update — but a caption now takes a paragraph style of its own, `Table Caption` or
-  `Figure Caption`, and the list collects that style with `\t` instead of a caption's `SEQ`
-  fields, so it holds whoever counts. **The bytes of every document change**; the goldens were
-  regenerated.
-- The table of contents now carries sub-heading numbers too (`1.1 ที่มา`), because the build
-  writes them and so knows them; before, an application that never updated fields showed the
-  heading's words alone.
-- `--chapter-label` and `--appendix-label` say they changed nothing unless a heading actually
-  carries a chapter number or an appendix letter, which is what they always meant.
-- The task-list box is now `□` and, when checked, `■`, in Arial (ADR 0033). It was `☐`/`☑` in Segoe
-  UI Symbol — a Microsoft font, so on every machine without it the box was drawn as **nothing**, in
-  every reader, which the WPS re-check found. No font carrying `☐` is present on Windows, macOS and
-  Linux alike, so the characters had to change rather than the font name alone. **The bytes of a
-  document with a task list change**, and the goldens were regenerated.
-
-### Added
 
 - **`--auto-numbering`: the application counts, and Word renumbers as the reader edits** (ADR
   0036). Headings take a multilevel list tied to the heading styles, ordered lists a numbering
@@ -157,6 +123,45 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   renumber itself. Every name in the example is invented; no real institution's format is
   reproduced.
 
+### Changed
+
+- **The build writes every number itself, in every document, unless `--auto-numbering` asks the
+  application to count — one answer for the whole document (ADR 0036, which restates 0035).** A
+  heading's number (`บทที่ ๑`, `๑.๑`, `ภาคผนวก ก`, `1.`), an ordered list's marker and a caption's
+  number are runs in the paragraph they belong to, in Arabic digits or Thai, so the file reads the
+  same in all five applications. The reason was measured: LibreOffice Writer drew a thesis's
+  captions as `ตารางที่ บทนำ-ก` — the chapter's *title* where Word gives its number, from a
+  `STYLEREF`, and a Thai letter that never restarted, from a `SEQ` — and drew `บทที่ 1`, `1.1`,
+  `1.` where Word drew Thai digits, because `thaiNumbers` is a format it does not implement
+  (26.8; `ก ข ค`, `A`, `I`, `i` and `1` are all right). **The cost is said where the user meets
+  it: written numbers do not renumber themselves.** A reader who inserts a chapter in the .docx
+  renumbers by hand from there, or changes the Markdown and builds again. Half-and-half is the one
+  thing not on offer — a document that renumbers its headings but not its captions puts
+  `ตารางที่ 1-1` in chapter 2 and says nothing. What only a laid-out page knows stays a field:
+  page numbers, footnote marks, and the page numbers a list shows after an update. A bullet stays
+  a numbering level, since `•` is written out and every reader drew it. **The three lists stay
+  `TOC` fields**, which is what an application, and a person who edits the file afterwards, knows
+  how to update — but a caption now takes a paragraph style of its own, `Table Caption` or
+  `Figure Caption`, and the list collects that style with `\t` instead of a caption's `SEQ`
+  fields, so it holds whoever counts. **The bytes of every document change**; the goldens were
+  regenerated.
+- The table of contents now carries sub-heading numbers too (`1.1 ที่มา`), because the build
+  writes them and so knows them; before, an application that never updated fields showed the
+  heading's words alone.
+- `--chapter-label` and `--appendix-label` say they changed nothing unless a heading actually
+  carries a chapter number or an appendix letter, which is what they always meant.
+- The task-list box is now `□` and, when checked, `■`, in Arial (ADR 0033). It was `☐`/`☑` in Segoe
+  UI Symbol — a Microsoft font, so on every machine without it the box was drawn as **nothing**, in
+  every reader, which the WPS re-check found. No font carrying `☐` is present on Windows, macOS and
+  Linux alike, so the characters had to change rather than the font name alone. **The bytes of a
+  document with a task list change**, and the goldens were regenerated.
+
+
+- What the agent reads says what the code does: SKILL.md counts comments among the HTML the build
+  takes, `references/profiles.md` gives each profile command's JSON line and the 64 KiB a profile
+  file may reach, and the settings reference says `--no-page-number-first` is about the first page
+  of each section, not only page 1.
+
 ### Fixed
 
 - **A section break no longer sits inside a table of contents, tables or figures.** A section's
@@ -209,13 +214,6 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   Python and skipped it in JavaScript; it now counts characters, as ADR 0029 says and ADR 0008
   requires. And the phrase is read with a space between the two words of the name
   (`thai docx grill`), which ADR 0026 has always allowed and the code never did.
-
-### Changed
-
-- What the agent reads says what the code does: SKILL.md counts comments among the HTML the build
-  takes, `references/profiles.md` gives each profile command's JSON line and the 64 KiB a profile
-  file may reach, and the settings reference says `--no-page-number-first` is about the first page
-  of each section, not only page 1.
 
 ## [0.1.1] - 2026-09-18
 
