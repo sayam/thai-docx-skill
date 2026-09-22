@@ -122,11 +122,24 @@ A document built with a font that carries no Thai still warns, as it always did.
   never updates fields — but they carry no page numbers and no links until an update.
 - **An ordered list starts at the number the Markdown typed.** Nothing recounts it.
 - **`--auto-numbering` is one answer for the whole document**, never a mix.
-- **A caption the reader adds joins the lists, under `--auto-numbering` only.** Add a table or a
-  figure, give it a caption with References → Insert Caption or by copying one that is already
-  there, then update the fields: it numbers itself in this document's count and **appears in the
-  list of tables or figures**. Without the flag the numbers are text, nothing counts them, and a
-  caption the reader adds is the reader's to number and to list.
+- **A caption the reader adds joins the lists in both kinds of document — by a different route
+  in each.** Measured in Word 365 for Windows on 2026-09-23.
+
+  **Ready-to-use (the default).** Add the table or figure, then **copy a caption that is already
+  there — the whole paragraph, including its paragraph mark — paste it, and type the new number
+  by hand**. Update the fields and it appears in the list of tables or figures. The copy is what
+  carries the caption's style, which is what the list collects; selecting only the words and
+  pasting them into an empty paragraph leaves the style behind, and the list will not see it.
+  Do not use References → Insert Caption here: it asks Word to count, and in this kind of
+  document the numbers are text, so it would start a second count of its own beside them.
+
+  **`--auto-numbering`.** Either route works — Insert Caption or a copy — and the number counts
+  itself. Insert Caption already offers this document's labels, in its digits, numbered by
+  chapter. A figure inserted before another renumbers the one that follows it.
+
+  In both kinds, a caption long enough to fill the line wraps in the list, and its page number
+  sits on the second line. That is the application laying out a long line, and no attribute
+  reaches it.
 - A flag that reaches nothing in the document changes no byte, and the build says which flag and
   what was missing. Pass that on.
 
