@@ -68,6 +68,31 @@ takes the next number and the ones after it move on when fields are updated (Ctr
 
 A label carrying a space is not one Word's `SEQ` field can name; keep a caption label to one word.
 
+The list of tables and the list of figures gain it. Under this flag they collect the document's
+counter rather than the caption's style, so a caption joins them whichever way it was added and
+whatever style it ended up in — Insert Caption, or a copy of one already there. Update the fields
+and it is listed; a figure inserted before another renumbers the one that follows it, in the
+document and in the list alike.
+
+## Adding a caption yourself where the build writes the numbers
+
+Insert Caption is for `--auto-numbering`: it asks Word to count, and in a ready-to-use document
+the numbers are text, so it would start a second count of its own beside them. The route that
+suits this kind of document is a copy:
+
+1. Add the table or the figure.
+2. **Select a caption that is already there, the whole paragraph including its paragraph mark**,
+   and copy it. Clicking once in the left margin beside the line selects exactly that.
+3. Paste it where the new caption goes, and **type the new number by hand**. Renumber the
+   captions after it yourself, if there are any.
+4. Update the fields (Ctrl+A, then F9), choosing **Update entire table** when Word asks.
+
+The list of tables or of figures gains it. What makes this work is the copy carrying the
+caption's style, which is what these lists collect; selecting only the words and pasting them
+into an empty paragraph leaves the style behind and the list will not see it. If that happens,
+click in the pasted caption and set its style to **Table Caption** or **Figure Caption** by hand,
+then update the fields again.
+
 ## A caption that runs to a second line
 
 By default every line of a caption starts at the margin, so a caption that runs on continues under

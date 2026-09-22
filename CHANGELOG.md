@@ -172,8 +172,11 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   numbered themselves correctly the whole time, because every caption carries a `SEQ` field named
   after its label. So under that flag the lists now collect **the counter** instead of the style,
   and gain every caption that carries it, whichever way the reader added it. Without the flag
-  nothing changes: there are no `SEQ` fields to collect. Measured in Word 365 for Windows on
-  2026-09-23; `thesis-auto` is the only golden that moves.
+  nothing changes: there are no `SEQ` fields to collect — and nothing needed to. Measured in Word
+  365 for Windows on 2026-09-23: in a ready-to-use document, **copying a caption that is already
+  there and typing the new number by hand puts it in the list**, because the copy carries the
+  style the list collects. `references/numbering.md` now gives that route step by step, and says
+  why Insert Caption is not it there. `thesis-auto` is the only golden that moves.
 
 - **`repair` marks a run where its text is complex script, and cuts a run that holds both.**
   It used to mark every run that held text, the same defect the build had, so a repaired
