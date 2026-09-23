@@ -48,7 +48,7 @@ Outlook use it too.
 4. Choose the zip file. thai-docx appears in your list of skills.
 5. Make sure its switch is on.
 
-Tried on 18 September 2026 with `thai-docx-0.1.1.zip`: the upload was accepted, a security scan
+Tried on 18 September 2026 with the archive of version 0.1.1: the upload was accepted, a security scan
 ran on save, and the skill appeared under **Created by you** with its switch on. Asked for a Thai
 document in a chat, Claude ran the skill, built the file and gave it back, and the file opened
 correctly in Word 365 for Windows. Claude's help page gives skill descriptions a limit of 200
@@ -89,13 +89,13 @@ Claude makes the file. Download it from the chat.
 
    ```sh
    mkdir -p ~/.claude/skills
-   unzip thai-docx-0.1.1.zip -d ~/.claude/skills
+   unzip thai-docx-0.2.0.zip -d ~/.claude/skills
    ```
 
    On Windows, in PowerShell:
 
    ```powershell
-   Expand-Archive thai-docx-0.1.1.zip -DestinationPath $HOME\.claude\skills
+   Expand-Archive thai-docx-0.2.0.zip -DestinationPath $HOME\.claude\skills
    ```
 
 3. Check that the file `~/.claude/skills/thai-docx/SKILL.md` exists.
@@ -184,7 +184,7 @@ Codex.
 
    ```sh
    mkdir -p ~/.agents/skills
-   unzip thai-docx-0.1.1.zip -d ~/.agents/skills
+   unzip thai-docx-0.2.0.zip -d ~/.agents/skills
    ```
 
    For one project only, unzip it into that project's `.agents/skills` folder.
@@ -353,17 +353,17 @@ Optional. If you have the [GitHub CLI](https://cli.github.com/), check that the 
 project's release workflow built:
 
 ```sh
-gh attestation verify thai-docx-0.1.1.zip --repo sayam/thai-docx-skill
+gh attestation verify thai-docx-0.2.0.zip --repo sayam/thai-docx-skill
 ```
 
 It says the verification succeeded, or fails for any other file.
 
 That asks GitHub for the proof, so you need to be signed in with `gh auth login`. If the release
-page also carries `thai-docx-0.1.1.intoto.jsonl`, download it beside the zip and check against it
+page also carries `thai-docx-0.2.0.intoto.jsonl`, download it beside the zip and check against it
 instead — no account, no network:
 
 ```sh
-gh attestation verify thai-docx-0.1.1.zip --bundle thai-docx-0.1.1.intoto.jsonl --repo sayam/thai-docx-skill
+gh attestation verify thai-docx-0.2.0.zip --bundle thai-docx-0.2.0.intoto.jsonl --repo sayam/thai-docx-skill
 ```
 
 ## Update or remove
@@ -397,7 +397,7 @@ it.
 |---|---|---|
 | where the files come from | the **latest tagged release** | the default branch, **`main`** |
 | so you get | the version the release page names | whatever has been merged since |
-| an exact version | `gh skill install … --pin v0.1.1` | — |
+| an exact version | `gh skill install … --pin v0.2.0` | — |
 | look before installing | `gh skill preview sayam/thai-docx-skill thai-docx` | — |
 | the files | the same ones the release archive holds | the same ones |
 | SKILL.md | **rewritten**: the keys sorted, `metadata` flattened, quotes dropped, and four keys added that say where it came from (`github-repo`, `github-ref`, `github-path`, `github-tree-sha`) | copied as it is |

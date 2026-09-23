@@ -8,6 +8,8 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-24
+
 ### Added
 
 - **The rules this project decides by, written down** (`docs/rules.md`): the scope the skill

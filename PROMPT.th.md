@@ -27,7 +27,7 @@
 
 1. เปิดหน้า [Releases](https://github.com/sayam/thai-docx-skill/releases/latest)
 2. เลื่อนลงไปที่หัวข้อ **Assets**
-3. กดชื่อไฟล์ `thai-docx-<เลขรุ่น>.zip` เช่น `thai-docx-0.1.1.zip`
+3. กดชื่อไฟล์ `thai-docx-<เลขรุ่น>.zip` เช่น `thai-docx-0.2.0.zip`
    (อย่ากด "Source code" ไฟล์นั้นไม่ใช่ไฟล์ที่ต้องใช้)
 4. **ไม่ต้องแตกไฟล์** เก็บไว้เป็นไฟล์ zip แบบนั้น
 
