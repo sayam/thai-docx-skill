@@ -45,7 +45,7 @@
 4. เลือกไฟล์ zip จะเห็น thai-docx ในรายการสกิล
 5. ดูให้แน่ใจว่าสวิตช์ของ thai-docx เปิดอยู่
 
-ลองแล้วเมื่อวันที่ 18 กันยายน 2569 ด้วยไฟล์ `thai-docx-0.1.1.zip` อัปโหลดผ่าน ระบบสแกนความปลอดภัยให้ตอนกดบันทึก
+ลองแล้วเมื่อวันที่ 18 กันยายน 2569 ด้วยไฟล์ zip ของรุ่น 0.1.1 อัปโหลดผ่าน ระบบสแกนความปลอดภัยให้ตอนกดบันทึก
 แล้วเห็นสกิลอยู่ในรายการ **Created by you** พร้อมสวิตช์เปิดอยู่ พอขอเอกสารภาษาไทยในแชต Claude เรียกสกิลนี้
 สร้างไฟล์แล้วส่งกลับมาให้ และเปิดใน Word 365 บน Windows ได้ถูกต้อง คู่มือของ Claude บอกว่าคำอธิบายสกิลยาวได้ไม่เกิน
 200 ตัวอักษร รุ่น 0.1.0 ยาวเกิน รุ่น 0.1.1 เป็นต้นไปไม่เกินแล้ว ถ้าอัปโหลดไม่ผ่าน ช่วย
@@ -85,13 +85,13 @@ Claude จะสร้างไฟล์ให้ กดดาวน์โหล
 
    ```sh
    mkdir -p ~/.claude/skills
-   unzip thai-docx-0.1.1.zip -d ~/.claude/skills
+   unzip thai-docx-0.2.0.zip -d ~/.claude/skills
    ```
 
    บน Windows ใช้ PowerShell
 
    ```powershell
-   Expand-Archive thai-docx-0.1.1.zip -DestinationPath $HOME\.claude\skills
+   Expand-Archive thai-docx-0.2.0.zip -DestinationPath $HOME\.claude\skills
    ```
 
 3. ตรวจว่ามีไฟล์ `~/.claude/skills/thai-docx/SKILL.md`
@@ -179,7 +179,7 @@ Claude จะสร้างไฟล์ให้ กดดาวน์โหล
 
    ```sh
    mkdir -p ~/.agents/skills
-   unzip thai-docx-0.1.1.zip -d ~/.agents/skills
+   unzip thai-docx-0.2.0.zip -d ~/.agents/skills
    ```
 
    ถ้าใช้โปรเจกต์เดียว ให้แตกไว้ในโฟลเดอร์ `.agents/skills` ของโปรเจกต์นั้น
@@ -345,17 +345,17 @@ thai-docx ไม่ต้องใช้ทั้งสองอย่าง
 release ของโปรเจกต์สร้างจริง
 
 ```sh
-gh attestation verify thai-docx-0.1.1.zip --repo sayam/thai-docx-skill
+gh attestation verify thai-docx-0.2.0.zip --repo sayam/thai-docx-skill
 ```
 
 ถ้าถูกต้องจะขึ้นว่าตรวจผ่าน ถ้าเป็นไฟล์อื่นจะไม่ผ่าน
 
 คำสั่งนั้นไปถาม GitHub จึงต้องลงชื่อเข้าใช้ด้วย `gh auth login` ก่อน ถ้าหน้ารุ่นมีไฟล์
-`thai-docx-0.1.1.intoto.jsonl` มาด้วย ให้ดาวน์โหลดไฟล์นั้นไว้ข้าง ๆ zip แล้วตรวจกับไฟล์นั้นแทน
+`thai-docx-0.2.0.intoto.jsonl` มาด้วย ให้ดาวน์โหลดไฟล์นั้นไว้ข้าง ๆ zip แล้วตรวจกับไฟล์นั้นแทน
 ไม่ต้องมีบัญชี ไม่ต้องต่อเน็ต
 
 ```sh
-gh attestation verify thai-docx-0.1.1.zip --bundle thai-docx-0.1.1.intoto.jsonl --repo sayam/thai-docx-skill
+gh attestation verify thai-docx-0.2.0.zip --bundle thai-docx-0.2.0.intoto.jsonl --repo sayam/thai-docx-skill
 ```
 
 ## อัปเดตหรือลบสกิล
@@ -387,7 +387,7 @@ gh attestation verify thai-docx-0.1.1.zip --bundle thai-docx-0.1.1.intoto.jsonl 
 |---|---|---|
 | เอาไฟล์มาจากไหน | **release ล่าสุดที่ติดแท็ก** | สาขาหลัก **`main`** |
 | จึงได้ | รุ่นตามที่หน้า release บอก | ทุกอย่างที่ merge เข้ามาแล้ว |
-| ขอรุ่นเจาะจง | `gh skill install … --pin v0.1.1` | — |
+| ขอรุ่นเจาะจง | `gh skill install … --pin v0.2.0` | — |
 | ดูก่อนติดตั้ง | `gh skill preview sayam/thai-docx-skill thai-docx` | — |
 | ไฟล์ที่ได้ | ชุดเดียวกับใน zip ของ release | ชุดเดียวกัน |
 | SKILL.md | **ถูกเขียนใหม่** เรียงคีย์ใหม่ ยุบ `metadata` ถอดเครื่องหมายคำพูด และเพิ่มสี่คีย์ที่บอกที่มา (`github-repo`, `github-ref`, `github-path`, `github-tree-sha`) | คัดลอกมาตามเดิม |
