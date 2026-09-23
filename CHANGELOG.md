@@ -52,11 +52,19 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   macOS draw with it is in the new `references/numbering.md`, measured or marked not measured.
   The flag says it changed nothing in a document with nothing to count. The release oracle gains
   a variant, `sample-auto`, whose checklist asks that an inserted heading, list item and caption
-  renumber what follows; the reference application must pass it.
+  renumber what follows; the reference application must pass it, and on 2026-09-23 it did. Under
+  this flag the list of tables and the list of figures collect **the caption's counter**
+  (`TOC \c "ตาราง"`), not its style, so a caption the reader adds in Word joins the list whichever
+  way it was added — References → Insert Caption gives Word's own `Caption` style, and a pasted
+  caption may keep neither. `references/numbering.md` says what to update after inserting a
+  chapter (every field, **Update entire table**), and how to add a caption in a ready-to-use
+  document, where the numbers are text: copy a whole caption paragraph and type the number.
 - WPS Writer re-checked (11.1.0.11723): both fixes of 0.1.0 hold there, the three lists fill on
-  open, and what WPS draws its own way is recorded — including a new one, the numbering value 1
-  drawn as ๕ under `--thai-digits`. The check also found that the task-list boxes `☐` and `☑` are
-  written in Segoe UI Symbol, which no Linux machine has, so they draw as nothing outside Windows.
+  open, and what WPS draws its own way is recorded — SARA AM's placement. A chapter label drawn as
+  Latin letters and the numbering value 1 drawn as ๕ under `--thai-digits`, read the same morning,
+  did not reproduce on 2026-09-23, on the same bytes; what changed is not established. The check also
+  found that the task-list boxes `☐` and `☑` were written in Segoe UI Symbol, which no Linux machine
+  has, so they drew as nothing outside Windows (fixed below, ADR 0033).
 - The two installers are held by tests, not only by a promise. The archive and the subtree
   `skills/thai-docx/` that `gh skill install` and `npx skills add` copy must be the same files
   **and the same bytes**; and the front matter must survive being written again the way
@@ -64,8 +72,14 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   depends on their order, `version` keeps its two dots, and no key inside `metadata` shares a name
   with a top-level one. Both guides now say which installer gives the release and which gives
   `main`, with `--pin` and `gh skill preview`.
-- `thai_docx repair IN.docx OUT.docx` — the repairs of v0.2 (ADR 0032). It clears findings `1`
-  (compatibility mode 15), `2` (`<w:cs/>` and a Thai `w:lang` on every run with text), `3`
+- `thai_docx repair IN.docx OUT.docx` — the repairs of v0.2 (ADR 0037, which restates 0032). It
+  clears findings `1` (compatibility mode 15), `2` (a run marked complex script where its text is,
+  and the mark taken off where it is not — off the document defaults and the styles too, without
+  which a run that leaves it off only inherits it again; a run that holds both scripts is cut where
+  the script changes, since attributes alone would reach about a third of the English — 462 Latin
+  letters of the thesis fixture sit in Latin-only runs against 924 inside runs that hold Thai as
+  well; a run carrying a field, a picture, a tab, a break or a numeric character reference is never
+  cut; `--force-cs-whole-doc` marks every run instead, as the build does with it), `3`
   (`<w:noProof/>` removed), `5` (the complex-script twins, a `w:cs` font, a Thai-capable bullet
   font) and `order` (a run's, a paragraph's and the settings' properties put back in the order the
   schema fixes, with anything the schema does not name left where it is). It writes a **new** file,
@@ -142,8 +156,8 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   a numbering level, since `•` is written out and every reader drew it. **The three lists stay
   `TOC` fields**, which is what an application, and a person who edits the file afterwards, knows
   how to update — but a caption now takes a paragraph style of its own, `Table Caption` or
-  `Figure Caption`, and the list collects that style with `\t` instead of a caption's `SEQ`
-  fields, so it holds whoever counts. **The bytes of every document change**; the goldens were
+  `Figure Caption`, and the list collects that style with `\t` — or, under `--auto-numbering`,
+  the caption's own counter with `\c`. **The bytes of every document change**; the goldens were
   regenerated.
 - The table of contents now carries sub-heading numbers too (`1.1 ที่มา`), because the build
   writes them and so knows them; before, an application that never updated fields showed the
@@ -163,32 +177,6 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   of each section, not only page 1.
 
 ### Fixed
-
-- **A caption the reader adds now joins the list of tables or figures**, where
-  `--auto-numbering` asked the application to count. The lists collected their entries by the
-  caption's *style*, which is the only thing to collect when a number is text — but a caption
-  added with References → Insert Caption carries Word's own `Caption` style, and one pasted from
-  another caption did not join the list either, however many times the fields were updated. Both
-  numbered themselves correctly the whole time, because every caption carries a `SEQ` field named
-  after its label. So under that flag the lists now collect **the counter** instead of the style,
-  and gain every caption that carries it, whichever way the reader added it. Without the flag
-  nothing changes: there are no `SEQ` fields to collect — and nothing needed to. Measured in Word
-  365 for Windows on 2026-09-23: in a ready-to-use document, **copying a caption that is already
-  there and typing the new number by hand puts it in the list**, because the copy carries the
-  style the list collects. `references/numbering.md` now gives that route step by step, and says
-  why Insert Caption is not it there. `thesis-auto` is the only golden that moves.
-
-- **`repair` marks a run where its text is complex script, and cuts a run that holds both.**
-  It used to mark every run that held text, the same defect the build had, so a repaired
-  document underlined English exactly as a built one did. It now takes the marker off a run
-  whose text is not complex script — and off the document defaults and the styles, without which
-  a run that leaves it off only inherits it again — and cuts a run that holds both scripts where
-  the script changes. Measured on the thesis fixture, attributes alone would have reached about a
-  third of the English: 462 Latin letters sit in runs that are Latin only against 924 inside runs
-  that hold Thai as well. It carries `--force-cs-whole-doc` too, with the same meaning as the
-  build's. A run carrying a field, a picture, a tab, a break or a numeric character reference is
-  never cut, because it could not be written again without touching the text, and
-  `references/limits.md` §10 says so beside the rest of the repair contract.
 
 - **Correctly spelled English words are no longer underlined.** Every run this skill wrote said it
   was complex script, including a run holding nothing but Latin letters, so Word proofed English

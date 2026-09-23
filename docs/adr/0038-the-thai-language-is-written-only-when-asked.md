@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decided: 2026-09-20
+- Amended by: [0039](0039-complex-script-is-marked-where-it-is.md) (which runs say they are complex script)
 - Extends: [0004](0004-thai-is-complex-script-five-causes.md) (the five causes),
   [0005](0005-fix-rendering-with-attributes-never-content.md) and
   [0023](0023-fidelity-transformations-restated-again.md) (attributes, never the text),

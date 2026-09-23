@@ -90,6 +90,7 @@ Common flags:
 | `--thai-digits` | ๑ ๒ ๓ for the numbers the skill adds; digits you typed stay |
 | `--thai-language` | write the Thai language into the document, so Word proofs it as Thai on any machine; WPS Writer then misplaces ำ |
 | `--auto-numbering` | Word counts headings, lists and captions and renumbers as you edit (by default the skill writes the numbers in: the same in every application, but they do not renumber) — for a file you will keep editing in Word; other applications draw it differently |
+| `--force-cs-whole-doc` | one font throughout, English and code included — for a final file that will be read, not edited; Word then underlines correctly spelled English on screen |
 | `--hide-spelling-errors` | no squiggles |
 | `--table-widths auto`, `--table-size 14`, `--no-repeat-table-header` | tables |
 | `--allow-dir ../images` | read images from another folder |

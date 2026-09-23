@@ -87,6 +87,11 @@ from the reader's machine — which every machine that types Thai has (ADR 0038)
 `--thai-language` when the user says the file goes to a machine that may not, and say in the same
 breath that WPS Writer then places ำ over the wrong letter.
 
+A run is marked complex script only where its text is Thai, so English in the file is proofed as
+English and code spans take their own font (ADR 0039). When the user says the document is final —
+to be read, not edited — and wants one font throughout, English and code included, add
+`--force-cs-whole-doc`, and say that Word will then underline correctly spelled English on screen.
+
 **What the file is handed over on is written down once**, in
 [references/limits.md](references/limits.md): what the skill promises, what the reader must do
 after opening the file, what does not renumber itself once they edit it, where the five

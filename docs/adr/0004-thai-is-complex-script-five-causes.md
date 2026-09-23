@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decided: 2026-09-15
+- Amended by: [0039](0039-complex-script-is-marked-where-it-is.md) (causes 2 and 4)
 
 ## Where it came from
 
