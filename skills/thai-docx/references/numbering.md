@@ -89,16 +89,17 @@ part of every caption where it was. After that the captions read `ตารา�
 and the contents, the list of tables and the list of figures agree with them.
 
 Each chapter is a section of its own, so start a new one with **Layout → Breaks → Next Page**, the
-way the document already separates its chapters. That gives the chapter its own first page, and
-its header and footer arrive by themselves because Word leaves the new section linked to the one
-before it.
+way the document already separates its chapters. The chapter then gets its own first page, and its
+header and footer come with it: Word leaves a new section linked to the one before, so the words
+along the top and the bottom of the page are already there.
 
-One thing does not arrive by itself. The body's page count is asked to begin at 1, and that
-instruction sits on the first chapter's section; inserting a chapter inside that section hands a
-copy of it to both halves, so the new chapter begins counting at 1 again. If the page numbers
-restart, click in the new chapter and open **Insert → Page Number → Format Page Numbers**: it will
-say *Start at 1*, and **Continue from previous section** is the answer. A chapter inserted
-anywhere later in the document carries no such instruction and needs nothing.
+What a section carries in its own properties does not follow, and one of those shows. The body is
+asked to begin counting pages at 1, and that instruction sits on the first chapter's section;
+inserting a chapter inside that section hands a copy to both halves, so the new chapter starts
+the count over at 1. Right-click the page number and choose **Format Page Numbers** — the box will
+say *Start at 1*, and **Continue from previous section** is the answer. Leave *Number format*
+alone. A chapter inserted anywhere later in the document carries no such instruction and needs
+nothing.
 
 ## Adding a caption yourself where the build writes the numbers
 
