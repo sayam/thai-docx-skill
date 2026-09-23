@@ -66,8 +66,12 @@ lists updating from what is there. Every setting works in both kinds; only the n
   machine's own. Every machine that types Thai has it, and nothing is underlined. On a machine
   that does not — a colleague abroad, a shared machine, a server that renders documents — Word
   underlines every correctly spelled Thai word. Building again with `--thai-language` writes the
-  language into the document and settles it everywhere. **The cost is WPS Writer**: in a document
-  built with that flag it places SARA AM (ำ) over the wrong letter.
+  language into the document and settles it in Word. **The cost is WPS Writer**: in a document
+  built with that flag it places SARA AM (ำ) over the wrong letter. **LibreOffice Writer does not
+  read the machine's languages**: it takes its own default for complex text layout (Tools →
+  Options → Languages and Locales → General), which on an English installation is Hindi, and
+  underlines every Thai word until that is set to Thai (measured 2026-09-23). Whether
+  `--thai-language` settles it there has not been measured.
 - **Install the font the file names.** The default is TH Sarabun New; a file names whatever
   `--font` said. A font that is not on the reader's machine is outside the rendering contract —
   the application substitutes, and the page will not look the same. Sarabun is free from Google
@@ -151,7 +155,7 @@ application. None can be reached by anything the file could say differently.
 | application | what it draws its own way |
 |---|---|
 | **WPS Writer** | **with `--thai-language`, SARA AM (ำ) placed over the wrong letter** — it is that flag's `w:bidi="th-TH"` that WPS trips over, measured attribute by attribute on 2026-09-20 and again on 2026-09-23, and a ำ under a tone mark (น้ำ) is drawn correctly; the three lists show no page numbers until References → Update (§3). A chapter label drawn as Latin letters (`ÓõõõyA 1`) and the value 1 drawn as ๕, recorded on 2026-09-19, did not reproduce on 2026-09-23 — on a build from before ADR 0039 as well as the current one — and what changed is not established |
-| **LibreOffice Writer** | with `--auto-numbering`: Thai-digit numbering drawn as 1, 2, 3, and a chapter-numbered caption as `ตารางที่ บทนำ-ก` — it answers the chapter-number field with the chapter's *title* and ignores the restart at each chapter |
+| **LibreOffice Writer** | with `--auto-numbering`: Thai-digit numbering drawn as 1, 2, 3, and a chapter-numbered caption as `ตารางที่ บทนำ-ก` — it answers the chapter-number field with the chapter's *title*, ignores the restart at each chapter and draws the Thai-digit counter as Thai letters (ก, ข, ค). A chapter-numbered caption LibreOffice makes itself loses its chapter number the same way once saved as .docx, opened again and updated (measured 2026-09-24) |
 | **Google Docs** | converts a table of contents into an object of its own, with its own font and page numbers; **has no list of tables and no list of figures**, so asking it to update rewrites all three as heading lists and the two lose their entries (§3 — do not ask it to update) |
 | **Word on the web** | **has no TH Sarabun New in its font list** (TH SarabunPSK is there), and the font it substitutes floats the tone marks above the letter (§3 — build with `--font "TH SarabunPSK"` for that destination); cannot insert a section break (Layout → Breaks offers Page and Column only); Format Painter does not carry a heading's number — apply the Heading style instead |
 | **Word for macOS** | correct in what was measured; a heading's number takes its heading's size |

@@ -51,7 +51,7 @@ Only what has been measured is here. A blank is not a promise.
 | Word on the web | numbers as the desktop does, but **not covered for this mode**: no section break can be inserted at all (Layout → Breaks offers Page and Column only), and Format Painter does not carry a heading's number — apply the Heading style instead. A document to be edited there is a ready-to-use one | correct, in Thai digits | correct |
 | Word for macOS | correct | headings correct (`บทที่ ๑`, `๑.๑`), at the heading's size | not measured on its own |
 | Google Docs | correct as opened; renumbering on edit not measured | not measured | correct as opened |
-| LibreOffice Writer | correct | **draws 1, 2, 3** — it has no Thai-digit numbering | **wrong**: `ตารางที่ บทนำ-ก` — it answers the chapter-number field with the chapter's *title*, and ignores the restart at each chapter |
+| LibreOffice Writer | correct | **draws 1, 2, 3** — it has no Thai-digit numbering | **wrong**: `ตารางที่ บทนำ-ก` — it answers the chapter-number field with the chapter's *title*, ignores the restart at each chapter, and draws the Thai-digit counter as Thai letters (ก, ข, ค) — measured again 2026-09-23, and a chapter-numbered caption LibreOffice makes itself loses its chapter number the same way through .docx |
 | WPS Writer | correct (`บทที่ ๑`, `๑.๑`, `๑.`); a heading or list item inserted renumbers what follows | correct, in Thai digits | correct (`ตารางที่ ๑-๑`, `รูปที่ ๒-๑`) |
 
 These are those applications' own behaviour on the numbering the file asks for; no attribute in
