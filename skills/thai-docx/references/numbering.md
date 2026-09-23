@@ -88,6 +88,18 @@ Select all and update the fields (Ctrl+A, then F9). Word asks how to update each
 part of every caption where it was. After that the captions read `ตารางที่ ๓-๑`, `รูปที่ ๓-๑`,
 and the contents, the list of tables and the list of figures agree with them.
 
+Each chapter is a section of its own, so start a new one with **Layout → Breaks → Next Page**, the
+way the document already separates its chapters. That gives the chapter its own first page, and
+its header and footer arrive by themselves because Word leaves the new section linked to the one
+before it.
+
+One thing does not arrive by itself. The body's page count is asked to begin at 1, and that
+instruction sits on the first chapter's section; inserting a chapter inside that section hands a
+copy of it to both halves, so the new chapter begins counting at 1 again. If the page numbers
+restart, click in the new chapter and open **Insert → Page Number → Format Page Numbers**: it will
+say *Start at 1*, and **Continue from previous section** is the answer. A chapter inserted
+anywhere later in the document carries no such instruction and needs nothing.
+
 ## Adding a caption yourself where the build writes the numbers
 
 Insert Caption is for `--auto-numbering`: it asks Word to count, and in a ready-to-use document
