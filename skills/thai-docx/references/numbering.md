@@ -8,7 +8,7 @@ the whole document, never a mix. Both work in Arabic digits and with `--thai-dig
 |---|---|---|
 | who counts | the build writes each number as text | the application counts: Word's heading numbering, list numbering and caption fields |
 | opened in the five applications | **the same in all five** | right in Word; see the table below for the rest |
-| the reader inserts a chapter, a heading, a list item or a table | the numbers after it **do not move**: renumber by hand — or change the Markdown and build again, which works every number out afresh | Word renumbers headings and lists at once, and captions when fields are updated (Ctrl+A, then F9) |
+| the reader inserts a chapter, a heading, a list item or a table | the numbers after it **do not move**: renumber by hand — or change the Markdown and build again, which works every number out afresh | Word renumbers headings and lists at once, and captions when fields are updated (Ctrl+A, then F9, **Update entire table**) |
 
 Page numbers, footnote marks and the page numbers in a table of contents are the application's
 in both: only a laid-out page knows them. The table of contents, list of tables and list of
@@ -64,7 +64,8 @@ is to leave `--auto-numbering` off.
 Caption** already offers `ตารางที่` and `รูปที่` (or whatever `--table-label` and `--figure-label`
 say), already set to the document's number format, to number by chapter, and to sit above a table
 and below a figure. The counter is the document's own, so a caption inserted between two others
-takes the next number and the ones after it move on when fields are updated (Ctrl+A, then F9).
+takes the next number and the ones after it move on when fields are updated (Ctrl+A, then F9,
+choosing **Update entire table** when Word asks).
 
 A label carrying a space is not one Word's `SEQ` field can name; keep a caption label to one word.
 
@@ -73,6 +74,19 @@ counter rather than the caption's style, so a caption joins them whichever way i
 whatever style it ended up in — Insert Caption, or a copy of one already there. Update the fields
 and it is listed; a figure inserted before another renumbers the one that follows it, in the
 document and in the list alike.
+
+## Inserting a chapter, in Word
+
+A new Heading 1 takes the next chapter number and every heading after it moves on by one at once,
+in the document and in the navigation pane — headings the build wrote and headings added by hand
+alike. **The captions do not move with them.** A caption's number is a field, so it goes on
+reading the chapter it was last calculated in until the fields are updated: insert a chapter
+before `บทที่ ๒` and the captions below still say `ตารางที่ ๒-๑` for a while.
+
+Select all and update the fields (Ctrl+A, then F9). Word asks how to update each list; choose
+**Update entire table**, not *Update page numbers only* — page numbers alone leaves the chapter
+part of every caption where it was. After that the captions read `ตารางที่ ๓-๑`, `รูปที่ ๓-๑`,
+and the contents, the list of tables and the list of figures agree with them.
 
 ## Adding a caption yourself where the build writes the numbers
 
