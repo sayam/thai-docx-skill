@@ -10,8 +10,8 @@
 
 ## Where it came from
 
-The five-application check of 2026-09-19 opened the release files in LibreOffice Writer
-([record](../evidence/2026-09-19-three-of-five-applications.md)) and found, in a thesis whose
+The five-application check of 2026-09-19 opened the release files in LibreOffice Writer (its
+record was not kept: PR #54 was closed for what else it said) and found, in a thesis whose
 numbers Word draws correctly:
 
 | what Word and WPS draw | what LibreOffice drew |

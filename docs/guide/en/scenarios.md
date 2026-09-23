@@ -265,8 +265,8 @@ Good to know:
 - **If you will go on working in Microsoft Word and want the numbers to follow your edits**, ask
   for "automatic numbering" (`--auto-numbering`). Word then counts chapters, headings, lists and
   captions itself, in Arabic digits or Thai. That file is made for Word: LibreOffice shows Thai
-  digits as 1, 2, 3 and a caption as "ตารางที่ บทนำ-ก", and WPS draws "บทที่" as Latin letters
-  and the digit ๑ as ๕ — leave it off if the file must open in those.
+  digits as 1, 2, 3 and a caption as "ตารางที่ บทนำ-ก" — leave it off if the file must open
+  there.
 - `<!-- toc -->` already places a table of contents; asking for a table of contents too gives a
   second one.
 

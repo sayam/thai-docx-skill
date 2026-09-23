@@ -79,7 +79,8 @@ Markdown ──parse──▶ blocks ──lay out──▶ sections, numbering 
    [0024](adr/0024-profiles-are-data-saved-and-shared.md)).
 3. **Lay out** regions, sections, chapter and appendix numbering, captions and lists
    ([0021](adr/0021-regions-sections-captions-and-lists.md)).
-4. **Write** WordprocessingML that marks Thai as complex script and avoids the five causes of broken
+4. **Write** WordprocessingML that marks Thai as complex script — the runs whose text is, and no
+   others ([0039](adr/0039-complex-script-is-marked-where-it-is.md)) — and avoids the five causes of broken
    Thai ([0004](adr/0004-thai-is-complex-script-five-causes.md)), fixing rendering with attributes,
    never by changing text ([0023](adr/0023-fidelity-transformations-restated-again.md)).
 5. **Pack** a zip with stored entries and fixed metadata, so the bytes never vary

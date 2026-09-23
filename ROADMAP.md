@@ -41,8 +41,10 @@ and belongs to a dated record rather than to the suite.
 **WPS Writer.** Re-checked on 2026-09-19 in WPS Writer 11.1.0.11723: both fixes hold — the line
 before a hard break no longer spreads under `--align thai`, and a heading's number takes the
 heading's own size, font and weight — and the three lists fill on open. What WPS draws its own way
-is recorded as a difference: the chapter label through a legacy code page, SARA AM's placement, and
-a new one, the numbering value 1 drawn as ๕ under `--thai-digits`. The check also found something
+is recorded as a difference: SARA AM's placement. Two more read that day — the chapter label drawn
+as Latin letters and the numbering value 1 drawn as ๕ — did not reproduce on 2026-09-23, on the
+same bytes as before ADR 0039 and on the bytes after; what changed is not established. The check
+also found something
 that **was** ours: the task-list boxes were written in Segoe UI Symbol, which no Linux machine has,
 so they drew as nothing outside Windows. Fixed by ADR 0033 — `□` and `■` in Arial — which changes
 the bytes of any document with a task list, so the five applications of ADR 0012 are due a look
@@ -53,10 +55,26 @@ by eye in WPS Writer and in Word, found the one attribute behind a difference re
 first release: `w:bidi="th-TH"`, the Thai complex-script language
 ([evidence](docs/evidence/2026-09-20-sara-am-and-the-thai-language.md)). It is now written only
 when `--thai-language` asks ([ADR 0038](docs/adr/0038-the-thai-language-is-written-only-when-asked.md)),
-and the default takes the language from the reader's machine. **Owed before the tag:** the five
-applications again — every document's bytes changed — and, if it can be found, a Windows machine
-with no Thai among its languages, which is the one case the default gives up and which no machine
-in this round could test.
+and the default takes the language from the reader's machine. **Owed before the tag:** if it can be
+found, a Windows machine with no Thai among its languages, which is the one case the default gives
+up and which no machine in this round could test.
+
+**Correctly spelled English is no longer underlined.** Every run the build wrote said it was complex
+script, English included, so Word proofed English with a complex-script language. A run is now
+marked where its text is complex script, in the build, the checker and `repair`
+([ADR 0039](docs/adr/0039-complex-script-is-marked-where-it-is.md)); `--force-cs-whole-doc` keeps the
+old shape for a finished document read in one font. It changed every document's bytes, so the five
+applications were read again:
+
+| application | on the bytes after ADR 0039 |
+|---|---|
+| Word 365 for Windows (the reference) | every file, and every item of `sample-auto`'s edits — passed (2026-09-23) |
+| WPS Writer | every file — passed, but for SARA AM under `--thai-language`, as recorded (2026-09-23) |
+| Google Docs | read (2026-09-22); its record is owed |
+| Word for macOS | **owed** — read on 2026-09-22 on the bytes before |
+| LibreOffice Writer | **owed** |
+
+and Word for the web owes the double field update the section-break fix asked for.
 
 **Repair puts a document's own numbering back.** The terms a document is handed over on are now
 written down once, in `skills/thai-docx/references/limits.md`: what the skill promises, what the
@@ -83,9 +101,10 @@ to the application for a document someone will go on editing in Word
 ([ADR 0036](docs/adr/0036-who-counts-is-one-switch.md)). The first application of this release's
 check — Word 365 for Windows, on `sample-options` — passed every item of the look and is what
 raised the question ([record](docs/evidence/2026-09-19-the-look-passes-the-edit-does-not.md)).
-**Owed before the tag:** `sample-basic`, whose bytes changed, in all five; and the new
-`sample-auto` — in Word 365 for Windows every item including the four edits, in the other four
-whatever is seen, written into `references/numbering.md` where a cell still says not measured.
+`sample-auto` has since passed every item in Word 365 for Windows, the edits included — a heading,
+a chapter, a list item and a caption inserted, each renumbering what follows — and WPS Writer draws
+and renumbers it too. What a reader does after inserting a chapter or adding a caption is in
+`references/numbering.md`.
 
 **Two characters that look like one.** ำ typed the long way (`ํ` + `า`) and `&nbsp;` were the two
 questions left over that touch the author's own text. Both are settled by
@@ -100,7 +119,6 @@ reading, which the Markdown reference already states.
 
 - Check every release that changes document bytes in the five office applications of ADR 0012,
   with Word 365 for Windows as the reference.
-- Re-check WPS Writer after the fixes of 0.1.0 and record what it still draws its own way (0.2.0).
 
 **Make agents follow the skill more reliably**
 
