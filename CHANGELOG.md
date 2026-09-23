@@ -139,6 +139,16 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 
 ### Changed
 
+- **What this release was read in, and what it was not**
+  ([record](docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md)). Word 365 for Windows passes
+  every item on these bytes, WPS Writer and Google Docs pass where read. **Word for macOS was not
+  read on them, and LibreOffice Writer only in `sample-auto`**: the maintainer released first and
+  owes both. In that one document LibreOffice underlined every Thai word, because it takes the
+  complex-script language from its own setting — Hindi on an English installation — not from the
+  machine; `limits.md` §3 now says so and how to set it.
+- `SKILL.md` names `--heading-numbers` for numbers on headings, and `--auto-numbering` as added to
+  it. Naming only the second, Haiku 4.5 used it in place of the first in two runs of three.
+
 - **The build writes every number itself, in every document, unless `--auto-numbering` asks the
   application to count — one answer for the whole document (ADR 0036, which restates 0035).** A
   heading's number (`บทที่ ๑`, `๑.๑`, `ภาคผนวก ก`, `1.`), an ordered list's marker and a caption's

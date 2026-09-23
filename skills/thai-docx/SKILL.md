@@ -5,7 +5,7 @@ license: MIT (LICENSE.txt)
 compatibility: Runs with Python 3.11+ (standard library only) or a JavaScript runtime (Node.js, or a sandbox that runs async JavaScript). No network access or package installs.
 metadata:
   author: sayam
-  version: "0.1.1"
+  version: "0.2.0"
 ---
 
 # thai-docx
@@ -78,8 +78,9 @@ for; every other setting keeps its default. A font without Thai glyphs, or a fla
 document gives nothing to act on, is a warning, not an error.
 
 Heading, list and caption numbers are text the build writes: the same in every application,
-but they do not renumber when the .docx is edited. Only when the user will go on editing in
-Microsoft Word and wants the numbers to follow, add `--auto-numbering` — and tell them what
+but they do not renumber when the .docx is edited. Numbers on headings (1., 1.1, 1.1.1) are
+`--heading-numbers`. Only when the user will go on editing in Microsoft Word and wants the numbers
+to follow, add `--auto-numbering` as well — and tell them what
 [references/numbering.md](references/numbering.md) says other applications draw.
 
 By default the document does not say which complex-script language its Thai is, so Word takes it
