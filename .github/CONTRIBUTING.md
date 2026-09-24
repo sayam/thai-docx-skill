@@ -95,7 +95,7 @@ a written reason why it is not exploitable here; the reason stays on the alert.
 - `docs/templates/decision.md` — the shape of a new record
 - `SOURCES.md` — the sources the records cite, by id
 - `tools/` — verifiable-gates 0.10.0 (Apache-2.0), plus this project's
-  `bundle_js.py`, `gen_settings_docs.py`, `measure_xml_names.py`, `oracle_set.py` and `package_skill.py`
+  `bundle_js.py`, `gen_settings_docs.py`, `lint_pr_body.py`, `measure_xml_names.py`, `oracle_set.py` and `package_skill.py`
 
 Only `skills/thai-docx/`, the README, the licence, the changelog, `PROMPT.md` and `PROMPT.th.md` reach a user;
 the rest is marked `export-ignore` (`docs/adr/0018`).
@@ -165,12 +165,14 @@ Nothing merges with a failing required check.
 2. Add its row to `docs/adr/README.md`. The doctor is red until you do.
 3. Give every outside source it leans on a row in `SOURCES.md` and cite it by id, as `[S1]`.
 4. A record that replaces an older one says `Supersedes: NNNN`, and the older one gets
-   `Superseded by: NNNN` — the doctor reads both sides.
+   `Superseded by: NNNN` — the doctor reads both sides. A record that changes part of an older one
+   says `Amends: NNNN (what)`, and the older one gets `Amended by: NNNN (what)`.
 
 ## Before a release
 
 `python3 tools/oracle_set.py OUT_DIR` writes the documents to open in the five office
-applications — each variant once per application, named `<variant>-<application>.docx`, byte for
+applications — each variant once for every application it is opened in (`sample-auto` in Word 365
+for Windows only, ADR 0036), named `<variant>-<application>.docx`, byte for
 byte the goldens — and `CHECKLIST.md` to tick (`docs/adr/0012`). Word 365 for Windows is the
 reference. `python3 tools/package_skill.py --tag vX.Y.Z` must pass, and the suite fails until the
 archive name in the README and the guides (`thai-docx-X.Y.Z.zip`) carries the new version.

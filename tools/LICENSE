@@ -13,8 +13,8 @@ verifiable-gates rules catalogue and are licensed under Creative Commons Attribu
 4.0 International (CC BY 4.0), https://creativecommons.org/licenses/by/4.0/ —
 attribution: verifiable-gates by Sayam Sriphua.
 
-This project's own tools here — bundle_js.py, measure_xml_names.py and
-package_skill.py — are under the MIT licence of this repository (../LICENSE), like
+This project's own tools here — bundle_js.py, gen_settings_docs.py, lint_pr_body.py,
+measure_xml_names.py, oracle_set.py and package_skill.py — are under the MIT licence of this repository (../LICENSE), like
 everything outside this directory.
 
 -------------------------------------------------------------------------------

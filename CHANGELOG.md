@@ -4,7 +4,9 @@ Notable changes to the thai-docx skill. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). A release is tagged only
 when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
-(`python3 tools/package_skill.py --tag vX.Y.Z`), and after the checks of ADR 0012.
+(`python3 tools/package_skill.py --tag vX.Y.Z`), and after the checks of ADR 0012. 0.2.0 was tagged
+before two applications were read; the exception and what is owed are in
+[its record](docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md). The rule is unchanged.
 
 ## [Unreleased]
 
@@ -62,7 +64,8 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   chapter (every field, **Update entire table**), and how to add a caption in a ready-to-use
   document, where the numbers are text: copy a whole caption paragraph and type the number.
 - WPS Writer re-checked (11.1.0.11723): both fixes of 0.1.0 hold there, the three lists fill on
-  open, and what WPS draws its own way is recorded — SARA AM's placement. A chapter label drawn as
+  open, and what WPS draws its own way is recorded — SARA AM's placement, which ADR 0038 later traced to
+  `w:bidi="th-TH"` (below). A chapter label drawn as
   Latin letters and the numbering value 1 drawn as ๕ under `--thai-digits`, read the same morning,
   did not reproduce on 2026-09-23, on the same bytes; what changed is not established. The check also
   found that the task-list boxes `☐` and `☑` were written in Segoe UI Symbol, which no Linux machine
@@ -101,8 +104,8 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   the entries in the order they had, copying the compressed bytes of every entry it was not asked to
   replace — method, checksum, sizes, date, "version made by" and attributes kept — and storing only
   the parts given anew. Every package in this repository, written back with nothing replaced, is
-  byte for byte the file that went in. It is the first step of v0.2's repair (ADR 0032): the
-  builder's packer stores every entry, which would hand a user's own document back about twenty
+  byte for byte the file that went in. It is the first step of v0.2's repair (ADR 0037, which restates 0032): the
+  builder's packer stores every entry, which would hand a user's own document back about twenty-two
   times larger.
 
 - The build names what it did not write, without refusing anything: an image with nothing between
@@ -148,6 +151,11 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
   owes both. In that one document LibreOffice underlined every Thai word, because it takes the
   complex-script language from its own setting — Hindi on an English installation — not from the
   machine; `limits.md` §3 now says so and how to set it.
+- **The Thai language is written only when `--thai-language` asks** (ADR 0038). Every run used to
+  name `w:bidi="th-TH"`, and that one attribute is what makes WPS Writer place SARA AM (ำ) over the
+  wrong letter. The default now leaves the complex-script language to the reader's machine;
+  `--thai-language` names Thai for a machine with no Thai among its languages, and WPS then
+  misplaces ำ again (`limits.md` §3, §7). **Every document's bytes change.**
 - `SKILL.md` names `--heading-numbers` for numbers on headings, and `--auto-numbering` as added to
   it. Naming only the second, Haiku 4.5 used it in place of the first in two runs of three.
 

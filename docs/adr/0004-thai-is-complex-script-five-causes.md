@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Decided: 2026-09-15
-- Amended by: [0039](0039-complex-script-is-marked-where-it-is.md) (causes 2 and 4)
+- Amended by: [0039](0039-complex-script-is-marked-where-it-is.md) (causes 2 and 4), [0038](0038-the-thai-language-is-written-only-when-asked.md) (cause 2's `w:lang w:bidi="th-TH"`, now only with `--thai-language`)
 
 ## Where it came from
 

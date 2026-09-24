@@ -4,7 +4,8 @@
 > records cite as [S2]. It names files — `thai_docx.py`, `tools/build-docx.js`,
 > `SKILL.md`, `PROMPT.md` — from that session; they were one use case, were not
 > imported into this repository, and are not how this skill is built. The concepts
-> it establishes are carried by `docs/adr/0004` and `0005`.
+> it establishes are carried by `docs/adr/0004` (amended by 0038 and 0039) and `0023` (which
+> restates 0005).
 
 ---
 

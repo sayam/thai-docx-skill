@@ -52,12 +52,14 @@ it from `js/` and fails on any byte of difference.
 |---|---|---|
 | `build IN.md OUT.docx [flags]` | Markdown to a .docx | `build`, `markdown`, `layout`, `writer`, `parts`, `package`, `check`, `fidelity`, `settings` · `53-build`, `40-markdown`, `48-layout`, `50-writer`, `51-parts`, `10-zip`, `30-check`, `52-fidelity`, `45-settings` |
 | `check FILE.docx` | reports the causes of broken Thai in any .docx | `check`, `package`, `ooxml` · `30-check`, `10-zip`, `20-xml` |
+| `repair IN.docx OUT.docx [--font F] [--force-cs-whole-doc]` | writes a new .docx with the Thai findings cleared, text unchanged | `repair`, `package`, `deflate`, `check`, `ooxml` · `54-repair`, `10-zip`, `11-deflate`, `30-check`, `20-xml` |
 | `profile list/show/save/export/import` | settings a user keeps and shares | `profiles`, `settings` · `55-profiles` |
 | `grill --said "MESSAGE"` | decides whether to ask questions, and which | `grill`, `settings` · `56-grill` |
 
 Each prints one JSON line and exits 0 (done) or 2 (input refused, with the reason). Exit 1
 means findings, and whose depends on the command: for `build` a defect of the skill (the file it
-made failed its own check, so nothing was written); for `check` a problem in the user's file.
+made failed its own check, so nothing was written); for `check` a problem in the user's file; for `repair` findings it
+did not clear (`remaining`).
 
 ## The build, step by step
 

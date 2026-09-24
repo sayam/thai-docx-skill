@@ -4,7 +4,8 @@
 - Decided: YYYY-MM-DD
 
 <!-- If this replaces an older record, add a line `- Supersedes: NNNN` above,
-     and `- Superseded by: <this number>` to the older one. -->
+     and `- Superseded by: <this number>` to the older one. If it changes part of one,
+     add `- Amends: NNNN (what)` here and `- Amended by: <this number> (what)` there. -->
 
 ## Where it came from
 

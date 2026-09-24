@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decided: 2026-09-16
+- Amended by: [0038](0038-the-thai-language-is-written-only-when-asked.md) (`w:lang w:bidi` only with `--thai-language`; WPS's SARA AM traced to that attribute), [0039](0039-complex-script-is-marked-where-it-is.md) (`<w:cs/>` only on complex-script runs, none in `Normal`)
 
 ## Where it came from
 

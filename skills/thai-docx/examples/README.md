@@ -26,8 +26,8 @@ anything.
 **The profile — settings you reuse across documents.** `--profile thesis` carries Thai
 distributed alignment, a first-line indent, 1.5 line spacing, page numbers at the top right with
 none on the first page of a section, numbered sub-headings, Thai digits, and the chapter title on
-its own line. This is what answering the interview (`thai-docx grill`) leaves behind: run it,
-answer as you like, and save the answers under a name of your own.
+its own line. The interview (`thai-docx grill`) asks about some of these; save your own with `profile save`,
+under a name of your own.
 
 ```sh
 python3 <skill>/scripts/thai_docx profile save my-thesis --from thesis --default thai_digits
@@ -61,4 +61,4 @@ Writer and Google Docs draw with it.
 |---|---|
 | `thesis.md` | the example document — cover, front matter, chapters, appendices, back matter |
 | `figure.png` | a placeholder image, so the figure caption has something to sit under; replace it |
-| `../profiles/thesis.json` | the settings, as an interview would leave them |
+| `../profiles/thesis.json` | the settings of the example |

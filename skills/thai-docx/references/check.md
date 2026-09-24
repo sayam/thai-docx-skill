@@ -29,6 +29,6 @@ comments, the footnotes and endnotes, and each header and footer. A finding name
 it is in, so say which one when the answer is not the body.
 
 This reports. To fix a file whose content the user does not have, `repair` writes a new one
-with every finding gone but `4` and `invisible`, which it reports — [repair.md](repair.md).
+with every finding gone but `4`, `invisible` and a compatibility mode the file never declared, which it reports — [repair.md](repair.md).
 When they do have the content, rebuilding from Markdown fixes everything, and is the better
 move.

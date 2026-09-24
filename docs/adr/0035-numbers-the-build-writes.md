@@ -11,7 +11,8 @@
 ## Where it came from
 
 The five-application check of 2026-09-19 opened the release files in LibreOffice Writer (its
-record was not kept: PR #54 was closed for what else it said) and found, in a thesis whose
+record was not kept on `main`; the measurement that stands behind this now is
+[2026-09-24](../evidence/2026-09-24-what-v0.2.0-was-read-in.md) §2) and found, in a thesis whose
 numbers Word draws correctly:
 
 | what Word and WPS draw | what LibreOffice drew |

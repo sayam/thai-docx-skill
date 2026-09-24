@@ -7,7 +7,8 @@
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14687/badge)](https://www.bestpractices.dev/projects/14687)
 [![DOI 10.5281/zenodo.22815936](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22815936-blue)](https://doi.org/10.5281/zenodo.22815936)
 
-An Agent Skill that makes Word files with Thai text render correctly, in Claude, ChatGPT, Codex, Copilot and more.
+An Agent Skill that makes Word files with Thai text render correctly, for any app that loads Agent Skills: Claude, ChatGPT, Codex, Copilot and more
+([tried where](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en/install.md#what-works-where)).
 
 **User guide · คู่มือการใช้งาน:** [English](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en.md) · [ภาษาไทย](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/th.md)
 
@@ -20,7 +21,7 @@ Thai documents with an AI assistant, and it also works on its own at the command
 **Do you need this?** If you type Thai in Word yourself, Word marks it as Thai while you type and
 the faults above do not appear. Everywhere else they do. A file written by a program — a library, a
 script, or an AI assistant asked for a `.docx` — comes out with Thai marked as Latin. Word does not
-fix it afterwards: opening such a file and saving it rewrites every run as English and still leaves
+fix it afterwards: in Word for the web, editing such a file and saving it rewrites every run as English and still leaves
 the Thai unmarked, whether a person or an assistant working inside Word makes the edit
 ([measured](docs/evidence/2026-09-18-word-does-not-repair-what-it-opens.md)). thai-docx builds the
 file right in the first place, and checks one that another program produced.
@@ -87,8 +88,11 @@ Each one, step by step, with the words to type:
 
 ## Status
 
-Version 0.2.0. Files are checked in Word 365 for Windows (the reference), Word for macOS, Google
-Docs, LibreOffice Writer and WPS Writer. Changes are listed in
+Version 0.2.0. The five applications are Word 365 for Windows (the reference), Word for macOS,
+Google Docs, LibreOffice Writer and WPS Writer. On 0.2.0's files Word 365 for Windows passes every
+item, and WPS Writer and Google Docs pass where they were read; Word for macOS has not been read
+yet, and LibreOffice Writer only in one document
+([what was read](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md)). Changes are listed in
 [CHANGELOG.md](https://github.com/sayam/thai-docx-skill/blob/main/CHANGELOG.md).
 
 The OpenSSF Scorecard badge is an automated reading of this repository's settings, workflows and

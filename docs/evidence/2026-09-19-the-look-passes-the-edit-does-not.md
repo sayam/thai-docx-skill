@@ -1,5 +1,8 @@
 # 2026-09-19 — Word 365 for Windows: the look passes, the edit does not — and the switch that followed
 
+> **Later:** the underlines under English were a defect of the package, not Word's habit
+> ([2026-09-22](2026-09-22-word-365-windows-on-the-release-bytes.md) §3; fixed by ADR 0039).
+
 The first application of the five-application check before v0.2.0, and what it led to
 ([ADR 0036](../adr/0036-who-counts-is-one-switch.md)).
 

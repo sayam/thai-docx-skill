@@ -80,8 +80,8 @@ Table: ผู้ตอบแบบสอบถาม
   `--auto-numbering`: Word then counts and renumbers, in Arabic or Thai digits. Other
   applications draw that file differently — LibreOffice writes `ตารางที่ บทนำ-ก` — so read
   [numbering.md](numbering.md) before you offer it.
-- **Lists:** `<!-- toc -->`, `<!-- list-of-tables -->`, `<!-- list-of-figures -->` fill in
-  when Word opens the file; write the heading above each yourself. Do not add `--toc` as
+- **Lists:** `<!-- toc -->`, `<!-- list-of-tables -->`, `<!-- list-of-figures -->` are filled in
+  by the build; their page numbers appear once fields are updated ([limits.md](limits.md) §3); write the heading above each yourself. Do not add `--toc` as
   well: it puts a second table of contents on the cover, and the build warns so. A flag
   whose region or caption the document lacks is warned about too — pass the warning on.
 
@@ -99,6 +99,6 @@ row names, in those words or plainly the same; a request that names none of them
 | appendices lettered A B C, numbered 1 2 3 or I II III | `--appendix-numbers upper-letters`, `decimal` or `upper-roman` |
 | another word than บทที่, ภาคผนวก, ตารางที่ or รูปที่ | `--chapter-label`, `--appendix-label`, `--table-label`, `--figure-label` |
 | the chapter title on its own line under "บทที่ 1" | `--chapter-title-on-new-line` |
-| Thai digits (๑ ๒ ๓) in page, heading and caption numbers | `--thai-digits` |
+| Thai digits (๑ ๒ ๓) in page, heading, list, caption and footnote numbers | `--thai-digits` |
 | A caption that runs to a second line, indented under its text rather than under its number | `--caption-hanging-indent 0.75` (inches; on its own, not with `--indent`) |
 | A caption no wider than the picture above it, and a picture centred on its line | `--caption-matches-object`, `--center-images` |

@@ -1,5 +1,10 @@
 # 2026-09-16 — the office check: what five applications showed, and the two faults it found
 
+> **Later:** SARA AM in WPS was the package's `w:bidi="th-TH"`
+> ([2026-09-20](2026-09-20-sara-am-and-the-thai-language.md), ADR 0038); the code-page label did not reproduce on
+> 2026-09-23 ([2026-09-24](2026-09-24-what-v0.2.0-was-read-in.md)); ☐/☑ drew as nothing on Linux
+> ([2026-09-19](2026-09-19-wps-writer.md), ADR 0033).
+
 What this proves: the documents of `tools/oracle_set.py` were opened in the applications ADR
 0012 names, by the maintainer, and what they showed was read against the checklist; two
 faults in the package were found there and fixed (ADR 0027); the rest is recorded as the

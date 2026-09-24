@@ -158,7 +158,9 @@ Download the file from the chat.
 2. Paste the text of [PROMPT.md](https://github.com/sayam/thai-docx-skill/blob/main/PROMPT.md)
    below its line, then your request.
 
-This needs a chat that can run Python on the files you attach. It has not been tried in ChatGPT yet.
+This needs a chat that can run Python on the files you attach. It has not been tried in any app yet;
+if you try it, please [open an issue](https://github.com/sayam/thai-docx-skill/issues) with the app
+and what you saw.
 
 **Good to know**
 
