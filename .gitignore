@@ -5,4 +5,5 @@ __pycache__/
 .coverage
 node_modules/
 .local/
+.local.asc/
 .coverage.*
