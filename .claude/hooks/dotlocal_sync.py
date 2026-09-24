@@ -27,6 +27,11 @@ compared is the sha256 of the plaintext, three ways:
     push  pull, then encrypt each path whose L differs from R, remove what .local/ no longer has,
           commit and push; a push the remote rejects is retried from a fresh pull
 
+When they run: pull from Claude Code's SessionStart hook (.claude/settings.json); push from git's
+pre-push hook, so .local/ goes up once per `git push` of this repository, whoever runs it. pull
+installs that pre-push hook, unless a pre-push hook of some other origin is already there. A failed
+sync never stops the git push; it says why on stderr.
+
 .local.asc/ is derived state: pull resets it to the remote branch, so a commit that never got pushed
 is rebuilt from .local/ on the next push rather than merged.
 
@@ -40,7 +45,7 @@ Configuration, all from the environment:
 With no passphrase the hook does nothing and exits 0, so a clone without one is unaffected.
 Paths in .local/.dotlocalignore (fnmatch patterns, one per line, # for comments) are never synced.
 
-Usage: dotlocal_sync.py pull | push | status
+Usage: dotlocal_sync.py pull | push | status | install
 """
 
 import fnmatch
@@ -61,6 +66,15 @@ IGNORE_FILE = ".dotlocalignore"
 REMOTE_COPY = ".dotlocal-remote"
 TMP_PREFIX = ".dotlocal-tmp-"
 PUSH_ATTEMPTS = 3
+HOOK_MARK = "# installed by .claude/hooks/dotlocal_sync.py"
+PRE_PUSH = f"""#!/bin/sh
+{HOOK_MARK}
+# Encrypts .local/ and pushes it to the dotlocal repo; never blocks this push.
+top=$(git rev-parse --show-toplevel)
+script="$top/.claude/hooks/dotlocal_sync.py"
+[ -f "$script" ] && python3 "$script" push </dev/null
+exit 0
+"""
 
 
 class SyncError(Exception):
@@ -320,6 +334,20 @@ class Sync:
             print("C " + rel)
 
 
+def install_pre_push(root):
+    hook = Path(git("rev-parse", "--git-path", "hooks/pre-push", cwd=root).stdout.strip())
+    hook = hook if hook.is_absolute() else root / hook
+    if hook.is_file():
+        if HOOK_MARK not in hook.read_text(errors="replace"):
+            log(f"{hook} exists and is not ours; add `python3 .claude/hooks/dotlocal_sync.py push` to it by hand")
+            return
+        if hook.read_text() == PRE_PUSH:
+            return
+    hook.parent.mkdir(parents=True, exist_ok=True)
+    hook.write_text(PRE_PUSH)
+    hook.chmod(0o755)
+
+
 def prune_empty(d, stop):
     while d != stop and d.is_dir() and not any(d.iterdir()):
         d.rmdir()
@@ -327,7 +355,7 @@ def prune_empty(d, stop):
 
 
 def main(argv):
-    if len(argv) != 2 or argv[1] not in ("pull", "push", "status"):
+    if len(argv) != 2 or argv[1] not in ("pull", "push", "status", "install"):
         print(__doc__.strip().splitlines()[-1], file=sys.stderr)
         return 64
     if not sys.stdin.isatty():
@@ -340,7 +368,12 @@ def main(argv):
         log("gpg is not installed; skipped")
         return 1
     try:
-        s = Sync(project_root(), Gpg(secret))
+        root = project_root()
+        if argv[1] in ("pull", "install"):
+            install_pre_push(root)
+        if argv[1] == "install":
+            return 0
+        s = Sync(root, Gpg(secret))
         if argv[1] == "status":
             s.status()
         elif argv[1] == "pull":
