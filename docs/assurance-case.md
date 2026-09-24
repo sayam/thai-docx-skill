@@ -54,7 +54,7 @@ agent that writes them, or protection against an agent that ignores SKILL.md and
 |---|---|---|
 | Markdown text and front matter | a user, or content an agent copied from elsewhere | `build` |
 | image paths and image bytes | the Markdown's author | `build` |
-| a .docx file | anyone who sends one | `check` |
+| a .docx file | anyone who sends one | `check`, `repair` |
 | a profile file | anyone who shares one | `build --profile PATH`, `profile import` |
 | command-line flags and names | the agent or the user | every command |
 | the user's message | the user, or text pasted into the chat | `grill --said` |
@@ -67,8 +67,8 @@ widen what the commands do: the limits of §2 hold whatever the arguments.
 | threat | entry | example | countered by |
 |---|---|---|---|
 | T1 local file disclosure | Markdown image path | `![](~/.ssh/id_rsa)`, `![](link/../../etc/passwd)`, a symlink out of the tree | R3: resolved path must stay under the allowed roots; magic bytes; the same resolution rule in both runtimes (ADR 0017) |
-| T2 XML external entity / billion laughs | .docx to `check` | `<!DOCTYPE … <!ENTITY …>` | R7: DOCTYPE refused before parsing |
-| T3 zip bomb, zip tricks | .docx to `check` | huge declared sizes, entries inflating past their size, overlapping records, zip64 | R7: part and total size caps (32 MiB / 64 MiB), stated zip reading rules |
+| T2 XML external entity / billion laughs | .docx to `check` or `repair` | `<!DOCTYPE … <!ENTITY …>` | R7: DOCTYPE refused before parsing |
+| T3 zip bomb, zip tricks | .docx to `check` or `repair` | huge declared sizes, entries inflating past their size, overlapping records, zip64 | R7: part and total size caps (32 MiB / 64 MiB), stated zip reading rules |
 | T4 resource exhaustion by nesting | Markdown | 10,000 nested quotes or lists | R8: depth limit 100, refused with its line |
 | T5 arbitrary write / path traversal | profile name, output path | `profile save ../../.bashrc` | R2: a profile name is a name, never a path; writes only named files |
 | T6 code or setting injection | profile file | extra keys, huge file, non-JSON | R4: size cap, schema of the build's own flags |
@@ -89,7 +89,7 @@ widen what the commands do: the limits of §2 hold whatever the arguments.
 | Least privilege | no network, no subprocess, bounded file access; CI workflows run with `contents: read` unless a job needs more |
 | Least common mechanism | no shared state between runs; no caches, no daemons |
 | Psychological acceptability | defaults need no questions; refusals name the line and the reason |
-| Limited attack surface | four commands, JSON out, no plugins, no configuration from the environment |
+| Limited attack surface | five commands, JSON out, no plugins, no configuration from the environment |
 | Input validation with allowlists | Markdown dialect and HTML tag allowlist, flag value sets and ranges, image types by magic bytes, profile schema |
 
 ## 5. Security assessment
@@ -115,7 +115,7 @@ The most likely and most harmful problems, in order, as assessed on 2026-09-17:
 | CWE | weakness | held by |
 |---|---|---|
 | CWE-611 | XML external entities | `tests/test_check.py::test_doctype_is_refused_before_parsing` |
-| CWE-409 | decompression bomb | `tests/test_check.py::test_oversized_package_is_refused`; zip campaigns in `docs/evidence/2026-09-15-javascript-matches-python.md` |
+| CWE-409 | decompression bomb | `tests/test_check.py::test_oversized_package_is_refused`; R7 in `docs/evidence/2026-09-18-security-review.md` (an entry inflating to 40 MB refused); zip campaigns in `docs/evidence/2026-09-15-javascript-matches-python.md` |
 | CWE-22, CWE-59 | path traversal, link following | `tests/test_build.py::test_image_outside_the_markdown_directory_is_refused_unless_allowed`, `::test_remote_and_non_image_files_are_refused`; ADR 0017 image paths |
 | CWE-674, CWE-400 | uncontrolled recursion, resource exhaustion | `tests/test_markdown.py::test_nesting_past_the_limit_stops_with_its_line`; `tests/test_js_parity.py::test_deep_nesting_is_read_or_refused_the_same_way` |
 | CWE-91 | XML injection | `tests/test_build.py::test_special_characters_are_escaped`; the fidelity check on every build |
@@ -139,4 +139,5 @@ Each gate that holds these tests records the planted defects it was seen to catc
 A change to ADR 0030 or 0017, a new input type, or a new command updates this page in the same pull
 request, and the security review (`docs/evidence/*-security-review.md`) is repeated at least once a
 year or before a release that changes a boundary. The last one was
-[2026-09-18](evidence/2026-09-18-security-review.md), on 0.1.1: every requirement held, no finding.
+[2026-09-18](evidence/2026-09-18-security-review.md), on 0.1.1: every requirement held, no finding. It came before `repair`; a review
+that covers it is owed.

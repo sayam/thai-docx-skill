@@ -78,7 +78,8 @@ Something went wrong? See [Fix a problem](en/troubleshooting.md).
   published. The skill needs no internet connection and installs nothing.
 - **To open files:** Word, LibreOffice, Google Docs or WPS, and the font the file uses.
   The default font is **TH Sarabun New**. If you do not have it, ask for a Thai font you have, or
-  install Sarabun free from Google Fonts and ask for it.
+  install Sarabun free from Google Fonts and ask for it. For Word on the web, ask for TH SarabunPSK:
+  it has no TH Sarabun New.
 
 ## Words in this guide
 

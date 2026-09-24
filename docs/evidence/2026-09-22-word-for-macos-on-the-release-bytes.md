@@ -1,5 +1,9 @@
 # 2026-09-22 — Word for macOS on the bytes for v0.2.0: the Thai default holds, and one item left undecided
 
+> **Later:** §3 was settled the same day: `<w:cs/>` on Latin runs
+> ([2026-09-22 Windows](2026-09-22-word-365-windows-on-the-release-bytes.md) §3, ADR 0039); Word for macOS has not read the
+> ADR 0039 bytes ([2026-09-24](2026-09-24-what-v0.2.0-was-read-in.md)).
+
 What this proves: the release documents of `tools/oracle_set.py`, built from `main` at `e9b5c0a`
 and byte for byte the goldens of `tests/golden/`, were opened in Microsoft Word for macOS by the
 maintainer, and what they showed was read against the checklist of ADR 0012. The two items this

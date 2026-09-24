@@ -234,7 +234,9 @@ below, line spacing, or a new page before each heading:
    "ตารางที่ 1-1 caption" and "รูปที่ 1-1 caption".
 4. The lists show their entries at once; their page numbers come when the fields are updated.
    Word on a computer offers to update them when the file opens (or press Ctrl+A, then F9).
-   LibreOffice: Ctrl+Shift+F9. WPS: **References > Update**.
+   LibreOffice: Ctrl+Shift+F9. WPS: **References > Update**. **Do not update them in Google Docs**:
+   it rewrites the list of tables and the list of figures as copies of the contents. Read them there
+   as they came.
 
 More you can ask for:
 

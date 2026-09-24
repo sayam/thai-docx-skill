@@ -90,7 +90,7 @@ Common flags:
 | `--thai-digits` | ๑ ๒ ๓ for the numbers the skill adds; digits you typed stay |
 | `--thai-language` | write the Thai language into the document, so Word proofs it as Thai on any machine; WPS Writer then misplaces ำ |
 | `--auto-numbering` | Word counts headings, lists and captions and renumbers as you edit (by default the skill writes the numbers in: the same in every application, but they do not renumber) — for a file you will keep editing in Word; other applications draw it differently |
-| `--force-cs-whole-doc` | one font throughout, English and code included — for a final file that will be read, not edited; Word then underlines correctly spelled English on screen |
+| `--force-cs-whole-doc` | one font throughout in Word, English and code included (Google Docs keeps code blocks monospace) — for a final file that will be read, not edited; Word then underlines correctly spelled English on screen |
 | `--hide-spelling-errors` | no squiggles |
 | `--table-widths auto`, `--table-size 14`, `--no-repeat-table-header` | tables |
 | `--allow-dir ../images` | read images from another folder |
@@ -160,7 +160,8 @@ invisible characters are listed under `"remaining"` instead, because fixing eith
 change the text. The report also names the font it wrote where a run named none;
 `--font "Sarabun"` chooses it yourself.
 
-The new file is about the size of the old one. When you have the Markdown, rebuilding fixes
+Setting the compatibility mode reflows the document, so page breaks can move: look through it
+before you send it on. The new file is about the size of the old one. When you have the Markdown, rebuilding fixes
 everything, including the two faults repair leaves alone.
 
 ## Ask the questions yourself

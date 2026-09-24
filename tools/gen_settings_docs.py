@@ -23,7 +23,7 @@ from thai_docx import settings as st  # noqa: E402
 # what a layer is for, as the agent needs to know it before choosing a flag
 INTRO = {
     1: "Every document has these.",
-    2: "The header and footer, and how Word draws the numbers it generates.",
+    2: "The header and footer, how numbers are drawn, and who counts them.",
     3: "How tables are laid out.",
     4: "How headings are numbered and listed.",
     5: "For a report or thesis: region comments and `Table:` / `Figure:` captions — [chapters.md](chapters.md).",

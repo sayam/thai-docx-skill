@@ -26,7 +26,10 @@ build, and the build is the only thing that changes it.
 
 **The five-application contract covers the ready-to-use document.** It is opened in Word 365 for
 Windows (the reference application, which must pass every item), Word for macOS, LibreOffice
-Writer, Google Docs and WPS Writer before every release that changes a document's bytes.
+Writer, Google Docs and WPS Writer before every release that changes a document's bytes. v0.2.0
+went out with Word for macOS not yet read on its bytes and LibreOffice Writer read on the
+`--auto-numbering` document only; both readings are owed
+(record: `docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md` in the repository).
 **Nothing outside those five applications is covered**, and it must never be described as working.
 
 **`--auto-numbering` is held to Word on the desktop, and to nothing else.** Word on the web is not
@@ -70,7 +73,9 @@ lists updating from what is there. Every setting works in both kinds; only the n
   built with that flag it places SARA AM (ำ) over the wrong letter. **LibreOffice Writer does not
   read the machine's languages**: it takes its own default for complex text layout (Tools →
   Options → Languages and Locales → General), which on an English installation is Hindi, and
-  underlines every Thai word until that is set to Thai (measured 2026-09-23). Whether
+  underlines every Thai word until that is set to Thai (measured 2026-09-23 on an
+  `--auto-numbering` document; expected of every document built without `--thai-language`, not yet
+  measured on one). Whether
   `--thai-language` settles it there has not been measured.
 - **Install the font the file names.** The default is TH Sarabun New; a file names whatever
   `--font` said. A font that is not on the reader's machine is outside the rendering contract —
@@ -144,8 +149,8 @@ A document built with a font that carries no Thai still warns, as it always did.
   In both kinds, a caption long enough to fill the line wraps in the list, and its page number
   sits on the second line. That is the application laying out a long line, and no attribute
   reaches it.
-- A flag that reaches nothing in the document changes no byte, and the build says which flag and
-  what was missing. Pass that on.
+- A flag that reaches nothing in the document changes no byte, and — except `--heading-numbers` in
+  a document without headings — the build says which flag and what was missing. Pass that on.
 
 ## 7. Where the five applications differ, as measured
 
@@ -158,7 +163,7 @@ application. None can be reached by anything the file could say differently.
 | **LibreOffice Writer** | with `--auto-numbering`: Thai-digit numbering drawn as 1, 2, 3, and a chapter-numbered caption as `ตารางที่ บทนำ-ก` — it answers the chapter-number field with the chapter's *title*, ignores the restart at each chapter and draws the Thai-digit counter as Thai letters (ก, ข, ค). A chapter-numbered caption LibreOffice makes itself loses its chapter number the same way once saved as .docx, opened again and updated (measured 2026-09-24) |
 | **Google Docs** | converts a table of contents into an object of its own, with its own font and page numbers; **has no list of tables and no list of figures**, so asking it to update rewrites all three as heading lists and the two lose their entries (§3 — do not ask it to update) |
 | **Word on the web** | **has no TH Sarabun New in its font list** (TH SarabunPSK is there), and the font it substitutes floats the tone marks above the letter (§3 — build with `--font "TH SarabunPSK"` for that destination); cannot insert a section break (Layout → Breaks offers Page and Column only); Format Painter does not carry a heading's number — apply the Heading style instead |
-| **Word for macOS** | correct in what was measured; a heading's number takes its heading's size |
+| **Word for macOS** | correct in what was measured, on the bytes before 0.2.0 (not yet read on 0.2.0's); a heading's number takes its heading's size |
 
 Two more that are not any application's fault:
 
@@ -204,7 +209,7 @@ was published here in error.
 <kbd>`; invisible characters in the text; nesting past 100 deep; a footnote defined and never
 referenced, or defined twice; an image that is not PNG or JPEG by its bytes, is truncated, is
 remote, or lies outside the Markdown's own directory unless `--allow-dir` names one; a table row
-whose cells do not match its header; region comments out of order or twice; a front-matter or flag
+with more cells than its header; region comments out of order or twice; a front-matter or flag
 value outside its range; margins or an indent that leave less than an inch for text; and any
 difference at all between the text written and the Markdown.
 
@@ -225,13 +230,13 @@ the codes.
 
 `repair` is for a Word file the user has and cannot rebuild from Markdown.
 
-**It does:** set compatibility mode 15; **mark a run as complex script where its text is complex
+**It does:** set a declared compatibility mode to 15 (a file that declares none is left so); **mark a run as complex script where its text is complex
 script, and take the marker off where it is not** — off the document defaults and the styles too,
 without which a run that leaves it off only inherits it again; **cut a run that holds both scripts
 where the script changes**, so the English inside a Thai sentence stops being proofed with a
 complex-script dictionary; remove `noProof`; write the missing twin of a size, bold or italic;
-give a run that names only a Latin font a complex-script one; put properties back into schema
-order. `--force-cs-whole-doc` marks every run instead and cuts nothing, which is the shape
+give a run that names only a Latin font a complex-script one; give a Symbol bullet a font with Thai
+in it; put properties back into schema order. `--force-cs-whole-doc` marks every run instead and cuts nothing, which is the shape
 releases before 0.2.0 wrote.
 
 **It never:** changes a character of the text — the output's text is compared with the input's and

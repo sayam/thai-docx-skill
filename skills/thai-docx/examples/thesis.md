@@ -62,7 +62,7 @@ This file is an example of a thesis skeleton. Everything in it is synthetic.
 
 ### ขอบเขตของการศึกษา
 
-หัวข้อระดับที่สามใช้ได้เมื่อเปิด `heading_numbers` ไว้ในโปรไฟล์
+หัวข้อระดับที่สามมีเลขกำกับ (๑.๒.๑) เมื่อเปิด `heading_numbers` ไว้ในโปรไฟล์
 
 Table: ประเภทเอกสารที่ใช้ทดสอบ
 

@@ -6,8 +6,8 @@
     "en": "Thesis (example)"
   },
   "description": {
-    "th": "ตัวอย่างโปรไฟล์ที่ซับซ้อนที่สุด เหมือนที่ได้จากการตอบคำถาม grill — แก้ได้ทุกค่า",
-    "en": "The most complex example profile, as an interview would leave it — change any of it"
+    "th": "ตัวอย่างโปรไฟล์ที่ซับซ้อนที่สุด มีค่ามากกว่าที่คำถาม grill ถามถึง — แก้ได้ทุกค่า",
+    "en": "The most complex example profile, with more than the interview asks about — change any of it"
   },
   "source": "https://github.com/sayam/thai-docx-skill",
   "settings": {

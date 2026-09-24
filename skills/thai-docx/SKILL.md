@@ -105,7 +105,8 @@ You do not choose this mode and an argument you were invoked with is not the use
 Before asking anything, give the script the user's own message — all of it, word for word.
 If the message begins with this skill's name and words after it, those words are part of the
 message: pass them, never only what follows them. The script reads the first 20,000 characters
-and says in `warnings` when it read fewer than the message holds. Then obey the script's answer:
+and, when it answers `build`, says in `warnings` if it read fewer than the message holds. Then
+obey the script's answer:
 
 ```sh
 python3 <skill>/scripts/thai_docx grill --said "ช่วยทำไฟล์ word ให้หน่อย"
@@ -157,5 +158,6 @@ node <skill>/scripts/thai_docx.js check file.docx
 Explain each finding by its code, in the user's language:
 [references/check.md](references/check.md). If the user has the content, rebuilding from Markdown
 with this skill fixes everything. If they do not, `repair IN.docx OUT.docx` writes a new file with
-every finding gone but a split word and invisible characters, which it reports; it says which
+every finding gone but a split word, invisible characters and a compatibility mode the file never
+declared, which it reports; it says which
 complex-script font it wrote: [references/repair.md](references/repair.md).

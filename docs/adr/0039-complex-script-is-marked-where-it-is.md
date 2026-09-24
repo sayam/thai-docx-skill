@@ -7,8 +7,9 @@
   formatting is one run"*
 - Extends: [0023](0023-fidelity-transformations-restated-again.md) (attributes, never the text),
   [0012](0012-xml-checks-are-the-proxy-office-apps-the-oracle.md) (five applications, Word 365 for
-  Windows the reference), [0038](0038-the-thai-language-is-written-only-when-asked.md) (the Thai
-  complex-script language is written only when asked)
+  Windows the reference)
+- Amends: [0038](0038-the-thai-language-is-written-only-when-asked.md) (which runs say they are complex
+  script; the Thai complex-script language is still written only when asked)
 
 ## Where it came from
 

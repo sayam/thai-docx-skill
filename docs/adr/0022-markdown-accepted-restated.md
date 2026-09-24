@@ -3,6 +3,7 @@
 - Status: accepted
 - Decided: 2026-09-16
 - Supersedes: 0010
+- Amended by: [0033](0033-the-task-box-is-a-square-in-a-text-font.md) (the task-list box: □/■ in a text font, not Segoe UI Symbol)
 
 ## Where it came from
 

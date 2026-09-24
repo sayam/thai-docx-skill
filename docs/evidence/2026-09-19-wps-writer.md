@@ -1,5 +1,9 @@
 # 2026-09-19 — WPS Writer, re-checked
 
+> **Later:** `ÓõõõyA` and ๑ drawn as ๕ did not reproduce on 2026-09-23
+> ([2026-09-24](2026-09-24-what-v0.2.0-was-read-in.md) §1); SARA AM's cause was found
+> ([2026-09-20](2026-09-20-sara-am-and-the-thai-language.md), ADR 0038); the task-list box was fixed by ADR 0033.
+
 `ROADMAP.md` has carried this since 0.1.0: two fixes landed after the last WPS check
 ([2026-09-16](2026-09-16-office-check-five-applications.md)) and nobody had opened the files in WPS
 since. This is that check.

@@ -3,7 +3,7 @@
 What the project intends to do, and not do, from September 2026 to September 2027. It is a plan,
 not a promise; each item becomes a decision record when it is taken up.
 
-## Next release: 0.2.0
+## 0.2.0 (2026-09-24)
 
 Four things, decided 2026-09-18.
 
@@ -18,15 +18,14 @@ Four things, decided 2026-09-18.
 render wrongly: findings `1`, `2`, `3`, `5` and `order`. A word split across two runs (`4`) is
 reported and waits for v0.3; invisible characters are the user's text and are never removed. The
 text of the output must equal the text of the input, character for character, or nothing is written.
-Everything untouched comes through byte for byte, which the packer cannot do today — it stores every
-entry, and a repaired file would come back about twenty-four times larger than the one the user gave.
-So the first step is a byte-preserving round trip in both implementations, and the corpus is
-synthetic throughout: defects planted in this project's own goldens, and small fixtures written by
+Everything untouched comes through byte for byte (`package.repack`), and a rewritten part is
+compressed with this project's own deflate, so a repaired file is about the size it was (36,810 →
+39,437 bytes; stored, it was 22.5 times larger). The corpus is synthetic throughout: defects planted in this project's own goldens, and small fixtures written by
 hand from what other generators do.
 
 Why it is worth doing at all, rather than telling people to rebuild from Markdown: a file that
 arrives from somewhere else carries work nobody wants to retype, and **no other tool fixes it**.
-Word does not repair a file it did not type — it rewrites every run as English and still writes no
+Word does not repair a file it did not type — Word for the web, once the file is edited, rewrites every run as English and still writes no
 `<w:cs/>` — and neither does an assistant working inside Word
 ([record](docs/evidence/2026-09-18-word-does-not-repair-what-it-opens.md)).
 
@@ -47,15 +46,15 @@ same bytes as before ADR 0039 and on the bytes after; what changed is not establ
 also found something
 that **was** ours: the task-list boxes were written in Segoe UI Symbol, which no Linux machine has,
 so they drew as nothing outside Windows. Fixed by ADR 0033 — `□` and `■` in Arial — which changes
-the bytes of any document with a task list, so the five applications of ADR 0012 are due a look
-before the next release.
+the bytes of any document with a task list, so the five applications were read again for 0.2.0
+(below).
 
 **SARA AM in WPS Writer, and the language the document declares.** Seven rounds of probes, opened
 by eye in WPS Writer and in Word, found the one attribute behind a difference recorded since the
 first release: `w:bidi="th-TH"`, the Thai complex-script language
 ([evidence](docs/evidence/2026-09-20-sara-am-and-the-thai-language.md)). It is now written only
 when `--thai-language` asks ([ADR 0038](docs/adr/0038-the-thai-language-is-written-only-when-asked.md)),
-and the default takes the language from the reader's machine. **Owed before the tag:** if it can be
+and the default takes the language from the reader's machine. **Still owed, after the release:** if it can be
 found, a Windows machine with no Thai among its languages, which is the one case the default gives
 up and which no machine in this round could test.
 
@@ -70,11 +69,13 @@ applications were read again:
 |---|---|
 | Word 365 for Windows (the reference) | every file, and every item of `sample-auto`'s edits — passed (2026-09-23) |
 | WPS Writer | every file — passed, but for SARA AM under `--thai-language`, as recorded (2026-09-23) |
-| Google Docs | read (2026-09-22); its record is owed |
+| Google Docs | six of seven read, passes where read (2026-09-22) |
 | Word for macOS | **owed** — read on 2026-09-22 on the bytes before |
-| LibreOffice Writer | **owed** |
+| LibreOffice Writer | `sample-auto` only (2026-09-23/24); the rest **owed** |
 
-and Word for the web owes the double field update the section-break fix asked for.
+and Word for the web owes the double field update the section-break fix asked for. 0.2.0 was released
+with the last two open, as an exception to ADR 0012 recorded in
+[2026-09-24](docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md); the rule is unchanged.
 
 **Repair puts a document's own numbering back.** The terms a document is handed over on are now
 written down once, in `skills/thai-docx/references/limits.md`: what the skill promises, what the

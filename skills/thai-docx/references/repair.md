@@ -13,7 +13,7 @@ A new file is written; the one given is never touched. Tell the user both paths.
 
 | code | what it does |
 |---|---|
-| `1` | declares compatibility mode 15 — sets the one that is there, drops a second one |
+| `1` | sets a declared compatibility mode to 15 and drops a second one; a file that declares none is left so, and `1` stays in `remaining` |
 | `2` | marks a run `<w:cs/>` where its text is complex script and takes the mark off where it is not — off the document defaults and the styles too, or a run would only inherit it again; cuts a run that holds both scripts where the script changes. A run that carries a field, a picture, a tab, a break or a numeric character reference is never cut. `--force-cs-whole-doc` marks every run instead and cuts nothing. `--thai-language` also writes `<w:lang w:bidi="th-TH"/>` on the marked runs, and the report says into how many — see [limits.md](limits.md) §3 and §10 |
 | `3` | removes `<w:noProof/>`, wherever in the package it is |
 | `5` | writes the missing twin of `w:sz`, `w:b` and `w:i`; adds a complex-script font to an `w:rFonts` that names only a Latin one; gives a Symbol bullet a font with Thai in it |
@@ -28,7 +28,7 @@ else this skill's own default. The choice comes back in `warnings`; read it out 
 
 **The file is about the size it was.** The parts this rewrites are compressed again, by a
 deflate this project wrote so that both implementations produce the same bytes; a python-docx
-file of 36,810 bytes comes back as 39,437. A part is stored instead when compressing would not
+file of 36,810 bytes comes back as 39,415. A part is stored instead when compressing would not
 make it smaller.
 
 ## What it never does
@@ -51,8 +51,11 @@ make it smaller.
  "warnings": [], "sha256": "…", "bytes": 24680}
 ```
 
-Exit 0: repaired, and nothing remains that this version repairs. Exit 1: repaired, and
-findings remain — read them out by code from [check.md](check.md). Exit 2: nothing was
+`repaired` counts by code, plus `unmarked`: complex-script marks taken off runs and styles whose
+text is not complex script.
+
+Exit 0: repaired, and no finding remains. Exit 1: repaired, and findings remain — `4`,
+`invisible`, or one this version cannot reach — read them out by code from [check.md](check.md). Exit 2: nothing was
 written, and `error` says why.
 
 ## What to tell the user

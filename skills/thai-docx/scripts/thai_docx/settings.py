@@ -131,7 +131,7 @@ SETTINGS: tuple[dict, ...] = (
              "and an application underlines correctly spelled English on screen)")},
     {"key": "thai_digits", "flag": "--thai-digits", "kind": "switch", "default": False, "layer": 2,  # numbers Word generates; never the text
      "report": ("thai_digits", "value"),
-     "doc": ("page, list and footnote numbers", "1 2 3", "`--thai-digits` (๑ ๒ ๓; the text itself is never changed)")},
+     "doc": ("page, heading, list, caption and footnote numbers", "1 2 3", "`--thai-digits` (๑ ๒ ๓; the text itself is never changed)")},
     {"key": "auto_numbering", "flag": "--auto-numbering", "kind": "switch", "default": False, "layer": 2,  # who counts: the build, or the application
      "needs": "numbers",
      "report": ("auto_numbering", "value"),

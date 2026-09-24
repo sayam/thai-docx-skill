@@ -125,7 +125,8 @@ It stops rather than writes a file it is unsure of, and names the line (exit 2):
 - an HTML tag that is not one of the five above — rewrite it as Markdown;
 - an invisible character (zero width space, joiner, word joiner, byte order mark);
 - blocks or inline formatting nested more than 100 deep;
-- a footnote defined but never referenced;
+- a footnote defined but never referenced, or defined twice; a table row with more cells than its
+  header; region comments out of order or twice;
 - an image that is not PNG or JPEG, is not whole, is outside the Markdown's folder
   (unless `--allow-dir` names one), or is too large for a .docx;
 - a front matter declaration or a flag value outside what [settings.md](settings.md) allows.
@@ -140,7 +141,7 @@ document has not got.
 
 ## Writing Thai
 
-Do not put spaces between Thai words to force a line break: the build marks the text as Thai so
-the reader breaks inside words by itself, and a space would be wrong in the text. Wrapping a long
+Do not put spaces between Thai words to force a line break: the build marks Thai as complex script so
+the application breaks inside words by itself, and a space would be wrong in the text. Wrapping a long
 Thai line in the Markdown is safe. The text in the file is the user's, character for character —
 the build refuses to write a document whose text differs from the Markdown by one character.

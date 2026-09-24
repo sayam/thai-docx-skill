@@ -3,6 +3,10 @@
 - Status: accepted
 - Decided: 2026-09-15
 
+> **Not met in full for v0.2.0:** Word for macOS was not read on its bytes and LibreOffice Writer
+> only in `sample-auto`; the maintainer released first and recorded the exception
+> ([2026-09-24](../evidence/2026-09-24-what-v0.2.0-was-read-in.md)). The rule stands.
+
 ## Where it came from
 
 A check on the XML can show that the causes in 0004 are absent; it cannot show
