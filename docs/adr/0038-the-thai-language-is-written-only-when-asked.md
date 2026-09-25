@@ -3,12 +3,14 @@
 - Status: accepted
 - Decided: 2026-09-20
 - Amended by: [0039](0039-complex-script-is-marked-where-it-is.md) (which runs say they are complex script)
-- Extends: [0004](0004-thai-is-complex-script-five-causes.md) (the five causes),
-  [0005](0005-fix-rendering-with-attributes-never-content.md) and
+- Amends: [0004](0004-thai-is-complex-script-five-causes.md) (cause 2's `w:lang w:bidi="th-TH"`,
+  now only with `--thai-language`)
+- Amends: [0027](0027-lists-carry-entries-and-runs-name-their-font.md) (`w:lang w:bidi` only with
+  `--thai-language`; the file still carries what an application would otherwise supply)
+- Extends: [0005](0005-fix-rendering-with-attributes-never-content.md) and
   [0023](0023-fidelity-transformations-restated-again.md) (attributes, never the text),
   [0012](0012-xml-checks-are-the-proxy-office-apps-the-oracle.md) (five applications, Word 365 for
-  Windows the reference), [0027](0027-lists-carry-entries-and-runs-name-their-font.md) (the file
-  carries what an application would otherwise supply)
+  Windows the reference)
 
 ## Where it came from
 

@@ -429,9 +429,9 @@ does not work.
 
 3. The assistant explains each problem and what it does to the file.
 
-The skill can repair five of the seven faults with `repair` at the command line, including the
-marks every Thai run needs; a split word and invisible characters are reported instead, because
-fixing either would change your text. If you have the content, making a new file with scenario 1
+The skill can repair most of the faults with `repair` at the command line, including the marks
+every Thai run needs, and the compatibility mode when the file declares one; a split word and
+invisible characters are reported instead, because fixing either would change your text. If you have the content, making a new file with scenario 1
 or 2 fixes everything.
 
 ## Scenario 14: you have an example already, and want one like it

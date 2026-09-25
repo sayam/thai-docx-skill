@@ -20,7 +20,7 @@ reported and waits for v0.3; invisible characters are the user's text and are ne
 text of the output must equal the text of the input, character for character, or nothing is written.
 Everything untouched comes through byte for byte (`package.repack`), and a rewritten part is
 compressed with this project's own deflate, so a repaired file is about the size it was (36,810 →
-39,437 bytes; stored, it was 22.5 times larger). The corpus is synthetic throughout: defects planted in this project's own goldens, and small fixtures written by
+39,415 bytes; stored, it was 22.5 times larger). The corpus is synthetic throughout: defects planted in this project's own goldens, and small fixtures written by
 hand from what other generators do.
 
 Why it is worth doing at all, rather than telling people to rebuild from Markdown: a file that
