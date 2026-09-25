@@ -7,10 +7,9 @@ client and its sandbox, the model's behaviour, the office application that opens
 the development tools under `tools/`.
 
 **Who did what.** The maintainer, Sayam Sriphua, read every code path named below on 2026-09-18
-and accepted this record. The assistant (Claude, in Claude Code) named the paths, wrote the input
-script, ran it, and drafted the table from what it saw. Tools were aids, not the review: CodeQL
-security-extended (no open alert on `main`, 2026-09-18), `ruff --select S`, OSV-Scanner through the
-required `deps` job, and the suite (222 tests).
+and accepted this record. Tools were aids, not the review: CodeQL security-extended (no open
+alert on `main`, 2026-09-18), `ruff --select S`, OSV-Scanner through the required `deps` job, and
+the suite (222 tests).
 
 **Method.** For each requirement: read the code that enforces it in both implementations, run an
 input that tries to get past it, and say whether anything did. The inputs are a script,

@@ -98,7 +98,7 @@ before two applications were read; the exception and what is owed are in
   rewrites could not be compressed by a library — no two promise the same bytes, and ADR 0008 says
   both implementations must agree — so they were stored, and a python-docx file of 36,810 bytes came
   back as 381,937. `deflate` fixes every choice a compressor is free to make, in both
-  implementations, and that file now comes back as 39,437. It reaches 4.1% on the styles part that
+  implementations, and that file now comes back as 39,415. It reaches 4.1% on the styles part that
   caused the growth, against zlib's 3.5%.
 - A package can be written back as it came. `package.repack` (and `repackZip` in JavaScript) writes
   the entries in the order they had, copying the compressed bytes of every entry it was not asked to

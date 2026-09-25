@@ -10,6 +10,8 @@
   Windows the reference)
 - Amends: [0038](0038-the-thai-language-is-written-only-when-asked.md) (which runs say they are complex
   script; the Thai complex-script language is still written only when asked)
+- Amends: [0027](0027-lists-carry-entries-and-runs-name-their-font.md) (`<w:cs/>` only on
+  complex-script runs, none in `Normal`)
 
 ## Where it came from
 

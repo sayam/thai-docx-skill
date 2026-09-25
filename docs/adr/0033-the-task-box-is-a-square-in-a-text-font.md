@@ -2,7 +2,8 @@
 
 - Status: accepted
 - Decided: 2026-09-19
-- Supersedes: nothing; it corrects a choice ADR 0022 left unexamined
+- Amends: [0022](0022-markdown-accepted-restated.md) (the task-list box, a choice 0022 left
+  unexamined)
 
 ## Where it came from
 

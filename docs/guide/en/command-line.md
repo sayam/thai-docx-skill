@@ -153,16 +153,16 @@ The check reports. To fix a file you do not have the content for:
 python3 thai-docx/scripts/thai_docx repair theirs.docx theirs-fixed.docx
 ```
 
-It writes a new file — the one you gave is never changed — with five of the seven faults gone:
-the compatibility mode, the marks every Thai run needs, proofing switched off, the
-complex-script twins, and properties in the wrong order. A word split across two runs and
-invisible characters are listed under `"remaining"` instead, because fixing either would
-change the text. The report also names the font it wrote where a run named none;
+It writes a new file — the one you gave is never changed — with these faults gone: the marks
+every Thai run needs, proofing switched off, the complex-script twins, properties in the wrong
+order, and the compatibility mode when the file declares one. A file that declares no mode is
+left so, and the mode stays under `"remaining"`. A word split across two runs and invisible
+characters are listed there too, because fixing either would change the text. The report also names the font it wrote where a run named none;
 `--font "Sarabun"` chooses it yourself.
 
 Setting the compatibility mode reflows the document, so page breaks can move: look through it
 before you send it on. The new file is about the size of the old one. When you have the Markdown, rebuilding fixes
-everything, including the two faults repair leaves alone.
+everything, including the faults repair leaves alone.
 
 ## Ask the questions yourself
 
