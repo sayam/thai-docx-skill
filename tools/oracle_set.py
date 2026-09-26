@@ -133,6 +133,18 @@ SHOWS = {
 }
 
 
+# What only the application open can show: typing, editing, updating fields, proofing marks and
+# what Word shows around the page. Everything else is on the page as drawn, which a PDF the
+# application exports, or a screenshot, shows as well (tools/render_libreoffice.py).
+OPEN_PREFIXES = ("(Word)", "(edit)", "(Word only)")
+OPEN_WORDS = ("underline", "squiggle", "updating", "status bar", "title bar", "font box", "Compatibility Mode")
+
+
+def how_read(item: str) -> str:
+    """`open` when the item needs the application open, `page` when the drawn page shows it."""
+    return "open" if item.startswith(OPEN_PREFIXES) or any(word in item for word in OPEN_WORDS) else "page"
+
+
 def write(out: pathlib.Path) -> list[dict]:
     """Every variant for every application into `out`, and CHECKLIST.md; the build results."""
     out.mkdir(parents=True, exist_ok=True)
@@ -150,18 +162,21 @@ def write(out: pathlib.Path) -> list[dict]:
 def checklist(results: list[dict]) -> str:
     lines = ["# Release oracle checklist (ADR 0012)", "",
              "Open each file in the application its name ends with. Tick an item when it holds;",
-             "a failure that attributes cannot reach gets a known-limitation record.", ""]
+             "a failure that attributes cannot reach gets a known-limitation record.", "",
+             "`read`: **page** — on the page as drawn, which a PDF the application exports, or a screenshot,",
+             "shows too (`python3 tools/render_libreoffice.py DIR` exports LibreOffice's); **open** — only",
+             "with the application open: typing, editing, updating fields, proofing marks, the status bar.", ""]
     for variant, (source, flags, golden, about, applications) in VARIANTS.items():
         sha = {r["sha256"] for r in results if r["variant"] == variant}
         lines += [f"## {variant}", "", about, "",
                   f"- Source: `{source.relative_to(ROOT)}`, flags: `{' '.join(flags) or '(none)'}`",
                   f"- sha256 (every copy, and tests/golden/{golden}.docx): `{', '.join(sorted(sha))}`", ""]
         items = [*EVERY_APPLICATION, *SHOWS.get(variant, ())]
-        lines += ["| item | " + " | ".join(applications) + " |", "|---|" + "---|" * len(applications)]
-        lines += ["| " + item + " |" + " |" * len(applications) for item in items]
+        lines += ["| item | read | " + " | ".join(applications) + " |", "|---|---|" + "---|" * len(applications)]
+        lines += ["| " + item + " | " + how_read(item) + " |" + " |" * len(applications) for item in items]
         word_cells = " |" * len(applications) if applications == WORD else " | | — | — | —"
-        lines += ["| (Word only) " + item + " |" + word_cells + " |" if applications != WORD else "| (Word only) " + item + " | |"
-                  for item in WORD_ONLY]
+        lines += ["| (Word only) " + item + " | open |" + word_cells + " |" if applications != WORD
+                  else "| (Word only) " + item + " | open | |" for item in WORD_ONLY]
         lines.append("")
     return "\n".join(lines)
 

@@ -181,7 +181,11 @@ Nothing merges with a failing required check.
 `python3 tools/oracle_set.py OUT_DIR` writes the documents to open in the five office
 applications — each variant once for every application it is opened in (`sample-auto` in Word 365
 for Windows only, ADR 0036), named `<variant>-<application>.docx`, byte for
-byte the goldens — and `CHECKLIST.md` to tick (`docs/adr/0012`). Word 365 for Windows is the
+byte the goldens — and `CHECKLIST.md` to tick (`docs/adr/0012`). Its `read` column says whether
+the page as drawn shows an item (`page`: a PDF the application exports shows it too) or only the
+application open does (`open`: typing, editing, updating fields, proofing marks, the status bar);
+`python3 tools/render_libreoffice.py OUT_DIR --match '*-libreoffice_writer.docx'` exports what
+LibreOffice draws, with complex text read as Thai. Word 365 for Windows is the
 reference. `python3 tools/package_skill.py --tag vX.Y.Z` must pass — it refuses the tag until the
 newest `docs/evidence/*-what-vX.Y.Z-was-read-in.md` names every golden's sha256, so a change of
 bytes may reach `main` before the reading, never a release — and the suite fails until the
