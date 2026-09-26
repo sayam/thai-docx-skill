@@ -57,7 +57,8 @@ def test_save_show_export_import_and_build_with_a_profile(home):
                 "--page-numbers", "bottom-center", "--thai-digits")
     path = pathlib.Path(saved["path"])
     assert saved["ok"] and saved["where"] == "home" and path == home / "home" / ".thai-docx" / "profiles" / "thesis.json"
-    assert saved["replaced"] is False and "warnings" not in saved
+    # nothing was there to replace, but the skill ships a thesis, and this one now hides it
+    assert saved["replaced"] is False and saved["shadows"] == "skill" and len(saved["warnings"]) == 1
     assert path.read_text(encoding="utf-8") == p.canonical({"id": "thesis", "schema": 1, "settings": saved["settings"]})
     assert saved["settings"] == {"size": 15, "line_spacing": 1.5, "align": "thai", "page_numbers": "bottom-center", "thai_digits": True}
 

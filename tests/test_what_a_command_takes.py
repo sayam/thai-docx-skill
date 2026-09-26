@@ -274,3 +274,15 @@ def test_the_entry_answers_before_any_command_runs(monkeypatch, capsys):
     monkeypatch.setitem(entry.COMMANDS, "check", broken)
     assert entry.main(["check", "x.docx"]) == 1
     assert json.loads(capsys.readouterr().out)["error"].startswith("a defect in thai-docx stopped this command")
+
+
+def test_a_profile_that_hides_another_of_its_name_says_so(tmp_path):
+    """The guides' first save was `profile save thesis`, which hid the thesis profile the skill
+    ships with nothing said: from then on `--profile thesis` and `grill from thesis` took two
+    settings where the example holds eight."""
+    code, result = both(["profile", "save", "thesis", "--size", "15"], tmp_path)
+    assert code == 0 and result["shadows"] == "skill", result
+    assert result["warnings"] == ["the profile thesis that the skill ships is now hidden by this one:"
+                                  " --profile thesis and grill from thesis use this one"]
+    code, result = both(["profile", "save", "my-thesis", "--size", "15"], tmp_path)
+    assert code == 0 and "shadows" not in result and "warnings" not in result, result

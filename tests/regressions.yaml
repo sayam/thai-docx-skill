@@ -455,3 +455,17 @@
   found_by: office-app
   test:
     - tests/test_oracle_set.py::test_the_checklist_asks_whether_two_headings_match
+
+- id: A-03
+  what: saving a profile under the name of one the skill ships hid it, and nothing said so
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_profile_that_hides_another_of_its_name_says_so
+
+- id: E-02
+  what: SKILL.md's example saved a profile named thesis, hiding the example of that name for every later build and grill
+  class: C1
+  found_by: agent-run
+  test:
+    - tests/test_what_a_command_takes.py::test_a_profile_that_hides_another_of_its_name_says_so
