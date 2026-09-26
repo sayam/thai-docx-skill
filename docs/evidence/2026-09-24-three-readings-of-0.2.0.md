@@ -47,8 +47,9 @@ there is:
   Unicode version. Shipping the tables with the skill is weighed for 0.3.
 - **B-05** — `พ.ศ.` is cut into several runs at its full stops. Whether Word draws it wrongly is
   read with the five applications after v0.2.1 is tagged; any change moves bytes, so it is 0.3's.
-- **E-21** — the skill's description. What triggers a skill is measured in the model-equivalence
-  runs, not argued; it waits for them.
+- **E-21** — the skill's description. What triggers a skill is measured, not argued: measured on
+  2026-09-26, it caught the Thai request that names no file type in six runs of six, and stays
+  ([record](2026-09-26-model-equivalence-on-v0.2.1.md)).
 - **F-14** — where the two thesis pictures came from was never written down, and is not
   remembered. What can be checked is recorded instead: `tests/fixtures/thesis/chart.png` (600×320,
   a bar chart of five bars) and `tests/fixtures/thesis/flow.png` (600×260, four boxes and their

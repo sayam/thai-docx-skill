@@ -456,3 +456,16 @@ def test_the_specs_page_is_the_whole_surface_and_its_example_builds(unpacked, tm
     result = json.loads(done.stdout)
     assert done.returncode == 0 and result["ok"] and result["warnings"] == [] and result["findings"] == [], done.stdout
     assert result["counts"]["tables"] == 1 and result["counts"]["images"] == 1 and result["counts"]["footnotes"] == 1
+
+
+def test_the_description_is_the_one_measured():
+    """What triggers the skill is measured, not argued (E-21): the description below caught a
+    Thai request that names no file type in every run of 2026-09-26
+    (docs/evidence/2026-09-26-model-equivalence-on-v0.2.1.md). A new description is a new
+    measurement first, and this line changes with the record that measured it."""
+    front = SKILL_MD.split("---", 2)[1]
+    assert re.search(r"^description: (.*)$", front, re.M).group(1) == (
+        'Make or check a Word .docx with Thai (ไฟล์ Word ภาษาไทย). When the user\'s message says "thai-docx grill", '
+        "use this skill to ask its fixed questions first. https://github.com/sayam/thai-docx-skill")
+    record = (ROOT / "docs" / "evidence" / "2026-09-26-model-equivalence-on-v0.2.1.md").read_text(encoding="utf-8")
+    assert "Make or check a Word .docx with Thai" in record
