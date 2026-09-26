@@ -11,6 +11,12 @@ before two applications were read; the exception and what is owed are in
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-26
+
+**The goldens move**: most Thai documents are written differently from 0.2.2 — punctuation
+between Thai, scripts besides Thai, a captioned table, a picture with `--indent` or in a list or a
+quotation. What the five applications draw is read on these bytes before the tag.
+
 ### Added
 
 - `check` says which way a document's numbers are made — `numbering`: `automatic`, `written`,
@@ -24,6 +30,11 @@ before two applications were read; the exception and what is owed are in
   every golden's sha256 is held where it matters, at the tag: `tools/package_skill.py --tag`,
   which the release workflow runs, refuses a tag until the newest record does
   (`tests/test_rules.py::test_the_newest_release_record_names_the_bytes_it_read`).
+- The limits record what LibreOffice Writer, Google Docs and Word for the web draw their own way,
+  read on 2026-09-26: page numbers and footnote numbers in Arabic digits where Thai ones were set,
+  Thai distributed alignment drawn left in LibreOffice, a table of contents numbered from the cover
+  and Thai proofed as Arabic in Word for the web, and what Word for the web does with
+  `--auto-numbering`.
 
 ### Fixed
 

@@ -3,6 +3,15 @@
 What the project intends to do, and not do, from September 2026 to September 2027. It is a plan,
 not a promise; each item becomes a decision record when it is taken up.
 
+## 0.3.0
+
+What moves the bytes of a document, read once in the five applications on its bytes: punctuation
+between Thai stays in the Thai run (`พ.ศ.` is one run), every complex script is marked, checked and
+repaired rather than Thai alone, a captioned table carries its name, and a picture fits the line its
+paragraph leaves it. `check` says which way a document's numbers are made — the first step of
+ADR 0037; renumbering in `repair` is the next, when it is asked for. The goldens may move on
+`main`; the tag refuses a version whose goldens no reading record names.
+
 ## 0.2.2 (2026-09-26)
 
 The rest of what the readings of 0.2.0 found, and what the model runs on 0.2.1 got wrong: `check`

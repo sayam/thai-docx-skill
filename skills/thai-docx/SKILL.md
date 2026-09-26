@@ -5,7 +5,7 @@ license: MIT (LICENSE.txt)
 compatibility: Runs with Python 3.11+ (standard library only) or a JavaScript runtime (Node.js, or a sandbox that runs async JavaScript). No network access or package installs.
 metadata:
   author: sayam
-  version: "0.2.2"
+  version: "0.3.0"
 ---
 
 # thai-docx
