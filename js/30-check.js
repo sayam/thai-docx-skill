@@ -9,6 +9,27 @@ const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const RPR_ORDER = OOXML.rpr_order;
 const PPR_ORDER = OOXML.ppr_order;
 const SETTINGS_ORDER = OOXML.settings_order;
+const SECTPR_ORDER = OOXML.sectpr_order;
+const TBLPR_ORDER = OOXML.tblpr_order;
+const TRPR_ORDER = OOXML.trpr_order;
+const TCPR_ORDER = OOXML.tcpr_order;
+const LVL_ORDER = OOXML.lvl_order;
+const STYLE_ORDER = OOXML.style_order;
+
+// Each name's place in an order; the names of a list inside it share one (ooxml.py's rank).
+function rankOf(order) {
+  const out = new Map();
+  order.forEach((entry, i) => {
+    for (const name of typeof entry === "string" ? [entry] : entry) out.set(name, i);
+  });
+  return out;
+}
+
+// ST_OnOff: "off" is one of these values, "on" any other or none (ooxml.py's is_on).
+const OFF = new Set(["0", "false", "off"]);
+function isOn(el) {
+  return !OFF.has(el.get(w("val")));
+}
 const INVISIBLE = OOXML.invisible;
 // Every other format character (Unicode category Cf), from the list both implementations read,
 // so neither asks its own runtime's Unicode tables, which differ in version (ADR 0008).
@@ -34,6 +55,10 @@ const MAX_TOTAL = 64 * 1024 * 1024;
 const MAX_FILE = 64 * 1024 * 1024;
 const COMPAT_URI = "http://schemas.microsoft.com/office/word";
 const TEXT_PARTS = /^word\/(document|comments|footnotes|endnotes|header[0-9]*|footer[0-9]*)\.xml$/;
+const RELATIONSHIPS = ["http://schemas.openxmlformats.org/officeDocument/2006/relationships/",
+  "http://purl.oclc.org/ooxml/officeDocument/relationships/"];
+const TEXT_KINDS = ["header", "footer", "footnotes", "endnotes", "comments"];
+const STRICT_W = "http://purl.oclc.org/ooxml/wordprocessingml/main";
 
 function w(tag) {
   return "{" + W + "}" + tag;
@@ -43,6 +68,11 @@ function local(tag) {
   const i = tag.lastIndexOf("}");
   return i < 0 ? tag : tag.slice(i + 1);
 }
+
+const RPR_RANK = rankOf(RPR_ORDER), PPR_RANK = rankOf(PPR_ORDER), SETTINGS_RANK = rankOf(SETTINGS_ORDER);
+const LVL_RANK = rankOf(LVL_ORDER), STYLE_RANK = rankOf(STYLE_ORDER);
+const STRUCTURE = [["sectPr", rankOf(SECTPR_ORDER)], ["tblPr", rankOf(TBLPR_ORDER)], ["trPr", rankOf(TRPR_ORDER)],
+  ["tcPr", rankOf(TCPR_ORDER)]];
 
 function isThai(ch) {
   return ch >= "฀" && ch <= "๿";
@@ -104,10 +134,6 @@ function readParts(bytes, report) {
     report.find("size", "", "package would decompress to " + total + " bytes; refused");
     return null;
   }
-  if (!seen.has("word/document.xml")) {
-    report.find("package", "", "no word/document.xml; not a WordprocessingML package");
-    return null;
-  }
   const parts = new Map();
   for (const e of entries) {
     if (!e.name.endsWith(".xml") && !e.name.endsWith(".rels")) continue;
@@ -166,6 +192,77 @@ function parseParts(parts, report) {
   return trees;
 }
 
+// A part name matches in any case (OPC); ASCII only, which both runtimes lower alike.
+function asciiLower(name) {
+  return name.replace(/[A-Z]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 32));
+}
+
+// A relationship's target as a part name: relative to the folder of `source`, or to the
+// package's root when it begins with a slash.
+function resolvePart(source, target) {
+  const path = target.startsWith("/") ? [] : source.split("/").slice(0, -1);
+  for (const segment of target.split("/")) {
+    if (segment === "..") {
+      if (path.length) path.pop();
+    } else if (segment !== "" && segment !== ".") path.push(segment);
+  }
+  return path.join("/");
+}
+
+// [kind, part] for each relationship of `source` ("" for the package's own) to a part the
+// package holds. `names` maps each part name, lowered, to the name itself.
+function related(names, treeOf, source) {
+  const cut = source.lastIndexOf("/");
+  const folder = cut < 0 ? "" : source.slice(0, cut), file = source.slice(cut + 1);
+  const relsName = names.get(asciiLower((folder ? folder + "/" : "") + "_rels/" + file + ".rels"));
+  const root = relsName === undefined ? null : treeOf(relsName);
+  const out = [];
+  for (const rel of root === null ? [] : root.children) {
+    const kind = rel.get("Type") || "";
+    const prefix = RELATIONSHIPS.find((p) => kind.startsWith(p));
+    if (local(rel.tag) !== "Relationship" || rel.get("TargetMode") === "External" || prefix === undefined) continue;
+    const name = names.get(asciiLower(resolvePart(source, rel.get("Target") || "")));
+    if (name !== undefined) out.push([kind.slice(prefix.length), name]);
+  }
+  return out;
+}
+
+// Which part is which, as Word finds them (check.py's part_roles says how).
+function partRoles(names, treeOf) {
+  const lowered = new Map();
+  for (let i = names.length - 1; i >= 0; i--) lowered.set(asciiLower(names[i]), names[i]);
+  const found = related(lowered, treeOf, "").find(([kind]) => kind === "officeDocument");
+  let main = found === undefined ? null : found[1];
+  if (main === null && names.includes("word/document.xml")) main = "word/document.xml";
+  const roles = { document: main, text: [], footnotes: null, styles: null, numbering: null, settings: null };
+  if (main === null) return roles;
+  const text = new Set([main, ...names.filter((n) => TEXT_PARTS.test(n))]);
+  for (const [kind, name] of related(lowered, treeOf, main)) {
+    if (TEXT_KINDS.includes(kind)) text.add(name);
+    if (["footnotes", "styles", "numbering", "settings"].includes(kind) && roles[kind] === null) roles[kind] = name;
+  }
+  for (const kind of ["footnotes", "styles", "numbering", "settings"]) {
+    if (roles[kind] === null && names.includes("word/" + kind + ".xml")) roles[kind] = "word/" + kind + ".xml";
+  }
+  roles.text = names.filter((n) => text.has(n));
+  return roles;
+}
+
+// partRoles for a package the checker has already read without a finding that refuses it.
+function partRolesOf(parts) {
+  return partRoles([...parts.keys()], (name) => {
+    if (!name.endsWith(".rels") || !parts.has(name)) return null;
+    const text = fromUtf8(parts.get(name));
+    if (text === null) return null;
+    try {
+      return parseXml(text);
+    } catch (e) {
+      if (!(e instanceof XmlError)) throw e;
+      return null;
+    }
+  });
+}
+
 // A run's formatting as a comparable value; rsid attributes are noise. Flat — each element
 // opens, its children follow, and it closes — and built with a stack of its own, because the
 // input sets the depth and neither implementation reads by recursion where it does (ADR 0017).
@@ -189,20 +286,24 @@ function canonical(el) {
   return out.join("\n");
 }
 
-function checkOrder(el, order, part, report, what) {
+function checkOrder(el, ranks, part, report, what) {
   let lastRank = -1;
   let lastName = "";
   for (const child of el.children) {
     const name = local(child.tag);
-    const rank = order.indexOf(name);
-    if (rank < 0) continue;
-    if (rank < lastRank) {
+    if (!ranks.has(name)) continue;
+    const at = ranks.get(name);
+    if (at < lastRank) {
       report.find("order", part, "in " + what + ", <w:" + name + "> must come before <w:" + lastName + ">");
       return;
     }
-    lastRank = rank;
+    lastRank = at;
     lastName = name;
   }
+}
+
+function checkStructure(root, part, report) {
+  for (const [tag, ranks] of STRUCTURE) for (const el of root.iter(w(tag))) checkOrder(el, ranks, part, report, "w:" + tag);
 }
 
 function checkRprTwins(rpr, part, report, what, thai) {
@@ -222,9 +323,8 @@ function checkRprTwins(rpr, part, report, what, thai) {
   }
 }
 
-function checkSettings(root, report) {
-  const part = "word/settings.xml";
-  checkOrder(root, SETTINGS_ORDER, part, report, "w:settings");
+function checkSettings(part, root, report) {
+  checkOrder(root, SETTINGS_RANK, part, report, "w:settings");
   const modes = [];
   for (const cs of root.iter(w("compatSetting"))) {
     if (cs.get(w("name")) === "compatibilityMode" && cs.get(w("uri")) === COMPAT_URI) modes.push(cs.get(w("val")));
@@ -235,7 +335,7 @@ function checkSettings(root, report) {
   }
 }
 
-function checkTextPart(name, root, report) {
+function checkTextPart(name, root, report, roles) {
   for (const parent of root.iter()) {
     if (!parent.children.some((c) => c.tag === w("r"))) continue;
     let previous = null;
@@ -247,17 +347,19 @@ function checkTextPart(name, root, report) {
         continue;
       }
       const rpr = run.find(w("rPr"));
-      const texts = run.findall(w("t"));
+      // deleted text is text (check.py says why)
+      const texts = run.children.filter((c) => c.tag === w("t") || c.tag === w("delText"));
       const hasText = texts.length > 0;
       let thai = false;
       for (const t of texts) for (const ch of t.text || "") if (isThai(ch)) thai = true;
       if (rpr !== null) {
-        checkOrder(rpr, RPR_ORDER, name, report, "a run's w:rPr");
+        checkOrder(rpr, RPR_RANK, name, report, "a run's w:rPr");
         checkRprTwins(rpr, name, report, "a run", thai);
       }
       if (hasText) {
         report.counts.runs = (report.counts.runs || 0) + 1;
-        const marked = rpr !== null && rpr.find(w("cs")) !== null;
+        const cs = rpr === null ? null : rpr.find(w("cs"));
+        const marked = cs !== null && isOn(cs);
         // one direction only: a run that holds no complex script may carry the marker, because
         // --force-cs-whole-doc writes it on every run and that file is ours too
         if (thai && !marked) {
@@ -298,11 +400,18 @@ function checkTextPart(name, root, report) {
   }
   for (const p of root.iter(w("p"))) {
     const ppr = p.find(w("pPr"));
-    if (ppr !== null) checkOrder(ppr, PPR_ORDER, name, report, "a paragraph's w:pPr");
+    if (ppr === null) continue;
+    checkOrder(ppr, PPR_RANK, name, report, "a paragraph's w:pPr");
+    const mark = ppr.find(w("rPr"));
+    if (mark !== null) {
+      checkOrder(mark, RPR_RANK, name, report, "a paragraph mark's w:rPr");
+      checkRprTwins(mark, name, report, "a paragraph mark", false);
+    }
   }
+  checkStructure(root, name, report);
   report.counts.paragraphs = (report.counts.paragraphs || 0) + root.countDescendants(w("p"));
-  if (name === "word/document.xml") report.counts.tables = root.countDescendants(w("tbl"));
-  if (name === "word/footnotes.xml") {
+  if (name === roles.document) report.counts.tables = root.countDescendants(w("tbl"));
+  if (name === roles.footnotes) {
     let k = 0;
     for (const f of root.iter(w("footnote"))) {
       const type = f.get(w("type"));
@@ -313,11 +422,19 @@ function checkTextPart(name, root, report) {
 }
 
 function checkStyles(name, root, report) {
-  for (const rpr of root.iter(w("rPr"))) {
-    checkOrder(rpr, RPR_ORDER, name, report, "a style's w:rPr");
-    checkRprTwins(rpr, name, report, "a style", true);
+  // what a tracked change says the formatting was: history, not formatting any text has
+  const history = new Set();
+  for (const change of root.iter()) {
+    if (change.tag !== w("rPrChange") && change.tag !== w("pPrChange")) continue;
+    for (const el of change.iter()) if (el !== change) history.add(el);
   }
-  for (const ppr of root.iter(w("pPr"))) checkOrder(ppr, PPR_ORDER, name, report, "a style's w:pPr");
+  for (const style of root.iter(w("style"))) checkOrder(style, STYLE_RANK, name, report, "w:style");
+  for (const rpr of root.iter(w("rPr"))) {
+    checkOrder(rpr, RPR_RANK, name, report, "a style's w:rPr");
+    if (!history.has(rpr)) checkRprTwins(rpr, name, report, "a style", true);
+  }
+  for (const ppr of root.iter(w("pPr"))) checkOrder(ppr, PPR_RANK, name, report, "a style's w:pPr");
+  checkStructure(root, name, report);
 }
 
 function checkNumbering(name, root, report) {
@@ -330,8 +447,14 @@ function checkNumbering(name, root, report) {
         report.find("5", name, "a bullet level uses the Symbol font; bullets need a Thai-capable font");
       }
     }
+    checkOrder(lvl, LVL_RANK, name, report, "w:lvl");
+    const ppr = lvl.find(w("pPr"));
+    if (ppr !== null) checkOrder(ppr, PPR_RANK, name, report, "a numbering level's w:pPr");
     const rpr = lvl.find(w("rPr"));
-    if (rpr !== null) checkOrder(rpr, RPR_ORDER, name, report, "a numbering level's w:rPr");
+    if (rpr !== null) {
+      checkOrder(rpr, RPR_RANK, name, report, "a numbering level's w:rPr");
+      checkRprTwins(rpr, name, report, "a numbering level", false);
+    }
   }
 }
 
@@ -341,16 +464,34 @@ function checkBytes(bytes, label) {
   const parts = readParts(bytes, report);
   if (parts === null) return report;
   const trees = parseParts(parts, report);
-  for (const [name, root] of trees) {
-    if (name.startsWith("word/") && root.findDescendant(w("noProof")) !== null) {
-      report.find("3", name, "<w:noProof/> switches Thai proofing — and Thai line breaking — off");
-    }
+  const roles = partRoles([...parts.keys()], (name) => (trees.has(name) ? trees.get(name) : null));
+  const document = roles.document;
+  if (document === null) {
+    report.find("package", "", "no main document (word/document.xml, or the part _rels/.rels names);" +
+      " not a WordprocessingML package");
+    return report;
   }
-  const settings = trees.get("word/settings.xml");
-  if (settings === undefined) report.find("1", "word/settings.xml", "no settings part; compatibilityMode is not declared");
-  else checkSettings(settings, report);
-  for (const [name, root] of trees) if (TEXT_PARTS.test(name)) checkTextPart(name, root, report);
-  if (trees.has("word/styles.xml")) checkStyles("word/styles.xml", trees.get("word/styles.xml"), report);
-  if (trees.has("word/numbering.xml")) checkNumbering("word/numbering.xml", trees.get("word/numbering.xml"), report);
+  if (!trees.has(document)) return report;  // not UTF-8 or not well-formed, and found so above
+  const tag = trees.get(document).tag;
+  if (tag !== w("document")) {
+    if (tag.startsWith("{" + STRICT_W + "}")) {
+      report.find("package", document, "Strict Open XML (ISO/IEC 29500 Strict) is not read: every element" +
+        " would be missed; save it from Word as Word Document (.docx)");
+    } else report.find("package", document, "the main document is not a WordprocessingML document");
+    return report;
+  }
+  const named = new Set([roles.styles, roles.numbering, roles.settings, ...roles.text].filter((n) => n !== null));
+  for (const [name, root] of trees) {
+    if (!name.startsWith("word/") && !named.has(name)) continue;
+    let off = true;
+    for (const el of root.iter(w("noProof"))) if (isOn(el)) off = false;
+    if (!off) report.find("3", name, "<w:noProof/> switches Thai proofing — and Thai line breaking — off");
+  }
+  const settings = roles.settings || "word/settings.xml";
+  if (!trees.has(settings)) report.find("1", settings, "no settings part; compatibilityMode is not declared");
+  else checkSettings(settings, trees.get(settings), report);
+  for (const name of roles.text) if (trees.has(name)) checkTextPart(name, trees.get(name), report, roles);
+  if (roles.styles !== null && trees.has(roles.styles)) checkStyles(roles.styles, trees.get(roles.styles), report);
+  if (roles.numbering !== null && trees.has(roles.numbering)) checkNumbering(roles.numbering, trees.get(roles.numbering), report);
   return report;
 }

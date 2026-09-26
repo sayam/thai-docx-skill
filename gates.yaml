@@ -209,6 +209,11 @@ gates:
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_repair_reads_xml_as_xml.py]}
+  - id: check-reads-the-whole-package
+    title: check reads the whole package, alike in both implementations — refusing a Strict one, reading an off switch as off, finding each part by its relationship and not its name, deleted text as text, a numbering level's and a paragraph mark's twins, and the order of every property list a section, a table, a level and a style hold — and repair takes each such finding away
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_check_reads_the_whole_package.py]}
   - id: check-holds-its-limits-at-their-values
     title: Each limit is the value both implementations state, and is met at that value from the input side through both command lines — the part and total size caps, forty symbolic links and no more — a part is judged UTF-8 on its bytes, so UTF-16 never reaches a parser, and a run nested past any stack gets a verdict
     kind: test

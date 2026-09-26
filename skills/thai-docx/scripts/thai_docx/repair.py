@@ -64,10 +64,24 @@ def _attrs(tag: bytes) -> dict[bytes, bytes]:
     return {name: a or b for name, a, b in ATTR.findall(tag)}
 
 
+def _off(tag: bytes) -> bool:
+    """A switch that says off (ST_OnOff), as the checker reads it."""
+    value = _attrs(tag).get(b"w:val")
+    return value is not None and value.decode("utf-8", "replace") in ooxml.OFF
+
+
 def remove_no_proof(xml: bytes) -> tuple[bytes, int]:
-    """Every <w:noProof/> gone. Removing it leaves the default, which is proofing on."""
-    out, count = NO_PROOF.subn(b"", xml)
-    return out, count
+    """Every <w:noProof/> that switches proofing off gone. Removing it leaves the default, which
+    is proofing on; one that says `w:val="0"` says that already, and stays."""
+    count = 0
+
+    def drop(m: re.Match) -> bytes:
+        nonlocal count
+        if _off(m.group(0)):
+            return m.group(0)
+        count += 1
+        return b""
+    return NO_PROOF.sub(drop, xml), count
 
 
 def one_compatibility_mode(xml: bytes) -> tuple[bytes, int]:
@@ -101,7 +115,10 @@ def one_compatibility_mode(xml: bytes) -> tuple[bytes, int]:
 TAG = re.compile(rb"<(/?)(w:[\w.-]+)((?:[^<>\"']|\"[^\"]*\"|'[^']*')*?)(/?)>")
 RUN_START = opening(b"w:r")
 RPR_START = opening(b"w:rPr")
-T_START = re.compile(rb"<w:t" + ATTRS + rb">")
+# a run's text: its w:t, and its w:delText — deleted text is text (the checker says why)
+T_START = re.compile(rb"<w:(?:t|delText)" + ATTRS + rb">")
+TEXT = re.compile(rb"<w:(t|delText)" + ATTRS + rb">(.*?)</w:\1>", re.S)
+PPR_START = opening(b"w:pPr")
 # the one run shape a split may touch: properties, if any, then one w:t holding text and
 # nothing else — no tab, no break, no second w:t, which a split would read as text
 SIMPLE_INNER = re.compile(rb"\A(<w:rPr" + ATTRS + rb">.*?</w:rPr>)?(<w:t" + ATTRS + rb">)([^<]*)</w:t>\Z", re.S)
@@ -142,7 +159,7 @@ def _children(inner: bytes) -> list[tuple[bytes, bytes]]:
 def _insert(children: list[tuple[bytes, bytes]], name: bytes, element: bytes) -> list[tuple[bytes, bytes]]:
     """`element` among `children`, at the place the schema puts it (ADR 0004's order table).
     Nothing already there moves: repairing the order is a different finding."""
-    rank = ooxml.RPR_ORDER.index(name.decode()[2:])
+    rank = ooxml.RPR_ORDER.index(name.decode()[2:])  # the run properties: no place there is shared
     for i, (there, _raw) in enumerate(children):
         local = there.decode()[2:]
         if local in ooxml.RPR_ORDER and ooxml.RPR_ORDER.index(local) > rank:
@@ -193,12 +210,17 @@ def fix_rpr(inner: bytes, font: bytes, mark: bool | None,
             children = [(n, new if n == b"w:rFonts" else raw) for n, raw in children]
             five += 1
 
-    if mark is False and b"w:cs" in by_name:
+    cs = by_name.get(b"w:cs")
+    cs_on = cs is not None and not _off(cs[:cs.index(b">") + 1])
+    if mark is False and cs_on:
         children = _drop(children, b"w:cs")
         unmarked += 1  # not a finding of its own, so it is counted apart from the code 2 repairs
     if mark:
-        if b"w:cs" not in by_name:
+        if cs is None:
             children = _insert(children, b"w:cs", b"<w:cs/>")
+            two += 1
+        elif not cs_on:  # <w:cs w:val="0"/> says the run is not complex script: say it is
+            children = [(n, b"<w:cs/>" if n == b"w:cs" else raw) for n, raw in children]
             two += 1
         if thai_language:
             # the Thai complex-script language, only where the caller asked for it (ADR 0038)
@@ -224,7 +246,7 @@ def reorder(xml: bytes, element: bytes, order: list[str]) -> tuple[bytes, int]:
     bytes in a different order, so the part's length never changes and the positions of the
     other elements hold while this walks them.
     """
-    rank = {name: i for i, name in enumerate(order)}
+    rank = ooxml.rank(order)
     start = opening(element)
 
     def region(xml: bytes) -> tuple[list[bytes], int]:
@@ -259,8 +281,8 @@ def reorder(xml: bytes, element: bytes, order: list[str]) -> tuple[bytes, int]:
 
 
 def _run_text(inner: bytes) -> str:
-    """Everything the run's own w:t elements hold, as the text reads."""
-    return _unescape(b"".join(re.findall(rb"<w:t" + ATTRS + rb">(.*?)</w:t>", inner, re.S))).decode("utf-8", "replace")
+    """Everything the run's own w:t and w:delText elements hold, as the text reads."""
+    return _unescape(b"".join(m.group(2) for m in TEXT.finditer(inner))).decode("utf-8", "replace")
 
 
 def _with_invisibles_joined(pieces: list[tuple[bool, str]]) -> list[tuple[bool, str]]:
@@ -367,10 +389,45 @@ def _fix_run(inner: bytes, font: bytes, counts: dict[str, int], thai_language: b
     return head + _fix_runs(inner[rest_from:], font, counts, thai_language, cs_all)
 
 
+def _fix_own_rpr(inner: bytes, font: bytes) -> tuple[bytes, int]:
+    """The w:rPr that is a child of this element — a paragraph mark's, a numbering level's —
+    given its twins. It formats no run's text, so no marker is written into it or taken out."""
+    for name, raw in _children(inner):
+        if name != b"w:rPr":
+            continue
+        start = RPR_START.match(raw)
+        if start.group(1):
+            return inner, 0
+        new_body, _two, five, _marked, _unmarked = fix_rpr(raw[start.end():-len(b"</w:rPr>")], font, None)
+        if not five:
+            return inner, 0
+        # the first w:rPr in these bytes is this one: what stands before it in a w:pPr or a
+        # w:lvl holds none
+        at = inner.index(raw)
+        return inner[:at] + raw[:start.end()] + new_body + b"</w:rPr>" + inner[at + len(raw):], five
+    return inner, 0
+
+
+def _fix_marks(xml: bytes, font: bytes, counts: dict[str, int]) -> bytes:
+    """Every paragraph mark's properties given their twins; a w:pPr inside a tracked change is
+    what the paragraph was, and is left as it was."""
+    out, pos = bytearray(), 0
+    for m in PPR_START.finditer(xml):
+        if m.start() < pos or m.group(1):
+            continue
+        inner_end, _element_end = _end_of(xml, m.end(), b"w:pPr")
+        inner, five = _fix_own_rpr(xml[m.end():inner_end], font)
+        counts["5"] = counts.get("5", 0) + five
+        out += xml[pos:m.end()] + inner
+        pos = inner_end
+    return bytes(out) + xml[pos:]
+
+
 def fix_text_part(xml: bytes, font: bytes, thai_language: bool = False,
                   cs_all: bool = False) -> tuple[bytes, dict[str, int]]:
     counts: dict[str, int] = {}
-    return _fix_runs(xml, font, counts, thai_language, cs_all), {k: v for k, v in counts.items() if v}
+    xml = _fix_marks(_fix_runs(xml, font, counts, thai_language, cs_all), font, counts)
+    return xml, {k: v for k, v in counts.items() if v}
 
 
 def fix_styles(xml: bytes, font: bytes, cs_all: bool = False) -> tuple[bytes, int, int]:
@@ -395,7 +452,8 @@ def fix_styles(xml: bytes, font: bytes, cs_all: bool = False) -> tuple[bytes, in
 
 
 def fix_numbering(xml: bytes, font: bytes) -> tuple[bytes, int]:
-    """A bullet level drawn in Symbol has no Thai glyphs; give it the document's font."""
+    """A bullet level drawn in Symbol has no Thai glyphs; give it the document's font. And every
+    level's properties their twins."""
     out, pos, five = bytearray(), 0, 0
     for m in opening(b"w:lvl").finditer(xml):
         if m.start() < pos or m.group(1):
@@ -407,6 +465,8 @@ def fix_numbering(xml: bytes, font: bytes) -> tuple[bytes, int]:
             if fonts is not None and b'"Symbol"' in fonts.group(0):
                 level = level[:fonts.start()] + fonts.group(0).replace(b'"Symbol"', b'"' + font + b'"') + level[fonts.end():]
                 five += 1
+        level, n = _fix_own_rpr(level, font)
+        five += n
         out += xml[pos:m.end()] + level
         pos = inner_end
     return bytes(out) + xml[pos:], five
@@ -460,19 +520,28 @@ def foreign_prefix(parts: dict[str, bytes]) -> str | None:
     return None
 
 
+ORDERS = ((b"w:rPr", ooxml.RPR_ORDER), (b"w:pPr", ooxml.PPR_ORDER), (b"w:settings", ooxml.SETTINGS_ORDER),
+          (b"w:sectPr", ooxml.SECTPR_ORDER), (b"w:tblPr", ooxml.TBLPR_ORDER), (b"w:trPr", ooxml.TRPR_ORDER),
+          (b"w:tcPr", ooxml.TCPR_ORDER), (b"w:lvl", ooxml.LVL_ORDER), (b"w:style", ooxml.STYLE_ORDER))
+
+
 def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None = None,
                  thai_language: bool = False, cs_all: bool = False):
     """The parts to write anew, how many of each code were repaired, the font chosen, and the
     parts left as they came because they hold what is not markup."""
-    left = sorted(n for n, x in parts.items() if _is_xml(n) and _holds_what_is_not_markup(x))
-    parts = {n: x for n, x in parts.items() if _is_xml(n) and n not in left}
+    # found as the checker finds them: by relationship, not by file name
+    roles = check_mod.part_roles_of(parts)
+    styles, numbering, settings = roles["styles"], roles["numbering"], roles["settings"]
+    mine = set(roles["text"]) | {n for n in (styles, numbering, settings) if n}
+    left = sorted(n for n, x in parts.items() if (_is_xml(n) or n in mine) and _holds_what_is_not_markup(x))
+    parts = {n: x for n, x in parts.items() if (_is_xml(n) or n in mine) and n not in left}
     codes = {f["code"] for f in findings}
     replace: dict[str, bytes] = {}
     repaired: dict[str, int] = {}
-    if "1" in codes and "word/settings.xml" in parts:
-        settings, n = one_compatibility_mode(parts["word/settings.xml"])
+    if "1" in codes and settings in parts:
+        new, n = one_compatibility_mode(parts[settings])
         if n:
-            replace["word/settings.xml"] = settings
+            replace[settings] = new
             repaired["1"] = n
     if "3" in codes:
         # the XML parts only (above): a picture's bytes can spell <w:noProof/> by chance
@@ -485,11 +554,10 @@ def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None
         # runs first, then paragraphs: a w:pPr holds a w:rPr, and moving a whole child keeps
         # the order already put right inside it
         for name, xml in parts.items():
-            if not (check_mod.TEXT_PARTS.fullmatch(name) or name in ("word/styles.xml", "word/numbering.xml", "word/settings.xml")):
+            if name not in mine:
                 continue
             out, n = replace.get(name, xml), 0
-            for element, table in ((b"w:rPr", ooxml.RPR_ORDER), (b"w:pPr", ooxml.PPR_ORDER),
-                                   (b"w:settings", ooxml.SETTINGS_ORDER)):
+            for element, table in ORDERS:
                 out, some = reorder(out, element, table)
                 n += some
             if n:
@@ -502,25 +570,25 @@ def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None
     if codes & {"2", "5"} or thai_language or not cs_all:
         cs_font, why = complex_script_font(parts, font)
         for name, xml in parts.items():
-            if not check_mod.TEXT_PARTS.fullmatch(name):
+            if name not in roles["text"]:
                 continue
             new, counts = fix_text_part(replace.get(name, xml), cs_font, thai_language, cs_all)
             if counts:
                 replace[name] = new
                 for code, n in counts.items():
                     repaired[code] = repaired.get(code, 0) + n
-        if "word/styles.xml" in parts:
-            new, n, off = fix_styles(replace.get("word/styles.xml", parts["word/styles.xml"]), cs_font, cs_all)
+        if styles in parts:
+            new, n, off = fix_styles(replace.get(styles, parts[styles]), cs_font, cs_all)
             if n or off:
-                replace["word/styles.xml"] = new
+                replace[styles] = new
                 if n:
                     repaired["5"] = repaired.get("5", 0) + n
                 if off:
                     repaired["unmarked"] = repaired.get("unmarked", 0) + off
-        if "word/numbering.xml" in parts:
-            new, n = fix_numbering(replace.get("word/numbering.xml", parts["word/numbering.xml"]), cs_font)
+        if numbering in parts:
+            new, n = fix_numbering(replace.get(numbering, parts[numbering]), cs_font)
             if n:
-                replace["word/numbering.xml"] = new
+                replace[numbering] = new
                 repaired["5"] = repaired.get("5", 0) + n
         if any(code in repaired for code in ("2", "5")):
             chosen = {"code": "font", "message": "complex-script font written where a run named none: '"
@@ -535,9 +603,8 @@ def package_text(parts: dict[str, bytes]) -> list[str]:
     """The text of every part a reader sees — body, headers, footers, notes, comments — each
     paragraph as fidelity reads it, the parts in name order."""
     out: list[str] = []
-    for name in sorted(parts):
-        if check_mod.TEXT_PARTS.fullmatch(name):
-            paragraphs(ET.fromstring(parts[name]), out)
+    for name in sorted(check_mod.part_roles_of(parts)["text"]):
+        paragraphs(ET.fromstring(parts[name]), out)
     return out
 
 

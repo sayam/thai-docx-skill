@@ -27,7 +27,8 @@ function opening(name, flags) {
 // nothing else — no tab, no break, no second w:t, which a split would read as text
 const RE_SIMPLE_INNER = new RegExp("^(<w:rPr" + ATTRS + ">[\\s\\S]*?<\\/w:rPr>)?(<w:t" + ATTRS + ">)([^<]*)<\\/w:t>$");
 const RE_PRESERVE = /xml:space\s*=\s*["']preserve["']/;
-const RE_T_START = new RegExp("<w:t" + ATTRS + ">");
+// a run's text: its w:t, and its w:delText — deleted text is text (check.py says why)
+const RE_T_START = new RegExp("<w:(?:t|delText)" + ATTRS + ">");
 
 class RepairError extends Error {}
 const RE_NO_PROOF = new RegExp("<w:noProof" + ATTRS + "(?:\\/>|>\\s*<\\/w:noProof>)", "g");
@@ -42,10 +43,18 @@ function tagAttrs(tag) {
   return out;
 }
 
-// Every <w:noProof/> gone. Removing it leaves the default, which is proofing on.
+// A switch that says off (ST_OnOff), as the checker reads it.
+function saysOff(tag) {
+  const value = tagAttrs(tag).get("w:val");
+  return value !== undefined && OFF.has(value);
+}
+
+// Every <w:noProof/> that switches proofing off gone. Removing it leaves the default, which is
+// proofing on; one that says w:val="0" says that already, and stays.
 function removeNoProof(xml) {
   let count = 0;
-  const out = xml.replace(RE_NO_PROOF, () => {
+  const out = xml.replace(RE_NO_PROOF, (found) => {
+    if (saysOff(found)) return found;
     count += 1;
     return "";
   });
@@ -127,7 +136,7 @@ function childrenOf(inner) {
 // `element` among `children`, at the place the schema puts it. Nothing already there moves:
 // repairing the order is a different finding.
 function insertChild(children, name, element) {
-  const rank = RPR_ORDER.indexOf(name.slice(2));
+  const rank = RPR_ORDER.indexOf(name.slice(2)); // the run properties: no place there is shared
   for (let i = 0; i < children.length; i++) {
     const local = children[i][0].slice(2);
     const at = RPR_ORDER.indexOf(local);
@@ -171,13 +180,18 @@ function fixRpr(inner, font, mark, thaiLanguage) {
     }
   }
 
-  if (mark === false && byName.has("w:cs")) {
+  const cs = byName.get("w:cs");
+  const csOn = cs !== undefined && !saysOff(cs.slice(0, cs.indexOf(">") + 1));
+  if (mark === false && csOn) {
     children = dropChild(children, "w:cs");
     unmarked += 1; // not a finding of its own, so it is counted apart from the code 2 repairs
   }
   if (mark) {
-    if (!byName.has("w:cs")) {
+    if (cs === undefined) {
       children = insertChild(children, "w:cs", "<w:cs/>");
+      two += 1;
+    } else if (!csOn) { // <w:cs w:val="0"/> says the run is not complex script: say it is
+      children = children.map(([n, raw]) => [n, n === "w:cs" ? "<w:cs/>" : raw]);
       two += 1;
     }
     if (thaiLanguage) {
@@ -207,7 +221,7 @@ function fixRpr(inner, font, mark, thaiLanguage) {
 // different order, so the part's length never changes and the positions of the other elements
 // hold while this walks them.
 function reorder(xml, element, order) {
-  const rank = new Map(order.map((name, i) => [name, i]));
+  const rank = rankOf(order);
   // One walk, written out once: the part was once rebuilt whole at every element put right,
   // which took twenty seconds on a part of nine kilobytes. An element of this name can hold
   // another (w:rPrChange holds a w:rPr), so the inner one is put right first, inside the walk
@@ -255,11 +269,11 @@ function unescapeXml(text) {
     .replace(/&apos;/g, "'").replace(/&amp;/g, "&");
 }
 
-// Everything the run's own w:t elements hold, as the text reads.
+// Everything the run's own w:t and w:delText elements hold, as the text reads.
 function runText(inner) {
   let text = "";
-  const re = new RegExp("<w:t" + ATTRS + ">([\\s\\S]*?)<\\/w:t>", "g");
-  for (let m = re.exec(inner); m !== null; m = re.exec(inner)) text += unescapeXml(m[1]);
+  const re = new RegExp("<w:(t|delText)" + ATTRS + ">([\\s\\S]*?)<\\/w:\\1>", "g");
+  for (let m = re.exec(inner); m !== null; m = re.exec(inner)) text += unescapeXml(m[2]);
   return text;
 }
 
@@ -365,9 +379,44 @@ function fixRun(inner, font, counts, thaiLanguage, csAll) {
   return head + fixRuns(inner.slice(restFrom), font, counts, thaiLanguage, csAll);
 }
 
+// The w:rPr that is a child of this element — a paragraph mark's, a numbering level's — given
+// its twins. It formats no run's text, so no marker is written into it or taken out.
+function fixOwnRpr(inner, font) {
+  for (const [name, raw] of childrenOf(inner)) {
+    if (name !== "w:rPr") continue;
+    const start = new RegExp("^<w:rPr" + ATTRS + "(\\/?)>").exec(raw);
+    if (start[1]) return [inner, 0];
+    const [newBody, , five] = fixRpr(raw.slice(start[0].length, raw.length - "</w:rPr>".length), font, null, false);
+    if (!five) return [inner, 0];
+    // the first w:rPr in this text is this one: what stands before it in a w:pPr or a w:lvl
+    // holds none
+    const at = inner.indexOf(raw);
+    return [inner.slice(0, at) + start[0] + newBody + "</w:rPr>" + inner.slice(at + raw.length), five];
+  }
+  return [inner, 0];
+}
+
+// Every paragraph mark's properties given their twins; a w:pPr inside a tracked change is what
+// the paragraph was, and is left as it was.
+function fixMarks(xml, font, counts) {
+  let out = "", pos = 0;
+  const re = opening("w:pPr");
+  for (let m = re.exec(xml); m !== null; m = re.exec(xml)) {
+    if (m.index < pos || m[1]) continue;
+    const startEnd = m.index + m[0].length;
+    const [innerEnd] = endOf(xml, startEnd, "w:pPr");
+    const [inner, five] = fixOwnRpr(xml.slice(startEnd, innerEnd), font);
+    counts["5"] = (counts["5"] || 0) + five;
+    out += xml.slice(pos, startEnd) + inner;
+    pos = innerEnd;
+    re.lastIndex = pos;
+  }
+  return out + xml.slice(pos);
+}
+
 function fixTextPart(xml, font, thaiLanguage, csAll) {
   const counts = {};
-  const out = fixRuns(xml, font, counts, thaiLanguage, csAll);
+  const out = fixMarks(fixRuns(xml, font, counts, thaiLanguage, csAll), font, counts);
   const kept = {};
   for (const [k, v] of Object.entries(counts)) if (v) kept[k] = v;
   return [out, kept];
@@ -396,7 +445,8 @@ function fixStyles(xml, font, csAll) {
   return [out + xml.slice(pos), five, unmarked];
 }
 
-// A bullet level drawn in Symbol has no Thai glyphs; give it the document's font.
+// A bullet level drawn in Symbol has no Thai glyphs; give it the document's font. And every
+// level's properties their twins.
 function fixNumbering(xml, font) {
   let out = "", pos = 0, five = 0;
   const re = opening("w:lvl");
@@ -413,6 +463,9 @@ function fixNumbering(xml, font) {
         five += 1;
       }
     }
+    const [put, n] = fixOwnRpr(level, font);
+    level = put;
+    five += n;
     out += xml.slice(pos, startEnd) + level;
     pos = innerEnd;
     re.lastIndex = pos;
@@ -474,16 +527,24 @@ function foreignPrefix(parts) {
 
 // The parts to write anew, how many of each code were repaired, the font chosen, and the parts
 // left as they came because they hold what is not markup.
+const ORDERS = [["w:rPr", RPR_ORDER], ["w:pPr", PPR_ORDER], ["w:settings", SETTINGS_ORDER], ["w:sectPr", SECTPR_ORDER],
+  ["w:tblPr", TBLPR_ORDER], ["w:trPr", TRPR_ORDER], ["w:tcPr", TCPR_ORDER], ["w:lvl", LVL_ORDER], ["w:style", STYLE_ORDER]];
+
 function repairParts(allParts, findings, font, thaiLanguage, csAll) {
-  const left = [...allParts.keys()].filter((n) => isXmlPart(n) && holdsWhatIsNotMarkup(fromUtf8(allParts.get(n)))).sort();
-  const parts = new Map([...allParts].filter(([n]) => isXmlPart(n) && !left.includes(n)));
+  // found as the checker finds them: by relationship, not by file name
+  const roles = partRolesOf(allParts);
+  const { styles, numbering, settings } = roles;
+  const mine = new Set([...roles.text, styles, numbering, settings].filter((n) => n !== null));
+  const ours = (n) => isXmlPart(n) || mine.has(n);
+  const left = [...allParts.keys()].filter((n) => ours(n) && holdsWhatIsNotMarkup(fromUtf8(allParts.get(n)))).sort();
+  const parts = new Map([...allParts].filter(([n]) => ours(n) && !left.includes(n)));
   const codes = new Set(findings.map((f) => f.code));
   const replace = new Map();
   const repaired = {};
-  if (codes.has("1") && parts.has("word/settings.xml")) {
-    const [settings, n] = oneCompatibilityMode(fromUtf8(parts.get("word/settings.xml")));
+  if (codes.has("1") && parts.has(settings)) {
+    const [put, n] = oneCompatibilityMode(fromUtf8(parts.get(settings)));
     if (n) {
-      replace.set("word/settings.xml", utf8(settings));
+      replace.set(settings, utf8(put));
       repaired["1"] = n;
     }
   }
@@ -501,11 +562,9 @@ function repairParts(allParts, findings, font, thaiLanguage, csAll) {
     // runs first, then paragraphs: a w:pPr holds a w:rPr, and moving a whole child keeps the
     // order already put right inside it
     for (const [name, bytes] of parts) {
-      const mine = TEXT_PARTS.test(name) ||
-        ["word/styles.xml", "word/numbering.xml", "word/settings.xml"].includes(name);
-      if (!mine) continue;
+      if (!mine.has(name)) continue;
       let out = fromUtf8(replace.get(name) || bytes), n = 0;
-      for (const [element, table] of [["w:rPr", RPR_ORDER], ["w:pPr", PPR_ORDER], ["w:settings", SETTINGS_ORDER]]) {
+      for (const [element, table] of ORDERS) {
         const [put, some] = reorder(out, element, table);
         out = put;
         n += some;
@@ -523,25 +582,25 @@ function repairParts(allParts, findings, font, thaiLanguage, csAll) {
   if (codes.has("2") || codes.has("5") || thaiLanguage || !csAll) {
     const [csFont, why] = complexScriptFont(parts, font);
     for (const [name, bytes] of parts) {
-      if (!TEXT_PARTS.test(name)) continue;
+      if (!roles.text.includes(name)) continue;
       const [put, counts] = fixTextPart(fromUtf8(replace.get(name) || bytes), csFont, thaiLanguage, csAll);
       if (Object.keys(counts).length) {
         replace.set(name, utf8(put));
         for (const [code, n] of Object.entries(counts)) repaired[code] = (repaired[code] || 0) + n;
       }
     }
-    if (parts.has("word/styles.xml")) {
-      const [put, n, off] = fixStyles(fromUtf8(replace.get("word/styles.xml") || parts.get("word/styles.xml")), csFont, csAll);
+    if (parts.has(styles)) {
+      const [put, n, off] = fixStyles(fromUtf8(replace.get(styles) || parts.get(styles)), csFont, csAll);
       if (n || off) {
-        replace.set("word/styles.xml", utf8(put));
+        replace.set(styles, utf8(put));
         if (n) repaired["5"] = (repaired["5"] || 0) + n;
         if (off) repaired.unmarked = (repaired.unmarked || 0) + off;
       }
     }
-    if (parts.has("word/numbering.xml")) {
-      const [put, n] = fixNumbering(fromUtf8(replace.get("word/numbering.xml") || parts.get("word/numbering.xml")), csFont);
+    if (parts.has(numbering)) {
+      const [put, n] = fixNumbering(fromUtf8(replace.get(numbering) || parts.get(numbering)), csFont);
       if (n) {
-        replace.set("word/numbering.xml", utf8(put));
+        replace.set(numbering, utf8(put));
         repaired["5"] = (repaired["5"] || 0) + n;
       }
     }
