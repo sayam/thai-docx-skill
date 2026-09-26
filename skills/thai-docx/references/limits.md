@@ -241,9 +241,9 @@ nobody refers to; `ำ` typed the long way (`ํ` + `า`), which is left exactl
 search for `ำ` will not find; a Thai mark with no letter before it, or a letter with two tone
 marks, each left as typed; a `Table:` or `Figure:` line in a place where it is not a caption;
 a Thai caption prefix, which is not one — the prefix is `Table:`/`Figure:` in every language;
-a region comment inside a list, quotation or footnote; `$…$` math kept as literal LaTeX; a picture too
-narrow for a caption of its width under `--caption-matches-object`, whose caption takes the text
-width; `--thai-language` in a document with no Thai text, which reached no run.
+a region comment inside a list, quotation or footnote; `$…$` math kept as literal LaTeX; a
+`--caption-hanging-indent` that leaves a caption boxed by `--caption-matches-object` less than an
+inch, whose caption takes the text width; `--thai-language` in a document with no Thai text, which reached no run.
 
 **`build` overwrites the output path without asking** — any path but the Markdown's own. Give a
 new name to keep the old file.

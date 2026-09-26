@@ -15,7 +15,7 @@ from . import markdown as md
 from .ooxml import PUNCTUATION, THAI_MARKS, is_complex
 from .layout import (CAPTION_STYLE, SECTION_MARK, caption_text, has_thai, heading_styles, image_only, layout,
                      list_entries, list_field, number_text)
-from .settings import MIN_TEXT_TWIPS, BuildError, half_up, page_size
+from .settings import MIN_CAPTION_TWIPS, MIN_TEXT_TWIPS, BuildError, half_up, page_size
 
 def _bold_only(node: dict) -> bool:
     """A text inline whose run properties are the ones a caption's label carries: bold, nothing
@@ -491,7 +491,7 @@ class Writer:
         attrs = ([' w:left="' + str(left + hang) + '"'] if left + hang else []) + ([' w:right="' + str(right) + '"'] if right else [])
         ind = ("<w:ind" + "".join(attrs) + (' w:hanging="' + str(hang) + '"' if hang else "") + "/>") if attrs or hang else ""
         ppr = ('<w:pStyle w:val="' + CAPTION_STYLE[c["kind"]] + '"/>' + ("<w:keepNext/>" if keep_next else "")
-               + ind + ('<w:jc w:val="center"/>' if c["kind"] == "figure" else ""))
+               + ind + ('<w:jc w:val="center"/>' if c["kind"] == "figure" and not self.opts["caption_matches_object"] else ""))
         ppr += self.latin_jc(ppr, caption_text(c))
         rest = c["inlines"]
         if not self.numbers_are_text():
@@ -529,21 +529,25 @@ class Writer:
 
         Only a picture: a table is written at the full width of the text, so its caption already
         ends where it does. The width is the one the image was drawn at — its own, or the text
-        width where the picture was wider — and where `--center-images` centres the picture the
-        slack is split, so the caption's box is the picture's box. The width is the last picture
-        written, which is this caption's: a `Figure:` caption is made only where the paragraph
-        just before it holds a picture and nothing else (layout.py).
+        width where the picture was wider — and never less than 3 inches, or the text width where
+        that is less: under a small picture a caption would otherwise stand a few words to a line.
+        Where `--center-images` centres the picture the slack is split, so the box is centred with
+        it; otherwise it starts at the margin, where the picture does. The width is the last
+        picture written, which is this caption's: a `Figure:` caption is made only where the
+        paragraph just before it holds a picture and nothing else (layout.py). A caption in a box
+        aligns as the body does, not centred: its first line starts where the picture does.
 
-        A picture too narrow to leave an inch for the caption's lines, after `hang`, gives its
-        caption the text width instead, and says so: a box narrower than that stands one
-        character to a line, or less than none."""
+        A box that `hang` leaves less than an inch for the caption's lines gives its caption the
+        text width instead, and says so: a box narrower than that stands one character to a
+        line, or less than none."""
         if not (self.opts["caption_matches_object"] and c["kind"] == "figure" and self.image_twips):
             return 0, 0
-        if min(self.image_twips, self.text_width_twips) - hang < MIN_TEXT_TWIPS:
-            self.layout_warnings.append("line " + str(line) + ": the picture is too narrow for a caption of its width;"
-                                        " the caption takes the width of the text")
+        box = max(min(self.image_twips, self.text_width_twips), min(MIN_CAPTION_TWIPS, self.text_width_twips))
+        if box - hang < MIN_TEXT_TWIPS:
+            self.layout_warnings.append("line " + str(line) + ": --caption-hanging-indent leaves the caption of this picture"
+                                        " less than an inch; the caption takes the width of the text")
             return 0, 0
-        slack = max(self.text_width_twips - self.image_twips, 0)
+        slack = self.text_width_twips - box
         left = slack // 2 if self.opts["center_images"] else 0
         return left, slack - left
 

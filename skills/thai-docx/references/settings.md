@@ -74,7 +74,7 @@ For a report or thesis: region comments and `Table:` / `Figure:` captions — [c
 | figure caption label | รูปที่ | `--figure-label "ภาพที่"` |
 | caption lines after the first | start at the margin, like the first | `--caption-hanging-indent 0.75` (0–4 in; independent of `--indent`) |
 | an image on a line of its own | starts at the left margin | `--center-images` |
-| the width of a caption | the width of the text | `--caption-matches-object` (as wide as the picture it belongs to; a picture too narrow to leave an inch gives its caption the text width, and the build says so) |
+| the width of a caption | the width of the text | `--caption-matches-object` (as wide as the picture it belongs to and never narrower than 3 in, starting where the picture starts; a hang that leaves it less than an inch gives the caption the text width, and the build says so) |
 | page numbers before the chapters | ก ข ค | `--front-page-numbers lower-roman` (or `upper-roman`, `decimal`) |
 | appendix label | ภาคผนวก | `--appendix-label "Appendix"` |
 | appendix numbers | ก ข ค | `--appendix-numbers upper-letters` (or `decimal`, `upper-roman`) |
