@@ -54,6 +54,8 @@ function buildText(text, opts, readImage) {
     ["front", writer.regions.includes("front")],
     ["numbers", writer.hasOrderedList || items.some((item) => item.number !== undefined || item.caption !== undefined)],
     ["toc comment", items.some((item) => item.block.t === "directive" && item.block.name === "toc")],
+    ["thai text", writer.scripts.has(true)],
+    ["other text", writer.scripts.has(false)],
   ].filter(([, there]) => there).map(([name]) => name));
   const outcome = {
     counts: { ...writer.counts, runs: report.counts.runs || 0 },

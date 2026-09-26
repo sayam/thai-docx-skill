@@ -10,9 +10,10 @@ before two applications were read; the exception and what is owed are in
 
 ## [Unreleased]
 
-**No document changes**: the build writes byte for byte what 0.2.1 wrote. `check` reads more of a
-file someone else wrote, so it can find what it answered `ok` on before; `repair` puts right what
-it now finds.
+**No document changes but one**: the build writes byte for byte what 0.2.1 wrote, except the
+caption of a picture that leaves it less than an inch under `--caption-matches-object`, which now
+takes the text width. `check` reads more of a file someone else wrote, so it can find what it
+answered `ok` on before; `repair` puts right what it now finds.
 
 ### Fixed
 
@@ -36,6 +37,26 @@ it now finds.
   table's, a row's, a cell's, a paragraph mark's, a numbering level's and a style's are checked
   and repaired too
   (`tests/test_check_reads_the_whole_package.py::test_the_order_of_every_property_list_is_checked`).
+- Every run wrote sixteen `.pyc` files into the installed skill's folder; now one, the entry
+  point's, which Python writes before the skill runs, and none under `python3 -B`
+  (`tests/test_script_limits.py::test_running_the_package_leaves_no_cache`).
+- `profile export PATH` made every missing folder above `PATH`; it writes where it is told, or not
+  at all (`tests/test_what_a_command_takes.py::test_profile_export_writes_where_it_is_told_and_makes_no_folder`).
+- An encrypted entry that was not XML passed the check, and `repair` copied it under flags that
+  said it was not encrypted; an entry encrypted or compressed some other way anywhere in the
+  package is refused
+  (`tests/test_what_a_command_takes.py::test_an_entry_encrypted_anywhere_in_the_package_is_refused`).
+- An unused link definition after the first in a paragraph was said to be on the first one's line
+  (`tests/test_what_a_command_takes.py::test_an_unused_definition_is_named_at_its_own_line`).
+- A picture at a drive path such as `C:\…` was refused as a remote image; it is read as a path
+  (`tests/test_what_a_command_takes.py::test_a_drive_path_is_a_path_not_a_remote_image`).
+- `--force-cs-whole-doc` on a document of Thai only, and `--thai-language` on one with no Thai,
+  changed nothing and said nothing; the build says so
+  (`tests/test_what_a_command_takes.py::test_a_flag_that_reaches_nothing_says_so`).
+- A caption's hanging indent past the text, or a caption as narrow as a small picture under
+  `--caption-matches-object`, was written as a line of no width or less. The first is refused as
+  `--indent` is; the second takes the text width, with a warning
+  (`tests/test_what_a_command_takes.py::test_a_caption_is_never_given_less_than_an_inch`).
 
 ## [0.2.1] - 2026-09-26
 

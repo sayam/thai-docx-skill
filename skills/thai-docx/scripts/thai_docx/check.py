@@ -136,13 +136,16 @@ def _read_parts(data: bytes, report: Report) -> dict[str, bytes] | None:
     if total > MAX_TOTAL or any(i.file_size > MAX_PART for i in infos):
         report.find("size", "", "package would decompress to " + str(total) + " bytes; refused")
         return None
+    # every entry, not only the parts read: repair copies the others as they are, and one
+    # encrypted or compressed some other way was written back under flags that said otherwise
+    for info in infos:
+        if info.method not in (0, 8) or info.flags & 0x1:
+            report.find("package", info.name, "entry uses encryption or a compression method other than stored or deflate")
+            return None
     parts = {}
     for info in infos:
         if not info.name.endswith((".xml", ".rels")):
             continue
-        if info.method not in (0, 8) or info.flags & 0x1:
-            report.find("package", info.name, "entry uses encryption or a compression method other than stored or deflate")
-            return None
         try:
             part = package.read(data, info)
         except package.PackageError:

@@ -26,6 +26,7 @@ const STRUCTURES = {
   "chapter headings": "no heading carries a chapter number; a # heading under <!-- chapters --> does",
   front: "the document has no <!-- front --> comment",
   numbers: "the document has no numbered heading, ordered list or caption",
+  "other text": "every run is Thai text, and is marked complex script already",
 };
 const CLASHES = {
   "toc comment": "the document places a table of contents with <!-- toc --> as well, so it now has two",
@@ -61,7 +62,7 @@ const SETTINGS = [
     read: ["text", 200, "\t\n"], takes: "text of 1 to 200 characters on one line", usage: "TEXT", report: ["footer", "value"] },
   { key: "thai_language", flag: "--thai-language", kind: "switch", default: false, layer: 1,
     report: ["thai_language", "value"] },
-  { key: "force_cs_whole_doc", flag: "--force-cs-whole-doc", kind: "switch", default: false, layer: 1, // ADR 0039
+  { key: "force_cs_whole_doc", flag: "--force-cs-whole-doc", kind: "switch", default: false, layer: 1, needs: "other text", // ADR 0039
     report: ["force_cs_whole_doc", "value"] },
   { key: "thai_digits", flag: "--thai-digits", kind: "switch", default: false, layer: 2, // numbers Word generates; never the text
     report: ["thai_digits", "value"] },
@@ -224,6 +225,10 @@ function parseArgs(argv) {
   const [top, right, bottom, left] = opts.margins.map((m) => halfUp(m * 1440));
   if (pw - left - right < MIN_TEXT_TWIPS || ph - top - bottom < MIN_TEXT_TWIPS) throw new BuildError("--margins leave less than one inch for text");
   if (pw - left - right - halfUp(opts.indent * 1440) < MIN_TEXT_TWIPS) throw new BuildError("--indent leaves less than one inch for text");
+  // every line of a caption after its first stands that far in (settings.py says why)
+  if (pw - left - right - halfUp(opts.caption_hanging_indent * 1440) < MIN_TEXT_TWIPS) {
+    throw new BuildError("--caption-hanging-indent leaves less than one inch for text");
+  }
   return [opts, positional, allow];
 }
 
@@ -257,6 +262,10 @@ function settingsWarnings(opts, present) {
     }
   }
   const out = [...missing].map(([need, flags]) => joinFlags(flags) + " changed nothing: " + STRUCTURES[need]);
+  // --thai-language changed bytes, but with no Thai text reached no run (settings.py says why)
+  if (opts.thai_language && !present.has("thai text")) {
+    out.push("--thai-language reached no run: the document has no Thai text, and only the styles name the language");
+  }
   for (const s of SETTINGS) {
     if (s.clashes && present.has(s.clashes) && opts[s.key] !== s.default) out.push(s.flag + ": " + CLASHES[s.clashes]);
   }

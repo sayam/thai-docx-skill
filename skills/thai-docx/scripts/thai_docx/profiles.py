@@ -229,13 +229,15 @@ def load(name: str) -> tuple[dict, str, pathlib.Path]:
     return read(path), where, path
 
 
-def write(profile: dict, path: pathlib.Path) -> None:
+def write(profile: dict, path: pathlib.Path, make_folder: bool = True) -> None:
     """The whole file or none of it: written beside the target, then put in its place, so
-    a write that fails leaves the profile that was there as it was."""
+    a write that fails leaves the profile that was there as it was. Only the two profile
+    folders are made when missing (ADR 0040); `export` writes where it is told, or nowhere."""
     data = canonical(profile).encode("utf-8")
     partial = path.with_name(path.name + ".partial")
     try:
-        path.parent.mkdir(parents=True, exist_ok=True)
+        if make_folder:
+            path.parent.mkdir(parents=True, exist_ok=True)
         partial.write_bytes(data)
         os.replace(partial, path)
     except OSError as exc:
@@ -382,7 +384,7 @@ def run(argv: list[str]) -> dict:
     if command == "export" and 1 <= len(rest) <= 2:
         data, _where, path = load(rest[0])
         out = pathlib.Path(rest[1]) if len(rest) == 2 else pathlib.Path(path.stem + ".json")
-        write(data, out)
+        write(data, out, make_folder=False)
         return {"ok": True, "name": path.stem, "path": str(out), "sha256": digest(data["settings"]),
                 "share": "send this file; the other side runs `thai_docx profile import " + out.name + "`"}
     if command == "import" and rest:

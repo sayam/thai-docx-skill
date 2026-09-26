@@ -14,7 +14,7 @@ import struct
 from . import markdown as md
 from .layout import (CAPTION_STYLE, SECTION_MARK, caption_text, has_thai, heading_styles, image_only, layout,
                      list_entries, list_field, number_text)
-from .settings import BuildError, half_up, page_size
+from .settings import MIN_TEXT_TWIPS, BuildError, half_up, page_size
 
 def _bold_only(node: dict) -> bool:
     """A text inline whose run properties are the ones a caption's label carries: bold, nothing
@@ -185,6 +185,7 @@ class Writer:
         self.image_twips = 0  # the width the last image was drawn at, for --caption-matches-object
         self.cs = CS_THAI if opts["thai_language"] else CS
         self.cs_all = opts["force_cs_whole_doc"]  # mark every run, as releases before 0.2.0 did
+        self.scripts: set[bool] = set()  # whether a run of each kind was written: a flag's need
         # a style is not a run: it names the Latin language for an application that reads
         # styles but not docDefaults, and never says complex script, which each run says
         self.style_lang = '<w:lang w:val="en-US"' + (' w:bidi="th-TH"' if opts["thai_language"] else "") + "/>"
@@ -208,6 +209,7 @@ class Writer:
 
     def marker(self, complex_script: bool) -> str:
         """What says a run is complex script, or nothing when its text is not."""
+        self.scripts.add(complex_script)
         return self.cs if complex_script or self.cs_all else ""
 
     @staticmethod
@@ -295,7 +297,9 @@ class Writer:
 
     def image(self, node: dict) -> str:
         src = node["src"]
-        if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", src):
+        # a drive letter (`C:\`, `C:/`) is a path, not a URL scheme: it goes to the rules a path
+        # goes to, which say whether it is inside the folders a build may read (ADR 0040)
+        if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", src) and not re.match(r"^[A-Za-z]:[\\/]", src):
             raise BuildError("image '" + src + "': remote images are not supported; only local PNG or JPEG files")
         path, data = self.read_image(src)
         if path not in self.image_rel:
@@ -436,7 +440,7 @@ class Writer:
             if item.get("new_section"):
                 out.append(SECTION_MARK)
             if "caption" in item:
-                out.append(self.caption(item["caption"], item.get("keep_next", False)))
+                out.append(self.caption(item["caption"], item.get("keep_next", False), b["line"]))
             elif b["t"] == "directive":
                 out.append(self.field(list_field(b["name"], self.opts), entries=list_entries(self.items, b["name"])))
             elif b["t"] == "heading":
@@ -447,7 +451,7 @@ class Writer:
                 out.append(self.blocks([b], body=True, keep_next=item.get("keep_next", False)))
         return "".join(out)
 
-    def caption(self, c: dict, keep_next: bool) -> str:
+    def caption(self, c: dict, keep_next: bool, line: int) -> str:
         """Label and number, bold, then the caption text. Where the document's numbers are the
         build's own (ADR 0036) the number is text. With `--auto-numbering` it is the pair of
         fields Word's own Insert Caption writes — the chapter from a STYLEREF, the count from a
@@ -463,7 +467,7 @@ class Writer:
         # --caption-hanging-indent: the label and number keep the margin and every line after
         # the first is indented, so a caption that runs on reads as one block beside its number
         hang = half_up(self.opts["caption_hanging_indent"] * 1440)
-        left, right = self.caption_box(c)
+        left, right = self.caption_box(c, hang, line)
         attrs = ([' w:left="' + str(left + hang) + '"'] if left + hang else []) + ([' w:right="' + str(right) + '"'] if right else [])
         ind = ("<w:ind" + "".join(attrs) + (' w:hanging="' + str(hang) + '"' if hang else "") + "/>") if attrs or hang else ""
         ppr = ('<w:pStyle w:val="' + CAPTION_STYLE[c["kind"]] + '"/>' + ("<w:keepNext/>" if keep_next else "")
@@ -499,7 +503,7 @@ class Writer:
             out += run(" ", "") + self.inlines(rest)
         return out + "</w:p>"
 
-    def caption_box(self, c: dict) -> tuple[int, int]:
+    def caption_box(self, c: dict, hang: int, line: int) -> tuple[int, int]:
         """The indents that make a caption as wide as the picture it belongs to, in twips
         (`--caption-matches-object`), or (0, 0) for a caption that fills the text width.
 
@@ -508,8 +512,16 @@ class Writer:
         width where the picture was wider — and where `--center-images` centres the picture the
         slack is split, so the caption's box is the picture's box. The width is the last picture
         written, which is this caption's: a `Figure:` caption is made only where the paragraph
-        just before it holds a picture and nothing else (layout.py)."""
+        just before it holds a picture and nothing else (layout.py).
+
+        A picture too narrow to leave an inch for the caption's lines, after `hang`, gives its
+        caption the text width instead, and says so: a box narrower than that stands one
+        character to a line, or less than none."""
         if not (self.opts["caption_matches_object"] and c["kind"] == "figure" and self.image_twips):
+            return 0, 0
+        if min(self.image_twips, self.text_width_twips) - hang < MIN_TEXT_TWIPS:
+            self.layout_warnings.append("line " + str(line) + ": the picture is too narrow for a caption of its width;"
+                                        " the caption takes the width of the text")
             return 0, 0
         slack = max(self.text_width_twips - self.image_twips, 0)
         left = slack // 2 if self.opts["center_images"] else 0

@@ -134,13 +134,16 @@ function readParts(bytes, report) {
     report.find("size", "", "package would decompress to " + total + " bytes; refused");
     return null;
   }
-  const parts = new Map();
+  // every entry, not only the parts read (check.py says why)
   for (const e of entries) {
-    if (!e.name.endsWith(".xml") && !e.name.endsWith(".rels")) continue;
     if ((e.method !== 0 && e.method !== 8) || (e.flags & 0x1)) {
       report.find("package", e.name, "entry uses encryption or a compression method other than stored or deflate");
       return null;
     }
+  }
+  const parts = new Map();
+  for (const e of entries) {
+    if (!e.name.endsWith(".xml") && !e.name.endsWith(".rels")) continue;
     let data;
     try {
       data = readZipEntry(bytes, e);

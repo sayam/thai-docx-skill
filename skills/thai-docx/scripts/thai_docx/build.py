@@ -89,6 +89,8 @@ def build_text(text: str, opts: dict, read_image) -> tuple[dict, bytes | None]:
         ("front", "front" in writer.regions),
         ("numbers", writer.has_ordered_list or any("number" in item or "caption" in item for item in items)),
         ("toc comment", any(item["block"]["t"] == "directive" and item["block"]["name"] == "toc" for item in items)),
+        ("thai text", True in writer.scripts),
+        ("other text", False in writer.scripts),
     ) if there}
     result.update(
         counts={**writer.counts, "runs": report.counts.get("runs", 0)},

@@ -87,7 +87,7 @@ widen what the commands do: the limits of §2 hold whatever the arguments.
 | Open design | all code, decisions, threats and evidence are public |
 | Separation of privilege | changes to main need the required checks for everyone; code owners guard workflows and gates |
 | Least privilege | no network, no subprocess, bounded file access; CI workflows run with `contents: read` unless a job needs more |
-| Least common mechanism | no shared state between runs; no caches, no daemons |
+| Least common mechanism | no shared state between runs; no caches (Python caches the entry point, `__main__.py`, before any line of the skill runs — `python3 -B` writes none), no daemons |
 | Psychological acceptability | defaults need no questions; refusals name the line and the reason |
 | Limited attack surface | five commands, JSON out, no plugins, no configuration from the environment |
 | Input validation with allowlists | Markdown dialect and HTML tag allowlist, flag value sets and ranges, image types by magic bytes, profile schema |

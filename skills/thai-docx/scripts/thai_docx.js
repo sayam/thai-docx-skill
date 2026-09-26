@@ -1170,13 +1170,16 @@ function readParts(bytes, report) {
     report.find("size", "", "package would decompress to " + total + " bytes; refused");
     return null;
   }
-  const parts = new Map();
+  // every entry, not only the parts read (check.py says why)
   for (const e of entries) {
-    if (!e.name.endsWith(".xml") && !e.name.endsWith(".rels")) continue;
     if ((e.method !== 0 && e.method !== 8) || (e.flags & 0x1)) {
       report.find("package", e.name, "entry uses encryption or a compression method other than stored or deflate");
       return null;
     }
+  }
+  const parts = new Map();
+  for (const e of entries) {
+    if (!e.name.endsWith(".xml") && !e.name.endsWith(".rels")) continue;
     let data;
     try {
       data = readZipEntry(bytes, e);
@@ -2114,13 +2117,15 @@ function finalizeDocument(p, doc) {
 function takeReferences(p, b) {
   let content = b.stringContent;
   let hasDefs = false;
+  let dropped = 0; // lines already taken: the next definition starts that many lines further down
   while (peekCh(content, 0) === "[") {
-    const pos = new InlineParser(p, b.line).parseReference(content, p.refmap);
+    const pos = new InlineParser(p, b.line + dropped).parseReference(content, p.refmap);
     if (!pos) break;
     const consumed = content.slice(0, pos);
     content = content.slice(pos);
     hasDefs = true;
     const drop = consumed.split("\n").length - 1;
+    dropped += drop;
     b.lines = b.lines.slice(drop);
   }
   b.stringContent = content;
@@ -3613,6 +3618,7 @@ const STRUCTURES = {
   "chapter headings": "no heading carries a chapter number; a # heading under <!-- chapters --> does",
   front: "the document has no <!-- front --> comment",
   numbers: "the document has no numbered heading, ordered list or caption",
+  "other text": "every run is Thai text, and is marked complex script already",
 };
 const CLASHES = {
   "toc comment": "the document places a table of contents with <!-- toc --> as well, so it now has two",
@@ -3648,7 +3654,7 @@ const SETTINGS = [
     read: ["text", 200, "\t\n"], takes: "text of 1 to 200 characters on one line", usage: "TEXT", report: ["footer", "value"] },
   { key: "thai_language", flag: "--thai-language", kind: "switch", default: false, layer: 1,
     report: ["thai_language", "value"] },
-  { key: "force_cs_whole_doc", flag: "--force-cs-whole-doc", kind: "switch", default: false, layer: 1, // ADR 0039
+  { key: "force_cs_whole_doc", flag: "--force-cs-whole-doc", kind: "switch", default: false, layer: 1, needs: "other text", // ADR 0039
     report: ["force_cs_whole_doc", "value"] },
   { key: "thai_digits", flag: "--thai-digits", kind: "switch", default: false, layer: 2, // numbers Word generates; never the text
     report: ["thai_digits", "value"] },
@@ -3811,6 +3817,10 @@ function parseArgs(argv) {
   const [top, right, bottom, left] = opts.margins.map((m) => halfUp(m * 1440));
   if (pw - left - right < MIN_TEXT_TWIPS || ph - top - bottom < MIN_TEXT_TWIPS) throw new BuildError("--margins leave less than one inch for text");
   if (pw - left - right - halfUp(opts.indent * 1440) < MIN_TEXT_TWIPS) throw new BuildError("--indent leaves less than one inch for text");
+  // every line of a caption after its first stands that far in (settings.py says why)
+  if (pw - left - right - halfUp(opts.caption_hanging_indent * 1440) < MIN_TEXT_TWIPS) {
+    throw new BuildError("--caption-hanging-indent leaves less than one inch for text");
+  }
   return [opts, positional, allow];
 }
 
@@ -3844,6 +3854,10 @@ function settingsWarnings(opts, present) {
     }
   }
   const out = [...missing].map(([need, flags]) => joinFlags(flags) + " changed nothing: " + STRUCTURES[need]);
+  // --thai-language changed bytes, but with no Thai text reached no run (settings.py says why)
+  if (opts.thai_language && !present.has("thai text")) {
+    out.push("--thai-language reached no run: the document has no Thai text, and only the styles name the language");
+  }
   for (const s of SETTINGS) {
     if (s.clashes && present.has(s.clashes) && opts[s.key] !== s.default) out.push(s.flag + ": " + CLASHES[s.clashes]);
   }
@@ -4512,6 +4526,7 @@ class Writer {
     this.imageTwips = 0; // the width the last image was drawn at, for --caption-matches-object
     this.cs = opts.thai_language ? CS_THAI : CS;
     this.csAll = opts.force_cs_whole_doc; // mark every run, as releases before 0.2.0 did
+    this.scripts = new Set(); // whether a run of each kind was written: a flag's need
     // a style is not a run: it names the Latin language for an application that reads styles but
     // not docDefaults, and never says complex script, which each run says for itself
     this.styleLang = '<w:lang w:val="en-US"' + (opts.thai_language ? ' w:bidi="th-TH"' : "") + "/>";
@@ -4534,6 +4549,7 @@ class Writer {
 
   // What says a run is complex script, or nothing when its text is not.
   marker(complexScript) {
+    this.scripts.add(complexScript);
     return complexScript || this.csAll ? this.cs : "";
   }
 
@@ -4610,7 +4626,8 @@ class Writer {
 
   image(node) {
     const src = node.src;
-    if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(src)) {
+    // a drive letter is a path, not a URL scheme (writer.py says why)
+    if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(src) && !/^[A-Za-z]:[\\/]/.test(src)) {
       throw new BuildError("image '" + src + "': remote images are not supported; only local PNG or JPEG files");
     }
     const [path, data] = this.readImage(src);
@@ -4749,7 +4766,7 @@ class Writer {
       const b = item.block;
       if (item.new_section) out.push(SECTION_MARK);
       if (item.caption) {
-        out.push(this.caption(item.caption, Boolean(item.keep_next)));
+        out.push(this.caption(item.caption, Boolean(item.keep_next), b.line));
       } else if (b.t === "directive") {
         out.push(this.field(listField(b.name, this.opts), "", listEntries(this.items, b.name)));
       } else if (b.t === "heading") {
@@ -4769,14 +4786,14 @@ class Writer {
   // after the label and starting again at each chapter, in Thai digits when those are asked for
   // — with the results written in, so an application that never updates fields still shows them.
   // settings.xml carries the label itself (captionsXml).
-  caption(c, keepNext) {
+  caption(c, keepNext, line) {
     this.counts.paragraphs += 1;
     const bold = "<w:b/><w:bCs/>";
     const run = (text, rpr) => this.runs(text, rpr);
     // --caption-hanging-indent: the label and number keep the margin and every line after the
     // first is indented, so a caption that runs on reads as one block beside its number
     const hang = halfUp(this.opts.caption_hanging_indent * 1440);
-    const [boxLeft, boxRight] = this.captionBox(c);
+    const [boxLeft, boxRight] = this.captionBox(c, hang, line);
     const attrs = (boxLeft + hang ? ' w:left="' + (boxLeft + hang) + '"' : "") + (boxRight ? ' w:right="' + boxRight + '"' : "");
     const ind = attrs || hang ? "<w:ind" + attrs + (hang ? ' w:hanging="' + hang + '"' : "") + "/>" : "";
     let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + ind +
@@ -4819,8 +4836,15 @@ class Writer {
   // split, so the caption's box is the picture's box. The width is the last picture written,
   // which is this caption's: a Figure: caption is made only where the paragraph just before it
   // holds a picture and nothing else (48-layout.js).
-  captionBox(c) {
+  // A picture too narrow to leave an inch for the caption's lines gives its caption the text
+  // width instead, and says so (writer.py's caption_box says why).
+  captionBox(c, hang, line) {
     if (!(this.opts.caption_matches_object && c.kind === "figure" && this.imageTwips)) return [0, 0];
+    if (Math.min(this.imageTwips, this.textWidthTwips) - hang < MIN_TEXT_TWIPS) {
+      this.layoutWarnings.push("line " + line + ": the picture is too narrow for a caption of its width;" +
+        " the caption takes the width of the text");
+      return [0, 0];
+    }
     const slack = Math.max(this.textWidthTwips - this.imageTwips, 0);
     const left = this.opts.center_images ? Math.floor(slack / 2) : 0;
     return [left, slack - left];
@@ -5616,6 +5640,8 @@ function buildText(text, opts, readImage) {
     ["front", writer.regions.includes("front")],
     ["numbers", writer.hasOrderedList || items.some((item) => item.number !== undefined || item.caption !== undefined)],
     ["toc comment", items.some((item) => item.block.t === "directive" && item.block.name === "toc")],
+    ["thai text", writer.scripts.has(true)],
+    ["other text", writer.scripts.has(false)],
   ].filter(([, there]) => there).map(([name]) => name));
   const outcome = {
     counts: { ...writer.counts, runs: report.counts.runs || 0 },
@@ -6629,14 +6655,15 @@ function profileIsFile(p) {
 }
 
 // The whole file or none of it: written beside the target, then put in its place, so a
-// write that fails leaves the profile that was there as it was.
-function profileWrite(profile, p) {
+// write that fails leaves the profile that was there as it was. Only the two profile folders
+// are made when missing (ADR 0040); `export` writes where it is told, or nowhere.
+function profileWrite(profile, p, makeFolder = true) {
   const fs = require("fs");
   const path = require("path");
   const data = utf8(profileCanonical(profile));
   const partial = p + ".partial";
   try {
-    fs.mkdirSync(path.dirname(p), { recursive: true });
+    if (makeFolder) fs.mkdirSync(path.dirname(p), { recursive: true });
     fs.writeFileSync(partial, data);
     fs.renameSync(partial, p);
   } catch (e) {
@@ -6813,7 +6840,7 @@ function profileRun(argv) {
     const data = profileRead(p);
     const name = path.basename(p, ".json");
     const out = rest.length === 2 ? rest[1] : name + ".json";
-    profileWrite(data, out);
+    profileWrite(data, out, false);
     return { ok: true, name, path: out, sha256: profileDigest(data.settings),
       share: "send this file; the other side runs `thai_docx profile import " + path.basename(out) + "`" };
   }

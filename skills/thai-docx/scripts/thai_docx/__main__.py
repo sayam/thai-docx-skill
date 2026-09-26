@@ -18,6 +18,9 @@ import os
 import pathlib
 import sys
 
+# the skill's folder is not this command's to write: no bytecode cache beside the scripts (ADR 0040)
+sys.dont_write_bytecode = True
+
 if __package__ in (None, ""):
     # `python3 scripts/thai_docx …` runs this file as a script, not a package.
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
