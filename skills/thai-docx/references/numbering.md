@@ -48,7 +48,7 @@ Only what has been measured is here. A blank is not a promise.
 | application | Arabic digits | with `--thai-digits` | chapter-numbered captions (region comments) |
 |---|---|---|---|
 | **Word 365 for Windows** (the one this mode is for) | correct; a heading, chapter, list item or caption inserted renumbers what follows | correct, in Thai digits | correct |
-| Word on the web | numbers as the desktop does, but **not covered for this mode**: no section break can be inserted at all (Layout → Breaks offers Page and Column only), and Format Painter does not carry a heading's number — apply the Heading style instead. A document to be edited there is a ready-to-use one | correct, in Thai digits | correct |
+| Word on the web | numbers as the desktop does, but **not covered for this mode**. That no section break can be inserted there (Layout → Breaks offering Page and Column only) and that Format Painter does not carry a heading's number were seen but not recorded — owed with the Word for the web reading. A document to be edited there is a ready-to-use one | correct, in Thai digits | correct |
 | Word for macOS | correct | headings correct (`บทที่ ๑`, `๑.๑`), at the heading's size | not measured on its own |
 | Google Docs | correct as opened; renumbering on edit not measured | not measured | correct as opened |
 | LibreOffice Writer | correct | **draws 1, 2, 3** — it has no Thai-digit numbering | **wrong**: `ตารางที่ บทนำ-ก` — it answers the chapter-number field with the chapter's *title*, ignores the restart at each chapter, and draws the Thai-digit counter as Thai letters (ก, ข, ค) — measured again 2026-09-23, and a chapter-numbered caption LibreOffice makes itself loses its chapter number the same way through .docx |

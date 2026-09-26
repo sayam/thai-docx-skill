@@ -27,7 +27,8 @@ WPS.
 - *Every application:* content complete; bold and italic render on Thai;
   bullets show as •; Thai lines break inside words, not only at spaces; the font
   is applied; tables, links and headings are correct; footnotes are numbered at
-  the foot of the page; images stay within the page; ☐ and ☑ show as symbols.
+  the foot of the page; images stay within the page; ☐ and ☑ show as symbols
+  (**Later:** since ADR 0033, `□` and `■` in a text font, which every reader draws).
 - *Word only:* no "Compatibility Mode" in the title bar; the status bar shows
   Thai; no squiggles under correctly spelled words.
 

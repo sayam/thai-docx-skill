@@ -77,6 +77,10 @@ re-measured by the test suite on every run, so a different expat shows up as a
 red test rather than as two verdicts.
 
 **Nesting.** Neither implementation reads by recursion where its input sets the depth.
+(**Later, 2026-09-26:** what holds for the Markdown is a limit, not the absence of recursion — the
+parser finalises blocks recursively, and the 100-deep cap is what keeps it within the stack; the
+checker's comparison of run properties, which did recurse as deep as the input went, reads with a
+stack of its own since ADR 0040.)
 The JavaScript XML reader keeps open elements on a stack, so it reads any depth expat
 reads. Markdown blocks nested more than 100 deep, or inline formatting nested more than
 100 deep within a block, stop the build at the line where the limit is crossed: every

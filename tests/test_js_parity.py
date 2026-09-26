@@ -55,7 +55,7 @@ def test_bundle_is_built_from_the_committed_sources():
 
 
 def test_bundle_stays_within_the_script_limits():
-    """ADR 0030 §1–2 for the JavaScript file: only fs, os and path, no network, no
+    """ADR 0040 §1–2 for the JavaScript file: only fs, os and path, no network, no
     child processes, no code built from strings."""
     source = BUNDLE.read_text(encoding="utf-8")
     assert sorted(set(re.findall(r"require\(\s*\"([^\"]+)\"\s*\)", source))) == ["fs", "os", "path"]

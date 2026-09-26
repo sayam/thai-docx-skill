@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sayam Sriphua
 // SPDX-License-Identifier: MIT
 // thai-docx — entry: the command line under Node.js, and the ThaiDocx object for a
-// sandbox that runs JavaScript with no file system (ADR 0007, 0008, 0030).
+// sandbox that runs JavaScript with no file system (ADR 0007, 0008, 0040).
 
 const OS_ERRORS = { ENOENT: "No such file or directory", EACCES: "Permission denied", EISDIR: "Is a directory", ENOTDIR: "Not a directory",
   ENOTREG: "not a regular file" };
@@ -74,7 +74,7 @@ function parentOf(path, p, root) {
 // The path as the file system walks it — the same walk as real_path() in
 // thai_docx/build.py: each component's symbolic link followed, `..` taken from
 // what is already resolved; a missing component stays as written. A walk that
-// meets a link past the fortieth has no end this answers for: null (ADR 0030 §4).
+// meets a link past the fortieth has no end this answers for: null (ADR 0040 §4).
 function realPath(fs, path, p) {
   if (!path.isAbsolute(p)) p = process.cwd() + path.sep + p;
   let [root, parts] = splitRoot(path, p);
@@ -162,7 +162,7 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
     const p = realPath(fs, path, path.isAbsolute(src) ? src : mdDir + path.sep + src);
     if (p === null) throw new BuildError("image '" + src + "': more than " + MAX_LINKS + " symbolic links");
     if (!roots.some((root) => inside(path, p, root))) {
-      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)");
+      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0040 §4)");
     }
     let b;
     try {
@@ -426,7 +426,7 @@ function buildDocument(markdown, args, images) {
   const table = images || {};
   const readImage = (src) => {
     if (src.split(/[\\/]/).includes("..") || src.startsWith("/") || src.startsWith("\\")) {
-      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)");
+      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0040 §4)");
     }
     if (!Object.prototype.hasOwnProperty.call(table, src)) throw new BuildError("image '" + src + "': No such file or directory");
     return [src, table[src]];

@@ -94,7 +94,10 @@ The build follows the seven rules above, which are Word's own, with one exceptio
   `w:val="en-US" w:eastAsia="en-US"`, so a run repeating it says nothing new at 28 characters a
   time. `--thai-language` is the one thing a run still says about language, because nothing else
   can say it: `w:bidi="th-TH"` may not go in `docDefaults` (below), and it is written as
-  `<w:lang w:bidi="th-TH"/>` **on the marked runs only** — a run that holds no complex script has
+  `<w:lang w:bidi="th-TH"/>` **on the marked runs only** (**Later, 2026-09-26:** that is so without
+  the flag, when nothing in the chain names the language; with `--thai-language` the build writes
+  it where ADR 0038 says — `docDefaults`, the styles, the marked runs and `w:themeFontLang` — and
+  the two records meant different things by "only") — a run that holds no complex script has
   no complex-script language to name. Where the flag once wrote it on all 497 runs of
   `sample-text`, it now writes it on 308. This is decided on its own evidence
   rather than carried along by the `<w:cs/>` rule. A file made by hand while this was being
@@ -216,6 +219,14 @@ smaller**, and the cost line in `references/limits.md` is about the word count, 
 An earlier estimate of +4% to +8.5% was made by counting transitions rather than by building the
 files, and was wrong in both its size and its ordering; these numbers, measured on files that were
 built and opened, replace it.
+
+> **Later (2026-09-26):** the table above was measured on probe files whose XML was edited by hand
+> on 2026-09-22, before the goldens were built again, and it does not reproduce on them. The goldens
+> themselves, `word/document.xml` before this record (`e9b5c0a`) and after it (`93cf51a`):
+> `thesis-text` (the `sample-text` variant) 139,273 → 133,586, −4.1%; `thesis-options` 151,642 →
+> 148,356, −2.2%; `sample-default` (`sample-basic`) 14,287 → 13,233, −7.4%. The direction holds:
+> every document is smaller. The counts of runs above — 705, and 685 pieces with text — do
+> reproduce.
 
 **The five-application check starts again.** Word for macOS and Word 365 for Windows had already
 been read on the previous bytes; both results are spent.

@@ -90,7 +90,7 @@ and modes.
   instructions in `SKILL.md` an agent follows.
 - This repository's workflows and release process.
 
-What the scripts are designed never to do is written down in `docs/adr/0030`: no network;
+What the scripts are designed never to do is written down in `docs/adr/0040`: no network;
 no subprocesses, `eval` or code loaded from outside the skill; no environment variable read
 beyond the platform's own lookup of the home directory; writing only the output path, the one profile file `profile save` or `import` names in the
 profile directories, and the path `profile export` is given; reading images only from the

@@ -35,7 +35,7 @@ file that is gone, a repeated number or a gap in the numbering is red.
 | 0027 | [Generated matter carries what an application would otherwise supply: list entries, and a font on every run](0027-lists-carry-entries-and-runs-name-their-font.md) | 2026-09-16 | accepted |
 | 0028 | [Settings live in one registry, grouped by what they need; everything else is derived from it](0028-settings-in-one-registry-grouped-by-what-they-need.md) | 2026-09-16 | accepted |
 | 0029 | [Grill from a profile and save as another: the interview is data, read by the script (restated)](0029-grill-from-a-profile-save-as-another.md) | 2026-09-16 | accepted |
-| 0030 | [Bundled scripts run with the agent's rights: the limits, restated with both implementations read by tests](0030-script-limits-read-by-tests-in-both-implementations.md) | 2026-09-18 | accepted |
+| 0030 | [Bundled scripts run with the agent's rights: the limits, restated with both implementations read by tests](0030-script-limits-read-by-tests-in-both-implementations.md) | 2026-09-18 | superseded by 0040 |
 | 0031 | [MIT, with every exception named in the file that carries it (restated)](0031-mit-with-the-exceptions-each-file-names.md) | 2026-09-18 | accepted |
 | 0032 | [Repair rewrites the attributes that break Thai, never the text](0032-repair-rewrites-attributes-never-the-text.md) | 2026-09-18 | superseded by 0037 |
 | 0033 | [The task-list box is a square in a text font, not a symbol only Windows has](0033-the-task-box-is-a-square-in-a-text-font.md) | 2026-09-19 | accepted |
@@ -45,3 +45,5 @@ file that is gone, a repeated number or a gap in the numbering is red.
 | 0037 | [Repair puts a document's own numbering back, and asks which kind it is before it starts](0037-repair-renumbers-what-the-build-would-have-written.md) | 2026-09-20 | accepted |
 | 0038 | [Every run says it is complex script; only `--thai-language` says the language is Thai](0038-the-thai-language-is-written-only-when-asked.md) | 2026-09-20 | accepted |
 | 0039 | [A run is marked complex script where its text is complex script, not everywhere](0039-complex-script-is-marked-where-it-is.md) | 2026-09-22 | accepted |
+| 0040 | [Bundled scripts run with the agent's rights: the limits, restated with what the review of 0.2.0 found](0040-script-limits-restated-after-the-review-of-0-2-0.md) | 2026-09-26 | accepted |
+| 0041 | [A finding is closed by a control, not by a fix](0041-a-finding-is-closed-by-a-control.md) | 2026-09-26 | accepted |

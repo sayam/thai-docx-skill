@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decided: 2026-09-15
+- Amended by: [0040](0040-script-limits-restated-after-the-review-of-0-2-0.md) (the same bytes on the same Unicode version, not on any)
 
 ## Where it came from
 

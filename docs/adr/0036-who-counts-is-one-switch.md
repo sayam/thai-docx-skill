@@ -162,7 +162,9 @@ them. `sample.md` built with `--auto-numbering` is byte for byte the `sample-def
 this record (`50776ea25c45…`), which is how the old path is known to be whole.
 
 **The oracle set gains a variant**, `sample-auto`: the thesis with `--heading-numbers
---thai-digits --auto-numbering`, held as a golden. Its checklist asks what no other variant can:
+--thai-digits --auto-numbering`, held as a golden. (**Later:** it is built from every flag of
+`sample-options` with `--auto-numbering` added; `tools/oracle_set.py` holds the list, and is the
+one place to read it.) Its checklist asks what no other variant can:
 that a heading, a list item and a caption inserted in the application renumber what follows. The
 reference application must pass it; the other four are recorded.
 

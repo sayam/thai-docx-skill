@@ -33,8 +33,9 @@ went out with Word for macOS not yet read on its bytes and LibreOffice Writer re
 **Nothing outside those five applications is covered**, and it must never be described as working.
 
 **`--auto-numbering` is held to Word on the desktop, and to nothing else.** Word on the web is not
-covered for it — it cannot insert a section break at all, and its Format Painter does not carry a
-heading's number — so a document meant to be edited there is a ready-to-use one. What the other
+covered for it, so a document meant to be edited there is a ready-to-use one. (That the web
+version cannot insert a section break, and that its Format Painter does not carry a heading's
+number, was seen but never recorded; it is owed with the Word for the web reading.) What the other
 applications draw with `--auto-numbering` is recorded in [numbering.md](numbering.md), each line
 measured; a blank there is not a promise.
 
@@ -132,7 +133,8 @@ A document built with a font that carries no Thai still warns, as it always did.
 - **An ordered list starts at the number the Markdown typed.** Nothing recounts it.
 - **`--auto-numbering` is one answer for the whole document**, never a mix.
 - **A caption the reader adds joins the lists in both kinds of document — by a different route
-  in each.** Measured in Word 365 for Windows on 2026-09-23.
+  in each.** Measured in Word 365 for Windows on 2026-09-23
+  (record: `docs/evidence/2026-09-23-editing-in-word-after-the-build.md` in the repository).
 
   **Ready-to-use (the default).** Add the table or figure, then **copy a caption that is already
   there — the whole paragraph, including its paragraph mark — paste it, and type the new number

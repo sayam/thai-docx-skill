@@ -84,7 +84,7 @@ gates:
     enforced_by: {job: tests, tests: [tests/test_repair.py]}
     proved_by: [docs/evidence/2026-09-18-repair-sets-the-mode-and-drops-noproof.md, docs/evidence/2026-09-18-repair-marks-thai-and-fills-the-twins.md, docs/evidence/2026-09-19-repair-puts-the-properties-back-in-order.md]
   - id: javascript-matches-python
-    title: The JavaScript file reads Markdown, writes .docx bytes, reports on sound and damaged packages and answers on the command line exactly as the Python package does (ADR 0008, 0017), stays within the script limits (ADR 0030), and is the bundle its committed sources build
+    title: The JavaScript file reads Markdown, writes .docx bytes, reports on sound and damaged packages and answers on the command line exactly as the Python package does (ADR 0008, 0017), stays within the script limits (ADR 0040), and is the bundle its committed sources build
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_js_parity.py]}
@@ -119,13 +119,13 @@ gates:
     enforced_by: {job: tests, tests: [tests/test_grill.py]}
     proved_by: [docs/evidence/2026-09-16-grill-is-the-users-word.md, docs/evidence/2026-09-16-grill-from-a-profile.md, docs/evidence/2026-09-18-grill-reads-one-message-one-way.md]
   - id: profiles-are-data
-    title: A profile holds only settings a flag could set, checked as flags are; it is found in the project, the home or the skill in that order; saving, exporting and importing stay inside the profile directories, and both implementations write the same bytes (ADR 0024, 0030)
+    title: A profile holds only settings a flag could set, checked as flags are; it is found in the project, the home or the skill in that order; saving, exporting and importing stay inside the profile directories, and both implementations write the same bytes (ADR 0024, 0040)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_profiles.py]}
     proved_by: [docs/evidence/2026-09-16-profiles-are-data.md, docs/evidence/2026-09-17-profile-save-says-it-replaced.md]
   - id: python-stays-within-the-script-limits
-    title: The skill's Python imports only a named list of standard modules, reaches no environment, process or network through os, and builds no code from strings, read from its source (ADR 0030 limits 1, 2 and 6)
+    title: The skill's Python imports only a named list of standard modules, reaches no environment, process or network through os, and builds no code from strings, read from its source (ADR 0040 limits 1, 2 and 6)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_script_limits.py]}
@@ -235,7 +235,7 @@ gates:
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_adr_amendments.py]}
   - id: live-pages-cite-the-record-in-force
-    title: The rules page is one text — Thai the rule, the English below it marked a translation — every link on it reaches a file, each rule traces to a record the index marks accepted, the pages that decide send a reader there, and no live page of this project cites a record the index marks superseded unless it names the record in force on the same line (docs/rules.md, ADR 0001)
+    title: The rules page is one text — Thai the rule, the English below it marked a translation — every link on it reaches a file, each rule traces to a record the index marks accepted, the pages that decide send a reader there, and no live page of this project cites a record the index marks superseded unless it names the record in force on the same line; a dated measurement in the references is the date of a record, the newest release record names every golden's sha256, and the sentences of records found stale in 0.2.0 carry their Later line (docs/rules.md, ADR 0001, 0041)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_rules.py]}
