@@ -16,7 +16,7 @@ Every document has these.
 | paper | A4 | `--paper letter` or `--paper f14` (8.5 × 13 in) |
 | orientation | portrait | `--landscape` (margins stay top, right, bottom, left) |
 | margins, inches | 1, 1, 1, 1.5 (top, right, bottom, left) | `--margins 1,1,1,1` |
-| first-line indent, inches | none | `--indent 0.5` (body paragraphs only) |
+| first-line indent, inches | none | `--indent 0.5` (body paragraphs only; not a picture alone in its paragraph) |
 | line spacing | 1 | `--line-spacing 1.5` (1–3; code and footnotes stay single) |
 | alignment | left | `--align thai` (Thai distributed; a paragraph with no Thai stays left) |
 | the complex-script language of the text | left to the reader's machine | `--thai-language` (writes `w:bidi="th-TH"`; see [limits.md](limits.md) §3) |

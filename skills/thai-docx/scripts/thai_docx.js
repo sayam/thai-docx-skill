@@ -4711,6 +4711,7 @@ class Writer {
     this.docPr = 0;
     this.hasOrderedList = false; // whether --auto-numbering has anything to count (ADR 0028)
     this.imageTwips = 0; // the width the last image was drawn at, for --caption-matches-object
+    this.indentTwips = 0; // what the paragraph being written takes off the line a picture sits on
     this.cs = opts.thai_language ? CS_THAI : CS;
     this.csAll = opts.force_cs_whole_doc; // mark every run, as releases before 0.2.0 did
     this.scripts = new Set(); // whether a run of each kind was written: a flag's need
@@ -4837,7 +4838,7 @@ class Writer {
     const [rid, wpx, hpx] = this.imageRel.get(path);
     let cx = BigInt(wpx) * BigInt(EMU_PER_PX);
     let cy = BigInt(hpx) * BigInt(EMU_PER_PX);
-    const maxCx = BigInt(this.textWidthTwips) * BigInt(EMU_PER_TWIP);
+    const maxCx = BigInt(this.textWidthTwips - this.indentTwips) * BigInt(EMU_PER_TWIP);
     if (cx > maxCx) {
       cy = (cy * maxCx) / cx;
       cx = maxCx;
@@ -5063,8 +5064,16 @@ class Writer {
           out.push(this.paragraph(b.inlines, null, (keepNext ? "<w:keepNext/>" : "") + '<w:jc w:val="center"/>'));
           continue;
         }
-        const ppr = (keepNext ? "<w:keepNext/>" : "") + (firstLine ? '<w:ind w:firstLine="' + firstLine + '"/>' : ind);
+        // a picture alone in its paragraph takes no first-line indent, and one that opens a
+        // paragraph is drawn no wider than its first line: a picture as wide as the text would
+        // otherwise run past the right margin by the indent
+        const alone = imageOnly(b);
+        const ppr = (keepNext ? "<w:keepNext/>" : "") + (firstLine && !alone ? '<w:ind w:firstLine="' + firstLine + '"/>' : ind);
+        const left = level ? 720 * level : quote ? 720 : 0; // Quote's own left, unless a level replaces it
+        const opens = b.inlines.length > 0 && b.inlines[0].t === "image" && !alone;
+        this.indentTwips = left + (quote ? 720 : 0) + (opens ? firstLine : 0);
         out.push(this.paragraph(b.inlines, quote ? "Quote" : level ? "ListParagraph" : null, ppr));
+        this.indentTwips = 0;
       } else if (t === "code") {
         this.counts.code_blocks += 1;
         for (const line of b.lines.length ? b.lines : [""]) {

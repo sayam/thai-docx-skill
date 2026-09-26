@@ -196,6 +196,7 @@ class Writer:
         self.doc_pr = 0
         self.has_ordered_list = False  # whether --auto-numbering has anything to count (ADR 0028)
         self.image_twips = 0  # the width the last image was drawn at, for --caption-matches-object
+        self.indent_twips = 0  # what the paragraph being written takes off the line a picture sits on
         self.cs = CS_THAI if opts["thai_language"] else CS
         self.cs_all = opts["force_cs_whole_doc"]  # mark every run, as releases before 0.2.0 did
         self.scripts: set[bool] = set()  # whether a run of each kind was written: a flag's need
@@ -328,7 +329,7 @@ class Writer:
             self.counts["images"] += 1
         rid, wpx, hpx = self.image_rel[path]
         cx, cy = wpx * EMU_PER_PX, hpx * EMU_PER_PX
-        max_cx = self.text_width_twips * EMU_PER_TWIP
+        max_cx = (self.text_width_twips - self.indent_twips) * EMU_PER_TWIP
         if cx > max_cx:
             cy = cy * max_cx // cx
             cx = max_cx
@@ -564,9 +565,17 @@ class Writer:
                     ppr = ("<w:keepNext/>" if keep_next else "") + '<w:jc w:val="center"/>'
                     out.append(self.paragraph(b["inlines"], None, ppr))
                     continue
-                ppr = '<w:ind w:firstLine="' + str(first_line) + '"/>' if first_line else ind
+                # a picture alone in its paragraph takes no first-line indent, and one that opens a
+                # paragraph is drawn no wider than its first line: a picture as wide as the text
+                # would otherwise run past the right margin by the indent
+                alone = image_only(b)
+                ppr = '<w:ind w:firstLine="' + str(first_line) + '"/>' if first_line and not alone else ind
                 ppr = ("<w:keepNext/>" if keep_next else "") + ppr
+                left = 720 * level if level else (720 if quote else 0)  # Quote's own left, unless a level replaces it
+                opens = bool(b["inlines"]) and b["inlines"][0]["t"] == "image" and not alone
+                self.indent_twips = left + (720 if quote else 0) + (first_line if opens else 0)
                 out.append(self.paragraph(b["inlines"], "Quote" if quote else ("ListParagraph" if level else None), ppr))
+                self.indent_twips = 0
             elif t == "code":
                 self.counts["code_blocks"] += 1
                 for line in b["lines"] or [""]:

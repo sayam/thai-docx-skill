@@ -169,6 +169,24 @@ def test_a_picture_is_fitted_to_the_page_and_never_to_nothing(tmp_path):
     assert code == 2 and "none wider or taller than 20000" in result["error"], result
 
 
+def test_a_picture_fits_the_line_its_paragraph_leaves_it(tmp_path):
+    """RD-01: a picture was fitted to the text width and then indented, so with --indent, in a list
+    or in a quotation it ran past the right margin by the indent — in every application read
+    (2026-09-26). A picture alone in its paragraph now takes no first-line indent; one that opens
+    a paragraph, or sits in a list or a quotation, is drawn no wider than the line it is on."""
+    (tmp_path / "wide.png").write_bytes(png(20000, 100))
+    (tmp_path / "in.md").write_text("![a](wide.png)\n\n![b](wide.png) ก\n\nก ![c](wide.png)\n\n- ก\n\n  ![d](wide.png)\n\n"
+                                    "> ![e](wide.png)\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx", "--indent", "0.5"], tmp_path)
+    assert code == 0, result
+    document = part(tmp_path / "out.docx", "word/document.xml")
+    widths = [int(cx) // 635 for cx in re.findall(r'<wp:extent cx="(\d+)"', document)]
+    text = 11906 - 2160 - 1440  # A4 less the default margins, in twips
+    assert widths == [text, text - 720, text, text - 720, text - 1440], widths
+    alone = re.search(r"<w:p><w:pPr>(.*?)</w:pPr><w:r><w:drawing>", document).group(1)
+    assert "w:firstLine" not in alone, alone
+
+
 # --- grill ------------------------------------------------------------------------------------------
 
 

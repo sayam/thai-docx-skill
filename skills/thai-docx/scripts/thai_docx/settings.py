@@ -90,7 +90,7 @@ SETTINGS: tuple[dict, ...] = (
     {"key": "indent", "flag": "--indent", "kind": "value", "default": 0.0, "layer": 1,  # first line of body paragraphs — inches
      "read": ("number", None, None), "takes": "a non-negative number of inches", "usage": "IN",
      "report": ("first_line_indent_in", "float"),
-     "doc": ("first-line indent, inches", "none", "`--indent 0.5` (body paragraphs only)")},
+     "doc": ("first-line indent, inches", "none", "`--indent 0.5` (body paragraphs only; not a picture alone in its paragraph)")},
     {"key": "line_spacing", "flag": "--line-spacing", "kind": "value", "default": 1.0, "layer": 1,  # code and footnotes stay single
      "read": ("number", 1, 3), "takes": "a multiple of single spacing from 1 to 3", "usage": "N",
      "report": ("line_spacing", "float"),
