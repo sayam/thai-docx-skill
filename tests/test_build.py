@@ -285,7 +285,9 @@ def test_defaults_are_announced_and_flags_change_the_package(tmp_path):
     assert "hideSpellingErrors" not in settings and "updateFields" not in settings
 
     result, out = build(tmp_path, "ก", font="Sarabun", size=14, hide_spelling_errors=True, toc=True, page_numbers="top-right", align="thai")
-    assert result["ok"] and result["warnings"] == []
+    # "ก" has no heading, so the table of contents --toc writes is empty, and the build says so (B-13)
+    assert result["ok"] and [w["message"] for w in result["warnings"]] == [
+        "--toc has no heading to list: the document has none, so the table of contents is empty"]
     with zipfile.ZipFile(out) as zf:
         settings, styles, doc = (zf.read(f"word/{n}.xml").decode() for n in ("settings", "styles", "document"))
         assert "<w:hideSpellingErrors/><w:hideGrammaticalErrors/>" in settings and '<w:updateFields w:val="true"/>' in settings

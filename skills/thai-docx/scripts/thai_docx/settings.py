@@ -373,6 +373,10 @@ def settings_warnings(opts: dict, present: set[str]) -> list[str]:
     # and is not a flag that "changed nothing"; with no Thai text it still reached no run
     if opts["thai_language"] and "thai text" not in present:
         out.append("--thai-language reached no run: the document has no Thai text, and only the styles name the language")
+    # --toc writes its field whatever the document holds, so it too changed bytes; with no heading
+    # the field lists nothing, and an application updating it may write that it found none
+    if opts["toc"] and "headings" not in present:
+        out.append("--toc has no heading to list: the document has none, so the table of contents is empty")
     for s in SETTINGS:
         clash = s.get("clashes")
         if clash in present and opts[s["key"]] != s["default"]:

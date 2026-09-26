@@ -199,6 +199,7 @@ class Writer:
         self.cs = CS_THAI if opts["thai_language"] else CS
         self.cs_all = opts["force_cs_whole_doc"]  # mark every run, as releases before 0.2.0 did
         self.scripts: set[bool] = set()  # whether a run of each kind was written: a flag's need
+        self.table_caption = ""  # the text of the `Table:` caption just written, for its table's tblCaption
         # a style is not a run: it names the Latin language for an application that reads
         # styles but not docDefaults, and never says complex script, which each run says
         self.style_lang = '<w:lang w:val="en-US"' + (' w:bidi="th-TH"' if opts["thai_language"] else "") + "/>"
@@ -457,6 +458,8 @@ class Writer:
                 out.append(SECTION_MARK)
             if "caption" in item:
                 out.append(self.caption(item["caption"], item.get("keep_next", False), b["line"]))
+                if item["caption"]["kind"] == "table":
+                    self.table_caption = caption_text(item["caption"])
             elif b["t"] == "directive":
                 out.append(self.field(list_field(b["name"], self.opts), entries=list_entries(self.items, b["name"])))
             elif b["t"] == "heading":
@@ -631,6 +634,10 @@ class Writer:
 
     def table(self, b: dict) -> str:
         self.counts["tables"] += 1
+        # the caption above it, as the table's own name, which a screen reader announces and
+        # Word's accessibility check asks for (ECMA-376 §17.4.58; the review of 0.2.0, B-13)
+        caption = '<w:tblCaption w:val=' + attr(self.table_caption) + "/>" if self.table_caption else ""
+        self.table_caption = ""
         widths = self.column_widths(b)
         grid = "".join('<w:gridCol w:w="' + str(col) + '"/>' for col in widths)
         borders = "".join('<w:' + s + ' w:val="single" w:sz="4" w:space="0" w:color="808080"/>'
@@ -650,7 +657,7 @@ class Writer:
             rows.append("<w:tr>" + trpr + "".join(cells) + "</w:tr>")
         return (
             '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>' + borders + "</w:tblBorders>"
-            '<w:tblLayout w:type="autofit"/>' + CELL_MARGINS + "</w:tblPr>"
+            '<w:tblLayout w:type="autofit"/>' + CELL_MARGINS + caption + "</w:tblPr>"
             '<w:tblGrid>' + grid + "</w:tblGrid>" + "".join(rows) + "</w:tbl>"
             "<w:p><w:pPr/></w:p>"
         )

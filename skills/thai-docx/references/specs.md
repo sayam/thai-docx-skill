@@ -143,7 +143,7 @@ a heading level skipped; a link definition nobody uses; `ำ` typed as `ํ` + `
 opens with `ตาราง:` or `รูป:` where a caption would go — the prefix is `Table:` or `Figure:`, in
 English, in every language; a `Table:` or `Figure:` line where no caption can go; a region comment
 inside a list, quotation or footnote; a font not known to carry Thai; `--toc` beside `<!-- toc -->`;
-`$…$` math, kept as literal LaTeX; a picture too narrow for a caption of its width; a flag whose
+`--toc` with no heading to list; `$…$` math, kept as literal LaTeX; a picture too narrow for a caption of its width; a flag whose
 structure the document has not got; `--thai-language` with no Thai text to reach; and a Thai mark
 with no letter before it, or a letter with two tone marks.
 

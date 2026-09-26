@@ -232,7 +232,8 @@ is not UTF-8 text.
 one no longer runs off the page.
 
 **Warned — the file is written, and the warning must be passed to the user:** a flag that changed
-nothing; `--toc` beside `<!-- toc -->`, which gives two tables of contents; a font not known to
+nothing; `--toc` beside `<!-- toc -->`, which gives two tables of contents; `--toc` in a document
+with no heading, whose table of contents is empty; a font not known to
 carry Thai; `![]` with nothing between the brackets; a heading level skipped; a link definition
 nobody refers to; `ำ` typed the long way (`ํ` + `า`), which is left exactly as typed and which a
 search for `ำ` will not find; a Thai mark with no letter before it, or a letter with two tone

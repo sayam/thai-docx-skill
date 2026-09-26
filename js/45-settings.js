@@ -266,6 +266,10 @@ function settingsWarnings(opts, present) {
   if (opts.thai_language && !present.has("thai text")) {
     out.push("--thai-language reached no run: the document has no Thai text, and only the styles name the language");
   }
+  // --toc writes its field whatever the document holds (settings.py says why)
+  if (opts.toc && !present.has("headings")) {
+    out.push("--toc has no heading to list: the document has none, so the table of contents is empty");
+  }
   for (const s of SETTINGS) {
     if (s.clashes && present.has(s.clashes) && opts[s.key] !== s.default) out.push(s.flag + ": " + CLASHES[s.clashes]);
   }
