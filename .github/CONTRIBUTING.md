@@ -166,7 +166,8 @@ Nothing merges with a failing required check.
 3. Give every outside source it leans on a row in `SOURCES.md` and cite it by id, as `[S1]`.
 4. A record that replaces an older one says `Supersedes: NNNN`, and the older one gets
    `Superseded by: NNNN` — the doctor reads both sides. A record that changes part of an older one
-   says `Amends: NNNN (what)`, and the older one gets `Amended by: NNNN (what)`.
+   says `Amends: NNNN (what)`, and the older one gets `Amended by: NNNN (what)` — the tests read
+   both sides (`tests/test_adr_amendments.py`).
 
 ## Before a release
 
