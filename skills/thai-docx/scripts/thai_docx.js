@@ -1722,6 +1722,8 @@ class Node {
     this.destination = null;
     this.title = null;
     this.label = null;
+    this.entity = false;
+    this.entities = null;
     this.aligns = null;
     this.rows = null;
     this.task = null;
@@ -2481,8 +2483,10 @@ function startFootnoteDef(p) {
   p.closeUnmatchedBlocks();
   const fn = p.addChild("footnote_def");
   fn.label = m[1];
-  if (p.footnoteDefs.has(fn.label)) throw new Unsupported(p.lineNumber, "footnote [^" + fn.label + "] is defined twice");
-  p.footnoteDefs.set(fn.label, fn);
+  // matched in any case, as cmark-gfm matches it (markdown.py says why)
+  const key = normalizeLabel(fn.label);
+  if (p.footnoteDefs.has(key)) throw new Unsupported(p.lineNumber, "footnote [^" + fn.label + "] is defined twice");
+  p.footnoteDefs.set(key, fn);
   return 1;
 }
 
@@ -2922,9 +2926,11 @@ class InlineParser {
       return true;
     }
     const inner = this.subject.slice(opener.index + 1, startpos - 1);
-    if (inner.startsWith("^") && inner.length > 1 && !/[ \t\n]/.test(inner) && this.bp.footnoteDefs.has(inner.slice(1))) {
+    const defined = inner.startsWith("^") && inner.length > 1 && !/[ \t\n]/.test(inner)
+      ? this.bp.footnoteDefs.get(normalizeLabel(inner.slice(1))) : undefined;
+    if (defined !== undefined) {
       const node = new Node("footnote_ref");
-      node.label = inner.slice(1);
+      node.label = defined.label; // the definition's, as written: one footnote, one name
       let tmp = opener.node.next;
       while (tmp !== null) {
         const nxt = tmp.next;
@@ -3009,7 +3015,9 @@ class InlineParser {
   parseEntity(block) {
     const m = this.match(reEntityHere);
     if (m === null) return false;
-    block.appendChild(textNode(decodeEntity(m, this.lineAt(this.pos))));
+    const node = textNode(decodeEntity(m, this.lineAt(this.pos)));
+    node.entity = true; // a character reference: where a link ends, it is read as written
+    block.appendChild(node);
     return true;
   }
 
@@ -3101,10 +3109,36 @@ class InlineParser {
 
 // --- extended autolinks (GFM 6.9) ---------------------------------------------------
 
-const reWww = sticky("www\\.");
-const reUrlScheme = sticky("https?://");
-const reDomain = sticky("[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*");
-const reEntityTail = /&[A-Za-z0-9]+;$/;
+// Extended autolinks as cmark-gfm finds them — markdown.py's section says how, and why ASCII.
+const ASCII_SPACE = " \t\n\x0b\x0c\r";
+
+function asciiAlnum(c) {
+  return /^[A-Za-z0-9]$/.test(c);
+}
+
+function asciiAlpha(c) {
+  return /^[A-Za-z]$/.test(c);
+}
+
+// How much of `s` from `p` is a domain, or 0 (markdown.py's _check_domain).
+function checkDomain(s, p, allowShort) {
+  const n = s.length;
+  if (s.charCodeAt(p) >= 0x80) return 1; // read as bytes, the loop stops inside it
+  let i = p + 1, dots = 0, underBefore = 0, under = 0;
+  while (i < n - 1) {
+    if (s[i] === "\\" && i < n - 2) i += 1;
+    const c = s[i];
+    if (c === "_") under += 1;
+    else if (c === ".") {
+      underBefore = under;
+      under = 0;
+      dots += 1;
+    } else if (!(asciiAlnum(c) || c === "-")) break;
+    i += 1;
+  }
+  if (underBefore || under) return 0;
+  return allowShort || dots ? i - p : 0;
+}
 
 function countChar(s, ch, start, end) {
   let n = 0;
@@ -3112,31 +3146,74 @@ function countChar(s, ch, start, end) {
   return n;
 }
 
-function autolinkEnd(s, start) {
-  let m = matchAt(reUrlScheme, s, start);
-  if (m === null) m = matchAt(reWww, s, start);
-  if (m === null) return -1;
-  const dstart = m[0].startsWith("http") ? start + m[0].length : start;
-  const d = matchAt(reDomain, s, dstart);
-  if (d === null) return -1;
-  const dEnd = dstart + d[0].length;
-  const labels = d[0].split(".");
-  if (labels.length < 2 || labels[labels.length - 1].indexOf("_") !== -1 || labels[labels.length - 2].indexOf("_") !== -1) return -1;
-  let end = dEnd;
-  while (end < s.length && !isUnicodeWhitespace(cpAt(s, end)) && s[end] !== "<") end++;
-  while (end > dEnd) {
+// Where a link that could run from `start` to `end` ends (markdown.py's _link_end).
+function linkEnd(s, start, end, entities) {
+  const lt = s.indexOf("<", start);
+  if (lt !== -1 && lt < end) end = lt;
+  while (end > start) {
     const last = s[end - 1];
-    if ("?!.,:*_~'\"".indexOf(last) !== -1) end -= 1;
-    else if (last === ")" && countChar(s, ")", start, end) > countChar(s, "(", start, end)) end -= 1;
-    else if (last === ";" && reEntityTail.test(s.slice(start, end))) end = start + reEntityTail.exec(s.slice(start, end)).index;
+    if (entities.has(end)) end = entities.get(end);
+    else if ("?!.,:*_~'\"".indexOf(last) !== -1) end -= 1;
+    else if (last === ";") {
+      let k = end - 2;
+      while (k > start && asciiAlpha(s[k])) k -= 1;
+      end = k < end - 2 && s[k] === "&" ? k : end - 1;
+    } else if (last === ")" && countChar(s, ")", start, end) > countChar(s, "(", start, end)) end -= 1;
     else break;
   }
   return end;
 }
 
+function runsOn(s, i) {
+  while (i < s.length && ASCII_SPACE.indexOf(s[i]) === -1 && s[i] !== "<") i++;
+  return i;
+}
+
+function splitUrls(s, entities) {
+  const pieces = [];
+  const starts = new Set(entities.values());
+  let last = 0;
+  let i = 0;
+  while (i < s.length) {
+    let start = -1, end = -1;
+    if (s.startsWith("www.", i) && (i === 0 || ASCII_SPACE.indexOf(s[i - 1]) !== -1 || "*_~(".indexOf(s[i - 1]) !== -1)) {
+      const domain = checkDomain(s, i, false);
+      if (domain) {
+        start = i;
+        end = linkEnd(s, i, runsOn(s, i + domain), entities);
+      }
+    } else if (s.startsWith("://", i)) {
+      let scheme = i;
+      while (scheme > last && asciiAlpha(s[scheme - 1])) scheme -= 1;
+      // the first character after "://" is not punctuation, a symbol, a space or a reference
+      const first = i + 3 < s.length ? cpAt(s, i + 3) : "";
+      if (["http", "https"].includes(s.slice(scheme, i).toLowerCase()) && first && !starts.has(i + 3) &&
+          !isUnicodeWhitespace(first) && !isUnicodePunctuation(first)) {
+        const domain = checkDomain(s, i + 3, true);
+        if (domain) {
+          start = scheme;
+          end = linkEnd(s, scheme, runsOn(s, i + 3 + domain), entities);
+        }
+      }
+    }
+    if (start !== -1 && end > start) {
+      if (start > last) pieces.push([s.slice(last, start), null]);
+      const url = s.slice(start, end);
+      pieces.push([url, start < i ? url : "http://" + url]);
+      i = last = end;
+      continue;
+    }
+    i += 1;
+  }
+  if (last < s.length) pieces.push([s.slice(last), null]);
+  return pieces;
+}
+
 const reEmailLocalOne = /^[A-Za-z0-9._+-]$/;
 const reEmailDomain = sticky("[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*");
 
+// Bare email addresses, as cmark-gfm finds them; after `mailto:` the prefix is the link's,
+// after `xmpp:` the address stays text (markdown.py's _split_emails).
 function splitEmails(s) {
   const pieces = [];
   let last = 0;
@@ -3148,9 +3225,14 @@ function splitEmails(s) {
       const d = matchAt(reEmailDomain, s, i + 1);
       if (start < i && d !== null) {
         const end = i + 1 + d[0].length;
-        if (s.slice(i + 1, end).indexOf(".") !== -1 && "-_".indexOf(s[end - 1]) === -1) {
-          if (start > last) pieces.push([s.slice(last, start), null]);
-          pieces.push([s.slice(start, end), "mailto:" + s.slice(start, end)]);
+        if (s.slice(i + 1, end).indexOf(".") !== -1 && asciiAlpha(s[end - 1])) {
+          if (start - 5 >= last && s.startsWith("xmpp:", start - 5)) {
+            i = end;
+            continue;
+          }
+          const written = start - 7 >= last && s.startsWith("mailto:", start - 7) ? start - 7 : start;
+          if (written > last) pieces.push([s.slice(last, written), null]);
+          pieces.push([s.slice(written, end), "mailto:" + s.slice(start, end)]);
           last = i = end;
           continue;
         }
@@ -3162,33 +3244,9 @@ function splitEmails(s) {
   return pieces;
 }
 
-function splitUrls(s) {
+function splitAutolinks(s, entities) {
   const pieces = [];
-  let last = 0;
-  let i = 0;
-  while (i < s.length) {
-    const before = i ? cpBefore(s, i) : "";
-    const wwwOk = s.startsWith("www.", i) && (i === 0 || isUnicodeWhitespace(before) || "*_~(".indexOf(before) !== -1);
-    const urlOk = s[i] === "h" && (i === 0 || !/^[A-Za-z0-9]$/.test(before));
-    if (wwwOk || urlOk) {
-      const end = autolinkEnd(s, i);
-      if (end > i) {
-        if (i > last) pieces.push([s.slice(last, i), null]);
-        const url = s.slice(i, end);
-        pieces.push([url, url.startsWith("http") ? url : "http://" + url]);
-        i = last = end;
-        continue;
-      }
-    }
-    i += 1;
-  }
-  if (last < s.length) pieces.push([s.slice(last), null]);
-  return pieces;
-}
-
-function splitAutolinks(s) {
-  const pieces = [];
-  for (const [text, url] of splitUrls(s)) {
+  for (const [text, url] of splitUrls(s, entities || new Map())) {
     if (url === null) pieces.push(...splitEmails(text));
     else pieces.push([text, url]);
   }
@@ -3199,7 +3257,10 @@ function linkExtended(parent) {
   let node = parent.firstChild;
   while (node !== null) {
     if (node.type === "text") {
+      // where each character reference ends, to where it starts (markdown.py says why)
+      node.entities = node.entity ? new Map([[node.literal.length, 0]]) : new Map();
       while (node.next !== null && node.next.type === "text") {
+        if (node.next.entity) node.entities.set(node.literal.length + node.next.literal.length, node.literal.length);
         node.literal += node.next.literal;
         node.next.unlink();
       }
@@ -3210,7 +3271,7 @@ function linkExtended(parent) {
   while (node !== null) {
     const nxt = node.next;
     if (node.type === "text") {
-      const pieces = splitAutolinks(node.literal);
+      const pieces = splitAutolinks(node.literal, node.entities);
       if (pieces.some(([, url]) => url !== null)) {
         let anchor = node;
         for (const [text, url] of pieces) {
@@ -3272,8 +3333,8 @@ function parseMarkdown(text) {
   const root = bp.parse(body);
   resolveInlines(bp, root);
   doc.blocks = toBlocks(bp, root, doc);
-  for (const [label, fn] of bp.footnoteDefs) {
-    if (!doc.footnotes.has(label)) {
+  for (const fn of bp.footnoteDefs.values()) {
+    if (!doc.footnotes.has(fn.label)) {
       throw new Unsupported(fn.line, "footnote [^" + fn.label + "] is defined but never referenced; nothing may be dropped silently (ADR 0023)");
     }
   }

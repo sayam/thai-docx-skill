@@ -224,7 +224,8 @@ def unescape_string(s: str, line: int = 0) -> str:
 class Node:
     __slots__ = ("type", "parent", "first_child", "last_child", "prev", "next", "open", "line", "string_content",
                  "literal", "info", "level", "list_data", "fence_char", "fence_length", "fence_offset", "is_fenced",
-                 "html_type", "destination", "title", "label", "aligns", "rows", "task", "math", "task_ok", "extended", "table_failed",
+                 "html_type", "destination", "title", "label", "entity", "entities", "aligns", "rows", "task", "math", "task_ok",
+                 "extended", "table_failed",
                  "lines")
 
     def __init__(self, type_: str, line: int = 0):
@@ -245,6 +246,8 @@ class Node:
         self.destination = None
         self.title = None
         self.label = None
+        self.entity = False
+        self.entities: dict[int, int] = {}
         self.aligns = None
         self.rows = None
         self.task = None
@@ -1033,9 +1036,12 @@ def _start_footnote_def(p, container):
     p.close_unmatched_blocks()
     fn = p.add_child("footnote_def")
     fn.label = m.group(1)
-    if fn.label in p.footnote_defs:
+    # matched as cmark-gfm matches it, as a link label is: in any case — the label as written
+    # is kept for the messages and the tree
+    key = normalize_label(fn.label)
+    if key in p.footnote_defs:
         raise Unsupported(p.line_number, f"footnote [^{fn.label}] is defined twice")
-    p.footnote_defs[fn.label] = fn
+    p.footnote_defs[key] = fn
     return 1
 
 
@@ -1496,9 +1502,11 @@ class InlineParser:
         # GitHub footnote reference, tried as cmark-gfm tries it: only once no link
         # matched, for "[^label]" with a defined label (after "!", the "!" stays text)
         inner = self.subject[opener.index + 1:startpos - 1]
-        if inner.startswith("^") and len(inner) > 1 and not re.search("[ \\t\\n]", inner) and inner[1:] in self.bp.footnote_defs:
+        defined = (self.bp.footnote_defs.get(normalize_label(inner[1:]))
+                   if inner.startswith("^") and len(inner) > 1 and not re.search("[ \\t\\n]", inner) else None)
+        if defined is not None:
             node = Node("footnote_ref")
-            node.label = inner[1:]
+            node.label = defined.label  # the definition's, as written: one footnote, one name
             tmp = opener.node.next
             while tmp is not None:
                 nxt = tmp.next
@@ -1576,7 +1584,9 @@ class InlineParser:
         m = self.match(re_entity_here)
         if m is None:
             return False
-        block.append_child(_text(_decode_entity(m, self.line_at(self.pos))))
+        node = _text(_decode_entity(m, self.line_at(self.pos)))
+        node.entity = True  # a character reference: where a link ends, it is read as written
+        block.append_child(node)
         return True
 
     def parse_math(self, block: Node) -> bool:
@@ -1656,41 +1666,108 @@ class InlineParser:
 
 
 # --- extended autolinks (GFM 6.9), on text nodes after inline parsing ---------
-# Only `www.` and `http(s)://` forms: they change no text, only whether a run of
-# it is a hyperlink.
+# As cmark-gfm finds them (its autolink.c, measured on cmarkgfm): they change no text, only
+# whether a run of it is a hyperlink. What it reads is ASCII where it counts — a domain is read
+# over ASCII letters, digits, `-`, `_` and `.`, and ends at any other character, a Thai one
+# included, while the link itself runs on to the next ASCII space or `<`. A link to a scheme
+# the build refuses (ADR 0040) is never made: `ftp://` and `xmpp:` stay text.
 
-re_www = re.compile("www\\.")
-re_url_scheme = re.compile("https?://")
-re_domain = re.compile("[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*")
-re_entity_tail = re.compile("&[A-Za-z0-9]+;$")
+ASCII_SPACE = " \t\n\x0b\x0c\r"
+ASCII_PUNCT = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 
 
-def _autolink_end(s: str, start: int) -> int:
-    """End of an extended autolink that starts at `start`, or -1."""
-    m = re_url_scheme.match(s, start) or re_www.match(s, start)
-    if m is None:
-        return -1
-    dstart = m.end() if m.group(0).startswith("http") else start
-    d = re_domain.match(s, dstart)
-    if d is None:
-        return -1
-    labels = d.group(0).split(".")
-    if len(labels) < 2 or "_" in labels[-1] or "_" in labels[-2]:
-        return -1
-    end = d.end()
-    while end < len(s) and not is_unicode_whitespace(s[end]) and s[end] != "<":
-        end += 1
-    while end > d.end():
+def _ascii_alnum(c: str) -> bool:
+    return c.isascii() and c.isalnum()
+
+
+def _check_domain(s: str, p: int, allow_short: bool) -> int:
+    """How much of `s` from `p` is a domain, or 0. A `_` in either of its last two labels is
+    no domain; `www.` needs its dot, a scheme's does not. The first character is not read and
+    the last is not reached, as cmark-gfm's loop runs."""
+    n = len(s)
+    if not s[p].isascii():
+        return 1  # read as bytes, the loop stops inside it: nothing after it is the domain
+    i, dots, under_before, under = p + 1, 0, 0, 0
+    while i < n - 1:
+        if s[i] == "\\" and i < n - 2:
+            i += 1
+        c = s[i]
+        if c == "_":
+            under += 1
+        elif c == ".":
+            under_before, under, dots = under, 0, dots + 1
+        elif not (_ascii_alnum(c) or c == "-"):
+            break
+        i += 1
+    if under_before or under:
+        return 0
+    return i - p if allow_short or dots else 0
+
+
+def _link_end(s: str, start: int, end: int, entities: dict[int, int]) -> int:
+    """Where a link that could run from `start` to `end` ends: at the first `<`, then without
+    the trailing punctuation cmark-gfm leaves out. `entities` maps where each character
+    reference ends to where it starts: `&amp;` at the end is left out whole, as `&` and a name
+    and `;` are — a numeric one too, which cmark-gfm cuts after its digits."""
+    lt = s.find("<", start, end)
+    if lt != -1:
+        end = lt
+    while end > start:
         last = s[end - 1]
-        if last in "?!.,:*_~'\"":
+        if end in entities:
+            end = entities[end]
+        elif last in "?!.,:*_~'\"":
             end -= 1
+        elif last == ";":
+            k = end - 2
+            while k > start and s[k].isascii() and s[k].isalpha():
+                k -= 1
+            end = k if k < end - 2 and s[k] == "&" else end - 1
         elif last == ")" and s.count(")", start, end) > s.count("(", start, end):
             end -= 1
-        elif last == ";" and re_entity_tail.search(s[start:end]):
-            end = start + re_entity_tail.search(s[start:end]).start()
         else:
             break
     return end
+
+
+def _runs_on(s: str, i: int) -> int:
+    while i < len(s) and s[i] not in ASCII_SPACE and s[i] != "<":
+        i += 1
+    return i
+
+
+def _split_urls(s: str, entities: dict[int, int]) -> list[tuple[str, str | None]]:
+    pieces: list[tuple[str, str | None]] = []
+    last = i = 0
+    while i < len(s):
+        start = end = -1
+        if s.startswith("www.", i) and (i == last == 0 or i > 0 and (s[i - 1] in ASCII_SPACE or s[i - 1] in "*_~(")):
+            domain = _check_domain(s, i, False)
+            if domain:
+                start, end = i, _link_end(s, i, _runs_on(s, i + domain), entities)
+        elif s.startswith("://", i):
+            scheme = i
+            while scheme > last and s[scheme - 1].isascii() and s[scheme - 1].isalpha():
+                scheme -= 1
+            # the first character after "://" is not punctuation, a symbol or a space, and not a
+            # character reference, whose `&` is what cmark-gfm reads there
+            first = s[i + 3:i + 4]
+            if (s[scheme:i].lower() in ("http", "https") and first and i + 3 not in entities.values()
+                    and not is_unicode_whitespace(first) and not is_unicode_punctuation(first)):
+                domain = _check_domain(s, i + 3, True)
+                if domain:
+                    start, end = scheme, _link_end(s, scheme, _runs_on(s, i + 3 + domain), entities)
+        if start != -1 and end > start:
+            if start > last:
+                pieces.append((s[last:start], None))
+            url = s[start:end]
+            pieces.append((url, url if start < i else "http://" + url))
+            i = last = end
+            continue
+        i += 1
+    if last < len(s):
+        pieces.append((s[last:], None))
+    return pieces
 
 
 re_email_local = re.compile("[A-Za-z0-9._+-]")
@@ -1698,9 +1775,9 @@ re_email_domain = re.compile("[A-Za-z0-9_-]+(?:\\.[A-Za-z0-9_-]+)*")
 
 
 def _split_emails(s: str) -> list[tuple[str, str | None]]:
-    """Bare email addresses, as cmark-gfm finds them: from each "@", back over
-    the local part and forward over a domain with a dot, whose last character is
-    not "-" or "_"."""
+    """Bare email addresses, as cmark-gfm finds them: from each "@", back over the local part
+    and forward over a domain with a dot, whose last character is a letter. Written after
+    `mailto:`, the prefix is part of the link; after `xmpp:`, the address stays text."""
     pieces: list[tuple[str, str | None]] = []
     last = 0
     i = 0
@@ -1712,10 +1789,14 @@ def _split_emails(s: str) -> list[tuple[str, str | None]]:
             d = re_email_domain.match(s, i + 1)
             if start < i and d is not None:
                 end = d.end()
-                if "." in s[i + 1:end] and s[end - 1] not in "-_":
-                    if start > last:
-                        pieces.append((s[last:start], None))
-                    pieces.append((s[start:end], "mailto:" + s[start:end]))
+                if "." in s[i + 1:end] and s[end - 1].isascii() and s[end - 1].isalpha():
+                    if s.startswith("xmpp:", start - 5) and start - 5 >= last:
+                        i = end
+                        continue
+                    written = start - 7 if s.startswith("mailto:", start - 7) and start - 7 >= last else start
+                    if written > last:
+                        pieces.append((s[last:written], None))
+                    pieces.append((s[written:end], "mailto:" + s[start:end]))
                     last = i = end
                     continue
         i += 1
@@ -1724,37 +1805,13 @@ def _split_emails(s: str) -> list[tuple[str, str | None]]:
     return pieces
 
 
-def _split_autolinks(s: str) -> list[tuple[str, str | None]]:
+def _split_autolinks(s: str, entities: dict[int, int] | None = None) -> list[tuple[str, str | None]]:
     pieces: list[tuple[str, str | None]] = []
-    for text, url in _split_urls(s):
+    for text, url in _split_urls(s, entities or {}):
         if url is None:
             pieces.extend(_split_emails(text))
         else:
             pieces.append((text, url))
-    return pieces
-
-
-def _split_urls(s: str) -> list[tuple[str, str | None]]:
-    pieces: list[tuple[str, str | None]] = []
-    last = i = 0
-    while i < len(s):
-        before = s[i - 1] if i else ""
-        # cmark-gfm: "www." after a space or one of *_~( ; "http(s)://" after
-        # anything that is not a letter or digit
-        www_ok = s.startswith("www.", i) and (i == 0 or is_unicode_whitespace(before) or before in "*_~(")
-        url_ok = s[i] == "h" and (i == 0 or not re.match("[A-Za-z0-9]", before))
-        if www_ok or url_ok:
-            end = _autolink_end(s, i)
-            if end > i:
-                if i > last:
-                    pieces.append((s[last:i], None))
-                url = s[i:end]
-                pieces.append((url, url if url.startswith("http") else "http://" + url))
-                i = last = end
-                continue
-        i += 1
-    if last < len(s):
-        pieces.append((s[last:], None))
     return pieces
 
 
@@ -1764,7 +1821,12 @@ def _link_extended(parent: Node) -> None:
     node = parent.first_child
     while node is not None:
         if node.type == "text":
+            # where each character reference ends, to where it starts: cmark-gfm reads the
+            # link in the source, where `&amp;` is five characters and not one
+            node.entities = {len(node.literal): 0} if node.entity else {}
             while node.next is not None and node.next.type == "text":
+                if node.next.entity:
+                    node.entities[len(node.literal) + len(node.next.literal)] = len(node.literal)
                 node.literal += node.next.literal
                 node.next.unlink()
         node = node.next
@@ -1772,7 +1834,7 @@ def _link_extended(parent: Node) -> None:
     while node is not None:
         nxt = node.next
         if node.type == "text":
-            pieces = _split_autolinks(node.literal)
+            pieces = _split_autolinks(node.literal, node.entities)
             if any(url is not None for _, url in pieces):
                 anchor = node
                 for text, url in pieces:
@@ -1830,9 +1892,9 @@ def parse(text: str) -> Document:
     root = bp.parse(body)
     _resolve_inlines(bp, root)
     doc.blocks = _blocks(bp, root, doc)
-    unreferenced = [label for label in bp.footnote_defs if label not in doc.footnotes]
+    unreferenced = [fn for fn in bp.footnote_defs.values() if fn.label not in doc.footnotes]
     if unreferenced:
-        fn = bp.footnote_defs[unreferenced[0]]
+        fn = unreferenced[0]
         raise Unsupported(fn.line, f"footnote [^{fn.label}] is defined but never referenced; nothing may be dropped silently (ADR 0023)")
     # a link definition nobody refers to is dropped by CommonMark itself. This project promises
     # that nothing goes silently (references/markdown.md), so it is named — a warning, not a

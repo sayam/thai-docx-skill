@@ -14,6 +14,9 @@ footnotes.
   `other.docx`) is written as it is. Any other scheme (`javascript:`, `file:`, `ftp:`) stops the
   build with its line number. A link's target is written percent-encoded, as Word writes one; its
   text is unchanged. Parentheses nest in a link's destination 32 deep, as cmark reads them.
+- **Bare addresses** become links as GitHub finds them: `www.…` and `http(s)://…`, a Thai
+  domain too (`www.ตัวอย่าง.ไทย`); an email; `mailto:…`, the prefix included. `ftp://` and
+  `xmpp:` stay text. A footnote's label matches in any case, as a link's does.
 - **Numbered lists** start where the first number says, `0.` included.
 - **Images:** local PNG or JPEG only, in the Markdown file's folder or below it. For
   an image elsewhere, add `--allow-dir <that folder>`. No remote images, no SVG.
@@ -45,3 +48,11 @@ will not find the long form.
 
 Anything else stops the build and names the line, and so do blocks or formatting nested
 more than 100 deep. Nothing is dropped silently.
+
+**Where this reading and GitHub's differ, on purpose.** GitHub drops or bends these; the build
+stops and names the line: a comment never closed, or text after a comment on its line; a table
+row with more cells than its header — a `|` inside `` `code` `` in a table is written `\|`; a
+footnote defined twice or never referenced; `<?…?>`, `<!DOCTYPE …>`, `<![CDATA[…]]>`; `&#0;`. A
+non-breaking space at the edge of a paragraph is kept, as CommonMark says. In a bare address
+GitHub reads the source as written: an entity inside one is written as the character it stands
+for, and `*` or `~` inside one may be read as formatting instead.

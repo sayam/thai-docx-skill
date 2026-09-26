@@ -395,3 +395,41 @@ def test_a_caption_is_never_given_less_than_an_inch(tmp_path):
     with zipfile.ZipFile(tmp_path / "out.docx") as z:
         document = z.read("word/document.xml").decode("utf-8")
     assert '<w:ind w:left="1080" w:hanging="1080"/>' in document and 'w:right="' in document
+
+
+def test_a_footnote_label_matches_in_any_case(tmp_path):
+    """cmark-gfm matches a footnote as it matches a link label; `[^A]` and `[^a]` were refused
+    as a footnote defined and never referenced."""
+    (tmp_path / "in.md").write_text("ก[^A] ข[^a]\n\n[^a]: หมายเหตุ\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    assert code == 0 and result["counts"]["footnotes"] == 1, result
+    (tmp_path / "in.md").write_text("ก[^A]\n\n[^a]: หนึ่ง\n\n[^A]: สอง\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    assert code == 2 and result["error"] == "footnote [^A] is defined twice", result
+
+
+def test_an_extended_autolink_is_found_as_cmark_gfm_finds_it(tmp_path):
+    """A Thai domain was no link, `mailto:` was text beside a link, and `&amp;` at a URL's end
+    went into the link (cmark-gfm, measured). `xmpp:` stays text: ADR 0040 links to http,
+    https and mailto only."""
+    import re
+    import urllib.parse
+    import zipfile
+    cases = {
+        "ดู www.ตัวอย่าง.ไทย ครับ": ["http://www.ตัวอย่าง.ไทย"],
+        "https://ตัวอย่าง.ไทย/ก": ["https://ตัวอย่าง.ไทย/ก"],
+        "ติดต่อ mailto:me@x.example": ["mailto:me@x.example"],
+        "xmpp:me@x.example": [],
+        "https://x.example/a&amp;": ["https://x.example/a"],
+        "https://x.example/a;": ["https://x.example/a"],
+        "me@x.example1": [],
+    }
+    for text, targets in cases.items():
+        (tmp_path / "in.md").write_text(text + "\n", encoding="utf-8")
+        code, result = both(["build", "in.md", "out.docx"], tmp_path)
+        assert code == 0 and result["counts"]["links"] == len(targets), (text, result)
+        with zipfile.ZipFile(tmp_path / "out.docx") as z:
+            rels = z.read("word/_rels/document.xml.rels").decode("utf-8")
+        # a target is written percent-encoded (B-07), as cmark-gfm writes its href
+        written = [urllib.parse.quote(t, safe=":/@") for t in targets]
+        assert re.findall(r'Target="([^"]*)" TargetMode="External"', rels) == written, (text, rels)

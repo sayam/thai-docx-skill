@@ -757,3 +757,17 @@
   found_by: review
   test:
     - tests/test_what_a_command_takes.py::test_a_caption_is_never_given_less_than_an_inch
+
+- id: C-09
+  what: a footnote's label matched only in the case it was written, so `[^A]` and `[^a]:` were refused as a footnote never referenced
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_footnote_label_matches_in_any_case
+
+- id: C-10
+  what: a bare address with a Thai domain was no link, `mailto:` stood as text beside one, and `&amp;` at a URL's end went into it
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_an_extended_autolink_is_found_as_cmark_gfm_finds_it
