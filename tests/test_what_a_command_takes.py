@@ -464,3 +464,18 @@ def test_a_picture_refused_is_named(tmp_path):
     (tmp_path / "in.md").write_text("![a](bad.png)\n", encoding="utf-8")
     code, result = both(["build", "in.md", "out.docx"], tmp_path)
     assert code == 2 and result["error"] == "image 'bad.png' is not a PNG or JPEG file (by its bytes, not its name)", result
+
+
+def test_a_thai_mark_out_of_place_is_named(tmp_path):
+    """B-10: `ำ` written the long way was named, but a mark with no letter before it (`นำ้`) and a
+    letter with two tone marks went through in silence. Each is named, once a line, and left as
+    typed; marks typed out of order on one letter are put in order by NFC, and are not named."""
+    (tmp_path / "in.md").write_text("น้ำ นำ้ ก้่ข\n\nกิ่ ปุ่ม ก็ ฤๅ\n\n่ต้น\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    assert code == 0 and [w["message"] for w in result["warnings"]] == [
+        "line 1: a Thai mark (U+0E49) with no letter before it; it is written as it stands",
+        "line 1: a letter with two tone marks; it is written as it stands",
+        "line 5: a Thai mark (U+0E48) with no letter before it; it is written as it stands"], result
+    (tmp_path / "in.md").write_text("ปุ่ม\n", encoding="utf-8")  # the tone typed before the vowel
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    assert code == 0 and result["warnings"] == [], result

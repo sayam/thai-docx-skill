@@ -120,7 +120,8 @@ def test_sara_am_written_the_long_way_is_read_the_same():
     js = parity.run_js({"op": "ast", "texts": texts})
     py = [parity.py_ast(t) for t in texts]
     assert py == js, _first_difference(py, js, texts)
-    assert [len(r["warnings"]) for r in py] == [1, 0, 1, 3, 1, 1, 0, 0]
+    # the last two are a ํ with no letter before it, which is named since B-10
+    assert [len(r["warnings"]) for r in py] == [1, 0, 1, 3, 1, 1, 1, 1]
 
 
 def test_deep_nesting_is_read_or_refused_the_same_way():

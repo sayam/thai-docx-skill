@@ -867,3 +867,10 @@
   found_by: review
   test:
     - tests/test_what_a_command_takes.py::test_a_picture_refused_is_named
+
+- id: B-10
+  what: a Thai mark with no letter before it, or a letter with two tone marks, went through in silence, and no page said the text is read in NFC
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_thai_mark_out_of_place_is_named

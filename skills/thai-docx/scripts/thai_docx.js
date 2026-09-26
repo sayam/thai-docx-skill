@@ -1566,6 +1566,23 @@ const RE_ZS = /^\p{Zs}$/u;
 const RE_PS = /^[\p{P}\p{S}]$/u;
 // ำ has a compatibility decomposition into these two, and no composition back (ADR 0034)
 const NIKHAHIT = "\u0e4d", SARA_AA = "\u0e32", SARA_AM = "\u0e33";
+// What is wrong with how a line's Thai marks sit, once each (markdown.py's thai_marks_out_of_place).
+function thaiMarksOutOfPlace(line) {
+  let lone = "", two = false, tones = 0, before = "";
+  for (const ch of line) {
+    // THAI_MARKS is 50-writer.js's, read here only once every part is loaded
+    if (THAI_MARKS.has(ch.codePointAt(0))) {
+      if (!lone && !((before >= "\u0e01" && before <= "\u0e2e") || (before && THAI_MARKS.has(before.codePointAt(0))))) lone = ch;
+      if (ch >= "\u0e48" && ch <= "\u0e4b") tones += 1;
+      two = two || tones === 2;
+    } else tones = 0;
+    before = ch;
+  }
+  const out = [];
+  if (lone) out.push("a Thai mark (U+" + lone.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + ") with no letter before it; it is written as it stands");
+  if (two) out.push("a letter with two tone marks; it is written as it stands");
+  return out;
+}
 
 function isSpaceOrTab(ch) {
   return ch === " " || ch === "\t";
@@ -3318,6 +3335,7 @@ function parseMarkdown(text) {
   text = text.normalize("NFC");
   const rawLines = text.split("\n");
   const longSaraAm = [];
+  const marks = [];
   for (let no = 1; no <= rawLines.length; no++) {
     for (const ch of rawLines[no - 1]) {
       const label = forbiddenChar(ch);
@@ -3326,6 +3344,7 @@ function parseMarkdown(text) {
     // ำ written the long way. No normalisation joins these: NFC leaves them apart and NFKC
     // takes ำ the other way, into these two. So it is named and left alone (ADR 0034).
     if (rawLines[no - 1].includes(NIKHAHIT + SARA_AA)) longSaraAm.push(no);
+    for (const what of thaiMarksOutOfPlace(rawLines[no - 1])) marks.push([no, what]);
   }
   const lines = text.split("\n");
   const offset = frontMatter(lines, doc);
@@ -3353,6 +3372,7 @@ function parseMarkdown(text) {
       + SARA_AM + " but is two characters; it is written as it stands and a search for "
       + SARA_AM + " will not find it");
   }
+  for (const [no, what] of marks) bp.warnings.push("line " + no + ": " + what);
   doc.warnings = bp.warnings
     .map((m, k) => [parseInt(m.split(":")[0].split(" ")[1], 10), k, m])
     .sort((a, b) => a[0] - b[0] || a[1] - b[1])

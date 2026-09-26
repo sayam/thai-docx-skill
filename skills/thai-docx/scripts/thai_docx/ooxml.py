@@ -81,5 +81,11 @@ def is_on(el) -> bool:
     return el.get(w("val")) not in OFF
 
 
+# The Thai marks that sit above or below a letter, and the four tone marks among them: a column is
+# measured without them (writer), and a line where one stands alone is named (markdown)
+THAI_MARKS = frozenset([0x0E31, *range(0x0E34, 0x0E3B), *range(0x0E47, 0x0E4F)])
+THAI_TONES = frozenset(range(0x0E48, 0x0E4C))
+
+
 def is_thai(ch: str) -> bool:
     return "฀" <= ch <= "๿"
