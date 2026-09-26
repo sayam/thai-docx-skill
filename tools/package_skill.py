@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import pathlib
 import re
+import subprocess
 import sys
 import zipfile
 
@@ -27,11 +28,12 @@ SKILL = ROOT / "skills" / "thai-docx"
 
 
 def files() -> list[pathlib.Path]:
-    """Everything under the skill directory but bytecode caches."""
-    return sorted(
-        (p for p in SKILL.rglob("*") if p.is_file() and "__pycache__" not in p.parts and p.suffix != ".pyc"),
-        key=lambda p: p.relative_to(SKILL).as_posix(),
-    )
+    """The files git tracks under the skill directory: a file left there by hand — a note, a
+    local profile, a cache — is not the skill, and never goes into a release."""
+    listed = subprocess.run(["git", "ls-files", "-z", "--", SKILL.relative_to(ROOT).as_posix()],
+                            cwd=ROOT, capture_output=True, check=True).stdout.decode("utf-8")
+    return sorted((ROOT / name for name in listed.split("\0") if name),
+                  key=lambda p: p.relative_to(SKILL).as_posix())
 
 
 def pack(out: pathlib.Path) -> None:

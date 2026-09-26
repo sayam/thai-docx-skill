@@ -36,8 +36,9 @@ The gates come from [verifiable-gates](https://github.com/sayam/verifiable-gates
 also refuses a `tools/` file that differs from what was installed (`tools/installed.json`).
 
 CI runs `scans`, `commits`, `tests` (at least 97% coverage, branches included), `lint` (the
-coding standards below) and `deps` (the dependencies below) on every pull request; `main` takes a
-change only when all five pass and CodeQL raises no alert of medium severity or higher
+coding standards below), `deps` (the dependencies below) and `pr-description` (a description
+credits nobody who did not sign) on every pull request; `main` takes a change only when all six
+pass and CodeQL raises no alert of medium severity or higher
 (below, "Static analysis"), and a contributor's pull request also needs a code owner's approval (`.github/CODEOWNERS`,
 `docs/adr/0018`).
 

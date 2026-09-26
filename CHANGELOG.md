@@ -72,6 +72,13 @@ wrote, so it can find what it answered `ok` on before; `repair` puts right what 
 - Bare addresses are found as GitHub finds them: a Thai domain is a link, `mailto:` is part of
   its link, and punctuation or an entity at a URL's end is left out of it; `ftp://` and `xmpp:`
   stay text (`tests/test_what_a_command_takes.py::test_an_extended_autolink_is_found_as_cmark_gfm_finds_it`).
+- The release could replace a published release's assets on a second run (`--clobber`), and
+  packed every file under the skill's folder, tracked or not; it keeps what a release has, and
+  packs what git tracks
+  (`tests/test_release_is_bound_to_its_tag.py::test_a_release_never_replaces_an_asset_it_already_has`,
+  `tests/test_package_skill.py::test_only_what_git_tracks_is_packed`).
+- Every CI checkout left the job's token in `.git/config` for the steps after it
+  (`tests/test_release_is_bound_to_its_tag.py::test_no_checkout_leaves_its_token_behind`).
 
 ## [0.2.1] - 2026-09-26
 

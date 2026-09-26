@@ -186,3 +186,16 @@ def test_every_picture_the_fixtures_carry_says_where_it_came_from():
     assert len(pictures) >= 4
     for picture in pictures:
         assert picture.name in records, picture.relative_to(ROOT)
+
+
+def test_every_page_that_says_what_a_merge_needs_names_the_checks_it_needs():
+    """F-07: the pages said five checks, or three, where the ruleset on `main` requires six and
+    CodeQL's results. Each page that says what a merge needs names the same six."""
+    required = ("scans", "commits", "tests", "lint", "deps", "pr-description")
+    workflows = "".join(p.read_text(encoding="utf-8") for p in (ROOT / ".github" / "workflows").glob("*.yml"))
+    for check in required:
+        assert re.search(r"^  " + re.escape(check) + r":$", workflows, re.M), check  # a job of that name exists
+    for page in (".github/CONTRIBUTING.md", "GOVERNANCE.md", "docs/architecture.md", ".github/CODEOWNERS"):
+        text = (ROOT / page).read_text(encoding="utf-8")
+        assert all("`" + check + "`" in text for check in required), page
+        assert "CodeQL" in text, page

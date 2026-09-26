@@ -38,6 +38,11 @@ the repository [S32], and git cannot give one of them less than the other.
   request, and the `scans`, `commits` and `tests` checks must pass [S35]. For everyone
   else, a code owner's approval is required too; the maintainer cannot approve their own
   pull request [S37], so theirs merge on the checks alone.
+
+  > **Later (2026-09-26):** the checks required on `main` grew with the gates: `scans`,
+  > `commits`, `tests`, `lint`, `deps` and `pr-description`, and CodeQL's code-scanning results
+  > with no alert of medium severity or higher. CONTRIBUTING, GOVERNANCE and the architecture
+  > page name them; `tests/test_rules.py` holds each to the six.
 - `.github/CODEOWNERS` covers every path, and names the workflow, the gate registry,
   `tools/` and `requirements/` explicitly [S36]. A required check reports success
   when its job is *skipped* [S35], so a pull request that edits the workflow could
