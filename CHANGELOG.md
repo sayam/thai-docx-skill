@@ -10,10 +10,11 @@ before two applications were read; the exception and what is owed are in
 
 ## [Unreleased]
 
-**No document changes but one**: the build writes byte for byte what 0.2.1 wrote, except the
-caption of a picture that leaves it less than an inch under `--caption-matches-object`, which now
-takes the text width. `check` reads more of a file someone else wrote, so it can find what it
-answered `ok` on before; `repair` puts right what it now finds.
+**The goldens do not move**: a document is written as 0.2.1 wrote it unless it holds one of the
+cases fixed below — a picture that leaves its caption less than an inch under
+`--caption-matches-object`, a bare address GitHub reads as a link and 0.2.1 did not (or the other
+way), a footnote whose label is written in two cases. `check` reads more of a file someone else
+wrote, so it can find what it answered `ok` on before; `repair` puts right what it now finds.
 
 ### Fixed
 
@@ -57,6 +58,11 @@ answered `ok` on before; `repair` puts right what it now finds.
   `--caption-matches-object`, was written as a line of no width or less. The first is refused as
   `--indent` is; the second takes the text width, with a warning
   (`tests/test_what_a_command_takes.py::test_a_caption_is_never_given_less_than_an_inch`).
+- A footnote's label matched only in the case it was written; it matches as a link's does
+  (`tests/test_what_a_command_takes.py::test_a_footnote_label_matches_in_any_case`).
+- Bare addresses are found as GitHub finds them: a Thai domain is a link, `mailto:` is part of
+  its link, and punctuation or an entity at a URL's end is left out of it; `ftp://` and `xmpp:`
+  stay text (`tests/test_what_a_command_takes.py::test_an_extended_autolink_is_found_as_cmark_gfm_finds_it`).
 
 ## [0.2.1] - 2026-09-26
 
