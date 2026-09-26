@@ -5196,40 +5196,58 @@ class Package extends Writer {
 // thai-docx — fidelity: the port of scripts/thai_docx/fidelity.py. The text the package must hold,
 // from the Markdown, and the text it does hold, read back from its XML (ADR 0023).
 
+const XML_SPACE_ATTR = "{http://www.w3.org/XML/1998/namespace}space";
+
+// Each paragraph's text under `root`, appended to `out`. A tab is text, except the one that
+// separates a footnote's mark from its body. A w:t that does not say xml:space="preserve" loses
+// the space at its ends, as an application reading it may drop it and Word does — so a space a
+// writer left there without the attribute is not counted as text it kept.
+function paragraphsInto(root, out) {
+  for (const p of root.iter(w("p"))) {
+    const pieces = [];
+    let seen = false;
+    let afterMark = false;
+    for (const el of p.iter()) {
+      const tag = el.tag;
+      if (tag === w("footnoteRef")) {
+        afterMark = true;
+        seen = true;
+      } else if (tag === w("t")) {
+        const text = el.text || "";
+        pieces.push(el.get(XML_SPACE_ATTR) === "preserve" ? text : text.replace(/^[ \t\n\r]+|[ \t\n\r]+$/g, ""));
+        seen = true;
+        afterMark = false;
+      } else if (tag === w("tab")) {
+        if (!afterMark) pieces.push("\t");
+        afterMark = false;
+        seen = true;
+      } else if (tag === w("br")) {
+        pieces.push("\n");
+        seen = true;
+      } else if (tag === w("drawing")) {
+        seen = true;
+      }
+    }
+    if (seen) out.push(pieces.join(""));
+  }
+}
+
 function docxText(parts, footnoteCount) {
   const out = [];
-  const paragraphs = (root) => {
-    for (const p of root.iter(w("p"))) {
-      const pieces = [];
-      let seen = false;
-      let afterMark = false;
-      for (const el of p.iter()) {
-        const tag = el.tag;
-        if (tag === w("footnoteRef")) {
-          afterMark = true;
-          seen = true;
-        } else if (tag === w("t")) {
-          pieces.push(el.text || "");
-          seen = true;
-          afterMark = false;
-        } else if (tag === w("tab")) {
-          if (!afterMark) pieces.push("\t");
-          afterMark = false;
-          seen = true;
-        } else if (tag === w("br")) {
-          pieces.push("\n");
-          seen = true;
-        } else if (tag === w("drawing")) {
-          seen = true;
-        }
-      }
-      if (seen) out.push(pieces.join(""));
-    }
-  };
-  paragraphs(parseXml(fromUtf8(parts.get("word/document.xml"))));
+  paragraphsInto(parseXml(fromUtf8(parts.get("word/document.xml"))), out);
   if (footnoteCount) {
     const root = parseXml(fromUtf8(parts.get("word/footnotes.xml")));
-    for (const note of root.iter(w("footnote"))) if (note.get(w("type")) === null) paragraphs(note);
+    for (const note of root.iter(w("footnote"))) if (note.get(w("type")) === null) paragraphsInto(note, out);
+  }
+  return out;
+}
+
+// The text of every part a reader sees — body, headers, footers, notes, comments — each
+// paragraph as fidelity reads it, the parts in name order (package_text() in repair.py).
+function packageText(parts) {
+  const out = [];
+  for (const name of [...parts.keys()].sort()) {
+    if (TEXT_PARTS.test(name)) paragraphsInto(parseXml(fromUtf8(parts.get(name))), out);
   }
   return out;
 }
@@ -5354,17 +5372,32 @@ function buildText(text, opts, readImage) {
 
 const REPAIR_USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"] [--thai-language]' +
   " [--force-cs-whole-doc]";
-// the one run shape a split may touch: properties, if any, then one w:t and nothing else
-const RE_SIMPLE_INNER = /^(<w:rPr(?:\s[^<>]*?)?>[\s\S]*?<\/w:rPr>)?(<w:t(?:\s[^<>]*?)?>)([\s\S]*)<\/w:t>$/;
+// Every start tag is read the one way XML writes it: a quoted value may hold `>` or `/`, in
+// either quote, and a tag that ends `/>` is empty. Read any other way, a `>` inside a value
+// ended the tag in the middle of it and the part was written back broken.
+const ATTRS = "(?:\\s(?:[^<>\"'/]|/(?!>)|\"[^\"]*\"|'[^']*')*)?";
+
+// `<name …>` or `<name …/>`; group 1 is the `/` of an empty element.
+function opening(name, flags) {
+  return new RegExp("<" + name + ATTRS + "(\\/?)>", flags === undefined ? "g" : flags);
+}
+
+// the one run shape a split may touch: properties, if any, then one w:t holding text and
+// nothing else — no tab, no break, no second w:t, which a split would read as text
+const RE_SIMPLE_INNER = new RegExp("^(<w:rPr" + ATTRS + ">[\\s\\S]*?<\\/w:rPr>)?(<w:t" + ATTRS + ">)([^<]*)<\\/w:t>$");
+const RE_PRESERVE = /xml:space\s*=\s*["']preserve["']/;
+const RE_T_START = new RegExp("<w:t" + ATTRS + ">");
 
 class RepairError extends Error {}
-const RE_NO_PROOF = /<w:noProof(?:\s[^>]*?)?\/>|<w:noProof(?:\s[^>]*?)?>\s*<\/w:noProof>/g;
-const RE_COMPAT_SETTING = /<w:compatSetting\s[^>]*?\/>/g;
-const RE_ATTR = /([\w:]+)\s*=\s*"([^"]*)"/g;
+const RE_NO_PROOF = new RegExp("<w:noProof" + ATTRS + "(?:\\/>|>\\s*<\\/w:noProof>)", "g");
+const RE_COMPAT_SETTING = new RegExp("<w:compatSetting" + ATTRS + "\\/>", "g");
+const RE_ATTR = /([\w:]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+const VALUE = "\\s*=\\s*(?:\"[^\"]*\"|'[^']*')";
+const RE_XMLNS = /xmlns(?::([\w.-]+))?\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 
 function tagAttrs(tag) {
   const out = new Map();
-  for (const m of tag.matchAll(RE_ATTR)) out.set(m[1], m[2]);
+  for (const m of tag.matchAll(RE_ATTR)) out.set(m[1], m[2] !== undefined ? m[2] : m[3]);
   return out;
 }
 
@@ -5395,7 +5428,7 @@ function oneCompatibilityMode(xml) {
     if (i === 0) {
       let tag = m[0];
       if (tagAttrs(tag).get("w:val") !== "15") {
-        const set = tag.replace(/(w:val\s*=\s*)"[^"]*"/, '$1"15"');
+        const set = tag.replace(/(w:val\s*=\s*)(?:"[^"]*"|'[^']*')/, '$1"15"');
         tag = set === tag ? tag.slice(0, -2).replace(/\s+$/, "") + ' w:val="15"/>' : set;
         changed += 1;
       }
@@ -5413,7 +5446,7 @@ function oneCompatibilityMode(xml) {
 // --- the marks a Thai run needs, and the twins a Latin property needs ------------------
 
 const RE_TAG = /<(\/?)(w:[\w.-]+)((?:[^<>"']|"[^"]*"|'[^']*')*?)(\/?)>/g;
-const RE_RUN_START = /<w:r(?:\s[^<>]*?)?>/g;
+const RE_RUN_START = opening("w:r");
 const LATIN_FONT = ["w:ascii", "w:hAnsi", "w:asciiTheme", "w:hAnsiTheme"];
 
 // Where the element that opened just before `afterStart` ends: [inner end, element end].
@@ -5479,7 +5512,7 @@ function fixRpr(inner, font, mark, thaiLanguage) {
 
   for (const [latin, twin] of [["w:sz", "w:szCs"], ["w:b", "w:bCs"], ["w:i", "w:iCs"]]) {
     if (byName.has(latin) && !byName.has(twin)) {
-      const attrs = /(\sw:val\s*=\s*"[^"]*")/.exec(byName.get(latin));
+      const attrs = new RegExp("(\\sw:val" + VALUE + ")").exec(byName.get(latin));
       children = insertChild(children, twin, "<" + twin + (attrs ? attrs[1] : "") + "/>");
       byName.set(twin, "");
       five += 1;
@@ -5488,8 +5521,8 @@ function fixRpr(inner, font, mark, thaiLanguage) {
 
   const fonts = byName.get("w:rFonts");
   if (fonts !== undefined) {
-    const hasLatin = LATIN_FONT.some((a) => new RegExp(a + '\\s*=\\s*"').test(fonts));
-    const hasCs = /w:cs(?:theme)?\s*=\s*"/.test(fonts);
+    const hasLatin = LATIN_FONT.some((a) => new RegExp(a + "\\s*=\\s*[\"']").test(fonts));
+    const hasCs = /w:cs(?:theme)?\s*=\s*["']/.test(fonts);
     if (hasLatin && !hasCs) {
       const put = fonts.slice(0, -2).replace(/\s+$/, "") + ' w:cs="' + font + '"/>';
       children = children.map(([n, raw]) => [n, n === "w:rFonts" ? put : raw]);
@@ -5512,9 +5545,9 @@ function fixRpr(inner, font, mark, thaiLanguage) {
       if (lang === undefined) {
         children = insertChild(children, "w:lang", '<w:lang w:bidi="th-TH"/>');
         marked += 1;
-      } else if (!/w:bidi\s*=\s*"th-TH"/.test(lang)) {
-        const put = /w:bidi\s*=\s*"/.test(lang)
-          ? lang.replace(/w:bidi\s*=\s*"[^"]*"/, 'w:bidi="th-TH"')
+      } else if (!/w:bidi\s*=\s*["']th-TH["']/.test(lang)) {
+        const put = new RegExp("w:bidi" + VALUE).test(lang)
+          ? lang.replace(new RegExp("w:bidi" + VALUE), 'w:bidi="th-TH"')
           : lang.slice(0, -2).replace(/\s+$/, "") + ' w:bidi="th-TH"/>';
         children = children.map(([n, raw]) => [n, n === "w:lang" ? put : raw]);
         marked += 1;
@@ -5534,30 +5567,44 @@ function fixRpr(inner, font, mark, thaiLanguage) {
 // hold while this walks them.
 function reorder(xml, element, order) {
   const rank = new Map(order.map((name, i) => [name, i]));
-  const starts = [];
-  const re = new RegExp("<" + element + "(?:\\s[^<>]*?)?>", "g");
-  for (let m = re.exec(xml); m !== null; m = re.exec(xml)) starts.push(m.index + m[0].length);
-  let count = 0;
-  for (let k = starts.length - 1; k >= 0; k--) {  // inner elements first: they sit further on
-    const at = starts[k];
-    const [innerEnd] = endOf(xml, at, element);
-    const children = childrenOf(xml.slice(at, innerEnd));
-    const known = [];
-    for (let i = 0; i < children.length; i++) {
-      if (rank.has(children[i][0].slice(2))) known.push([i, children[i]]);
+  // One walk, written out once: the part was once rebuilt whole at every element put right,
+  // which took twenty seconds on a part of nine kilobytes. An element of this name can hold
+  // another (w:rPrChange holds a w:rPr), so the inner one is put right first, inside the walk
+  // of its own element.
+  const region = (text) => {
+    const out = [];
+    let pos = 0, count = 0;
+    const re = opening(element);
+    for (let m = re.exec(text); m !== null; m = re.exec(text)) {
+      if (m.index < pos || m[1]) continue;
+      const at = m.index + m[0].length;
+      const [innerEnd, elementEnd] = endOf(text, at, element);
+      const [pieces, inside] = region(text.slice(at, innerEnd));
+      count += inside;
+      let inner = pieces.join("");
+      const children = childrenOf(inner);
+      const known = [];
+      for (let i = 0; i < children.length; i++) {
+        if (rank.has(children[i][0].slice(2))) known.push([i, children[i]]);
+      }
+      // a stable sort, so two children of one name keep the order they were written in
+      const ordered = known.map((pair, i) => [pair, i])
+        .sort((a, b) => (rank.get(a[0][1][0].slice(2)) - rank.get(b[0][1][0].slice(2))) || (a[1] - b[1]))
+        .map(([pair]) => pair);
+      if (!known.every((pair, i) => pair[1][1] === ordered[i][1][1])) {
+        for (let i = 0; i < known.length; i++) children[known[i][0]] = ordered[i][1];
+        inner = children.map(([, raw]) => raw).join("");
+        count += 1;
+      }
+      out.push(text.slice(pos, at), inner, text.slice(innerEnd, elementEnd));
+      pos = elementEnd;
+      re.lastIndex = pos;
     }
-    if (known.length < 2) continue;
-    // a stable sort, so two children of one name keep the order they were written in
-    const ordered = known.map((pair, i) => [pair, i])
-      .sort((a, b) => (rank.get(a[0][1][0].slice(2)) - rank.get(b[0][1][0].slice(2))) || (a[1] - b[1]))
-      .map(([pair]) => pair);
-    if (known.every((pair, i) => pair[1][1] === ordered[i][1][1])) continue;
-    const put = children.slice();
-    for (let i = 0; i < known.length; i++) put[known[i][0]] = ordered[i][1];
-    xml = xml.slice(0, at) + put.map(([, raw]) => raw).join("") + xml.slice(innerEnd);
-    count += 1;
-  }
-  return [xml, count];
+    out.push(text.slice(pos));
+    return [out, count];
+  };
+  const [pieces, count] = region(xml);
+  return count ? [pieces.join(""), count] : [xml, 0];
 }
 
 // The five named entities XML defines, back to the characters they stand for. A numeric
@@ -5570,7 +5617,7 @@ function unescapeXml(text) {
 // Everything the run's own w:t elements hold, as the text reads.
 function runText(inner) {
   let text = "";
-  const re = /<w:t(?:\s[^<>]*?)?>([\s\S]*?)<\/w:t>/g;
+  const re = new RegExp("<w:t" + ATTRS + ">([\\s\\S]*?)<\\/w:t>", "g");
   for (let m = re.exec(inner); m !== null; m = re.exec(inner)) text += unescapeXml(m[1]);
   return text;
 }
@@ -5580,11 +5627,38 @@ function runText(inner) {
 // and nothing else. A run carrying a field, a drawing, a tab or a break is left whole, and so is
 // one whose text holds a numeric character reference, because re-escaping that would change the
 // text, which repair may never do (ADR 0023).
+// A piece of nothing but format characters (U+200B, U+200D, U+00AD …) belongs to the text
+// beside it: cut out on its own it would be a run of its own in the middle of a Thai word, for
+// no script it has.
+function withInvisiblesJoined(pieces) {
+  const out = [];
+  let pending = "";
+  for (let [complexScript, piece] of pieces) {
+    if (/^\p{Cf}*$/u.test(piece)) {
+      if (out.length) out[out.length - 1][1] += piece;
+      else pending += piece;
+      continue;
+    }
+    piece = pending + piece;
+    pending = "";
+    if (out.length && out[out.length - 1][0] === complexScript) out[out.length - 1][1] += piece;
+    else out.push([complexScript, piece]);
+  }
+  return out.length ? out : [[false, pending]];
+}
+
 function splitRun(start, inner, font, counts, thaiLanguage) {
   const m = RE_SIMPLE_INNER.exec(inner);
   if (m === null || m[3].indexOf("&#") !== -1) return null;
-  const [, rprRaw, topen, body] = m;
-  const pieces = scriptRuns(unescapeXml(body));
+  const [, rprRaw] = m;
+  let [, , topen] = m;
+  const text = unescapeXml(m[3]);
+  if (!RE_PRESERVE.test(topen)) {
+    if (text !== text.replace(/^[ \t\n\r]+|[ \t\n\r]+$/g, "")) return null; // space an application drops at the ends; cut, it would be kept
+    // a space at a cut is inside the text, and only xml:space keeps it there
+    topen = topen.slice(0, -1).replace(/\s+$/, "") + ' xml:space="preserve">';
+  }
+  const pieces = withInvisiblesJoined(scriptRuns(text));
   if (pieces.length < 2) return null;
   const rprInner = rprRaw === undefined ? "" : rprRaw.slice(rprRaw.indexOf(">") + 1, -"</w:rPr>".length);
   let out = "";
@@ -5604,7 +5678,7 @@ function fixRuns(xml, font, counts, thaiLanguage, csAll) {
   let out = "", pos = 0;
   const re = new RegExp(RE_RUN_START.source, "g");
   for (let m = re.exec(xml); m !== null; m = re.exec(xml)) {
-    if (m.index < pos) continue;
+    if (m.index < pos || m[1]) continue; // <w:r/> holds nothing to mark
     const startEnd = m.index + m[0].length;
     const [innerEnd, elementEnd] = endOf(xml, startEnd, "w:r");
     const inner = xml.slice(startEnd, innerEnd);
@@ -5623,9 +5697,9 @@ function fixRuns(xml, font, counts, thaiLanguage, csAll) {
 }
 
 function fixRun(inner, font, counts, thaiLanguage, csAll) {
-  const hasText = /<w:t(?:\s[^<>]*?)?>/.test(inner);
+  const hasText = RE_T_START.test(inner);
   const mark = csAll ? true : hasText && Array.from(runText(inner)).some(isThai);
-  const rpr = /^<w:rPr(?:\s[^<>]*?)?(\/?)>/.exec(inner);
+  const rpr = new RegExp("^<w:rPr" + ATTRS + "(\\/?)>").exec(inner);
   let body, restFrom, head = "";
   if (rpr !== null && rpr[1]) {
     body = "";
@@ -5666,9 +5740,9 @@ function fixTextPart(xml, font, thaiLanguage, csAll) {
 // exactly as it was — each run then says it for itself.
 function fixStyles(xml, font, csAll) {
   let out = "", pos = 0, five = 0, unmarked = 0;
-  const re = /<w:rPr(?:\s[^<>]*?)?>/g;
+  const re = opening("w:rPr");
   for (let m = re.exec(xml); m !== null; m = re.exec(xml)) {
-    if (m.index < pos) continue;
+    if (m.index < pos || m[1]) continue;
     const startEnd = m.index + m[0].length;
     const [innerEnd] = endOf(xml, startEnd, "w:rPr");
     const [newBody, , n, , off] = fixRpr(xml.slice(startEnd, innerEnd), font, csAll ? null : false, false);
@@ -5684,14 +5758,14 @@ function fixStyles(xml, font, csAll) {
 // A bullet level drawn in Symbol has no Thai glyphs; give it the document's font.
 function fixNumbering(xml, font) {
   let out = "", pos = 0, five = 0;
-  const re = /<w:lvl(?:\s[^<>]*?)?>/g;
+  const re = opening("w:lvl");
   for (let m = re.exec(xml); m !== null; m = re.exec(xml)) {
-    if (m.index < pos) continue;
+    if (m.index < pos || m[1]) continue;
     const startEnd = m.index + m[0].length;
     const [innerEnd] = endOf(xml, startEnd, "w:lvl");
     let level = xml.slice(startEnd, innerEnd);
-    if (/<w:numFmt\s[^<>]*?w:val="bullet"/.test(level)) {
-      const fonts = /<w:rFonts(?:\s[^<>]*?)?\/>/.exec(level);
+    if ([...level.matchAll(opening("w:numFmt"))].some((f) => tagAttrs(f[0]).get("w:val") === "bullet")) {
+      const fonts = new RegExp("<w:rFonts" + ATTRS + "\\/>").exec(level);
       if (fonts !== null && fonts[0].includes('"Symbol"')) {
         level = level.slice(0, fonts.index) + fonts[0].split('"Symbol"').join('"' + font + '"')
           + level.slice(fonts.index + fonts[0].length);
@@ -5733,8 +5807,35 @@ function complexScriptFont(parts, asked) {
   return [DEFAULTS.font, "this skill's default, as the document names none"];
 }
 
-// The parts to write anew, and how many of each code were repaired.
-function repairParts(parts, findings, font, thaiLanguage, csAll) {
+function isXmlPart(name) {
+  return name.startsWith("word/") && name.endsWith(".xml");
+}
+
+// A comment, a CDATA section or a processing instruction past the declaration: text that reads
+// like tags and is not. Word writes none of them; a part that holds one is left as it came
+// rather than edited around them.
+function holdsWhatIsNotMarkup(xml) {
+  return xml.includes("<!--") || xml.includes("<![CDATA[") || xml.indexOf("<?", 2) !== -1;
+}
+
+// The first part that writes WordprocessingML under a prefix other than `w`, or binds `w` to
+// something else: every pattern here spells `w:`, and would read such a part wrongly.
+function foreignPrefix(parts) {
+  for (const name of [...parts.keys()].sort()) {
+    if (!isXmlPart(name)) continue;
+    for (const m of fromUtf8(parts.get(name)).matchAll(RE_XMLNS)) {
+      const uri = m[2] !== undefined ? m[2] : m[3];
+      if ((uri === W) !== (m[1] === "w")) return name;
+    }
+  }
+  return null;
+}
+
+// The parts to write anew, how many of each code were repaired, the font chosen, and the parts
+// left as they came because they hold what is not markup.
+function repairParts(allParts, findings, font, thaiLanguage, csAll) {
+  const left = [...allParts.keys()].filter((n) => isXmlPart(n) && holdsWhatIsNotMarkup(fromUtf8(allParts.get(n)))).sort();
+  const parts = new Map([...allParts].filter(([n]) => isXmlPart(n) && !left.includes(n)));
   const codes = new Set(findings.map((f) => f.code));
   const replace = new Map();
   const repaired = {};
@@ -5746,8 +5847,8 @@ function repairParts(parts, findings, font, thaiLanguage, csAll) {
     }
   }
   if (codes.has("3")) {
+    // the XML parts only (above): a picture's bytes can spell <w:noProof/> by chance
     for (const [name, bytes] of parts) {
-      if (!name.startsWith("word/")) continue;
       const [xml, n] = removeNoProof(fromUtf8(replace.get(name) || bytes));
       if (n) {
         replace.set(name, utf8(xml));
@@ -5807,7 +5908,7 @@ function repairParts(parts, findings, font, thaiLanguage, csAll) {
       chosen = { code: "font", message: "complex-script font written where a run named none: '" + csFont + "' — " + why };
     }
   }
-  return [replace, repaired, chosen];
+  return [replace, repaired, chosen, left];
 }
 
 // ---- 55-profiles.js --------------------------------------------------------
@@ -6819,6 +6920,8 @@ function nodeCheck(argv) {
   return report.ok ? 0 : 1;
 }
 
+const MADE_WORSE = "the repair made a file its own checker faults";
+
 function nodeRepair(argv) {
   let font = null;
   let thaiLanguage = false;
@@ -6871,7 +6974,16 @@ function nodeRepair(argv) {
   }
   const ents = readZipDirectory(data);
   const parts = new Map(ents.map((e) => [e.name, readZipEntry(data, e)]));
-  const [replace, repaired, chosen] = repairParts(parts, before.findings, font, thaiLanguage, csAll);
+  const foreign = foreignPrefix(parts);
+  if (foreign !== null) {
+    result.error = foreign + " writes WordprocessingML under a prefix other than w:; this version repairs" +
+      " only the prefix Word writes, so nothing was written";
+    process.stdout.write(pyDumps(result) + "\n");
+    return 2;
+  }
+  const [replace, repaired, chosen, leftNames] = repairParts(parts, before.findings, font, thaiLanguage, csAll);
+  const left = leftNames.filter((name) => before.findings.some((f) => f.part === name)).map((name) => ({ code: "left",
+    message: name + " holds a comment, a CDATA section or a processing instruction; it is left as it came, and its findings with it" }));
   if (!replace.size && !before.findings.length) {
     // a clean file is an answer, not a fault: nothing to repair, so nothing is written
     delete result.file;
@@ -6888,12 +7000,21 @@ function nodeRepair(argv) {
     return 2;
   }
   const out = repackZip(data, ents, Object.fromEntries(replace));
+  // a repair answers for the file it writes: a fault its own checker finds there that the input
+  // did not have is this version's, and nothing is written (exit 1)
   const after = checkBytes(out, outPath);
-  const footnotes = before.counts.footnotes || 0;
+  const had = new Set(before.findings.map((f) => f.code + "\u0000" + f.part));
+  const made = after.findings.filter((f) => !had.has(f.code + "\u0000" + f.part));
+  if (made.length) {
+    result.error = MADE_WORSE + " (" + made[0].code + " in " + made[0].part + "); nothing was written";
+    process.stdout.write(pyDumps(result) + "\n");
+    return 1;
+  }
   const now = new Map(parts);
   for (const [k, v] of replace) now.set(k, v);
-  // the text is the user's (ADR 0023, 0037): a difference of one character writes nothing
-  const was = docxText(parts, footnotes), is = docxText(now, footnotes);
+  // the text is the user's (ADR 0023, 0037): every part a reader sees, not only the body — a
+  // difference of one character writes nothing
+  const was = packageText(parts), is = packageText(now);
   if (was.length !== is.length || was.some((t, i) => t !== is[i])) {
     result.error = "the repair would have changed the document's text; nothing was written";
     process.stdout.write(pyDumps(result) + "\n");
@@ -6901,7 +7022,8 @@ function nodeRepair(argv) {
   }
   const marked = repaired["thai-language"] || 0;
   delete repaired["thai-language"];
-  const still = new Set(after.findings.map((f) => f.code));
+  // a finding in a part left as it came is still there by design, not a repair that failed
+  const still = new Set(after.findings.filter((f) => !leftNames.includes(f.part)).map((f) => f.code));
   for (const code of Object.keys(repaired)) {
     if (still.has(code)) {
       result.error = "finding " + code + " is still there after the repair; nothing was written";
@@ -6919,7 +7041,7 @@ function nodeRepair(argv) {
   result.ok = true;
   result.repaired = repaired;
   result.remaining = after.findings;
-  result.warnings = chosen ? [chosen, ...after.warnings] : after.warnings;
+  result.warnings = (chosen ? [chosen] : []).concat(left, after.warnings);
   if (marked) {
     result.warnings = result.warnings.concat([{ code: "thai-language", message:
       'the Thai complex-script language w:bidi="th-TH" was written into ' + marked +

@@ -198,6 +198,8 @@ function nodeCheck(argv) {
   return report.ok ? 0 : 1;
 }
 
+const MADE_WORSE = "the repair made a file its own checker faults";
+
 function nodeRepair(argv) {
   let font = null;
   let thaiLanguage = false;
@@ -250,7 +252,16 @@ function nodeRepair(argv) {
   }
   const ents = readZipDirectory(data);
   const parts = new Map(ents.map((e) => [e.name, readZipEntry(data, e)]));
-  const [replace, repaired, chosen] = repairParts(parts, before.findings, font, thaiLanguage, csAll);
+  const foreign = foreignPrefix(parts);
+  if (foreign !== null) {
+    result.error = foreign + " writes WordprocessingML under a prefix other than w:; this version repairs" +
+      " only the prefix Word writes, so nothing was written";
+    process.stdout.write(pyDumps(result) + "\n");
+    return 2;
+  }
+  const [replace, repaired, chosen, leftNames] = repairParts(parts, before.findings, font, thaiLanguage, csAll);
+  const left = leftNames.filter((name) => before.findings.some((f) => f.part === name)).map((name) => ({ code: "left",
+    message: name + " holds a comment, a CDATA section or a processing instruction; it is left as it came, and its findings with it" }));
   if (!replace.size && !before.findings.length) {
     // a clean file is an answer, not a fault: nothing to repair, so nothing is written
     delete result.file;
@@ -267,12 +278,21 @@ function nodeRepair(argv) {
     return 2;
   }
   const out = repackZip(data, ents, Object.fromEntries(replace));
+  // a repair answers for the file it writes: a fault its own checker finds there that the input
+  // did not have is this version's, and nothing is written (exit 1)
   const after = checkBytes(out, outPath);
-  const footnotes = before.counts.footnotes || 0;
+  const had = new Set(before.findings.map((f) => f.code + "\u0000" + f.part));
+  const made = after.findings.filter((f) => !had.has(f.code + "\u0000" + f.part));
+  if (made.length) {
+    result.error = MADE_WORSE + " (" + made[0].code + " in " + made[0].part + "); nothing was written";
+    process.stdout.write(pyDumps(result) + "\n");
+    return 1;
+  }
   const now = new Map(parts);
   for (const [k, v] of replace) now.set(k, v);
-  // the text is the user's (ADR 0023, 0037): a difference of one character writes nothing
-  const was = docxText(parts, footnotes), is = docxText(now, footnotes);
+  // the text is the user's (ADR 0023, 0037): every part a reader sees, not only the body — a
+  // difference of one character writes nothing
+  const was = packageText(parts), is = packageText(now);
   if (was.length !== is.length || was.some((t, i) => t !== is[i])) {
     result.error = "the repair would have changed the document's text; nothing was written";
     process.stdout.write(pyDumps(result) + "\n");
@@ -280,7 +300,8 @@ function nodeRepair(argv) {
   }
   const marked = repaired["thai-language"] || 0;
   delete repaired["thai-language"];
-  const still = new Set(after.findings.map((f) => f.code));
+  // a finding in a part left as it came is still there by design, not a repair that failed
+  const still = new Set(after.findings.filter((f) => !leftNames.includes(f.part)).map((f) => f.code));
   for (const code of Object.keys(repaired)) {
     if (still.has(code)) {
       result.error = "finding " + code + " is still there after the repair; nothing was written";
@@ -298,7 +319,7 @@ function nodeRepair(argv) {
   result.ok = true;
   result.repaired = repaired;
   result.remaining = after.findings;
-  result.warnings = chosen ? [chosen, ...after.warnings] : after.warnings;
+  result.warnings = (chosen ? [chosen] : []).concat(left, after.warnings);
   if (marked) {
     result.warnings = result.warnings.concat([{ code: "thai-language", message:
       'the Thai complex-script language w:bidi="th-TH" was written into ' + marked +

@@ -15,42 +15,49 @@ from .ooxml import w
 from .settings import DEFAULTS
 
 
+SPACE = "{http://www.w3.org/XML/1998/namespace}space"
+
+
+def paragraphs(root, out: list[str]) -> None:
+    """Each paragraph's text under `root`, appended to `out`. A tab is text, except the one that
+    separates a footnote's mark from its body. A w:t that does not say xml:space="preserve"
+    loses the space at its ends, as an application reading it may drop it and Word does — so a
+    space a writer left there without the attribute is not counted as text it kept."""
+    for p in root.iter(w("p")):
+        pieces, seen, after_mark = [], False, False
+        for el in p.iter():
+            tag = el.tag
+            if tag == w("footnoteRef"):
+                after_mark = True
+                seen = True
+            elif tag == w("t"):
+                text = el.text or ""
+                pieces.append(text if el.get(SPACE) == "preserve" else text.strip(" \t\n\r"))
+                seen = True
+                after_mark = False
+            elif tag == w("tab"):
+                if not after_mark:
+                    pieces.append("\t")
+                after_mark = False
+                seen = True
+            elif tag == w("br"):
+                pieces.append("\n")
+                seen = True
+            elif tag == w("drawing"):
+                seen = True
+        if seen:
+            out.append("".join(pieces))
+
+
 def docx_text(parts: dict[str, bytes], footnote_count: int) -> list[str]:
-    """Every paragraph's text from the package, in the order plain_text() gives it.
-    A tab is text, except the one that separates a footnote's mark from its body."""
-    out = []
-
-    def paragraphs(root):
-        for p in root.iter(w("p")):
-            pieces, seen, after_mark = [], False, False
-            for el in p.iter():
-                tag = el.tag
-                if tag == w("footnoteRef"):
-                    after_mark = True
-                    seen = True
-                elif tag == w("t"):
-                    pieces.append(el.text or "")
-                    seen = True
-                    after_mark = False
-                elif tag == w("tab"):
-                    if not after_mark:
-                        pieces.append("\t")
-                    after_mark = False
-                    seen = True
-                elif tag == w("br"):
-                    pieces.append("\n")
-                    seen = True
-                elif tag == w("drawing"):
-                    seen = True
-            if seen:
-                out.append("".join(pieces))
-
-    paragraphs(ET.fromstring(parts["word/document.xml"]))
+    """Every paragraph's text from the package, in the order plain_text() gives it."""
+    out: list[str] = []
+    paragraphs(ET.fromstring(parts["word/document.xml"]), out)
     if footnote_count:
         root = ET.fromstring(parts["word/footnotes.xml"])
         for note in root.iter(w("footnote")):
             if note.get(w("type")) is None:
-                paragraphs(note)
+                paragraphs(note, out)
     return out
 
 
