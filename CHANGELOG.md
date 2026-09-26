@@ -43,6 +43,11 @@ before two applications were read; the exception and what is owed are in
   the caption is written as its `w:tblCaption` too, which moves the bytes of every document with a
   captioned table. `--toc` in a document with no heading says its table of contents is empty
   (`tests/test_what_a_command_takes.py::test_a_captioned_table_is_named_and_an_empty_toc_is_said`).
+- A picture was fitted to the text width and then indented, so with `--indent`, in a list or in a
+  quotation it ran past the right margin by the indent. A picture alone in its paragraph takes no
+  first-line indent now, and one that opens a paragraph or sits in a list or a quotation is drawn
+  no wider than its line — which moves the bytes of a document with `--indent` and a picture
+  (`tests/test_build_writes_what_it_was_given.py::test_a_picture_fits_the_line_its_paragraph_leaves_it`).
 
 ## [0.2.2] - 2026-09-26
 

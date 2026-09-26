@@ -895,3 +895,10 @@
   found_by: review
   test:
     - tests/test_what_a_command_takes.py::test_a_captioned_table_is_named_and_an_empty_toc_is_said
+
+- id: RD-01
+  what: a picture was fitted to the text width and then indented, so with --indent, in a list or in a quotation it ran past the right margin by the indent
+  class: C1
+  found_by: office-app
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_picture_fits_the_line_its_paragraph_leaves_it
