@@ -35,6 +35,11 @@ quotation. What the five applications draw is read on these bytes before the tag
   Thai distributed alignment drawn left in LibreOffice, a table of contents numbered from the cover
   and Thai proofed as Arabic in Word for the web, and what Word for the web does with
   `--auto-numbering`.
+- **SKILL.md** says a run is marked complex script where its text is complex script, not Thai
+  alone. Measured on three models on 0.3.0's bytes: seventeen files of eighteen exact, no flag
+  invented; once, Haiku did not use the skill on the thesis request and wrote a file of its own —
+  recorded, not closed
+  ([record](docs/evidence/2026-09-26-model-equivalence-on-the-0.3.0-skill-md.md)).
 
 ### Fixed
 
