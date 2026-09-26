@@ -888,3 +888,10 @@
   found_by: review
   test:
     - tests/test_what_a_command_takes.py::test_every_complex_script_is_marked_checked_and_repaired
+
+- id: B-13
+  what: a table with a Table caption had no name for a screen reader or Word's accessibility check, and --toc with no heading wrote an empty field in silence
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_captioned_table_is_named_and_an_empty_toc_is_said

@@ -521,3 +521,22 @@ def test_every_complex_script_is_marked_checked_and_repaired(tmp_path):
     assert code == 1 and [f["code"] for f in result["findings"]] == ["2"], result
     code, result = both(["repair", "in.docx", "fixed.docx"], tmp_path)
     assert code == 0 and result["repaired"].get("2") == 1 and result["remaining"] == [], result
+
+
+def test_a_captioned_table_is_named_and_an_empty_toc_is_said(tmp_path):
+    """B-13: a table with a `Table:` caption was nameless to a screen reader and to Word's
+    accessibility check; `--toc` in a document with no heading wrote an empty field and said
+    nothing, where every other flag that reaches nothing says so."""
+    import zipfile
+    (tmp_path / "in.md").write_text('Table: ผล & "ค่า"\n\n| ก | ข |\n|---|---|\n| 1 | 2 |\n\n| ค |\n|---|\n| 3 |\n',
+                                    encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx", "--toc"], tmp_path)
+    assert code == 0 and result["findings"] == [], result
+    assert [w["message"] for w in result["warnings"]] == [
+        "--toc has no heading to list: the document has none, so the table of contents is empty"], result
+    with zipfile.ZipFile(tmp_path / "out.docx") as z:
+        document = z.read("word/document.xml").decode("utf-8")
+    assert document.count("<w:tblCaption ") == 1
+    assert '<w:tblCaption w:val="ตารางที่ 1 ผล &amp; &quot;ค่า&quot;"/></w:tblPr>' in document
+    (tmp_path / "in.md").write_text("# หัวข้อ\n\nข้อความ\n", encoding="utf-8")
+    assert both(["build", "in.md", "out.docx", "--toc"], tmp_path)[1]["warnings"] == []

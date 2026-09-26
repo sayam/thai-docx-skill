@@ -70,7 +70,9 @@ Table: ผู้ตอบแบบสอบถาม
 - **Captions:** `Table:` just before a table and `Figure:` just after an image alone in its
   paragraph become "ตารางที่ 1-1 …" and "รูปที่ 1-1 …" in a chapter, "ตารางที่ ก-1 …" in
   an appendix, "ตารางที่ 1 …" elsewhere or with no region comments. Leave a blank line
-  between a caption and its image or table. Anywhere else they stay text, with a warning.
+  between a caption and its image or table. Anywhere else they stay text, with a warning. A
+  table's caption is also written as the table's own name (`w:tblCaption`), which a screen reader
+  announces and Word's accessibility check asks for.
 - **The numbers are written in, and do not renumber themselves — unless you ask.** Every
   chapter, heading, list and caption number is text the build worked out, so the file reads the
   same in all five applications. A reader who inserts a chapter or a table in the .docx

@@ -195,6 +195,7 @@ class Writer {
     this.cs = opts.thai_language ? CS_THAI : CS;
     this.csAll = opts.force_cs_whole_doc; // mark every run, as releases before 0.2.0 did
     this.scripts = new Set(); // whether a run of each kind was written: a flag's need
+    this.tableCaption = ""; // the text of the Table: caption just written, for its table's tblCaption
     // a style is not a run: it names the Latin language for an application that reads styles but
     // not docDefaults, and never says complex script, which each run says for itself
     this.styleLang = '<w:lang w:val="en-US"' + (opts.thai_language ? ' w:bidi="th-TH"' : "") + "/>";
@@ -442,6 +443,7 @@ class Writer {
       if (item.new_section) out.push(SECTION_MARK);
       if (item.caption) {
         out.push(this.caption(item.caption, Boolean(item.keep_next), b.line));
+        if (item.caption.kind === "table") this.tableCaption = captionText(item.caption);
       } else if (b.t === "directive") {
         out.push(this.field(listField(b.name, this.opts), "", listEntries(this.items, b.name)));
       } else if (b.t === "heading") {
@@ -632,6 +634,9 @@ class Writer {
 
   table(b) {
     this.counts.tables += 1;
+    // the caption above it, as the table's own name (writer.py says why)
+    const caption = this.tableCaption ? "<w:tblCaption w:val=" + attr(this.tableCaption) + "/>" : "";
+    this.tableCaption = "";
     const widths = this.columnWidths(b);
     const grid = widths.map((col) => '<w:gridCol w:w="' + col + '"/>').join("");
     const borders = ["top", "left", "bottom", "right", "insideH", "insideV"].map((s) => "<w:" + s + ' w:val="single" w:sz="4" w:space="0" w:color="808080"/>').join("");
@@ -648,7 +653,7 @@ class Writer {
     });
     return (
       '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblBorders>' + borders + "</w:tblBorders>" +
-      '<w:tblLayout w:type="autofit"/>' + CELL_MARGINS + "</w:tblPr><w:tblGrid>" + grid + "</w:tblGrid>" + rows.join("") + "</w:tbl>" +
+      '<w:tblLayout w:type="autofit"/>' + CELL_MARGINS + caption + "</w:tblPr><w:tblGrid>" + grid + "</w:tblGrid>" + rows.join("") + "</w:tbl>" +
       "<w:p><w:pPr/></w:p>"
     );
   }

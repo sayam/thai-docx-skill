@@ -32,6 +32,10 @@ before two applications were read; the exception and what is owed are in
   document was written, checked and repaired as Latin. One list of the complex scripts marks,
   checks and repairs them all; finding `2` says "complex script" again
   (`tests/test_what_a_command_takes.py::test_every_complex_script_is_marked_checked_and_repaired`).
+- A table with a `Table:` caption had no name for a screen reader or Word's accessibility check;
+  the caption is written as its `w:tblCaption` too, which moves the bytes of every document with a
+  captioned table. `--toc` in a document with no heading says its table of contents is empty
+  (`tests/test_what_a_command_takes.py::test_a_captioned_table_is_named_and_an_empty_toc_is_said`).
 
 ## [0.2.2] - 2026-09-26
 
