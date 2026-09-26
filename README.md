@@ -28,18 +28,18 @@ file right in the first place, and checks one that another program produced.
 
 ## Quick start
 
-1. **Download** `thai-docx-0.2.2.zip` from the
+1. **Download** `thai-docx-0.3.0.zip` from the
    [latest release](https://github.com/sayam/thai-docx-skill/releases/latest).
 2. **Install it** in your app:
 
    | app | do this |
    |---|---|
    | Claude (web, desktop) | turn on code execution, then **Customize > Skills > + > Create skill > Upload a skill** and choose the zip |
-   | Claude Code | `mkdir -p ~/.claude/skills && unzip thai-docx-0.2.2.zip -d ~/.claude/skills` |
-   | Codex, ChatGPT desktop app | `mkdir -p ~/.agents/skills && unzip thai-docx-0.2.2.zip -d ~/.agents/skills` |
+   | Claude Code | `mkdir -p ~/.claude/skills && unzip thai-docx-0.3.0.zip -d ~/.claude/skills` |
+   | Codex, ChatGPT desktop app | `mkdir -p ~/.agents/skills && unzip thai-docx-0.3.0.zip -d ~/.agents/skills` |
    | ChatGPT Business, Enterprise, Edu, Healthcare | **Plugins > Skills > Create > Upload from your computer** |
-   | GitHub Copilot | `mkdir -p ~/.copilot/skills && unzip thai-docx-0.2.2.zip -d ~/.copilot/skills` |
-   | Cursor | `mkdir -p ~/.cursor/skills && unzip thai-docx-0.2.2.zip -d ~/.cursor/skills` |
+   | GitHub Copilot | `mkdir -p ~/.copilot/skills && unzip thai-docx-0.3.0.zip -d ~/.copilot/skills` |
+   | Cursor | `mkdir -p ~/.cursor/skills && unzip thai-docx-0.3.0.zip -d ~/.cursor/skills` |
    | Gemini, other agents, the APIs | [step by step for each app](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en/install.md) |
 
 3. **Ask** for a Word file:
@@ -88,13 +88,12 @@ Each one, step by step, with the words to type:
 
 ## Status
 
-Version 0.2.2, which writes byte for byte the files 0.2.0 and 0.2.1 wrote from the same Markdown and
-flags, except where its [changes](CHANGELOG.md) say — a bare address or a footnote label now read as
-GitHub reads it, a caption too narrow for its picture: what was read on those holds for all three. The five applications are Word 365 for Windows (the reference), Word for macOS,
-Google Docs, LibreOffice Writer and WPS Writer. On those files Word 365 for Windows passes every
-item; WPS Writer passes six of seven (with `--thai-language` it places ำ over the wrong letter) and Google Docs passes where it was read; Word for macOS has not been read
-yet, and LibreOffice Writer only in one document
-([what was read](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md)). Changes are listed in
+Version 0.3.0, which moves the bytes of most Thai documents: punctuation between Thai stays in the
+Thai run, scripts besides Thai are marked complex script, a captioned table is named, and a picture
+fits the line it is on. The five applications are Word 365 for Windows (the reference), Word for
+macOS, Google Docs, LibreOffice Writer and WPS Writer; they are read on 0.3.0's bytes before its
+tag, and the record of that reading names the files read. What each application draws its own way
+is in [the limits](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/limits.md). Changes are listed in
 [CHANGELOG.md](https://github.com/sayam/thai-docx-skill/blob/main/CHANGELOG.md).
 
 The OpenSSF Scorecard badge is an automated reading of this repository's settings, workflows and
@@ -110,8 +109,8 @@ archive counts from the reading after it.
   see [Fix a problem](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en/troubleshooting.md).
 - A security problem: report it privately, as
   [SECURITY.md](https://github.com/sayam/thai-docx-skill/blob/main/.github/SECURITY.md) says.
-- Verify a download: `gh attestation verify thai-docx-0.2.2.zip --repo sayam/thai-docx-skill
-  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.2.2`
+- Verify a download: `gh attestation verify thai-docx-0.3.0.zip --repo sayam/thai-docx-skill
+  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.3.0`
   ([how, and how to rebuild it byte for byte](https://github.com/sayam/thai-docx-skill/blob/main/.github/SECURITY.md#verify-a-release)).
 
 ## Contributing
