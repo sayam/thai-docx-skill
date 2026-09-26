@@ -155,14 +155,31 @@ def test_a_dated_measurement_in_the_references_has_a_record_of_that_day():
             assert day in days, (page.name, day)
 
 
-def test_the_newest_release_record_names_the_bytes_it_read():
-    """A record of a release reading named a commit, not the bytes: the goldens' hashes appeared in
-    no record (A-02's sibling, F-13). The newest `what-vX.Y.Z-was-read-in` record names every
-    golden's sha256, so a golden that moves needs a record of what was read on it."""
+def test_the_newest_release_record_names_the_bytes_it_read(tmp_path, monkeypatch, capsys):
+    """F-13: the goldens are the bytes a release reading opens (ADR 0012), so the newest
+    `what-vX.Y.Z-was-read-in` record names each one's sha256. That was held on every pull request,
+    which kept a change of bytes out of `main` until the reading; it is held where it matters,
+    at the tag, and the goldens may move between releases."""
     import hashlib
-    newest = sorted((ROOT / "docs" / "evidence").glob("*-what-v*-was-read-in.md"))[-1].read_text(encoding="utf-8")
-    for golden in sorted((ROOT / "tests" / "golden").glob("*.docx")):
-        assert hashlib.sha256(golden.read_bytes()).hexdigest() in newest, golden.name
+    import sys
+    sys.path.insert(0, str(ROOT / "tools"))
+    import package_skill as ps
+    (tmp_path / "tests" / "golden").mkdir(parents=True)
+    (tmp_path / "docs" / "evidence").mkdir(parents=True)
+    read, moved = tmp_path / "tests" / "golden" / "a.docx", tmp_path / "tests" / "golden" / "b.docx"
+    read.write_bytes(b"read in five applications")
+    moved.write_bytes(b"changed since")
+    (tmp_path / "docs" / "evidence" / "2026-01-01-what-v9.9.9-was-read-in.md").write_text(
+        "| a | " + hashlib.sha256(read.read_bytes()).hexdigest() + " |\n", encoding="utf-8")
+    assert ps.unread_goldens(tmp_path) == ["b.docx"]
+    (tmp_path / "docs" / "evidence" / "2026-02-01-what-v9.9.10-was-read-in.md").write_text(
+        "a " + hashlib.sha256(read.read_bytes()).hexdigest() + "\nb " + hashlib.sha256(moved.read_bytes()).hexdigest(),
+        encoding="utf-8")
+    assert ps.unread_goldens(tmp_path) == []
+    monkeypatch.setattr(ps, "unread_goldens", lambda root=None: ["b.docx"])
+    version = ps.versions()["thai_docx.__version__"]
+    assert ps.main(["--tag", "v" + version]) == 1
+    assert '"unread_goldens": ["b.docx"]' in capsys.readouterr().out
 
 
 def test_the_records_found_stale_in_0_2_0_say_what_holds_now():

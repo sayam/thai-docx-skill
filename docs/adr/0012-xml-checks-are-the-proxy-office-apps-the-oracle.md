@@ -7,6 +7,10 @@
 > only in `sample-auto`; the maintainer released first and recorded the exception
 > ([2026-09-24](../evidence/2026-09-24-what-v0.2.0-was-read-in.md)). The rule stands.
 
+> **Later (2026-09-26):** the rule is held at the tag. `tools/package_skill.py --tag`, which the
+> release workflow runs, refuses a tag until the newest reading record names every golden's
+> sha256; between releases the goldens may move on `main`.
+
 ## Where it came from
 
 A check on the XML can show that the causes in 0004 are absent; it cannot show
