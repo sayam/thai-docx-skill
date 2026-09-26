@@ -55,11 +55,23 @@ function hex4(cp) {
   return cp.toString(16).toUpperCase().padStart(4, "0");
 }
 
+// What a link may lead to: a web page or an address. A link with no scheme (`#top`,
+// `other.docx`) is written as it always was.
+const ALLOWED_SCHEMES = ["http", "https", "mailto"];
+
+// The scheme of a link that leads anywhere else, or null.
+function refusedScheme(dest) {
+  const m = /^[A-Za-z][A-Za-z0-9+.-]*(?=:)/.exec(dest);
+  return m !== null && !ALLOWED_SCHEMES.includes(m[0].toLowerCase()) ? m[0] : null;
+}
+
+// A character this skill refuses in its input: controls, the invisible characters of ADR 0023
+// and every other format character, noncharacters, and a lone surrogate.
 function forbiddenChar(ch) {
   const cp = ch.codePointAt(0);
-  if (Object.prototype.hasOwnProperty.call(INVISIBLE, ch)) return INVISIBLE[ch];
   if ((cp < 0x20 && ch !== "\t" && ch !== "\n") || (cp >= 0x7f && cp <= 0x9f)) return "U+" + hex4(cp) + ", a control character";
-  if (cp === 0xfffe || cp === 0xffff) return "U+" + hex4(cp) + ", a noncharacter";
+  const named = unseen(ch);
+  if (named !== null) return named;
   if (cp >= 0xd800 && cp <= 0xdfff) return "U+" + hex4(cp) + ", a lone surrogate"; // only a profile's JSON can carry one
   return null;
 }
@@ -611,6 +623,13 @@ function finalizeHtmlBlock(p, b) {
     if (reNonSpace.test(rest)) throw new Unsupported(b.line, "an HTML comment block also holds text; put the text outside the comment");
     return;
   }
+  // a tag this skill takes, alone on its line, is still an HTML block by CommonMark: say so,
+  // rather than refuse a tag the message goes on to name as supported
+  const alone = /^<\/?([A-Za-z][A-Za-z0-9-]*)/.exec(b.stringContent);
+  if (b.htmlType === 7 && alone !== null && ALLOWED_TAGS.includes(alone[1].toLowerCase())) {
+    throw new Unsupported(b.line, "<" + alone[1] + "> alone on its line is an HTML block, which is not supported;" +
+      " write it inside a paragraph's text, on the line with the words around it");
+  }
   throw new Unsupported(b.line, "HTML blocks are not supported; only <br>, <sup>, <sub>, <u>, <kbd> inside text, and comments");
 }
 
@@ -679,7 +698,7 @@ function startMathFence(p) {
     c.isFenced = true;
     c.math = true;
     c.fenceOffset = p.indent;
-    p.warnings.push("line " + p.lineNumber + ": display math kept as literal LaTeX; typeset math is not supported in v0.1");
+    p.warnings.push("line " + p.lineNumber + ": display math kept as literal LaTeX; typeset math is not written by this skill");
     p.advanceNextNonspace();
     p.advanceOffset(2, false);
     const stripped = rstripChars(rest, " \t");
@@ -1236,7 +1255,11 @@ class InlineParser {
     return m.length;
   }
 
+  // Parentheses nest in a destination to this depth and no deeper, as cmark has it: past it the
+  // text is no destination. Unbounded, every `](` read to the end of the text, and two thousand
+  // of them took seconds, eight thousand most of a minute.
   parseLinkDestination() {
+    const MAX_LINK_PARENS = 32;
     const res = this.match(reLinkDestinationBraces);
     if (res === null) {
       if (this.peek() === "<") return null;
@@ -1252,6 +1275,7 @@ class InlineParser {
         } else if (c === "(") {
           this.pos += 1;
           openparens += 1;
+          if (openparens > MAX_LINK_PARENS) break;
         } else if (c === ")") {
           if (openparens < 1) break;
           this.pos += 1;
@@ -1334,6 +1358,9 @@ class InlineParser {
       }
     }
     if (matched) {
+      if (!isImage && refusedScheme(dest) !== null) {
+        throw new Unsupported(this.lineAt(this.pos), "a link leads only to http, https or mailto; this one leads to " + refusedScheme(dest) + ":");
+      }
       const node = new Node(isImage ? "image" : "link");
       node.destination = dest;
       node.title = title || "";
@@ -1395,6 +1422,9 @@ class InlineParser {
     m = this.match(reAutolink);
     if (m !== null) {
       const dest = m.slice(1, -1);
+      if (refusedScheme(dest) !== null) {
+        throw new Unsupported(this.lineAt(this.pos), "a link leads only to http, https or mailto; this one leads to " + refusedScheme(dest) + ":");
+      }
       const node = new Node("link");
       node.destination = dest;
       node.title = "";
@@ -1469,7 +1499,7 @@ class InlineParser {
     node.literal = subj.slice(i + width, end).replace(/\n/g, " ");
     node.math = true;
     block.appendChild(node);
-    this.bp.warnings.push("line " + this.lineAt(i) + ": inline math kept as literal LaTeX; typeset math is not supported in v0.1");
+    this.bp.warnings.push("line " + this.lineAt(i) + ": inline math kept as literal LaTeX; typeset math is not written by this skill");
     this.pos = end + width;
     return true;
   }
@@ -1954,7 +1984,7 @@ function toBlocks(bp, node, doc) {
     } else if (t === "list") {
       const items = child.children().map((item) => toBlocks(bp, item, doc));
       const data = child.listData;
-      out.push({ t: "list", ordered: data.type === "ordered", start: data.start || 1, items });
+      out.push({ t: "list", ordered: data.type === "ordered", start: data.start === null || data.start === undefined ? 1 : data.start, items });
     } else if (t === "thematic_break") {
       out.push({ t: "break" });
     } else if (t === "table") {

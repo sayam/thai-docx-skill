@@ -116,6 +116,25 @@ class PyFloat {
   }
 }
 
+// A float as Python's repr() writes it: the shortest digits that read back as the same number,
+// in positional form from 1e-4 up to 1e16 and in exponent form outside it, with a two-digit
+// exponent at least — `1e-05`, not the `0.00001` String() gives.
+function pyFloatRepr(x) {
+  if (x === 0) return Object.is(x, -0) ? "-0.0" : "0.0";
+  const [mantissa, e] = x.toExponential().split("e");
+  const exp = parseInt(e, 10);
+  const sign = mantissa.startsWith("-") ? "-" : "";
+  const digits = mantissa.replace("-", "").replace(".", "");
+  if (exp < -4 || exp >= 16) {
+    return sign + digits[0] + (digits.length > 1 ? "." + digits.slice(1) : "") + "e" + (exp < 0 ? "-" : "+") +
+      String(Math.abs(exp)).padStart(2, "0");
+  }
+  if (exp < 0) return sign + "0." + "0".repeat(-exp - 1) + digits;
+  const whole = exp + 1;
+  if (digits.length <= whole) return sign + digits + "0".repeat(whole - digits.length) + ".0";
+  return sign + digits.slice(0, whole) + "." + digits.slice(whole);
+}
+
 function pyString(s) {
   let out = '"';
   for (const ch of s) {
@@ -137,7 +156,7 @@ function pyDumps(v) {
   if (v === null || v === undefined) return "null";
   if (v === true) return "true";
   if (v === false) return "false";
-  if (v instanceof PyFloat) return Number.isInteger(v.value) ? v.value.toFixed(1) : String(v.value);
+  if (v instanceof PyFloat) return pyFloatRepr(v.value);
   if (typeof v === "number") return String(v);
   if (typeof v === "string") return pyString(v);
   if (Array.isArray(v)) return "[" + v.map(pyDumps).join(", ") + "]";
@@ -1020,13 +1039,30 @@ function parseXml(source) {
 // thai-docx — check: the JavaScript port of scripts/thai_docx/check.py. Findings,
 // messages, counts and their order match it exactly (ADR 0004, 0023, 0008, 0030).
 
-const OOXML = {"invisible":{"\u200b":"U+200B ZERO WIDTH SPACE","\u200c":"U+200C ZERO WIDTH NON-JOINER","\u200d":"U+200D ZERO WIDTH JOINER","\u2060":"U+2060 WORD JOINER","\ufeff":"U+FEFF ZERO WIDTH NO-BREAK SPACE"},"ppr_order":["pStyle","keepNext","keepLines","pageBreakBefore","framePr","widowControl","numPr","suppressLineNumbers","pBdr","shd","tabs","suppressAutoHyphens","kinsoku","wordWrap","overflowPunct","topLinePunct","autoSpaceDE","autoSpaceDN","bidi","adjustRightInd","snapToGrid","spacing","ind","contextualSpacing","mirrorIndents","suppressOverlap","jc","textDirection","textAlignment","textboxTightWrap","outlineLvl","divId","cnfStyle","rPr","sectPr","pPrChange"],"rpr_order":["rStyle","rFonts","b","bCs","i","iCs","caps","smallCaps","strike","dstrike","outline","shadow","emboss","imprint","noProof","snapToGrid","vanish","webHidden","color","spacing","w","kern","position","sz","szCs","highlight","u","effect","bdr","shd","fitText","vertAlign","rtl","cs","em","lang","eastAsianLayout","specVanish","oMath","rPrChange"],"settings_order":["writeProtection","view","zoom","removePersonalInformation","removeDateAndTime","doNotDisplayPageBoundaries","displayBackgroundShape","printPostScriptOverText","printFractionalCharacterWidth","printFormsData","embedTrueTypeFonts","embedSystemFonts","saveSubsetFonts","saveFormsData","mirrorMargins","alignBordersAndEdges","bordersDoNotSurroundHeader","bordersDoNotSurroundFooter","gutterAtTop","hideSpellingErrors","hideGrammaticalErrors","activeWritingStyle","proofState","formsDesign","attachedTemplate","linkStyles","stylePaneFormatFilter","stylePaneSortMethod","documentType","mailMerge","revisionView","trackRevisions","doNotTrackMoves","doNotTrackFormatting","documentProtection","autoFormatOverride","styleLockTheme","styleLockQFSet","defaultTabStop","autoHyphenation","consecutiveHyphenLimit","hyphenationZone","doNotHyphenateCaps","showEnvelope","summaryLength","clickAndTypeStyle","defaultTableStyle","evenAndOddHeaders","bookFoldRevPrinting","bookFoldPrinting","bookFoldPrintingSheets","drawingGridHorizontalSpacing","drawingGridVerticalSpacing","displayHorizontalDrawingGridEvery","displayVerticalDrawingGridEvery","doNotUseMarginsForDrawingGridOrigin","drawingGridHorizontalOrigin","drawingGridVerticalOrigin","doNotShadeFormData","noPunctuationKerning","characterSpacingControl","printTwoOnOne","strictFirstAndLastChars","noLineBreaksAfter","noLineBreaksBefore","savePreviewPicture","doNotValidateAgainstSchema","saveInvalidXml","ignoreMixedContent","alwaysShowPlaceholderText","doNotDemarcateInvalidXml","saveXmlDataOnly","useXSLTWhenSaving","saveThroughXslt","showXMLTags","alwaysMergeEmptyNamespace","updateFields","hdrShapeDefaults","footnotePr","endnotePr","compat","docVars","rsids","mathPr","attachedSchema","themeFontLang","clrSchemeMapping","doNotIncludeSubdocsInStats","doNotAutoCompressPictures","forceUpgrade","captions","readModeInkLockDown","smartTagType","schemaLibrary","shapeDefaults","doNotEmbedSmartTags","decimalSymbol","listSeparator"],"thai_fonts":["angsana new","angsanaupc","anuphan","arial unicode ms","athiti","ayuthaya","bai jamjuree","browallia new","browalliaupc","chakra petch","charm","charmonman","chonburi","cordia new","cordiaupc","dilleniaupc","eucrosiaupc","fahkwang","freesiaupc","garuda","ibm plex sans thai","ibm plex sans thai looped","irisupc","itim","jasmineupc","k2d","kanit","kinnari","kodchasan","kodchiangupc","koho","krub","krungthep","laksaman","leelawadee","leelawadee ui","libre sarabun","lilyupc","loma","maitree","mali","microsoft sans serif","mitr","niramit","norasi","noto sans thai","noto sans thai looped","noto sans thai ui","noto serif thai","pattaya","pridi","prompt","purisa","sarabun","sathu","sawasdee","segoe ui","silom","sriracha","srisakdi","tahoma","taviraj","th baijam","th chakra petch","th charm of au","th charmonman","th fah kwang","th k2d july8","th kodchasal","th koho","th krub","th mali grade6","th niramit as","th sarabun new","th sarabun psk","th sarabunpsk","th srisakdi","thasadith","thonburi","tlwg typist","tlwg typo","tlwgmono","trirong","umpush","waree"]};
+const OOXML = {"format":[[173,173],[1536,1541],[1564,1564],[1757,1757],[1807,1807],[2192,2193],[2274,2274],[6158,6158],[8203,8207],[8234,8238],[8288,8292],[8294,8303],[65279,65279],[65529,65531],[69821,69821],[69837,69837],[78896,78911],[113824,113827],[119155,119162],[917505,917505],[917536,917631]],"format_unicode":"15.1.0","invisible":{"\u200b":"U+200B ZERO WIDTH SPACE","\u200c":"U+200C ZERO WIDTH NON-JOINER","\u200d":"U+200D ZERO WIDTH JOINER","\u2060":"U+2060 WORD JOINER","\ufeff":"U+FEFF ZERO WIDTH NO-BREAK SPACE"},"ppr_order":["pStyle","keepNext","keepLines","pageBreakBefore","framePr","widowControl","numPr","suppressLineNumbers","pBdr","shd","tabs","suppressAutoHyphens","kinsoku","wordWrap","overflowPunct","topLinePunct","autoSpaceDE","autoSpaceDN","bidi","adjustRightInd","snapToGrid","spacing","ind","contextualSpacing","mirrorIndents","suppressOverlap","jc","textDirection","textAlignment","textboxTightWrap","outlineLvl","divId","cnfStyle","rPr","sectPr","pPrChange"],"rpr_order":["rStyle","rFonts","b","bCs","i","iCs","caps","smallCaps","strike","dstrike","outline","shadow","emboss","imprint","noProof","snapToGrid","vanish","webHidden","color","spacing","w","kern","position","sz","szCs","highlight","u","effect","bdr","shd","fitText","vertAlign","rtl","cs","em","lang","eastAsianLayout","specVanish","oMath","rPrChange"],"settings_order":["writeProtection","view","zoom","removePersonalInformation","removeDateAndTime","doNotDisplayPageBoundaries","displayBackgroundShape","printPostScriptOverText","printFractionalCharacterWidth","printFormsData","embedTrueTypeFonts","embedSystemFonts","saveSubsetFonts","saveFormsData","mirrorMargins","alignBordersAndEdges","bordersDoNotSurroundHeader","bordersDoNotSurroundFooter","gutterAtTop","hideSpellingErrors","hideGrammaticalErrors","activeWritingStyle","proofState","formsDesign","attachedTemplate","linkStyles","stylePaneFormatFilter","stylePaneSortMethod","documentType","mailMerge","revisionView","trackRevisions","doNotTrackMoves","doNotTrackFormatting","documentProtection","autoFormatOverride","styleLockTheme","styleLockQFSet","defaultTabStop","autoHyphenation","consecutiveHyphenLimit","hyphenationZone","doNotHyphenateCaps","showEnvelope","summaryLength","clickAndTypeStyle","defaultTableStyle","evenAndOddHeaders","bookFoldRevPrinting","bookFoldPrinting","bookFoldPrintingSheets","drawingGridHorizontalSpacing","drawingGridVerticalSpacing","displayHorizontalDrawingGridEvery","displayVerticalDrawingGridEvery","doNotUseMarginsForDrawingGridOrigin","drawingGridHorizontalOrigin","drawingGridVerticalOrigin","doNotShadeFormData","noPunctuationKerning","characterSpacingControl","printTwoOnOne","strictFirstAndLastChars","noLineBreaksAfter","noLineBreaksBefore","savePreviewPicture","doNotValidateAgainstSchema","saveInvalidXml","ignoreMixedContent","alwaysShowPlaceholderText","doNotDemarcateInvalidXml","saveXmlDataOnly","useXSLTWhenSaving","saveThroughXslt","showXMLTags","alwaysMergeEmptyNamespace","updateFields","hdrShapeDefaults","footnotePr","endnotePr","compat","docVars","rsids","mathPr","attachedSchema","themeFontLang","clrSchemeMapping","doNotIncludeSubdocsInStats","doNotAutoCompressPictures","forceUpgrade","captions","readModeInkLockDown","smartTagType","schemaLibrary","shapeDefaults","doNotEmbedSmartTags","decimalSymbol","listSeparator"],"thai_fonts":["angsana new","angsanaupc","anuphan","arial unicode ms","athiti","ayuthaya","bai jamjuree","browallia new","browalliaupc","chakra petch","charm","charmonman","chonburi","cordia new","cordiaupc","dilleniaupc","eucrosiaupc","fahkwang","freesiaupc","garuda","ibm plex sans thai","ibm plex sans thai looped","irisupc","itim","jasmineupc","k2d","kanit","kinnari","kodchasan","kodchiangupc","koho","krub","krungthep","laksaman","leelawadee","leelawadee ui","libre sarabun","lilyupc","loma","maitree","mali","microsoft sans serif","mitr","niramit","norasi","noto sans thai","noto sans thai looped","noto sans thai ui","noto serif thai","pattaya","pridi","prompt","purisa","sarabun","sathu","sawasdee","segoe ui","silom","sriracha","srisakdi","tahoma","taviraj","th baijam","th chakra petch","th charm of au","th charmonman","th fah kwang","th k2d july8","th kodchasal","th koho","th krub","th mali grade6","th niramit as","th sarabun new","th sarabun psk","th sarabunpsk","th srisakdi","thasadith","thonburi","tlwg typist","tlwg typo","tlwgmono","trirong","umpush","waree"]};
 
 const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const RPR_ORDER = OOXML.rpr_order;
 const PPR_ORDER = OOXML.ppr_order;
 const SETTINGS_ORDER = OOXML.settings_order;
 const INVISIBLE = OOXML.invisible;
+// Every other format character (Unicode category Cf), from the list both implementations read,
+// so neither asks its own runtime's Unicode tables, which differ in version (ADR 0008).
+const FORMAT = new Set(OOXML.format.flatMap(([first, last]) => Array.from({ length: last - first + 1 }, (_, k) => String.fromCodePoint(first + k))));
+
+// U+FDD0 to U+FDEF, and the last two code points of every plane.
+function isNoncharacter(cp) {
+  return (cp >= 0xfdd0 && cp <= 0xfdef) || (cp & 0xfffe) === 0xfffe;
+}
+
+// How a character a reader cannot see is named in a message, or null.
+function unseen(ch) {
+  if (Object.prototype.hasOwnProperty.call(INVISIBLE, ch)) return INVISIBLE[ch];
+  const cp = ch.codePointAt(0);
+  if (FORMAT.has(ch)) return "U+" + cp.toString(16).toUpperCase().padStart(4, "0") + ", a format character";
+  if (isNoncharacter(cp)) return "U+" + cp.toString(16).toUpperCase().padStart(4, "0") + ", a noncharacter";
+  return null;
+}
 const THAI_FONTS = new Set(OOXML.thai_fonts);
 
 const MAX_PART = 32 * 1024 * 1024;
@@ -1270,12 +1306,22 @@ function checkTextPart(name, root, report) {
           }
         }
         for (const t of texts) {
+          const text = t.text || "";
+          // the five by name first, as they always were; then any other in text order
+          let label = null;
           for (const ch of Object.keys(INVISIBLE)) {
-            if ((t.text || "").indexOf(ch) !== -1) {
-              report.find("invisible", name, "text contains " + INVISIBLE[ch]);
+            if (text.indexOf(ch) !== -1) {
+              label = INVISIBLE[ch];
               break;
             }
           }
+          if (label === null) {
+            for (const ch of text) {
+              label = unseen(ch);
+              if (label !== null) break;
+            }
+          }
+          if (label !== null) report.find("invisible", name, "text contains " + label);
         }
       }
       const shape = canonical(rpr);
@@ -1400,11 +1446,23 @@ function hex4(cp) {
   return cp.toString(16).toUpperCase().padStart(4, "0");
 }
 
+// What a link may lead to: a web page or an address. A link with no scheme (`#top`,
+// `other.docx`) is written as it always was.
+const ALLOWED_SCHEMES = ["http", "https", "mailto"];
+
+// The scheme of a link that leads anywhere else, or null.
+function refusedScheme(dest) {
+  const m = /^[A-Za-z][A-Za-z0-9+.-]*(?=:)/.exec(dest);
+  return m !== null && !ALLOWED_SCHEMES.includes(m[0].toLowerCase()) ? m[0] : null;
+}
+
+// A character this skill refuses in its input: controls, the invisible characters of ADR 0023
+// and every other format character, noncharacters, and a lone surrogate.
 function forbiddenChar(ch) {
   const cp = ch.codePointAt(0);
-  if (Object.prototype.hasOwnProperty.call(INVISIBLE, ch)) return INVISIBLE[ch];
   if ((cp < 0x20 && ch !== "\t" && ch !== "\n") || (cp >= 0x7f && cp <= 0x9f)) return "U+" + hex4(cp) + ", a control character";
-  if (cp === 0xfffe || cp === 0xffff) return "U+" + hex4(cp) + ", a noncharacter";
+  const named = unseen(ch);
+  if (named !== null) return named;
   if (cp >= 0xd800 && cp <= 0xdfff) return "U+" + hex4(cp) + ", a lone surrogate"; // only a profile's JSON can carry one
   return null;
 }
@@ -1956,6 +2014,13 @@ function finalizeHtmlBlock(p, b) {
     if (reNonSpace.test(rest)) throw new Unsupported(b.line, "an HTML comment block also holds text; put the text outside the comment");
     return;
   }
+  // a tag this skill takes, alone on its line, is still an HTML block by CommonMark: say so,
+  // rather than refuse a tag the message goes on to name as supported
+  const alone = /^<\/?([A-Za-z][A-Za-z0-9-]*)/.exec(b.stringContent);
+  if (b.htmlType === 7 && alone !== null && ALLOWED_TAGS.includes(alone[1].toLowerCase())) {
+    throw new Unsupported(b.line, "<" + alone[1] + "> alone on its line is an HTML block, which is not supported;" +
+      " write it inside a paragraph's text, on the line with the words around it");
+  }
   throw new Unsupported(b.line, "HTML blocks are not supported; only <br>, <sup>, <sub>, <u>, <kbd> inside text, and comments");
 }
 
@@ -2024,7 +2089,7 @@ function startMathFence(p) {
     c.isFenced = true;
     c.math = true;
     c.fenceOffset = p.indent;
-    p.warnings.push("line " + p.lineNumber + ": display math kept as literal LaTeX; typeset math is not supported in v0.1");
+    p.warnings.push("line " + p.lineNumber + ": display math kept as literal LaTeX; typeset math is not written by this skill");
     p.advanceNextNonspace();
     p.advanceOffset(2, false);
     const stripped = rstripChars(rest, " \t");
@@ -2581,7 +2646,11 @@ class InlineParser {
     return m.length;
   }
 
+  // Parentheses nest in a destination to this depth and no deeper, as cmark has it: past it the
+  // text is no destination. Unbounded, every `](` read to the end of the text, and two thousand
+  // of them took seconds, eight thousand most of a minute.
   parseLinkDestination() {
+    const MAX_LINK_PARENS = 32;
     const res = this.match(reLinkDestinationBraces);
     if (res === null) {
       if (this.peek() === "<") return null;
@@ -2597,6 +2666,7 @@ class InlineParser {
         } else if (c === "(") {
           this.pos += 1;
           openparens += 1;
+          if (openparens > MAX_LINK_PARENS) break;
         } else if (c === ")") {
           if (openparens < 1) break;
           this.pos += 1;
@@ -2679,6 +2749,9 @@ class InlineParser {
       }
     }
     if (matched) {
+      if (!isImage && refusedScheme(dest) !== null) {
+        throw new Unsupported(this.lineAt(this.pos), "a link leads only to http, https or mailto; this one leads to " + refusedScheme(dest) + ":");
+      }
       const node = new Node(isImage ? "image" : "link");
       node.destination = dest;
       node.title = title || "";
@@ -2740,6 +2813,9 @@ class InlineParser {
     m = this.match(reAutolink);
     if (m !== null) {
       const dest = m.slice(1, -1);
+      if (refusedScheme(dest) !== null) {
+        throw new Unsupported(this.lineAt(this.pos), "a link leads only to http, https or mailto; this one leads to " + refusedScheme(dest) + ":");
+      }
       const node = new Node("link");
       node.destination = dest;
       node.title = "";
@@ -2814,7 +2890,7 @@ class InlineParser {
     node.literal = subj.slice(i + width, end).replace(/\n/g, " ");
     node.math = true;
     block.appendChild(node);
-    this.bp.warnings.push("line " + this.lineAt(i) + ": inline math kept as literal LaTeX; typeset math is not supported in v0.1");
+    this.bp.warnings.push("line " + this.lineAt(i) + ": inline math kept as literal LaTeX; typeset math is not written by this skill");
     this.pos = end + width;
     return true;
   }
@@ -3299,7 +3375,7 @@ function toBlocks(bp, node, doc) {
     } else if (t === "list") {
       const items = child.children().map((item) => toBlocks(bp, item, doc));
       const data = child.listData;
-      out.push({ t: "list", ordered: data.type === "ordered", start: data.start || 1, items });
+      out.push({ t: "list", ordered: data.type === "ordered", start: data.start === null || data.start === undefined ? 1 : data.start, items });
     } else if (t === "thematic_break") {
       out.push({ t: "break" });
     } else if (t === "table") {
@@ -3401,7 +3477,7 @@ const CLASHES = {
   "toc comment": "the document places a table of contents with <!-- toc --> as well, so it now has two",
 };
 
-const LABEL = "text of 1 to 40 characters on one line, without %";
+const LABEL = 'text of 1 to 40 characters on one line, without %, " or \\';
 const SETTINGS = [
   { key: "font", flag: "--font", kind: "value", default: "TH Sarabun New", layer: 1,
     read: ["text", 64, ""], takes: "a font name of 1 to 64 characters", usage: "NAME", report: ["font", "value"] },
@@ -3446,11 +3522,11 @@ const SETTINGS = [
   { key: "table_size", flag: "--table-size", kind: "option", default: null, layer: 3, // null: the body size
     read: ["points", 1, 400], takes: "a number of points from 1 to 400", usage: "PT", report: ["table_size_pt", "value"] },
   { key: "chapter_label", flag: "--chapter-label", kind: "value", default: "บทที่", layer: 5,
-    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "chapter headings", report: ["chapter_label", "value"] },
+    read: ["text", 40, '\t\n%"\\'], takes: LABEL, usage: "TEXT", needs: "chapter headings", report: ["chapter_label", "value"] },
   { key: "table_label", flag: "--table-label", kind: "value", default: "ตารางที่", layer: 5,
-    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "table captions", report: ["table_label", "value"] },
+    read: ["text", 40, '\t\n%"\\'], takes: LABEL, usage: "TEXT", needs: "table captions", report: ["table_label", "value"] },
   { key: "figure_label", flag: "--figure-label", kind: "value", default: "รูปที่", layer: 5,
-    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "figure captions", report: ["figure_label", "value"] },
+    read: ["text", 40, '\t\n%"\\'], takes: LABEL, usage: "TEXT", needs: "figure captions", report: ["figure_label", "value"] },
   { key: "caption_hanging_indent", flag: "--caption-hanging-indent", kind: "value", default: 0.0, layer: 5, // inches
     read: ["number", 0, 4], takes: "a number of inches from 0 to 4", usage: "IN",
     needs: "captions", report: ["caption_hanging_indent_in", "float"] },
@@ -3461,7 +3537,7 @@ const SETTINGS = [
   { key: "front_page_numbers", flag: "--front-page-numbers", kind: "value", default: "thai-letters", layer: 5,
     read: ["choice", Object.keys(FRONT_NUMBERS)], takes: Object.keys(FRONT_NUMBERS).join(", "), needs: "front", report: ["front_page_numbers", "value"] },
   { key: "appendix_label", flag: "--appendix-label", kind: "value", default: "ภาคผนวก", layer: 5,
-    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "appendix headings", report: ["appendix_label", "value"] },
+    read: ["text", 40, '\t\n%"\\'], takes: LABEL, usage: "TEXT", needs: "appendix headings", report: ["appendix_label", "value"] },
   { key: "appendix_numbers", flag: "--appendix-numbers", kind: "value", default: "thai-letters", layer: 5,
     read: ["choice", Object.keys(APPENDIX_NUMBERS)], takes: Object.keys(APPENDIX_NUMBERS).join(", "), needs: "appendix headings", report: ["appendix_numbers", "value"] },
   { key: "chapter_title_on_new_line", flag: "--chapter-title-on-new-line", kind: "switch", default: false, layer: 5,
@@ -3576,6 +3652,15 @@ function parseArgs(argv) {
   for (const s of SETTINGS) {
     if (s.needs && has(DEFAULTS, s.needs) && opts[s.key] !== s.default && opts[s.needs] === DEFAULTS[s.needs]) {
       throw new BuildError(s.flag + " needs " + SETTINGS.find((n) => n.key === s.needs).flag);
+    }
+  }
+  // Word's SEQ field names its counter with one word, so a caption label written as one takes
+  // no space; numbers the build writes as text carry the label as text, where a space is fine
+  if (opts.auto_numbering) {
+    for (const key of ["table_label", "figure_label"]) {
+      if (/[ \t\n\r\f\v\u00a0\u3000]/.test(opts[key])) {
+        throw new BuildError(SETTINGS.find((x) => x.key === key).flag + " takes no space with --auto-numbering: Word's SEQ field names a counter with one word");
+      }
     }
   }
   const [pw, ph] = pageSize(opts);
@@ -4138,6 +4223,16 @@ const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 const DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main"; // the theme, and a picture's own namespace
 const EMU_PER_PX = 9525;
 const EMU_PER_TWIP = 635;
+// The most pixels a side this writes: a PNG may declare two thousand million, and an extent from
+// that is past what the format can hold, or rounds to nothing once it is made to fit.
+const MAX_SIDE_PX = 20000;
+
+function imageWithin(wpx, hpx) {
+  if (wpx > MAX_SIDE_PX || hpx > MAX_SIDE_PX) {
+    throw new BuildError("image is " + wpx + " by " + hpx + " pixels; this skill writes none wider or taller than " + MAX_SIDE_PX);
+  }
+  return [wpx, hpx];
+}
 // A run says it is complex script where its text is complex script, and says nothing where it is
 // not (ADR 0039, amending cause 2 of ADR 0004). Omission is how it says nothing: no style and no
 // document default carries the element either, so there is nothing to inherit. Whether the text
@@ -4195,6 +4290,20 @@ function esc(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// What a URI may carry as it is (RFC 3986): the rest — a space, Thai, a quote — is written as the
+// percent-encoded bytes of its UTF-8, as Word writes it. A `%` already there stays, so a link
+// encoded once is not encoded twice. The text a reader sees is not this; it is unchanged.
+const URI_AS_IS = new Set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%");
+
+function uri(link) {
+  let out = "";
+  for (const ch of link) {
+    if (URI_AS_IS.has(ch)) out += ch;
+    else for (const b of utf8(ch)) out += "%" + b.toString(16).toUpperCase().padStart(2, "0");
+  }
+  return out;
+}
+
 function attr(s) {
   return '"' + esc(s).replace(/"/g, "&quot;").replace(/\t/g, "&#9;").replace(/\n/g, "&#10;").replace(/\r/g, "&#13;") + '"';
 }
@@ -4211,7 +4320,7 @@ function imageSize(data) {
     if (!(data[end - 8] === 0x49 && data[end - 7] === 0x45 && data[end - 6] === 0x4e && data[end - 5] === 0x44)) {
       throw new BuildError("image stops partway: a PNG ends with its IEND chunk and this one does not");
     }
-    return ["png", wpx, hpx];
+    return ["png", ...imageWithin(wpx, hpx)];
   }
   if (data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) {
     let i = 2;
@@ -4233,7 +4342,7 @@ function imageSize(data) {
         if (!(data[data.length - 2] === 0xff && data[data.length - 1] === 0xd9)) {
           throw new BuildError("image stops partway: a JPEG ends with its end-of-image marker and this one does not");
         }
-        return ["jpeg", wpx, hpx];
+        return ["jpeg", ...imageWithin(wpx, hpx)];
       }
       if (length < 2) break;
       i += 2 + length;
@@ -4331,7 +4440,7 @@ class Writer {
       if (n.t === "text" && n.link) {
         let j = i;
         while (j < nodes.length && nodes[j].t === "text" && nodes[j].link === n.link) j++;
-        const rid = this.rel(REL + "hyperlink", n.link, true);
+        const rid = this.rel(REL + "hyperlink", uri(n.link), true);
         this.counts.links += 1;
         const runs = nodes.slice(i, j).map((x) => this.textRun(x, bold)).join("");
         out.push('<w:hyperlink r:id="' + rid + '" w:history="1">' + runs + "</w:hyperlink>");
@@ -4377,6 +4486,15 @@ class Writer {
       cy = (cy * maxCx) / cx;
       cx = maxCx;
     }
+    // and to the page's height: a picture taller than the text area runs off the page
+    const [, ph, top, , bottom] = this.page;
+    const maxCy = BigInt(ph - top - bottom) * BigInt(EMU_PER_TWIP);
+    if (cy > maxCy) {
+      cx = (cx * maxCy) / cy;
+      cy = maxCy;
+    }
+    if (cx < 1n) cx = 1n; // a side of nothing is no picture
+    if (cy < 1n) cy = 1n;
     this.imageTwips = Number(cx / BigInt(EMU_PER_TWIP)); // what --caption-matches-object measures against
     this.docPr += 1;
     const k = String(this.docPr);
@@ -4432,7 +4550,7 @@ class Writer {
   fieldRuns(instr, result, rpr) {
     return (
       "<w:r>" + this.rpr(rpr + this.marker(false)) + '<w:fldChar w:fldCharType="begin"/></w:r>' +
-      "<w:r>" + this.rpr(rpr + this.marker(false)) + '<w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>" +
+      "<w:r>" + this.rpr(rpr + this.marker(false)) + '<w:instrText xml:space="preserve"> ' + esc(instr) + " </w:instrText></w:r>" +
       "<w:r>" + this.rpr(rpr + this.marker(false)) + '<w:fldChar w:fldCharType="separate"/></w:r>' +
       this.runs(result, rpr) +
       "<w:r>" + this.rpr(rpr + this.marker(false)) + '<w:fldChar w:fldCharType="end"/></w:r>'
@@ -4697,7 +4815,7 @@ class Writer {
   // opens in the first entry and closes in the last, as Word writes it.
   field(instr, ppr, entries) {
     const char = (kind) => "<w:r>" + this.rpr(this.marker(false)) + '<w:fldChar w:fldCharType="' + kind + '"/></w:r>';
-    const instruction = "<w:r>" + this.rpr(this.marker(false)) + '<w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>";
+    const instruction = "<w:r>" + this.rpr(this.marker(false)) + '<w:instrText xml:space="preserve"> ' + esc(instr) + " </w:instrText></w:r>";
     if (!entries || !entries.length) {
       return "<w:p><w:pPr>" + (ppr || "") + "</w:pPr>" + char("begin") + instruction + char("separate") + char("end") + "</w:p>";
     }
@@ -6005,7 +6123,7 @@ function canonicalJson(value, indent) {
   if (value === null || value === undefined) return "null";
   if (value === true) return "true";
   if (value === false) return "false";
-  if (value instanceof PyFloat) return Number.isInteger(value.value) ? value.value.toFixed(1) : String(value.value);
+  if (value instanceof PyFloat) return pyFloatRepr(value.value);
   if (typeof value === "number") return String(value);
   if (typeof value === "string") return pyString(value);
   const inner = pad + "  ";
@@ -6529,6 +6647,11 @@ const GRILL_MAX_CHARS = 20000;
 // the words that may follow the phrase (ADR 0029): part → [English, Thai]
 const GRILL_PARTS = { from: ["from", "จาก"], save_to: ["save to", "บันทึกเป็น"], only: ["only", "เฉพาะ"] };
 
+// What separates words, one list written out for both implementations: str.isspace() and the
+// JavaScript \s disagreed on U+001C, U+0085 and U+FEFF, so one read `from test` and the other
+// did not. The spaces a person types, and no others.
+const GRILL_WHITESPACE = new Set([" ", "\t", "\n", "\r", "\f", "\v", "\u00a0", "\u3000"]);
+
 class GrillError extends Error {
   constructor(what) {
     super(what);
@@ -6547,7 +6670,7 @@ function grillWords(message) {
   const out = [];
   let current = "";
   for (const ch of message) {
-    if (/\s/.test(ch)) {
+    if (GRILL_WHITESPACE.has(ch)) {
       if (current) out.push(current);
       current = "";
     } else {
@@ -6564,47 +6687,69 @@ function grillPlain(message) {
   return grillFold(grillWords(message).join(" "));
 }
 
-// The language the questions are asked in: Thai when the user wrote any Thai.
+// The language the questions are asked in: the one most of the user's words are in, the phrase
+// aside — Thai on a tie. One Thai title in an English request is not a Thai request.
 function grillLanguage(message) {
-  for (const ch of message) {
-    if (ch >= "฀" && ch <= "๿") return "th";
+  let said = grillPlain(message);
+  const at = GRILL_PHRASE.exec(said);
+  if (at !== null) said = said.slice(0, at.index) + said.slice(at.index + at[0].length);
+  let thai = 0, latin = 0;
+  for (const word of said.split(" ")) {
+    if ([...word].some((ch) => ch >= "฀" && ch <= "๿")) thai += 1;
+    else if (/[a-z]/.test(word)) latin += 1;
   }
-  return "en";
+  return thai && thai >= latin ? "th" : "en";
 }
 
 function grillMode(message) {
   return GRILL_PHRASE.test(grillPlain(message)) ? "grill" : "build";
 }
 
+// The part whose words begin at rest[i], where its value begins, and the value when the Thai
+// word carries it joined on (`บันทึกเป็นv2`).
+function grillPartAt(rest, i) {
+  for (const [name, [english, thai]] of Object.entries(GRILL_PARTS)) {
+    const said = english.split(" ");
+    const here = rest.slice(i, i + said.length).map(grillFold);
+    if (here.length === said.length && here.every((w, k) => w === said[k])) return [name, i + said.length, null];
+    if (rest[i].startsWith(thai)) return [name, i + 1, rest[i].slice(thai.length) || null];
+  }
+  return [null, i, null];
+}
+
+function grillAfterPhrase(message) {
+  const joined = grillWords(message).join(" ");
+  const here = GRILL_PHRASE.exec(grillPlain(message));
+  const rest = joined.slice(here.index + here[0].length).split(" ");
+  return rest.length && rest[0] === "" ? rest.slice(1) : rest;
+}
+
+// A `from`, `save to` or `only` later in the message than the reading went, with the word
+// after it: said, it would be lost without a word, and the user answers nine questions
+// believing the interview began from their profile.
+function grillUnread(message) {
+  const rest = grillAfterPhrase(message);
+  const [, stop] = grillRead(rest);
+  for (let j = stop; j < rest.length; j++) {
+    const [part, valueAt, joined] = grillPartAt(rest, j);
+    if (part !== null) return rest.slice(j, valueAt + (joined ? 0 : 1)).join(" ");
+  }
+  return null;
+}
+
 // `from`, `save to` and `only`, read from the words directly after the phrase, as the user
 // wrote them; the first word that is none of them ends the reading.
 function grillParts(message) {
-  const joined = grillWords(message).join(" ");
-  const here = GRILL_PHRASE.exec(grillPlain(message));
-  let rest = joined.slice(here.index + here[0].length).split(" ");
-  if (rest.length && rest[0] === "") rest = rest.slice(1);
+  return grillRead(grillAfterPhrase(message))[0];
+}
+
+function grillRead(rest) {
   const found = {};
   let i = 0;
   while (i < rest.length) {
-    const word = rest[i];
-    let value = null;
-    let part = null;
-    for (const [name, [english, thai]] of Object.entries(GRILL_PARTS)) {
-      const said = english.split(" ");
-      const here = rest.slice(i, i + said.length).map(grillFold);
-      if (here.length === said.length && here.every((w, k) => w === said[k])) {
-        part = name;
-        i += said.length;
-        break;
-      }
-      if (word.startsWith(thai)) {
-        part = name;
-        i += 1;
-        value = word.slice(thai.length) || null;
-        break;
-      }
-    }
+    let [part, at, value] = grillPartAt(rest, i);
     if (part === null) break;
+    i = at;
     if (Object.prototype.hasOwnProperty.call(found, part)) throw new GrillError("'" + GRILL_PARTS[part][0] + "' is given twice");
     if (value === null) {
       if (i >= rest.length) throw new GrillError("'" + GRILL_PARTS[part][0] + "' needs a word after it");
@@ -6613,7 +6758,7 @@ function grillParts(message) {
     }
     found[part] = value;
   }
-  return found;
+  return [found, i];
 }
 
 function grillSame(a, b) {
@@ -6735,11 +6880,17 @@ function grillRun(argv) {
     then = "build with " + (start ? "`--profile " + found.from + "` and " : "") + "ARGS; for a save choice, first run" +
       " `thai_docx profile save NAME " + base + "ARGS` (add `--project` for the project) and build with `--profile NAME`";
   }
-  return { ok: true, mode: "grill", language: lang, start, save_to: saveTo,
-           questions: grillQuestions(now, lang, only, saveTo),
-           next: "ask these questions as references/interview.md says, the current choice marked; an unanswered" +
-             " question keeps its current choice. ARGS are the args of the chosen choices, in order, with the" +
-             " user's value in place of a placeholder. Then " + then };
+  const answer = { ok: true, mode: "grill", language: lang, start, save_to: saveTo,
+    questions: grillQuestions(now, lang, only, saveTo),
+    next: "ask these questions as references/interview.md says, the current choice marked; an unanswered" +
+      " question keeps its current choice. ARGS are the args of the chosen choices, in order, with the" +
+      " user's value in place of a placeholder. Then " + then };
+  const stray = grillUnread(message);
+  if (stray !== null) {
+    answer.warnings = ["'" + stray + "' was not read: from, save to and only are read only directly after" +
+      " the phrase, so tell the user, and ask whether to start again with it there"];
+  }
+  return answer;
 }
 
 // ---- 90-entry.js -----------------------------------------------------------

@@ -36,6 +36,10 @@ MAX_CHARS = 20000
 PARTS = {"from": ("from", "จาก"), "save_to": ("save to", "บันทึกเป็น"), "only": ("only", "เฉพาะ")}
 
 THAI_FIRST, THAI_LAST = "฀", "๿"
+# What separates words, one list written out for both implementations: str.isspace() and the
+# JavaScript \s disagreed on U+001C, U+0085 and U+FEFF, so one read `from test` and the other
+# did not. The spaces a person types, and no others.
+WHITESPACE = frozenset(" \t\n\r\f\v\u00a0\u3000")
 
 
 class GrillError(Exception):
@@ -52,7 +56,7 @@ def fold(text: str) -> str:
 def words(message: str) -> list[str]:
     out, current = [], ""
     for ch in message:
-        if ch.isspace():
+        if ch in WHITESPACE:
             if current:
                 out.append(current)
             current = ""
@@ -68,8 +72,18 @@ def plain(message: str) -> str:
 
 
 def language(message: str) -> str:
-    """The language the questions are asked in: Thai when the user wrote any Thai."""
-    return "th" if any(THAI_FIRST <= ch <= THAI_LAST for ch in message) else "en"
+    """The language the questions are asked in: the one most of the user's words are in, the
+    phrase aside — Thai on a tie. One Thai title in an English request is not a Thai request."""
+    at = PHRASE.search(plain(message))
+    said = plain(message)
+    said = said[:at.start()] + said[at.end():] if at else said
+    thai = latin = 0
+    for word in said.split(" "):
+        if any(THAI_FIRST <= ch <= THAI_LAST for ch in word):
+            thai += 1
+        elif any("a" <= ch <= "z" for ch in word):
+            latin += 1
+    return "th" if thai and thai >= latin else "en"
 
 
 def mode(message: str) -> str:
@@ -89,28 +103,51 @@ def _carried(source: str) -> None:
                          + " ".join(PATH_MARKS) + " only: " + source)
 
 
+def _part_at(rest: list[str], i: int) -> tuple[str | None, int, str | None]:
+    """The part whose words begin at `rest[i]`, where its value begins, and the value when
+    the Thai word carries it joined on (`บันทึกเป็นv2`)."""
+    for name, (english, thai) in PARTS.items():
+        said = english.split(" ")
+        if [fold(w) for w in rest[i:i + len(said)]] == said:
+            return name, i + len(said), None
+        if rest[i].startswith(thai):
+            return name, i + 1, rest[i][len(thai):] or None
+    return None, i, None
+
+
+def _after_phrase(message: str) -> list[str]:
+    joined = " ".join(words(message))
+    rest = joined[PHRASE.search(plain(message)).end():].split(" ")
+    return rest[1:] if rest and rest[0] == "" else rest
+
+
+def unread(message: str) -> str | None:
+    """A `from`, `save to` or `only` later in the message than the reading went, with the
+    word after it: said, it would be lost without a word, and the user answers nine
+    questions believing the interview began from their profile."""
+    rest = _after_phrase(message)
+    _found, stop = _read(rest)
+    for j in range(stop, len(rest)):
+        part, value_at, joined = _part_at(rest, j)
+        if part is not None:
+            return " ".join(rest[j:value_at + (0 if joined else 1)])
+    return None
+
+
 def parts(message: str) -> dict:
     """`from`, `save to` and `only`, read from the words directly after the phrase, as the
     user wrote them; the first word that is none of them ends the reading."""
-    joined = " ".join(words(message))
-    rest = joined[PHRASE.search(plain(message)).end():].split(" ")
-    if rest and rest[0] == "":
-        rest = rest[1:]
+    return _read(_after_phrase(message))[0]
+
+
+def _read(rest: list[str]) -> tuple[dict, int]:
     found: dict = {}
     i = 0
     while i < len(rest):
-        word, value, part = rest[i], None, None
-        for name, (english, thai) in PARTS.items():
-            said = english.split(" ")
-            if [fold(w) for w in rest[i:i + len(said)]] == said:
-                part, i = name, i + len(said)
-                break
-            if word.startswith(thai):
-                part, i = name, i + 1
-                value = word[len(thai):] or None
-                break
+        part, at, value = _part_at(rest, i)
         if part is None:
             break
+        i = at
         if part in found:
             raise GrillError("'" + PARTS[part][0] + "' is given twice")
         if value is None:
@@ -118,7 +155,7 @@ def parts(message: str) -> dict:
                 raise GrillError("'" + PARTS[part][0] + "' needs a word after it")
             value, i = rest[i], i + 1
         found[part] = value
-    return found
+    return found, i
 
 
 def _same(a, b) -> bool:
@@ -215,11 +252,16 @@ def run(argv: list[str]) -> dict:
     else:
         then = ("build with " + ("`--profile " + found["from"] + "` and " if start else "") + "ARGS; for a save choice, first run"
                 " `thai_docx profile save NAME " + base + "ARGS` (add `--project` for the project) and build with `--profile NAME`")
-    return {"ok": True, "mode": "grill", "language": lang, "start": start, "save_to": save_to,
-            "questions": questions(now, lang, only, save_to),
-            "next": "ask these questions as references/interview.md says, the current choice marked; an unanswered"
-                    " question keeps its current choice. ARGS are the args of the chosen choices, in order, with the"
-                    " user's value in place of a placeholder. Then " + then}
+    answer = {"ok": True, "mode": "grill", "language": lang, "start": start, "save_to": save_to,
+              "questions": questions(now, lang, only, save_to),
+              "next": "ask these questions as references/interview.md says, the current choice marked; an unanswered"
+                      " question keeps its current choice. ARGS are the args of the chosen choices, in order, with the"
+                      " user's value in place of a placeholder. Then " + then}
+    stray = unread(message)
+    if stray is not None:
+        answer["warnings"] = ["'" + stray + "' was not read: from, save to and only are read only directly after"
+                              " the phrase, so tell the user, and ask whether to start again with it there"]
+    return answer
 
 
 def main(argv: list[str]) -> int:

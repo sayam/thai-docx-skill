@@ -102,6 +102,25 @@ class PyFloat {
   }
 }
 
+// A float as Python's repr() writes it: the shortest digits that read back as the same number,
+// in positional form from 1e-4 up to 1e16 and in exponent form outside it, with a two-digit
+// exponent at least — `1e-05`, not the `0.00001` String() gives.
+function pyFloatRepr(x) {
+  if (x === 0) return Object.is(x, -0) ? "-0.0" : "0.0";
+  const [mantissa, e] = x.toExponential().split("e");
+  const exp = parseInt(e, 10);
+  const sign = mantissa.startsWith("-") ? "-" : "";
+  const digits = mantissa.replace("-", "").replace(".", "");
+  if (exp < -4 || exp >= 16) {
+    return sign + digits[0] + (digits.length > 1 ? "." + digits.slice(1) : "") + "e" + (exp < 0 ? "-" : "+") +
+      String(Math.abs(exp)).padStart(2, "0");
+  }
+  if (exp < 0) return sign + "0." + "0".repeat(-exp - 1) + digits;
+  const whole = exp + 1;
+  if (digits.length <= whole) return sign + digits + "0".repeat(whole - digits.length) + ".0";
+  return sign + digits.slice(0, whole) + "." + digits.slice(whole);
+}
+
 function pyString(s) {
   let out = '"';
   for (const ch of s) {
@@ -123,7 +142,7 @@ function pyDumps(v) {
   if (v === null || v === undefined) return "null";
   if (v === true) return "true";
   if (v === false) return "false";
-  if (v instanceof PyFloat) return Number.isInteger(v.value) ? v.value.toFixed(1) : String(v.value);
+  if (v instanceof PyFloat) return pyFloatRepr(v.value);
   if (typeof v === "number") return String(v);
   if (typeof v === "string") return pyString(v);
   if (Array.isArray(v)) return "[" + v.map(pyDumps).join(", ") + "]";

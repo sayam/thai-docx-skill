@@ -31,7 +31,7 @@ const CLASHES = {
   "toc comment": "the document places a table of contents with <!-- toc --> as well, so it now has two",
 };
 
-const LABEL = "text of 1 to 40 characters on one line, without %";
+const LABEL = 'text of 1 to 40 characters on one line, without %, " or \\';
 const SETTINGS = [
   { key: "font", flag: "--font", kind: "value", default: "TH Sarabun New", layer: 1,
     read: ["text", 64, ""], takes: "a font name of 1 to 64 characters", usage: "NAME", report: ["font", "value"] },
@@ -76,11 +76,11 @@ const SETTINGS = [
   { key: "table_size", flag: "--table-size", kind: "option", default: null, layer: 3, // null: the body size
     read: ["points", 1, 400], takes: "a number of points from 1 to 400", usage: "PT", report: ["table_size_pt", "value"] },
   { key: "chapter_label", flag: "--chapter-label", kind: "value", default: "บทที่", layer: 5,
-    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "chapter headings", report: ["chapter_label", "value"] },
+    read: ["text", 40, '\t\n%"\\'], takes: LABEL, usage: "TEXT", needs: "chapter headings", report: ["chapter_label", "value"] },
   { key: "table_label", flag: "--table-label", kind: "value", default: "ตารางที่", layer: 5,
-    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "table captions", report: ["table_label", "value"] },
+    read: ["text", 40, '\t\n%"\\'], takes: LABEL, usage: "TEXT", needs: "table captions", report: ["table_label", "value"] },
   { key: "figure_label", flag: "--figure-label", kind: "value", default: "รูปที่", layer: 5,
-    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "figure captions", report: ["figure_label", "value"] },
+    read: ["text", 40, '\t\n%"\\'], takes: LABEL, usage: "TEXT", needs: "figure captions", report: ["figure_label", "value"] },
   { key: "caption_hanging_indent", flag: "--caption-hanging-indent", kind: "value", default: 0.0, layer: 5, // inches
     read: ["number", 0, 4], takes: "a number of inches from 0 to 4", usage: "IN",
     needs: "captions", report: ["caption_hanging_indent_in", "float"] },
@@ -91,7 +91,7 @@ const SETTINGS = [
   { key: "front_page_numbers", flag: "--front-page-numbers", kind: "value", default: "thai-letters", layer: 5,
     read: ["choice", Object.keys(FRONT_NUMBERS)], takes: Object.keys(FRONT_NUMBERS).join(", "), needs: "front", report: ["front_page_numbers", "value"] },
   { key: "appendix_label", flag: "--appendix-label", kind: "value", default: "ภาคผนวก", layer: 5,
-    read: ["text", 40, "\t\n%"], takes: LABEL, usage: "TEXT", needs: "appendix headings", report: ["appendix_label", "value"] },
+    read: ["text", 40, '\t\n%"\\'], takes: LABEL, usage: "TEXT", needs: "appendix headings", report: ["appendix_label", "value"] },
   { key: "appendix_numbers", flag: "--appendix-numbers", kind: "value", default: "thai-letters", layer: 5,
     read: ["choice", Object.keys(APPENDIX_NUMBERS)], takes: Object.keys(APPENDIX_NUMBERS).join(", "), needs: "appendix headings", report: ["appendix_numbers", "value"] },
   { key: "chapter_title_on_new_line", flag: "--chapter-title-on-new-line", kind: "switch", default: false, layer: 5,
@@ -206,6 +206,15 @@ function parseArgs(argv) {
   for (const s of SETTINGS) {
     if (s.needs && has(DEFAULTS, s.needs) && opts[s.key] !== s.default && opts[s.needs] === DEFAULTS[s.needs]) {
       throw new BuildError(s.flag + " needs " + SETTINGS.find((n) => n.key === s.needs).flag);
+    }
+  }
+  // Word's SEQ field names its counter with one word, so a caption label written as one takes
+  // no space; numbers the build writes as text carry the label as text, where a space is fine
+  if (opts.auto_numbering) {
+    for (const key of ["table_label", "figure_label"]) {
+      if (/[ \t\n\r\f\v\u00a0\u3000]/.test(opts[key])) {
+        throw new BuildError(SETTINGS.find((x) => x.key === key).flag + " takes no space with --auto-numbering: Word's SEQ field names a counter with one word");
+      }
     }
   }
   const [pw, ph] = pageSize(opts);

@@ -48,6 +48,9 @@ XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
 DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main"  # the theme, and a picture's own namespace
 EMU_PER_PX = 9525  # at 96 dpi
 EMU_PER_TWIP = 635
+# The most pixels a side this writes: a PNG may declare two thousand million, and an extent
+# from that is past what the format can hold, or rounds to nothing once it is made to fit.
+MAX_SIDE_PX = 20000
 # A run says it is complex script where its text is complex script, and says nothing where it is
 # not (ADR 0039, amending cause 2 of ADR 0004). Omission is how it says nothing: no style and no
 # document default carries the element either, so there is nothing to inherit. Whether the text
@@ -106,12 +109,29 @@ def esc(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
+# What a URI may carry as it is (RFC 3986): the rest — a space, Thai, a quote — is written as
+# the percent-encoded bytes of its UTF-8, as Word writes it. A `%` already there stays, so a
+# link encoded once is not encoded twice. The text a reader sees is not this; it is unchanged.
+URI_AS_IS = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%")
+
+
+def uri(link: str) -> str:
+    return "".join(ch if ch in URI_AS_IS else "".join("%%%02X" % b for b in ch.encode("utf-8")) for ch in link)
+
+
 def attr(s: str) -> str:
     """An attribute value with its double quotes."""
     return '"' + esc(s).replace('"', "&quot;").replace("\t", "&#9;").replace("\n", "&#10;").replace("\r", "&#13;") + '"'
 
 
 # --- images --------------------------------------------------------------------
+
+
+def _within(wpx: int, hpx: int) -> tuple[int, int]:
+    if wpx > MAX_SIDE_PX or hpx > MAX_SIDE_PX:
+        raise BuildError("image is " + str(wpx) + " by " + str(hpx) + " pixels; this skill writes none wider or taller than "
+                         + str(MAX_SIDE_PX))
+    return wpx, hpx
 
 
 def _image_size(data: bytes) -> tuple[str, int, int]:
@@ -123,7 +143,7 @@ def _image_size(data: bytes) -> tuple[str, int, int]:
         # a copy or a download that stopped has both, and Word draws a blank frame for it
         if data[-8:-4] != b"IEND":
             raise BuildError("image stops partway: a PNG ends with its IEND chunk and this one does not")
-        return "png", wpx, hpx
+        return "png", *_within(wpx, hpx)
     if data[:3] == b"\xff\xd8\xff":
         i = 2
         while i + 9 <= len(data):
@@ -142,7 +162,7 @@ def _image_size(data: bytes) -> tuple[str, int, int]:
                     raise BuildError("image has no width or height")
                 if data[-2:] != b"\xff\xd9":
                     raise BuildError("image stops partway: a JPEG ends with its end-of-image marker and this one does not")
-                return "jpeg", wpx, hpx
+                return "jpeg", *_within(wpx, hpx)
             if length < 2:
                 break
             i += 2 + length
@@ -248,7 +268,7 @@ class Writer:
                 j = i
                 while j < len(nodes) and nodes[j]["t"] == "text" and nodes[j].get("link") == n["link"]:
                     j += 1
-                rid = self.rel(REL + "hyperlink", n["link"], external=True)
+                rid = self.rel(REL + "hyperlink", uri(n["link"]), external=True)
                 self.counts["links"] += 1
                 runs = "".join(self.text_run(x, bold) for x in nodes[i:j])
                 out.append('<w:hyperlink r:id="' + rid + '" w:history="1">' + runs + "</w:hyperlink>")
@@ -291,6 +311,13 @@ class Writer:
         if cx > max_cx:
             cy = cy * max_cx // cx
             cx = max_cx
+        # and to the page's height: a picture taller than the text area runs off the page
+        _pw, ph, top, _right, bottom, _left = self.page
+        max_cy = (ph - top - bottom) * EMU_PER_TWIP
+        if cy > max_cy:
+            cx = cx * max_cy // cy
+            cy = max_cy
+        cx, cy = max(cx, 1), max(cy, 1)  # a side of nothing is no picture
         self.image_twips = cx // EMU_PER_TWIP  # what --caption-matches-object measures the caption against
         self.doc_pr += 1
         k = str(self.doc_pr)
@@ -361,7 +388,7 @@ class Writer:
         """A field and the result the build already knows, between `separate` and `end`."""
         return (
             "<w:r>" + self.rpr(rpr + self.marker(False)) + '<w:fldChar w:fldCharType="begin"/></w:r>'
-            "<w:r>" + self.rpr(rpr + self.marker(False)) + '<w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
+            "<w:r>" + self.rpr(rpr + self.marker(False)) + '<w:instrText xml:space="preserve"> ' + esc(instr) + " </w:instrText></w:r>"
             "<w:r>" + self.rpr(rpr + self.marker(False)) + '<w:fldChar w:fldCharType="separate"/></w:r>'
             + self.runs(result, rpr)
             + "<w:r>" + self.rpr(rpr + self.marker(False)) + '<w:fldChar w:fldCharType="end"/></w:r>'
@@ -610,7 +637,7 @@ class Writer:
         def char(kind: str) -> str:
             return "<w:r>" + self.rpr(self.marker(False)) + '<w:fldChar w:fldCharType="' + kind + '"/></w:r>'
 
-        instruction = "<w:r>" + self.rpr(self.marker(False)) + '<w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>"
+        instruction = "<w:r>" + self.rpr(self.marker(False)) + '<w:instrText xml:space="preserve"> ' + esc(instr) + " </w:instrText></w:r>"
         if not entries:
             return "<w:p><w:pPr>" + ppr + "</w:pPr>" + char("begin") + instruction + char("separate") + char("end") + "</w:p>"
         self.counts["paragraphs"] += len(entries)

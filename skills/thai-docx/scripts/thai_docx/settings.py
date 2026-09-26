@@ -155,17 +155,17 @@ SETTINGS: tuple[dict, ...] = (
      "report": ("table_size_pt", "value"),
      "doc": ("table text size", "as the body", "`--table-size 14` (1–400)")},
     {"key": "chapter_label", "flag": "--chapter-label", "kind": "value", "default": "บทที่", "layer": 5,
-     "read": ("text", 40, "\t\n%"), "takes": "text of 1 to 40 characters on one line, without %", "usage": "TEXT",
+     "read": ("text", 40, '\t\n%"\\'), "takes": 'text of 1 to 40 characters on one line, without %, " or \\', "usage": "TEXT",
      "needs": "chapter headings",
      "report": ("chapter_label", "value"),
      "doc": ("chapter label", "บทที่", '`--chapter-label "บท"`')},
     {"key": "table_label", "flag": "--table-label", "kind": "value", "default": "ตารางที่", "layer": 5,
-     "read": ("text", 40, "\t\n%"), "takes": "text of 1 to 40 characters on one line, without %", "usage": "TEXT",
+     "read": ("text", 40, '\t\n%"\\'), "takes": 'text of 1 to 40 characters on one line, without %, " or \\', "usage": "TEXT",
      "needs": "table captions",
      "report": ("table_label", "value"),
      "doc": ("table caption label", "ตารางที่", '`--table-label "ตาราง"`')},
     {"key": "figure_label", "flag": "--figure-label", "kind": "value", "default": "รูปที่", "layer": 5,
-     "read": ("text", 40, "\t\n%"), "takes": "text of 1 to 40 characters on one line, without %", "usage": "TEXT",
+     "read": ("text", 40, '\t\n%"\\'), "takes": 'text of 1 to 40 characters on one line, without %, " or \\', "usage": "TEXT",
      "needs": "figure captions",
      "report": ("figure_label", "value"),
      "doc": ("figure caption label", "รูปที่", '`--figure-label "ภาพที่"`')},
@@ -189,7 +189,7 @@ SETTINGS: tuple[dict, ...] = (
      "report": ("front_page_numbers", "value"),
      "doc": ("page numbers before the chapters", "ก ข ค", "`--front-page-numbers lower-roman` (or `upper-roman`, `decimal`)")},
     {"key": "appendix_label", "flag": "--appendix-label", "kind": "value", "default": "ภาคผนวก", "layer": 5,
-     "read": ("text", 40, "\t\n%"), "takes": "text of 1 to 40 characters on one line, without %", "usage": "TEXT",
+     "read": ("text", 40, '\t\n%"\\'), "takes": 'text of 1 to 40 characters on one line, without %, " or \\', "usage": "TEXT",
      "needs": "appendix headings",
      "report": ("appendix_label", "value"),
      "doc": ("appendix label", "ภาคผนวก", '`--appendix-label "Appendix"`')},
@@ -315,6 +315,12 @@ def parse_args(argv: list[str]) -> tuple[dict, list[str], list[str]]:
         needed = s.get("needs")
         if needed in DEFAULTS and opts[s["key"]] != s["default"] and opts[needed] == DEFAULTS[needed]:
             raise BuildError(s["flag"] + " needs " + BY_KEY[needed]["flag"])
+    # Word's SEQ field names its counter with one word, so a caption label written as one takes
+    # no space; numbers the build writes as text carry the label as text, where a space is fine
+    if opts["auto_numbering"]:
+        for key in ("table_label", "figure_label"):
+            if any(c in " \t\n\r\f\v\u00a0\u3000" for c in opts[key]):
+                raise BuildError(BY_KEY[key]["flag"] + " takes no space with --auto-numbering: Word's SEQ field names a counter with one word")
     pw, ph = page_size(opts)
     top, right, bottom, left = (half_up(m * 1440) for m in opts["margins"])
     if pw - left - right < MIN_TEXT_TWIPS or ph - top - bottom < MIN_TEXT_TWIPS:

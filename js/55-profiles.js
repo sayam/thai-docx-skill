@@ -72,7 +72,7 @@ function canonicalJson(value, indent) {
   if (value === null || value === undefined) return "null";
   if (value === true) return "true";
   if (value === false) return "false";
-  if (value instanceof PyFloat) return Number.isInteger(value.value) ? value.value.toFixed(1) : String(value.value);
+  if (value instanceof PyFloat) return pyFloatRepr(value.value);
   if (typeof value === "number") return String(value);
   if (typeof value === "string") return pyString(value);
   const inner = pad + "  ";

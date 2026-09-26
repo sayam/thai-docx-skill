@@ -36,7 +36,7 @@ import pathlib
 import re
 import unicodedata
 
-from .ooxml import INVISIBLE, is_thai
+from .ooxml import is_thai, unseen
 
 ENTITIES: dict[str, str] = json.loads(
     (pathlib.Path(__file__).resolve().parent.parent.parent / "assets" / "entities.json").read_text(encoding="utf-8")
@@ -44,6 +44,16 @@ ENTITIES: dict[str, str] = json.loads(
 
 FLAGS = ("b", "i", "strike", "code", "u", "sup", "sub")
 ALLOWED_TAGS = ("br", "sup", "sub", "u", "kbd")
+# What a link may lead to: a web page or an address. A link with no scheme
+# (`#top`, `other.docx`) is written as it always was.
+ALLOWED_SCHEMES = ("http", "https", "mailto")
+re_scheme = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*(?=:)")
+
+
+def refused_scheme(dest: str) -> str | None:
+    """The scheme of a link that leads anywhere else, or None."""
+    m = re_scheme.match(dest)
+    return m.group(0) if m is not None and m.group(0).lower() not in ALLOWED_SCHEMES else None
 CODE_INDENT = 4
 
 
@@ -93,15 +103,15 @@ def normalize_label(label: str) -> str:
 
 
 def forbidden_char(ch: str) -> str | None:
-    """A character this skill refuses in its input: controls, noncharacters and the
-    invisible characters of ADR 0023. Returns a label, or None."""
+    """A character this skill refuses in its input: controls, the invisible characters of
+    ADR 0023 and every other format character, noncharacters, and a lone surrogate. Returns a
+    label, or None."""
     cp = ord(ch)
-    if ch in INVISIBLE:
-        return INVISIBLE[ch]
     if (cp < 0x20 and ch not in "\t\n") or 0x7F <= cp <= 0x9F:
         return "U+%04X, a control character" % cp
-    if cp in (0xFFFE, 0xFFFF):
-        return "U+%04X, a noncharacter" % cp
+    named = unseen(ch)
+    if named is not None:
+        return named
     if 0xD800 <= cp <= 0xDFFF:  # only a profile's JSON can carry one: argv and files are refused first
         return "U+%04X, a lone surrogate" % cp
     return None
@@ -147,9 +157,11 @@ re_ticks = re.compile("`+")
 re_ticks_here = re.compile("`+")
 re_main = re.compile("[^\\n`\\[\\]\\\\!<&*_~$]+")
 
+# Tag names are ASCII (CommonMark §4.6): re.A keeps re.I from folding U+017F into "s", which
+# JavaScript's /i does not do, so both read `<ſcript>` as text
 re_html_block_open = [
     None,
-    re.compile("^<(?:script|pre|textarea|style)(?:" + S + "|>|$)", re.I),
+    re.compile("^<(?:script|pre|textarea|style)(?:" + S + "|>|$)", re.I | re.A),
     re.compile("^<!--"),
     re.compile("^<[?]"),
     re.compile("^<![A-Za-z]"),
@@ -159,13 +171,13 @@ re_html_block_open = [
         "dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h[123456]|head|header|hr|html|"
         "iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|search|section|summary|"
         "table|tbody|td|tfoot|th|thead|title|tr|track|ul)(?:" + S + "|[/]?[>]|$)",
-        re.I,
+        re.I | re.A,
     ),
-    re.compile("^(?:" + OPENTAG + "|" + CLOSETAG + ")" + S + "*$", re.I),
+    re.compile("^(?:" + OPENTAG + "|" + CLOSETAG + ")" + S + "*$", re.I | re.A),
 ]
 re_html_block_close = [
     None,
-    re.compile("</(?:script|pre|textarea|style)>", re.I),
+    re.compile("</(?:script|pre|textarea|style)>", re.I | re.A),
     re.compile("-->"),
     re.compile("\\?>"),
     re.compile(">"),
@@ -692,6 +704,12 @@ def _finalize_html_block(p, b):
         # the node stays in the tree while blocks are parsed — a list item holding
         # only a comment is not empty — and renders nothing
         return
+    # a tag this skill takes, alone on its line, is still an HTML block by CommonMark: say so,
+    # rather than refuse a tag the message goes on to name as supported
+    alone = re.match(r"</?([A-Za-z][A-Za-z0-9-]*)", b.string_content)
+    if b.html_type == 7 and alone is not None and alone.group(1).lower() in ALLOWED_TAGS:
+        raise Unsupported(b.line, "<" + alone.group(1) + "> alone on its line is an HTML block, which is not supported;"
+                          " write it inside a paragraph's text, on the line with the words around it")
     raise Unsupported(b.line, "HTML blocks are not supported; only <br>, <sup>, <sub>, <u>, <kbd> inside text, and comments")
 
 
@@ -762,7 +780,7 @@ def _start_math_fence(p, container):
         c.is_fenced = True
         c.math = True
         c.fence_offset = p.indent
-        p.warnings.append(f"line {p.line_number}: display math kept as literal LaTeX; typeset math is not supported in v0.1")
+        p.warnings.append(f"line {p.line_number}: display math kept as literal LaTeX; typeset math is not written by this skill")
         p.advance_next_nonspace()
         p.advance_offset(2, False)
         stripped = rest.rstrip(" \t")
@@ -1345,6 +1363,11 @@ class InlineParser:
             return 0
         return len(m)
 
+    # Parentheses nest in a destination to this depth and no deeper, as cmark has it: past it the
+    # text is no destination. Unbounded, every `](` read to the end of the text, and two
+    # thousand of them took seconds, eight thousand most of a minute.
+    MAX_LINK_PARENS = 32
+
     def parse_link_destination(self) -> str | None:
         res = self.match(re_link_destination_braces)
         if res is None:
@@ -1364,6 +1387,8 @@ class InlineParser:
                 elif c == "(":
                     self.pos += 1
                     openparens += 1
+                    if openparens > self.MAX_LINK_PARENS:
+                        break
                 elif c == ")":
                     if openparens < 1:
                         break
@@ -1443,6 +1468,9 @@ class InlineParser:
                     dest, title = link
                     matched = True
         if matched:
+            if not is_image and refused_scheme(dest) is not None:
+                raise Unsupported(self.line_at(self.pos), "a link leads only to http, https or mailto; this one"
+                                  " leads to " + refused_scheme(dest) + ":")
             node = Node("image" if is_image else "link")
             node.destination = dest
             node.title = title or ""
@@ -1501,6 +1529,9 @@ class InlineParser:
         m = self.match(re_autolink)
         if m is not None:
             dest = m[1:-1]
+            if refused_scheme(dest) is not None:
+                raise Unsupported(self.line_at(self.pos), "a link leads only to http, https or mailto; this one"
+                                  " leads to " + refused_scheme(dest) + ":")
             node = Node("link")
             node.destination = dest
             node.title = ""
@@ -1565,7 +1596,7 @@ class InlineParser:
         node.literal = subj[i + width:end].replace("\n", " ")
         node.math = True
         block.append_child(node)
-        self.bp.warnings.append(f"line {self.line_at(i)}: inline math kept as literal LaTeX; typeset math is not supported in v0.1")
+        self.bp.warnings.append(f"line {self.line_at(i)}: inline math kept as literal LaTeX; typeset math is not written by this skill")
         self.pos = end + width
         return True
 
@@ -2055,7 +2086,7 @@ def _blocks(bp: BlockParser, node: Node, doc: Document) -> list[dict]:
         elif t == "list":
             items = [_blocks(bp, item, doc) for item in child.children()]
             data = child.list_data
-            out.append({"t": "list", "ordered": data["type"] == "ordered", "start": data["start"] or 1, "items": items})
+            out.append({"t": "list", "ordered": data["type"] == "ordered", "start": 1 if data["start"] is None else data["start"], "items": items})
         elif t == "thematic_break":
             out.append({"t": "break"})
         elif t == "table":

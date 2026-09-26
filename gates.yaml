@@ -209,6 +209,11 @@ gates:
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_check_holds_its_limits.py]}
+  - id: build-writes-what-it-was-given
+    title: The build escapes a value where a field holds it and refuses a label a field would misread, links only to http, https or mailto with a URI for a target, starts a list at 0 when it says 0, names every format character and noncharacter from one list, reads tag names as ASCII, fits a picture to the page and never to nothing, and grill reads words, language and what it did not read alike — all in both implementations
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_build_writes_what_it_was_given.py]}
   - id: amendments-recorded-both-ways
     title: Every amendment is recorded on both records — `Amends:` on the new one names a record whose `Amended by:` names it back, and the reverse — read from each record's head, a link at a time (.github/CONTRIBUTING.md, Add a decision)
     kind: test
