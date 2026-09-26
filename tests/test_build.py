@@ -191,20 +191,34 @@ def test_an_image_that_stops_partway_is_refused(tmp_path):
     assert build(tmp_path, "![a](p.png)")[0]["ok"]
 
 
-def test_an_image_too_large_to_carry_is_the_users_problem_not_a_defect(tmp_path):
-    """exit 1 tells the agent the skill is broken and not to retry (SKILL.md). A photo
-    bigger than the package may hold is the user's input, so it is an error: exit 2."""
+def _png_of(size: int) -> bytes:
+    """A valid PNG with a very large chunk of its own before IEND."""
     whole = (FIXTURES / "pixel.png").read_bytes()
-    # a valid PNG with a very large chunk of its own before IEND
-    big = whole[:-12] + b"\x00" * (33 * 1024 * 1024) + whole[-12:]
-    (tmp_path / "big.png").write_bytes(big)
+    return whole[:-12] + b"\x00" * size + whole[-12:]
+
+
+def test_an_image_too_large_to_carry_is_the_users_problem_not_a_defect(tmp_path):
+    """exit 1 tells the agent the skill is broken and not to retry (SKILL.md). Pictures
+    that together are more than the package may hold are the user's input, so it is an
+    error: exit 2."""
+    for name in ("a.png", "b.png", "c.png"):
+        (tmp_path / name).write_bytes(_png_of(22 * 1024 * 1024))
     src = tmp_path / "in.md"
-    src.write_text("ภาพใหญ่ ![a](big.png)", encoding="utf-8")
+    src.write_text("ภาพใหญ่ ![a](a.png) ![b](b.png) ![c](c.png)", encoding="utf-8")
     out = tmp_path / "out.docx"
     result = b.build(src, out, dict(b.DEFAULTS), [])
     assert "error" in result and not result.get("findings"), result
     assert "does not fit in a .docx" in result["error"] and not out.exists()
     assert b.main([str(src), str(out)]) == 2
+
+
+def test_one_picture_past_its_cap_is_refused_before_it_is_read_whole(tmp_path):
+    """A picture is read to one byte past 32 MiB and no further."""
+    (tmp_path / "big.png").write_bytes(_png_of(33 * 1024 * 1024))
+    src = tmp_path / "in.md"
+    src.write_text("ภาพใหญ่ ![a](big.png)", encoding="utf-8")
+    result = b.build(src, tmp_path / "out.docx", dict(b.DEFAULTS), [])
+    assert result["error"] == "image 'big.png': larger than 32 MiB" and not (tmp_path / "out.docx").exists()
 
 
 def test_the_build_names_what_it_did_not_write(tmp_path):

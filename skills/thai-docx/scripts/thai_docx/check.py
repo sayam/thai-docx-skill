@@ -280,8 +280,7 @@ def check(path) -> Report:
     if isinstance(path, (str, pathlib.Path)):
         report = Report(str(path))
         try:
-            with open(path, "rb") as f:
-                data = f.read(package.MAX_FILE + 1)
+            data = package.read_regular(str(path), package.MAX_FILE)
         except OSError as exc:
             # a name typed wrong is not a damaged document: `error`, as `build` answers it
             report.error = "cannot read " + str(path) + ": " + package.os_error(exc)
@@ -312,7 +311,7 @@ def check(path) -> Report:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 1:
+    if len(argv) != 1 or argv[0] == "--help":
         print(json.dumps({"ok": False, "error": "usage: thai_docx check FILE.docx"}))
         return 2
     report = check(argv[0])

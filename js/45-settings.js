@@ -140,13 +140,21 @@ function readSetting(s, value) {
     if (!how[1].includes(value)) throw refused();
     return value;
   }
+  // a number too long for a float is infinite, and an infinite length is not one
   if (how[0] === "numbers") {
     const vals = value.split(",");
-    if (vals.length !== how[1] || !vals.every((v) => NUMBER.test(v))) throw refused();
+    if (vals.length !== how[1] || !vals.every((v) => NUMBER.test(v) && Number.isFinite(Number(v)))) throw refused();
     return vals.map(Number);
   }
-  if (!NUMBER.test(value) || (how[1] !== null && !(Number(value) >= how[1] && Number(value) <= how[2]))) throw refused();
+  if (!NUMBER.test(value) || !Number.isFinite(Number(value)) ||
+      (how[1] !== null && !(Number(value) >= how[1] && Number(value) <= how[2]))) throw refused();
   return Number(value);
+}
+
+// One flag's value, read as the build reads it — for a command that takes the flag without
+// the rest of the build's (repair's --font).
+function readValue(flag, value) {
+  return readSetting(BY_FLAG.get(flag), value);
 }
 
 function parseArgs(argv) {
@@ -165,6 +173,7 @@ function parseArgs(argv) {
     const name = eqAt < 0 ? arg : arg.slice(0, eqAt);
     let eq = eqAt >= 0;
     let value = eq ? arg.slice(eqAt + 1) : "";
+    if (name === "--help") throw new BuildError(USAGE);
     const s = BY_FLAG.get(name);
     if (s !== undefined && s.kind === "option" && s.read[0] === "position") {
       // the position is optional: taken only when it names one

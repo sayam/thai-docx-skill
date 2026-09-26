@@ -1384,6 +1384,7 @@ function forbiddenChar(ch) {
   if (Object.prototype.hasOwnProperty.call(INVISIBLE, ch)) return INVISIBLE[ch];
   if ((cp < 0x20 && ch !== "\t" && ch !== "\n") || (cp >= 0x7f && cp <= 0x9f)) return "U+" + hex4(cp) + ", a control character";
   if (cp === 0xfffe || cp === 0xffff) return "U+" + hex4(cp) + ", a noncharacter";
+  if (cp >= 0xd800 && cp <= 0xdfff) return "U+" + hex4(cp) + ", a lone surrogate"; // only a profile's JSON can carry one
   return null;
 }
 
@@ -3488,13 +3489,21 @@ function readSetting(s, value) {
     if (!how[1].includes(value)) throw refused();
     return value;
   }
+  // a number too long for a float is infinite, and an infinite length is not one
   if (how[0] === "numbers") {
     const vals = value.split(",");
-    if (vals.length !== how[1] || !vals.every((v) => NUMBER.test(v))) throw refused();
+    if (vals.length !== how[1] || !vals.every((v) => NUMBER.test(v) && Number.isFinite(Number(v)))) throw refused();
     return vals.map(Number);
   }
-  if (!NUMBER.test(value) || (how[1] !== null && !(Number(value) >= how[1] && Number(value) <= how[2]))) throw refused();
+  if (!NUMBER.test(value) || !Number.isFinite(Number(value)) ||
+      (how[1] !== null && !(Number(value) >= how[1] && Number(value) <= how[2]))) throw refused();
   return Number(value);
+}
+
+// One flag's value, read as the build reads it — for a command that takes the flag without
+// the rest of the build's (repair's --font).
+function readValue(flag, value) {
+  return readSetting(BY_FLAG.get(flag), value);
 }
 
 function parseArgs(argv) {
@@ -3513,6 +3522,7 @@ function parseArgs(argv) {
     const name = eqAt < 0 ? arg : arg.slice(0, eqAt);
     let eq = eqAt >= 0;
     let value = eq ? arg.slice(eqAt + 1) : "";
+    if (name === "--help") throw new BuildError(USAGE);
     const s = BY_FLAG.get(name);
     if (s !== undefined && s.kind === "option" && s.read[0] === "position") {
       // the position is optional: taken only when it names one
@@ -5698,7 +5708,9 @@ function fixNumbering(xml, font) {
 // The font a run that names none is given, and why (ADR 0037): what the user asked for, else
 // the complex-script font this document already uses most, else the skill's default.
 function complexScriptFont(parts, asked) {
-  if (asked) return [asked, "the font the command was given"];
+  // an attribute value, escaped where it is written; a font found in the document below is
+  // taken from an attribute already
+  if (asked) return [asked.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"), "the font the command was given"];
   const counted = new Map();
   for (const [name, bytes] of parts) {
     // the XML parts only: an image or a font holds no run properties, and reading one as text
@@ -5950,7 +5962,8 @@ function jsonParsePy(text, where) {
     const c = text[i];
     if (c === "{") {
       i += 1;
-      const out = {};
+      // no prototype: "__proto__" is then a key like any other, refused as Python refuses it
+      const out = Object.create(null);
       ws();
       if (text[i] === "}") {
         i += 1;
@@ -6013,9 +6026,46 @@ function jsonParsePy(text, where) {
   return out;
 }
 
+function profileIsNumber(v) {
+  return typeof v === "number" ? Number.isFinite(v) : v instanceof PyFloat && Number.isFinite(v.value);
+}
+
+// What is wrong with a setting's value before it becomes a flag, or null: a value of the
+// wrong type would otherwise reach the flag writer and stop it.
+function profileValueFault(key, value) {
+  const [kind] = PROFILE_FLAGS[key];
+  const s = SETTINGS.find((x) => x.key === key);
+  const read = s.read ? s.read[0] : "switch";
+  if (kind === "switch" || kind === "off") return typeof value === "boolean" ? null : "true or false";
+  if (kind === "list") return Array.isArray(value) && value.every(profileIsNumber) ? null : "a list of numbers";
+  if (kind === "option" && (value === null || value === false)) return null;
+  if (read === "text" || read === "choice" || read === "position") return typeof value === "string" ? null : "text";
+  return profileIsNumber(value) ? null : "a number";
+}
+
+// Does any key or string in the JSON hold a lone surrogate — which \ud800 spells, and which
+// no file can hold as text?
+function profileSurrogateIn(data) {
+  const pending = [data];
+  while (pending.length) {
+    const value = pending.pop();
+    if (typeof value === "string") {
+      if (/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(value)) return true;
+    } else if (Array.isArray(value)) {
+      pending.push(...value);
+    } else if (value !== null && typeof value === "object" && !(value instanceof PyFloat)) {
+      for (const k of Object.keys(value)) pending.push(k, value[k]);
+    }
+  }
+  return false;
+}
+
 // A profile as ADR 0024 allows it, or ProfileError naming the file and the key.
 function profileValidate(data, where) {
-  if (data === null || typeof data !== "object" || Array.isArray(data)) throw new ProfileError(where + ": a profile is a JSON object");
+  if (data === null || typeof data !== "object" || Array.isArray(data) || data instanceof PyFloat) {
+    throw new ProfileError(where + ": a profile is a JSON object");
+  }
+  if (profileSurrogateIn(data)) throw new ProfileError(where + ": holds a lone surrogate (\\ud800 to \\udfff), which is not text");
   if (data.schema !== PROFILE_SCHEMA) throw new ProfileError(where + ': "schema" must be ' + PROFILE_SCHEMA);
   for (const key of Object.keys(data)) {
     if (!PROFILE_KEYS.includes(key)) throw new ProfileError(where + ': unknown key "' + key + '"; a profile holds ' + PROFILE_KEYS.join(", "));
@@ -6034,11 +6084,15 @@ function profileValidate(data, where) {
     if (bad) throw new ProfileError(where + ': "' + key + '" takes th and/or en text of at most ' + PROFILE_MAX_TEXT + " characters");
   }
   const settings = data.settings;
-  if (settings === null || typeof settings !== "object" || Array.isArray(settings)) throw new ProfileError(where + ': "settings" must be an object');
+  if (settings === null || typeof settings !== "object" || Array.isArray(settings) || settings instanceof PyFloat) {
+    throw new ProfileError(where + ': "settings" must be an object');
+  }
   for (const key of Object.keys(settings)) {
     if (!Object.prototype.hasOwnProperty.call(PROFILE_FLAGS, key)) {
       throw new ProfileError(where + ': unknown setting "' + key + '"; the settings are ' + Object.keys(PROFILE_FLAGS).join(", "));
     }
+    const fault = profileValueFault(key, settings[key]);
+    if (fault !== null) throw new ProfileError(where + ': "' + key + '" takes ' + fault);
   }
   try {
     parseArgs(profileAsFlags(settings).concat(["in.md", "out.docx"]));
@@ -6065,9 +6119,11 @@ function profileIsPath(name) {
   return name.includes("/") || name.includes("\\") || name.endsWith(".json");
 }
 
-// A name, never a path: what a profile is saved, imported or looked for under.
+// A name, never a path: what a profile is saved, imported or looked for under. Letters — Thai
+// among them, with their marks — digits, - and _, and nothing a shell reads, since grill hands
+// the name back inside a command; never a leading -, which is a flag.
 function profileCheckName(name) {
-  if (!name || codePointLength(name) > 64 || [...'\\/:*?"<>| \t'].some((c) => name.includes(c)) || name.startsWith(".")) {
+  if (!name || codePointLength(name) > 64 || name.startsWith("-") || !/^[\p{L}\p{M}\p{N}_-]+$/u.test(name)) {
     throw new ProfileError("profile name '" + name + "' is not a name; use letters, digits, - or _");
   }
   return name;
@@ -6102,22 +6158,24 @@ function profileRead(p) {
   const fs = require("fs");
   // read at most one byte past the limit, rather than ask the size first: a file that
   // changes between the two, or has no size (/dev/zero), cannot get past it
-  const raw = new Uint8Array(PROFILE_MAX_BYTES + 1);
-  let n = 0;
+  let raw;
   try {
-    const fd = fs.openSync(p, "r");
-    try {
-      let got;
-      while (n < raw.length && (got = fs.readSync(fd, raw, n, raw.length - n, null)) > 0) n += got;
-    } finally {
-      fs.closeSync(fd);
-    }
+    raw = readRegular(fs, p, PROFILE_MAX_BYTES);
   } catch (e) {
     throw new ProfileError("cannot read " + p + ": " + osError(e));
   }
-  if (n > PROFILE_MAX_BYTES) throw new ProfileError(p + ": larger than 64 KiB; a profile is settings");
-  const text = new TextDecoder("utf-8").decode(raw.subarray(0, n));
-  return profileValidate(jsonParsePy(text, p), p);
+  if (raw.length > PROFILE_MAX_BYTES) throw new ProfileError(p + ": larger than 64 KiB; a profile is settings");
+  const text = fromUtf8(raw); // strictly, as Python decodes it
+  if (text === null) throw new ProfileError(p + ": not UTF-8 text");
+  let data;
+  try {
+    data = jsonParsePy(text, p);
+  } catch (e) {
+    // nested past the stack's depth is not a profile either
+    if (e instanceof RangeError) throw new ProfileError(p + ": not JSON");
+    throw e;
+  }
+  return profileValidate(data, p);
 }
 
 function profileIsFile(p) {
@@ -6129,13 +6187,23 @@ function profileIsFile(p) {
   }
 }
 
+// The whole file or none of it: written beside the target, then put in its place, so a
+// write that fails leaves the profile that was there as it was.
 function profileWrite(profile, p) {
   const fs = require("fs");
   const path = require("path");
+  const data = utf8(profileCanonical(profile));
+  const partial = p + ".partial";
   try {
     fs.mkdirSync(path.dirname(p), { recursive: true });
-    fs.writeFileSync(p, profileCanonical(profile));
+    fs.writeFileSync(partial, data);
+    fs.renameSync(partial, p);
   } catch (e) {
+    try {
+      fs.unlinkSync(partial);
+    } catch {
+      // there was none
+    }
     throw new ProfileError("cannot write " + p + ": " + osError(e));
   }
 }
@@ -6250,6 +6318,7 @@ function profileRun(argv) {
   if (!argv.length) throw new ProfileError(PROFILE_USAGE);
   const command = argv[0];
   let rest = argv.slice(1);
+  if (rest.length && rest[0].startsWith("-")) throw new ProfileError(PROFILE_USAGE); // `save --help` is a question, not a name
   if (command === "list" && !rest.length) return { ok: true, profiles: profileListing() };
   if (command === "show" && rest.length === 1) {
     const [where, p] = profileFind(rest[0]);
@@ -6442,6 +6511,23 @@ function grillArgs(chosen, now) {
   return reset.length ? out.concat(["--default", reset.join(",")]) : out;
 }
 
+// `from` goes back to the agent inside a command it will run: a name is held to
+// profileCheckName, and a path to the characters a path needs and no shell reads
+const PATH_MARKS = "-_./\\:";
+
+function grillCarried(source) {
+  if (!profileIsPath(source)) {
+    profileCheckName(source);
+    return;
+  }
+  for (const c of source) {
+    if (!PATH_MARKS.includes(c) && !/^[\p{L}\p{M}\p{N}]$/u.test(c)) {
+      throw new GrillError("'from' is carried into a command, so a path there holds letters, digits and " +
+        [...PATH_MARKS].join(" ") + " only: " + source);
+    }
+  }
+}
+
 function grillQuestions(now, lang, only, saveTo) {
   const k = lang === "th" ? 0 : 1;
   const out = [];
@@ -6494,6 +6580,7 @@ function grillRun(argv) {
   try {
     found = grillParts(message);
     if (Object.prototype.hasOwnProperty.call(found, "from")) {
+      grillCarried(found.from);
       const [where, p] = profileFind(found.from);
       const data = profileRead(p);
       [now] = parseArgs(profileAsFlags(data.settings).concat(["in.md", "out.docx"]));
@@ -6537,11 +6624,56 @@ function grillRun(argv) {
 // thai-docx — entry: the command line under Node.js, and the ThaiDocx object for a
 // sandbox that runs JavaScript with no file system (ADR 0007, 0008, 0030).
 
-const OS_ERRORS = { ENOENT: "No such file or directory", EACCES: "Permission denied", EISDIR: "Is a directory", ENOTDIR: "Not a directory" };
+const OS_ERRORS = { ENOENT: "No such file or directory", EACCES: "Permission denied", EISDIR: "Is a directory", ENOTDIR: "Not a directory",
+  ENOTREG: "not a regular file" };
 
 function osError(e) {
   return OS_ERRORS[e && e.code] || "cannot be read";
 }
+
+function codedError(code) {
+  const e = new Error(code);
+  e.code = code;
+  return e;
+}
+
+// At most `cap + 1` bytes of a regular file, so a caller sees that it is over the cap without
+// asking the size first — read_regular() in thai_docx/package.py. The file is opened without
+// waiting — a FIFO would otherwise wait for a writer — and what was opened is what is judged,
+// so nothing can change between the look and the read. A directory is refused as the OS
+// would name it; anything else that is not a regular file is refused before a byte is read.
+function readRegular(fs, p, cap) {
+  const fd = fs.openSync(p, fs.constants.O_RDONLY | (fs.constants.O_NONBLOCK || 0));
+  try {
+    const st = fs.fstatSync(fd);
+    if (st.isDirectory()) throw codedError("EISDIR");
+    if (!st.isFile()) throw codedError("ENOTREG");
+    const buf = new Uint8Array(Math.min(st.size, cap) + 1);
+    let n = 0;
+    for (;;) {
+      const got = fs.readSync(fd, buf, n, buf.length - n, null);
+      if (got === 0 || (n += got) === buf.length) break;
+    }
+    return buf.subarray(0, n);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+// Do two paths name one file — the same path, a symbolic link to it, or a hard link? A path
+// that does not exist names no file yet (same_file() in thai_docx/package.py).
+function sameFile(fs, a, b) {
+  try {
+    const one = fs.statSync(a, { bigint: true });
+    const two = fs.statSync(b, { bigint: true });
+    return one.dev === two.dev && one.ino === two.ino;
+  } catch {
+    return false;
+  }
+}
+
+const MAX_MARKDOWN = 16 * 1024 * 1024;
+const MAX_IMAGE = 32 * 1024 * 1024;
 
 const MAX_LINKS = 40;
 
@@ -6614,14 +6746,22 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
   const fs = require("fs");
   const path = require("path");
   const result = { ok: false, file: outPath, settings: settingsJson(opts) };
+  if (sameFile(fs, mdPath, outPath)) {
+    result.error = "the output is the Markdown file itself; the build writes a new file, never over its input";
+    return result;
+  }
   let raw;
   try {
-    raw = fs.readFileSync(mdPath);
+    raw = readRegular(fs, mdPath, MAX_MARKDOWN);
   } catch (e) {
     result.error = "cannot read " + mdPath + ": " + osError(e);
     return result;
   }
-  const text = fromUtf8(new Uint8Array(raw.buffer, raw.byteOffset, raw.length));
+  if (raw.length > MAX_MARKDOWN) {
+    result.error = "cannot read " + mdPath + ": larger than 16 MiB";
+    return result;
+  }
+  const text = fromUtf8(raw);
   if (text === null) {
     result.error = "cannot read " + mdPath + ": not UTF-8 text";
     return result;
@@ -6634,12 +6774,14 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
     if (!roots.some((root) => inside(path, p, root))) {
       throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)");
     }
+    let b;
     try {
-      const b = fs.readFileSync(p);
-      return [p, new Uint8Array(b.buffer, b.byteOffset, b.length)];
+      b = readRegular(fs, p, MAX_IMAGE);
     } catch (e) {
       throw new BuildError("image '" + src + "': " + osError(e));
     }
+    if (b.length > MAX_IMAGE) throw new BuildError("image '" + src + "': larger than 32 MiB");
+    return [p, b];
   };
   const [outcome, data] = buildText(text, opts, readImage);
   Object.assign(result, outcome);
@@ -6655,7 +6797,7 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
 }
 
 function nodeCheck(argv) {
-  if (argv.length !== 1) {
+  if (argv.length !== 1 || argv[0] === "--help") {
     process.stdout.write(pyDumps({ ok: false, error: "usage: thai_docx check FILE.docx" }) + "\n");
     return 2;
   }
@@ -6663,18 +6805,7 @@ function nodeCheck(argv) {
   // at most one byte past the cap is read, as the Python checker reads it
   let bytes;
   try {
-    const fd = fs.openSync(argv[0], "r");
-    try {
-      const buf = new Uint8Array(Math.min(fs.fstatSync(fd).size, MAX_FILE) + 1);
-      let n = 0;
-      for (;;) {
-        const got = fs.readSync(fd, buf, n, buf.length - n, null);
-        if (got === 0 || (n += got) === buf.length) break;
-      }
-      bytes = buf.subarray(0, n);
-    } finally {
-      fs.closeSync(fd);
-    }
+    bytes = readRegular(fs, argv[0], MAX_FILE);
   } catch (e) {
     // a name typed wrong is not a damaged document: `error`, as `build` answers it
     const report = new Report(argv[0]);
@@ -6701,20 +6832,30 @@ function nodeRepair(argv) {
     csAll = true;
   }
   if (argv.length === 4 && argv[2] === "--font") {
-    font = argv[3];
+    try {
+      font = readValue("--font", argv[3]); // read as the build reads it
+    } catch (e) {
+      if (!(e instanceof BuildError)) throw e;
+      process.stdout.write(pyDumps({ ok: false, error: e.what }) + "\n");
+      return 2;
+    }
     argv = argv.slice(0, 2);
   }
-  if (argv.length !== 2) {
+  if (argv.length !== 2 || argv.includes("--help")) {
     process.stdout.write(pyDumps({ ok: false, error: REPAIR_USAGE }) + "\n");
     return 2;
   }
   const fs = require("fs");
   const [inPath, outPath] = argv;
   const result = { ok: false, file: outPath };
+  if (sameFile(fs, inPath, outPath)) {
+    result.error = "the output is the file to repair; repair writes a new file, never over the one given (ADR 0037)";
+    process.stdout.write(pyDumps(result) + "\n");
+    return 2;
+  }
   let data;
   try {
-    const b = fs.readFileSync(inPath);
-    data = new Uint8Array(b.buffer, b.byteOffset, b.length);
+    data = readRegular(fs, inPath, MAX_FILE);
   } catch (e) {
     result.error = "cannot read " + inPath + ": " + osError(e);
     process.stdout.write(pyDumps(result) + "\n");
@@ -6731,6 +6872,14 @@ function nodeRepair(argv) {
   const ents = readZipDirectory(data);
   const parts = new Map(ents.map((e) => [e.name, readZipEntry(data, e)]));
   const [replace, repaired, chosen] = repairParts(parts, before.findings, font, thaiLanguage, csAll);
+  if (!replace.size && !before.findings.length) {
+    // a clean file is an answer, not a fault: nothing to repair, so nothing is written
+    delete result.file;
+    Object.assign(result, { ok: true, repaired: {}, remaining: [], warnings: [{ code: "clean", message:
+      "nothing here needs a repair; no file was written, and " + inPath + " can be used as it is" }].concat(before.warnings) });
+    process.stdout.write(pyDumps(result) + "\n");
+    return 0;
+  }
   if (!replace.size) {
     result.repaired = {};
     result.remaining = before.findings;
@@ -6782,7 +6931,35 @@ function nodeRepair(argv) {
   return after.findings.length ? 1 : 0;
 }
 
+function refuseLine(message, code) {
+  process.stdout.write(pyDumps({ ok: false, error: message }) + "\n");
+  return code;
+}
+
+// An argument that held bytes of another encoding: Node puts U+FFFD in each one's place and
+// cannot tell it from one typed, Python keeps a lone surrogate — so both refuse either, and give
+// the same answer for the same argument.
+function notText(arg) {
+  return arg.includes("\ufffd") || /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(arg);
+}
+
 function cliMain(argv) {
+  const bad = argv.findIndex(notText);
+  if (bad >= 0) return refuseLine("argument " + (bad + 1) + " is not UTF-8 text; a name or value in another encoding cannot be read", 2);
+  try {
+    process.cwd();
+  } catch {
+    return refuseLine("the working directory no longer exists; run the command from one that does", 2);
+  }
+  try {
+    return cliCommand(argv);
+  } catch {
+    // SKILL.md reads exit 1 as a defect in this skill: that is what this is
+    return refuseLine("a defect in thai-docx stopped this command; do not retry — report it with the input that caused it", 1);
+  }
+}
+
+function cliCommand(argv) {
   if (argv.length && argv[0] === "check") return nodeCheck(argv.slice(1));
   if (argv.length && argv[0] === "repair") return nodeRepair(argv.slice(1));
   if (argv.length && argv[0] === "grill") {

@@ -354,7 +354,10 @@ def complex_script_font(parts: dict[str, bytes], asked: str | None) -> tuple[byt
     """The font a run that names none is given, and why (ADR 0037): what the user asked for,
     else the complex-script font this document already uses most, else the skill's default."""
     if asked:
-        return asked.encode("utf-8"), "the font the command was given"
+        # an attribute value, escaped where it is written; a font found in the document below
+        # is taken from an attribute already
+        escaped = asked.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+        return escaped.encode("utf-8"), "the font the command was given"
     counted: dict[bytes, int] = {}
     for name, xml in parts.items():
         # the XML parts only: an image or a font holds no run properties, and reading one as
@@ -440,9 +443,11 @@ def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None
 def repair(in_path: str, out_path: str, font: str | None = None, thai_language: bool = False,
            cs_all: bool = False) -> dict:
     result: dict = {"ok": False, "file": out_path}
+    if package.same_file(in_path, out_path):
+        result["error"] = "the output is the file to repair; repair writes a new file, never over the one given (ADR 0037)"
+        return result
     try:
-        with open(in_path, "rb") as f:
-            data = f.read(package.MAX_FILE + 1)
+        data = package.read_regular(in_path, package.MAX_FILE)
     except OSError as exc:
         result["error"] = "cannot read " + in_path + ": " + package.os_error(exc)
         return result
@@ -460,6 +465,13 @@ def repair(in_path: str, out_path: str, font: str | None = None, thai_language: 
     ents = package.entries(data)
     parts = {e.name: package.read(data, e) for e in ents}
     replace, repaired, chosen = repair_parts(parts, before.findings, font, thai_language, cs_all)
+    if not replace and not before.findings:
+        # a clean file is an answer, not a fault: nothing to repair, so nothing is written
+        del result["file"]
+        result.update(ok=True, repaired={}, remaining=[], warnings=[{
+            "code": "clean", "message": "nothing here needs a repair; no file was written, and "
+                                        + in_path + " can be used as it is"}] + before.warnings)
+        return result
     if not replace:
         result["repaired"] = {}
         result["remaining"] = before.findings
@@ -507,7 +519,12 @@ def main(argv: list[str]) -> int:
         cs_all = True
     if len(argv) == 4 and argv[2] == "--font":
         argv, font = argv[:2], argv[3]
-    if len(argv) != 2:
+        try:
+            font = st.read_value("--font", font)  # read as the build reads it
+        except st.BuildError as exc:
+            print(json.dumps({"ok": False, "error": exc.what}, ensure_ascii=False))
+            return 2
+    if len(argv) != 2 or "--help" in argv:
         print(json.dumps({"ok": False, "error": USAGE}))
         return 2
     result = repair(argv[0], argv[1], font, thai_language, cs_all)

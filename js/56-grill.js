@@ -118,6 +118,23 @@ function grillArgs(chosen, now) {
   return reset.length ? out.concat(["--default", reset.join(",")]) : out;
 }
 
+// `from` goes back to the agent inside a command it will run: a name is held to
+// profileCheckName, and a path to the characters a path needs and no shell reads
+const PATH_MARKS = "-_./\\:";
+
+function grillCarried(source) {
+  if (!profileIsPath(source)) {
+    profileCheckName(source);
+    return;
+  }
+  for (const c of source) {
+    if (!PATH_MARKS.includes(c) && !/^[\p{L}\p{M}\p{N}]$/u.test(c)) {
+      throw new GrillError("'from' is carried into a command, so a path there holds letters, digits and " +
+        [...PATH_MARKS].join(" ") + " only: " + source);
+    }
+  }
+}
+
 function grillQuestions(now, lang, only, saveTo) {
   const k = lang === "th" ? 0 : 1;
   const out = [];
@@ -170,6 +187,7 @@ function grillRun(argv) {
   try {
     found = grillParts(message);
     if (Object.prototype.hasOwnProperty.call(found, "from")) {
+      grillCarried(found.from);
       const [where, p] = profileFind(found.from);
       const data = profileRead(p);
       [now] = parseArgs(profileAsFlags(data.settings).concat(["in.md", "out.docx"]));

@@ -189,6 +189,16 @@ gates:
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_skill_md.py]}
     proved_by: [docs/evidence/2026-09-15-skill-md-archive-and-agents.md, docs/evidence/2026-09-16-agents-with-the-grown-skill.md, docs/evidence/2026-09-16-agents-after-the-redesign.md, docs/evidence/2026-09-17-agents-with-the-flag-table.md, docs/evidence/2026-09-17-a-description-of-200-characters.md, docs/evidence/2026-09-17-user-guides-hold.md]
+  - id: commands-take-only-what-they-should
+    title: Every command answers in one JSON line, in both implementations alike — never writing over the file it was given, reading only regular files and each to a ceiling, taking only text as text, reading repair's --font as the build does and escaping it, and taking only profile names and profile data no shell and no parser misreads
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_what_a_command_takes.py]}
+  - id: a-fixed-fault-names-the-test-that-holds-it
+    title: Every finding closed since 0.2.0 names in tests/regressions.yaml the test that fails if it returns, a rule a model reads only beside one, and every Fixed line of the changelog after 0.2.0 names its test
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_regressions.py]}
   - id: amendments-recorded-both-ways
     title: Every amendment is recorded on both records — `Amends:` on the new one names a record whose `Amended by:` names it back, and the reverse — read from each record's head, a link at a time (.github/CONTRIBUTING.md, Add a decision)
     kind: test

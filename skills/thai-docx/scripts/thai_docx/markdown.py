@@ -102,6 +102,8 @@ def forbidden_char(ch: str) -> str | None:
         return "U+%04X, a control character" % cp
     if cp in (0xFFFE, 0xFFFF):
         return "U+%04X, a noncharacter" % cp
+    if 0xD800 <= cp <= 0xDFFF:  # only a profile's JSON can carry one: argv and files are refused first
+        return "U+%04X, a lone surrogate" % cp
     return None
 
 

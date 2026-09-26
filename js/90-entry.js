@@ -3,11 +3,56 @@
 // thai-docx — entry: the command line under Node.js, and the ThaiDocx object for a
 // sandbox that runs JavaScript with no file system (ADR 0007, 0008, 0030).
 
-const OS_ERRORS = { ENOENT: "No such file or directory", EACCES: "Permission denied", EISDIR: "Is a directory", ENOTDIR: "Not a directory" };
+const OS_ERRORS = { ENOENT: "No such file or directory", EACCES: "Permission denied", EISDIR: "Is a directory", ENOTDIR: "Not a directory",
+  ENOTREG: "not a regular file" };
 
 function osError(e) {
   return OS_ERRORS[e && e.code] || "cannot be read";
 }
+
+function codedError(code) {
+  const e = new Error(code);
+  e.code = code;
+  return e;
+}
+
+// At most `cap + 1` bytes of a regular file, so a caller sees that it is over the cap without
+// asking the size first — read_regular() in thai_docx/package.py. The file is opened without
+// waiting — a FIFO would otherwise wait for a writer — and what was opened is what is judged,
+// so nothing can change between the look and the read. A directory is refused as the OS
+// would name it; anything else that is not a regular file is refused before a byte is read.
+function readRegular(fs, p, cap) {
+  const fd = fs.openSync(p, fs.constants.O_RDONLY | (fs.constants.O_NONBLOCK || 0));
+  try {
+    const st = fs.fstatSync(fd);
+    if (st.isDirectory()) throw codedError("EISDIR");
+    if (!st.isFile()) throw codedError("ENOTREG");
+    const buf = new Uint8Array(Math.min(st.size, cap) + 1);
+    let n = 0;
+    for (;;) {
+      const got = fs.readSync(fd, buf, n, buf.length - n, null);
+      if (got === 0 || (n += got) === buf.length) break;
+    }
+    return buf.subarray(0, n);
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+// Do two paths name one file — the same path, a symbolic link to it, or a hard link? A path
+// that does not exist names no file yet (same_file() in thai_docx/package.py).
+function sameFile(fs, a, b) {
+  try {
+    const one = fs.statSync(a, { bigint: true });
+    const two = fs.statSync(b, { bigint: true });
+    return one.dev === two.dev && one.ino === two.ino;
+  } catch {
+    return false;
+  }
+}
+
+const MAX_MARKDOWN = 16 * 1024 * 1024;
+const MAX_IMAGE = 32 * 1024 * 1024;
 
 const MAX_LINKS = 40;
 
@@ -80,14 +125,22 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
   const fs = require("fs");
   const path = require("path");
   const result = { ok: false, file: outPath, settings: settingsJson(opts) };
+  if (sameFile(fs, mdPath, outPath)) {
+    result.error = "the output is the Markdown file itself; the build writes a new file, never over its input";
+    return result;
+  }
   let raw;
   try {
-    raw = fs.readFileSync(mdPath);
+    raw = readRegular(fs, mdPath, MAX_MARKDOWN);
   } catch (e) {
     result.error = "cannot read " + mdPath + ": " + osError(e);
     return result;
   }
-  const text = fromUtf8(new Uint8Array(raw.buffer, raw.byteOffset, raw.length));
+  if (raw.length > MAX_MARKDOWN) {
+    result.error = "cannot read " + mdPath + ": larger than 16 MiB";
+    return result;
+  }
+  const text = fromUtf8(raw);
   if (text === null) {
     result.error = "cannot read " + mdPath + ": not UTF-8 text";
     return result;
@@ -100,12 +153,14 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
     if (!roots.some((root) => inside(path, p, root))) {
       throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)");
     }
+    let b;
     try {
-      const b = fs.readFileSync(p);
-      return [p, new Uint8Array(b.buffer, b.byteOffset, b.length)];
+      b = readRegular(fs, p, MAX_IMAGE);
     } catch (e) {
       throw new BuildError("image '" + src + "': " + osError(e));
     }
+    if (b.length > MAX_IMAGE) throw new BuildError("image '" + src + "': larger than 32 MiB");
+    return [p, b];
   };
   const [outcome, data] = buildText(text, opts, readImage);
   Object.assign(result, outcome);
@@ -121,7 +176,7 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
 }
 
 function nodeCheck(argv) {
-  if (argv.length !== 1) {
+  if (argv.length !== 1 || argv[0] === "--help") {
     process.stdout.write(pyDumps({ ok: false, error: "usage: thai_docx check FILE.docx" }) + "\n");
     return 2;
   }
@@ -129,18 +184,7 @@ function nodeCheck(argv) {
   // at most one byte past the cap is read, as the Python checker reads it
   let bytes;
   try {
-    const fd = fs.openSync(argv[0], "r");
-    try {
-      const buf = new Uint8Array(Math.min(fs.fstatSync(fd).size, MAX_FILE) + 1);
-      let n = 0;
-      for (;;) {
-        const got = fs.readSync(fd, buf, n, buf.length - n, null);
-        if (got === 0 || (n += got) === buf.length) break;
-      }
-      bytes = buf.subarray(0, n);
-    } finally {
-      fs.closeSync(fd);
-    }
+    bytes = readRegular(fs, argv[0], MAX_FILE);
   } catch (e) {
     // a name typed wrong is not a damaged document: `error`, as `build` answers it
     const report = new Report(argv[0]);
@@ -167,20 +211,30 @@ function nodeRepair(argv) {
     csAll = true;
   }
   if (argv.length === 4 && argv[2] === "--font") {
-    font = argv[3];
+    try {
+      font = readValue("--font", argv[3]); // read as the build reads it
+    } catch (e) {
+      if (!(e instanceof BuildError)) throw e;
+      process.stdout.write(pyDumps({ ok: false, error: e.what }) + "\n");
+      return 2;
+    }
     argv = argv.slice(0, 2);
   }
-  if (argv.length !== 2) {
+  if (argv.length !== 2 || argv.includes("--help")) {
     process.stdout.write(pyDumps({ ok: false, error: REPAIR_USAGE }) + "\n");
     return 2;
   }
   const fs = require("fs");
   const [inPath, outPath] = argv;
   const result = { ok: false, file: outPath };
+  if (sameFile(fs, inPath, outPath)) {
+    result.error = "the output is the file to repair; repair writes a new file, never over the one given (ADR 0037)";
+    process.stdout.write(pyDumps(result) + "\n");
+    return 2;
+  }
   let data;
   try {
-    const b = fs.readFileSync(inPath);
-    data = new Uint8Array(b.buffer, b.byteOffset, b.length);
+    data = readRegular(fs, inPath, MAX_FILE);
   } catch (e) {
     result.error = "cannot read " + inPath + ": " + osError(e);
     process.stdout.write(pyDumps(result) + "\n");
@@ -197,6 +251,14 @@ function nodeRepair(argv) {
   const ents = readZipDirectory(data);
   const parts = new Map(ents.map((e) => [e.name, readZipEntry(data, e)]));
   const [replace, repaired, chosen] = repairParts(parts, before.findings, font, thaiLanguage, csAll);
+  if (!replace.size && !before.findings.length) {
+    // a clean file is an answer, not a fault: nothing to repair, so nothing is written
+    delete result.file;
+    Object.assign(result, { ok: true, repaired: {}, remaining: [], warnings: [{ code: "clean", message:
+      "nothing here needs a repair; no file was written, and " + inPath + " can be used as it is" }].concat(before.warnings) });
+    process.stdout.write(pyDumps(result) + "\n");
+    return 0;
+  }
   if (!replace.size) {
     result.repaired = {};
     result.remaining = before.findings;
@@ -248,7 +310,35 @@ function nodeRepair(argv) {
   return after.findings.length ? 1 : 0;
 }
 
+function refuseLine(message, code) {
+  process.stdout.write(pyDumps({ ok: false, error: message }) + "\n");
+  return code;
+}
+
+// An argument that held bytes of another encoding: Node puts U+FFFD in each one's place and
+// cannot tell it from one typed, Python keeps a lone surrogate — so both refuse either, and give
+// the same answer for the same argument.
+function notText(arg) {
+  return arg.includes("\ufffd") || /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(arg);
+}
+
 function cliMain(argv) {
+  const bad = argv.findIndex(notText);
+  if (bad >= 0) return refuseLine("argument " + (bad + 1) + " is not UTF-8 text; a name or value in another encoding cannot be read", 2);
+  try {
+    process.cwd();
+  } catch {
+    return refuseLine("the working directory no longer exists; run the command from one that does", 2);
+  }
+  try {
+    return cliCommand(argv);
+  } catch {
+    // SKILL.md reads exit 1 as a defect in this skill: that is what this is
+    return refuseLine("a defect in thai-docx stopped this command; do not retry — report it with the input that caused it", 1);
+  }
+}
+
+function cliCommand(argv) {
   if (argv.length && argv[0] === "check") return nodeCheck(argv.slice(1));
   if (argv.length && argv[0] === "repair") return nodeRepair(argv.slice(1));
   if (argv.length && argv[0] === "grill") {

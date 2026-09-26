@@ -1,0 +1,150 @@
+# What was found broken, and what now holds it fixed. A fault is closed by a control, not by a
+# change: each row names the test that fails if the fault comes back (tests/test_regressions.py
+# holds every row to it).
+#
+# id        the finding's name in the review that found it
+# what      the fault, as a user or an agent met it
+# class     how it is held (comma-separated): C0 the wrong path no longer exists (one reader, one escape point);
+#           C1 a test that fails when it returns; C2 a rule a person or a model reads — only
+#           beside a C1; C3 a check after the work, by a person or in a real application — only
+#           with the record it is written in
+# found_by  review · outside-review · parity · planted-input · agent-run · office-app
+# test      pytest node ids, `file::function`
+# record    the evidence record, where a C3 row needs one
+
+- id: R3
+  what: repair wrote over the file it was given — the same path, a symbolic link to it, or a hard link
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_the_input_is_never_the_output
+
+- id: R6
+  what: build wrote over its own Markdown when the output path named it
+  class: C0, C1
+  found_by: outside-review
+  test:
+    - tests/test_what_a_command_takes.py::test_the_input_is_never_the_output
+
+- id: D4
+  what: a FIFO given as an image, a profile or a package hung the command at open
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_file_that_is_not_a_regular_file_is_refused_before_it_is_opened
+
+- id: D-05
+  what: the Markdown, and in JavaScript the package given to repair, were read whole with no ceiling
+  class: C0, C1
+  found_by: planted-input
+  test:
+    - tests/test_what_a_command_takes.py::test_a_markdown_file_past_its_ceiling_is_refused_not_read_whole
+    - tests/test_build.py::test_one_picture_past_its_cap_is_refused_before_it_is_read_whole
+
+- id: D-04
+  what: an argument in another encoding stopped Python with a trace and was written as U+FFFD by JavaScript
+  class: C1
+  found_by: planted-input
+  test:
+    - tests/test_what_a_command_takes.py::test_an_argument_in_another_encoding_is_refused_the_same_way
+
+- id: B2
+  what: a lone surrogate from a profile stopped Python with a trace and was written as U+FFFD by JavaScript
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_profile_that_is_not_a_profile_is_named_not_obeyed
+    - tests/test_what_a_command_takes.py::test_a_profile_is_replaced_whole_or_not_at_all
+
+- id: C-05
+  what: a number too long for a float stopped Python with a trace; JavaScript refused it
+  class: C1
+  found_by: parity
+  test:
+    - tests/test_what_a_command_takes.py::test_a_number_too_long_for_a_float_is_refused_not_a_traceback
+
+- id: D-02
+  what: repair --font was written into the XML unread and unescaped, so a value could add an element
+  class: C0, C1
+  found_by: planted-input
+  test:
+    - tests/test_what_a_command_takes.py::test_the_font_given_to_repair_is_read_like_the_builds_and_escaped
+
+- id: E-04
+  what: repair answered a file with nothing to repair with an error that pointed at findings it did not have
+  class: C1
+  found_by: agent-run
+  test:
+    - tests/test_what_a_command_takes.py::test_a_file_with_nothing_to_repair_is_an_answer_not_an_error
+    - tests/test_repair.py::test_a_clean_file_is_left_alone
+
+- id: B4
+  what: a profile name could hold what a shell reads, and grill handed it back inside a command to run
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_profile_name_is_letters_digits_dash_and_underscore
+    - tests/test_what_a_command_takes.py::test_grill_never_hands_back_a_word_a_shell_would_read
+
+- id: B6
+  what: profile save --help saved a profile named --help
+  class: C1
+  found_by: outside-review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_profile_name_is_letters_digits_dash_and_underscore
+
+- id: B3
+  what: a profile with a value of the wrong type, or JSON nested past the parser's depth, stopped Python with a trace
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_profile_that_is_not_a_profile_is_named_not_obeyed
+
+- id: D-07
+  what: a profile keyed __proto__ was read by JavaScript and refused by Python
+  class: C1
+  found_by: parity
+  test:
+    - tests/test_what_a_command_takes.py::test_a_profile_that_is_not_a_profile_is_named_not_obeyed
+
+- id: D-13
+  what: a profile that was not UTF-8, or said schema true or 1.0, was read by one implementation and refused by the other
+  class: C1
+  found_by: parity
+  test:
+    - tests/test_what_a_command_takes.py::test_a_profile_that_is_not_a_profile_is_named_not_obeyed
+
+- id: B1
+  what: a profile import that failed part way left the profile it was replacing empty
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_profile_is_replaced_whole_or_not_at_all
+
+- id: E-15
+  what: build --help and check --help answered as if --help were an option or a file
+  class: C1
+  found_by: agent-run
+  test:
+    - tests/test_what_a_command_takes.py::test_help_is_the_usage_line
+
+- id: C-03
+  what: Python printed the JSON line in the pipe's encoding and stopped with a trace where it was not UTF-8
+  class: C0, C1
+  found_by: parity
+  test:
+    - tests/test_what_a_command_takes.py::test_a_pipe_that_is_not_utf8_still_gets_the_json_line
+
+- id: D-15
+  what: a command run from a working directory that had been removed stopped with a trace
+  class: C1
+  found_by: planted-input
+  test:
+    - tests/test_what_a_command_takes.py::test_a_working_directory_that_is_gone_is_said_not_a_traceback
+
+- id: D3
+  what: a fault inside a command left a trace and no JSON line, which an agent cannot read
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_defect_is_one_json_line_and_exit_1_not_a_traceback
