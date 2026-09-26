@@ -199,3 +199,20 @@ def test_every_page_that_says_what_a_merge_needs_names_the_checks_it_needs():
         text = (ROOT / page).read_text(encoding="utf-8")
         assert all("`" + check + "`" in text for check in required), page
         assert "CodeQL" in text, page
+
+
+def test_what_the_review_found_the_pages_left_out_they_now_say():
+    """Pages true in what they said and short of what holds: the allowlists of the assurance case
+    left out the link schemes (CUR-07); "complex script" in check.md means the Thai block, which
+    is all the checker reads (C7); the Unicode version decides NFC too (limits.md §11); and the
+    interview starts on its phrase wherever it stands, a sentence that refuses it included (E-22)."""
+    import sys
+    sys.path.insert(0, str(ROOT / "skills" / "thai-docx" / "scripts"))
+    from thai_docx import ooxml
+    flat = lambda path: " ".join((ROOT / path).read_text(encoding="utf-8").split())  # noqa: E731
+    assert re.search(r"Input validation with allowlists \|[^|]*`http`, `https` and `mailto`", flat("docs/assurance-case.md"))
+    assert ooxml.is_thai("฀") and ooxml.is_thai("๿") and not ooxml.is_thai("຀")
+    assert "U+0E00 to U+0E7F" in flat("skills/thai-docx/references/check.md")
+    assert "NFC" in flat("skills/thai-docx/references/limits.md").split("## 11.", 1)[1]
+    assert "อย่าใช้ thai-docx grill" in flat("docs/guide/th/troubleshooting.md")
+    assert "don't use thai-docx grill" in flat("docs/guide/en/troubleshooting.md")

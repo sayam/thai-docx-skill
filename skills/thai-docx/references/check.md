@@ -13,7 +13,7 @@ not a damaged document. Explain each finding by its code, in the user's language
 | code | what is wrong | what the user sees |
 |---|---|---|
 | `1` | compatibility mode is not 15 | "Compatibility Mode" in Word's title bar; Thai lines break only at spaces |
-| `2` | a run whose text is complex script is not marked so (`<w:cs/>`; `<w:cs w:val="0"/>` says it is not) — deleted text included. A Latin run carrying the mark is not a finding — `--force-cs-whole-doc` writes that on purpose | red squiggles under Thai words, Latin line breaking |
+| `2` | a run whose text is Thai — the one complex script the checker reads, U+0E00 to U+0E7F — is not marked so (`<w:cs/>`; `<w:cs w:val="0"/>` says it is not) — deleted text included. A Latin run carrying the mark is not a finding — `--force-cs-whole-doc` writes that on purpose | red squiggles under Thai words, Latin line breaking |
 | `3` | proofing switched off (`<w:noProof/>`; one that says `w:val="0"` switches it on, and is not a finding) | squiggles gone, but Thai lines no longer break inside words |
 | `4` | one word split across two runs with the same formatting | odd gaps or breaks where formatting changed |
 | `5` | a Latin property with no complex-script twin (`w:cs` font, `szCs`, `bCs`, `iCs`) — in a run, a style, a paragraph mark or a numbering level — or a Symbol-font bullet | Thai in the wrong font or size, bold not bold, broken bullets |

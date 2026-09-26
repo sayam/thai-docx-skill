@@ -21,10 +21,10 @@
    จะได้โฟลเดอร์ `thai-docx`
 
    ```sh
-   unzip thai-docx-0.2.1.zip
+   unzip thai-docx-0.2.2.zip
    ```
 
-   บน Windows ใน PowerShell: `Expand-Archive thai-docx-0.2.1.zip -DestinationPath .`
+   บน Windows ใน PowerShell: `Expand-Archive thai-docx-0.2.2.zip -DestinationPath .`
 
 ไม่ต้องติดตั้งอะไรเพิ่ม และไม่ใช้อินเทอร์เน็ต
 

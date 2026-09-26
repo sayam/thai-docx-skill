@@ -10,6 +10,8 @@ before two applications were read; the exception and what is owed are in
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-09-26
+
 **The goldens do not move**: a document is written as 0.2.1 wrote it unless it holds one of the
 cases fixed below — a picture that leaves its caption less than an inch under
 `--caption-matches-object`, a bare address GitHub reads as a link and 0.2.1 did not (or the other
@@ -79,6 +81,12 @@ wrote, so it can find what it answered `ok` on before; `repair` puts right what 
   `tests/test_package_skill.py::test_only_what_git_tracks_is_packed`).
 - Every CI checkout left the job's token in `.git/config` for the steps after it
   (`tests/test_release_is_bound_to_its_tag.py::test_no_checkout_leaves_its_token_behind`).
+- Pages said less, or other, than the code does: ADR 0039 that `--force-cs-whole-doc` marks
+  `docDefaults` too, `check.md` "complex script" where the checker reads Thai (U+0E00 to U+0E7F),
+  the assurance case's allowlists without the link schemes, and the limits without NFC among what
+  the Unicode version decides
+  (`tests/test_build.py::test_force_cs_marks_every_run_and_leaves_the_defaults_unmarked`,
+  `tests/test_rules.py::test_what_the_review_found_the_pages_left_out_they_now_say`).
 
 ## [0.2.1] - 2026-09-26
 

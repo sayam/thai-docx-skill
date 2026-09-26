@@ -139,6 +139,10 @@ reason to ask for the old shape. The flag writes `<w:cs/>` on every run and leav
 `docDefaults`, which is exactly what v0.1.1 wrote. `references/limits.md` states the exchange: one
 font throughout and English underlined on screen, against Word's own rendering and no underline.
 
+> **Later (2026-09-26):** the flag writes `<w:cs/>` on every run and nothing in `docDefaults` —
+> no build since 0.2.0 has written it there, so the bytes are not v0.1.1's. Every run carries its
+> own, which is all the flag promises (the review of 0.2.0, B-11); `tests/test_build.py` holds it.
+
 **`check` follows, in one direction only.** Finding `2` becomes *a run with complex-script text has
 no `<w:cs/>`*. A Latin run that carries `<w:cs/>` is **not** a finding — that is what
 `--force-cs-whole-doc` produces, and a checker that called it an error would fail the documents this
