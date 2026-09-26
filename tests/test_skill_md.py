@@ -469,3 +469,22 @@ def test_the_description_is_the_one_measured():
         "use this skill to ask its fixed questions first. https://github.com/sayam/thai-docx-skill")
     record = (ROOT / "docs" / "evidence" / "2026-09-26-model-equivalence-on-v0.2.1.md").read_text(encoding="utf-8")
     assert "Make or check a Word .docx with Thai" in record
+
+
+def test_what_the_model_runs_got_wrong_is_answered_where_they_read():
+    """The runs on 0.2.1 (docs/evidence/2026-09-26-model-equivalence-on-v0.2.1.md): Haiku
+    invented page-number flags before opening settings.md, and one run gave grill an English
+    paraphrase; the runs on 0.2.2's (2026-09-26-model-equivalence-on-the-0.2.2-skill-md.md) had
+    Haiku delete a missing picture's line or make one up. SKILL.md names every page-number
+    position the build takes, says the message goes untranslated, and that nothing is made up."""
+    from thai_docx import settings as st
+    text = " ".join(SKILL_MD.split())  # as it reads, whatever the line breaks
+    first, *rest = st.PAGE_NUMBERS
+    assert "`--page-numbers` (" + first.replace("-", " ") + ")" in text
+    for position in rest:
+        assert "`--page-numbers " + position + "`" in text, position
+    assert "`--heading-numbers`" in text and "never guess a name" in text
+    grill = text.split("## Grill mode", 1)[1].split(" ## ", 1)[0]
+    assert "never translated or summarised" in grill and "last 20,000 characters" in grill
+    # and what the runs on the 0.2.2 SKILL.md found: a missing picture deleted or made up
+    assert "never make up what they name" in text and "a picture that is missing is theirs to give" in text
