@@ -204,6 +204,11 @@ gates:
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_repair_reads_xml_as_xml.py]}
+  - id: check-holds-its-limits-at-their-values
+    title: Each limit is the value both implementations state, and is met at that value from the input side through both command lines — the part and total size caps, forty symbolic links and no more — a part is judged UTF-8 on its bytes, so UTF-16 never reaches a parser, and a run nested past any stack gets a verdict
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_check_holds_its_limits.py]}
   - id: amendments-recorded-both-ways
     title: Every amendment is recorded on both records — `Amends:` on the new one names a record whose `Amended by:` names it back, and the reverse — read from each record's head, a link at a time (.github/CONTRIBUTING.md, Add a decision)
     kind: test

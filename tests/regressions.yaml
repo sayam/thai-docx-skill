@@ -147,7 +147,7 @@
   class: C0, C1
   found_by: review
   test:
-    - tests/test_what_a_command_takes.py::test_a_defect_is_one_json_line_and_exit_1_not_a_traceback
+    - tests/test_what_a_command_takes.py::test_the_entry_answers_before_any_command_runs
 
 - id: R1
   what: repair compared only the body and the footnotes, and changed the text of a header, a footer or a comment unseen
@@ -241,3 +241,41 @@
   found_by: review
   test:
     - tests/test_repair_reads_xml_as_xml.py::test_a_repair_that_changes_a_character_writes_nothing
+
+- id: D-01
+  what: a part in UTF-16 with no byte-order mark decoded as UTF-8, passed the DOCTYPE refusal, and had its entities expanded by the parser
+  class: C0, C1
+  found_by: planted-input
+  test:
+    - tests/test_check_holds_its_limits.py::test_a_utf16_part_is_refused_not_parsed
+
+- id: D-03
+  what: a run's properties nested 500 deep stopped check with a trace, at a depth that differed by runtime
+  class: C0, C1
+  found_by: planted-input
+  test:
+    - tests/test_check_holds_its_limits.py::test_a_run_nested_past_any_stack_is_read_not_a_trace
+
+- id: F-02
+  what: the 64 MiB total cap was held by no test at its value; its only test patched the constant
+  class: C1
+  found_by: review
+  test:
+    - tests/test_check_holds_its_limits.py::test_the_size_caps_hold_at_their_values
+    - tests/test_check_holds_its_limits.py::test_each_limit_is_the_value_both_implementations_state
+
+- id: D-09
+  what: the part cap and the symbolic-link cap could be raised a hundredfold with every test green
+  class: C1
+  found_by: review
+  test:
+    - tests/test_check_holds_its_limits.py::test_the_size_caps_hold_at_their_values
+    - tests/test_check_holds_its_limits.py::test_forty_links_are_followed_and_the_forty_first_is_not
+    - tests/test_check_holds_its_limits.py::test_each_limit_is_the_value_both_implementations_state
+
+- id: D-09a
+  what: a chain of forty-one symbolic links stopped the walk inside the directory, and the OS then followed the last one out of it — a picture outside was embedded
+  class: C1
+  found_by: planted-input
+  test:
+    - tests/test_check_holds_its_limits.py::test_forty_links_are_followed_and_the_forty_first_is_not

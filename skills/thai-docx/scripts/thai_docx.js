@@ -1145,6 +1145,12 @@ function declaresUtf8(text) {
 function parseParts(parts, report) {
   const trees = new Map();
   for (const [name, data] of parts) {
+    // Decided on the bytes: a NUL is valid UTF-8 and never valid XML, and it is what UTF-16 and
+    // UCS-4 are full of (check.py's _parse says why that matters there)
+    if (data.includes(0)) {
+      report.find("package", name, "XML part is not UTF-8");
+      continue;
+    }
     const text = data.length >= 2 && ((data[0] === 0xff && data[1] === 0xfe) || (data[0] === 0xfe && data[1] === 0xff)) ? null : fromUtf8(data);
     if (text === null || !declaresUtf8(text)) {
       report.find("package", name, "XML part is not UTF-8");
@@ -1160,12 +1166,27 @@ function parseParts(parts, report) {
   return trees;
 }
 
+// A run's formatting as a comparable value; rsid attributes are noise. Flat — each element
+// opens, its children follow, and it closes — and built with a stack of its own, because the
+// input sets the depth and neither implementation reads by recursion where it does (ADR 0017).
 function canonical(el) {
   if (el === null) return "";
-  const attrs = [];
-  for (const [k, v] of el.attrib) if (!local(k).startsWith("rsid")) attrs.push([local(k), v]);
-  attrs.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0));
-  return JSON.stringify([local(el.tag), attrs, el.children.map(canonical)]);
+  const out = [];
+  const pending = [el];
+  while (pending.length) {
+    const node = pending.pop();
+    if (node === null) {
+      out.push("/"); // the element before it closes here
+      continue;
+    }
+    const attrs = [];
+    for (const [k, v] of node.attrib) if (!local(k).startsWith("rsid")) attrs.push([local(k), v]);
+    attrs.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0));
+    out.push(JSON.stringify([local(node.tag), attrs]));
+    pending.push(null);
+    for (let i = node.children.length - 1; i >= 0; i--) pending.push(node.children[i]);
+  }
+  return out.join("\n");
 }
 
 function checkOrder(el, order, part, report, what) {
@@ -6795,8 +6816,8 @@ function parentOf(path, p, root) {
 
 // The path as the file system walks it — the same walk as real_path() in
 // thai_docx/build.py: each component's symbolic link followed, `..` taken from
-// what is already resolved; a missing component, or a link past the fortieth,
-// stays as written (ADR 0030 §4).
+// what is already resolved; a missing component stays as written. A walk that
+// meets a link past the fortieth has no end this answers for: null (ADR 0030 §4).
 function realPath(fs, path, p) {
   if (!path.isAbsolute(p)) p = process.cwd() + path.sep + p;
   let [root, parts] = splitRoot(path, p);
@@ -6816,10 +6837,11 @@ function realPath(fs, path, p) {
     } catch {
       isLink = false;
     }
-    if (!isLink || links >= MAX_LINKS) {
+    if (!isLink) {
       resolved = candidate;
       continue;
     }
+    if (links >= MAX_LINKS) return null;
     links++;
     let target;
     try {
@@ -6868,10 +6890,16 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
     return result;
   }
   const resolved = realPath(fs, path, mdPath);
+  if (resolved === null) {
+    result.error = "cannot read " + mdPath + ": more than " + MAX_LINKS + " symbolic links";
+    return result;
+  }
   const mdDir = parentOf(path, resolved, splitRoot(path, resolved)[0]);
-  const roots = [mdDir, ...allowDirs.map((d) => realPath(fs, path, d))];
+  // a directory past the fortieth link is no directory this answers for, so it allows nothing
+  const roots = [mdDir, ...allowDirs.map((d) => realPath(fs, path, d)).filter((d) => d !== null)];
   const readImage = (src) => {
     const p = realPath(fs, path, path.isAbsolute(src) ? src : mdDir + path.sep + src);
+    if (p === null) throw new BuildError("image '" + src + "': more than " + MAX_LINKS + " symbolic links");
     if (!roots.some((root) => inside(path, p, root))) {
       throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)");
     }

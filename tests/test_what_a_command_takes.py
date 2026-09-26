@@ -252,19 +252,9 @@ def test_a_working_directory_that_is_gone_is_said_not_a_traceback(tmp_path):
         assert json.loads(done.stdout)["error"].startswith("the working directory no longer exists")
 
 
-def test_a_defect_is_one_json_line_and_exit_1_not_a_traceback(tmp_path):
-    """Nesting deeper than a runtime's stack inside one run's properties once stopped both
-    implementations with a trace, at depths that differ by runtime. Whatever stops a command,
-    the agent is told in the one line it reads, and told not to retry."""
-    deep = "<w:x>" * 5000 + "</w:x>" * 5000
-    parts = replaced(good(), "word/document.xml", "<w:rPr><w:cs/>", "<w:rPr>" + deep + "<w:cs/>")
-    (tmp_path / "deep.docx").write_bytes(pack(parts))
-    code, result = both(["check", "deep.docx"], tmp_path)
-    assert code in (1, 2) and result["ok"] is False
-
-
 def test_the_entry_answers_before_any_command_runs(monkeypatch, capsys):
-    """The same three answers, in process: what the command lines above reach through a shell."""
+    """The same three answers, in process: what the command lines above reach through a shell —
+    and the last, whatever stops a command, is one JSON line telling the agent not to retry."""
     from thai_docx import __main__ as entry
 
     assert entry.main(["check", "a\udcff.docx"]) == 2
