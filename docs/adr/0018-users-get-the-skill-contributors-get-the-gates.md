@@ -26,7 +26,7 @@ the repository [S32], and git cannot give one of them less than the other.
   else, built from the tag by `tools/package_skill.py`, refused unless every stated
   version is the tag, and attested (gate `release-carries-only-the-skill`).
 - `.gitattributes` marks everything but the skill, `README.md`, `LICENSE`,
-  `CHANGELOG.md` and `PROMPT.md` as `export-ignore` [S33], so "Download ZIP" and a
+  `CHANGELOG.md`, `PROMPT.md` and (**later**) `PROMPT.th.md` as `export-ignore` [S33], so "Download ZIP" and a
   release's source archives, which GitHub builds with `git archive` [S34], leave the
   development files out.
 - The README gives a sparse checkout of `/skills/thai-docx/` for users who want git.

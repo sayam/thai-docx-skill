@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Sayam Sriphua
 // SPDX-License-Identifier: MIT
 // thai-docx — zip: writing stored entries, and reading stored or deflated entries
-// by the rules ADR 0017 numbers, as thai_docx/package.py does (ADR 0008, 0030 §9).
+// by the rules ADR 0017 numbers, as thai_docx/package.py does (ADR 0008, 0040 §9).
 
 class ZipError extends Error {}
 

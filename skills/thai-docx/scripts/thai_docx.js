@@ -221,7 +221,7 @@ function sticky(source, flags) {
 
 // ---- 10-zip.js -------------------------------------------------------------
 // thai-docx — zip: writing stored entries, and reading stored or deflated entries
-// by the rules ADR 0017 numbers, as thai_docx/package.py does (ADR 0008, 0030 §9).
+// by the rules ADR 0017 numbers, as thai_docx/package.py does (ADR 0008, 0040 §9).
 
 class ZipError extends Error {}
 
@@ -727,7 +727,7 @@ function deflate(data) {
 // non-xmlns names; `text` is the text before the first child. Malformed XML — an
 // undefined entity, an unbound prefix, a mismatched or duplicated name, a character
 // XML does not allow — throws, as expat does. A DOCTYPE never reaches here: the
-// checker refuses it on the raw bytes (ADR 0030 §9).
+// checker refuses it on the raw bytes (ADR 0040 §9).
 
 class XmlError extends Error {}
 
@@ -1037,7 +1037,7 @@ function parseXml(source) {
 
 // ---- 30-check.js -----------------------------------------------------------
 // thai-docx — check: the JavaScript port of scripts/thai_docx/check.py. Findings,
-// messages, counts and their order match it exactly (ADR 0004, 0023, 0008, 0030).
+// messages, counts and their order match it exactly (ADR 0004, 0023, 0008, 0040).
 
 const OOXML = {"format":[[173,173],[1536,1541],[1564,1564],[1757,1757],[1807,1807],[2192,2193],[2274,2274],[6158,6158],[8203,8207],[8234,8238],[8288,8292],[8294,8303],[65279,65279],[65529,65531],[69821,69821],[69837,69837],[78896,78911],[113824,113827],[119155,119162],[917505,917505],[917536,917631]],"format_unicode":"15.1.0","invisible":{"\u200b":"U+200B ZERO WIDTH SPACE","\u200c":"U+200C ZERO WIDTH NON-JOINER","\u200d":"U+200D ZERO WIDTH JOINER","\u2060":"U+2060 WORD JOINER","\ufeff":"U+FEFF ZERO WIDTH NO-BREAK SPACE"},"ppr_order":["pStyle","keepNext","keepLines","pageBreakBefore","framePr","widowControl","numPr","suppressLineNumbers","pBdr","shd","tabs","suppressAutoHyphens","kinsoku","wordWrap","overflowPunct","topLinePunct","autoSpaceDE","autoSpaceDN","bidi","adjustRightInd","snapToGrid","spacing","ind","contextualSpacing","mirrorIndents","suppressOverlap","jc","textDirection","textAlignment","textboxTightWrap","outlineLvl","divId","cnfStyle","rPr","sectPr","pPrChange"],"rpr_order":["rStyle","rFonts","b","bCs","i","iCs","caps","smallCaps","strike","dstrike","outline","shadow","emboss","imprint","noProof","snapToGrid","vanish","webHidden","color","spacing","w","kern","position","sz","szCs","highlight","u","effect","bdr","shd","fitText","vertAlign","rtl","cs","em","lang","eastAsianLayout","specVanish","oMath","rPrChange"],"settings_order":["writeProtection","view","zoom","removePersonalInformation","removeDateAndTime","doNotDisplayPageBoundaries","displayBackgroundShape","printPostScriptOverText","printFractionalCharacterWidth","printFormsData","embedTrueTypeFonts","embedSystemFonts","saveSubsetFonts","saveFormsData","mirrorMargins","alignBordersAndEdges","bordersDoNotSurroundHeader","bordersDoNotSurroundFooter","gutterAtTop","hideSpellingErrors","hideGrammaticalErrors","activeWritingStyle","proofState","formsDesign","attachedTemplate","linkStyles","stylePaneFormatFilter","stylePaneSortMethod","documentType","mailMerge","revisionView","trackRevisions","doNotTrackMoves","doNotTrackFormatting","documentProtection","autoFormatOverride","styleLockTheme","styleLockQFSet","defaultTabStop","autoHyphenation","consecutiveHyphenLimit","hyphenationZone","doNotHyphenateCaps","showEnvelope","summaryLength","clickAndTypeStyle","defaultTableStyle","evenAndOddHeaders","bookFoldRevPrinting","bookFoldPrinting","bookFoldPrintingSheets","drawingGridHorizontalSpacing","drawingGridVerticalSpacing","displayHorizontalDrawingGridEvery","displayVerticalDrawingGridEvery","doNotUseMarginsForDrawingGridOrigin","drawingGridHorizontalOrigin","drawingGridVerticalOrigin","doNotShadeFormData","noPunctuationKerning","characterSpacingControl","printTwoOnOne","strictFirstAndLastChars","noLineBreaksAfter","noLineBreaksBefore","savePreviewPicture","doNotValidateAgainstSchema","saveInvalidXml","ignoreMixedContent","alwaysShowPlaceholderText","doNotDemarcateInvalidXml","saveXmlDataOnly","useXSLTWhenSaving","saveThroughXslt","showXMLTags","alwaysMergeEmptyNamespace","updateFields","hdrShapeDefaults","footnotePr","endnotePr","compat","docVars","rsids","mathPr","attachedSchema","themeFontLang","clrSchemeMapping","doNotIncludeSubdocsInStats","doNotAutoCompressPictures","forceUpgrade","captions","readModeInkLockDown","smartTagType","schemaLibrary","shapeDefaults","doNotEmbedSmartTags","decimalSymbol","listSeparator"],"thai_fonts":["angsana new","angsanaupc","anuphan","arial unicode ms","athiti","ayuthaya","bai jamjuree","browallia new","browalliaupc","chakra petch","charm","charmonman","chonburi","cordia new","cordiaupc","dilleniaupc","eucrosiaupc","fahkwang","freesiaupc","garuda","ibm plex sans thai","ibm plex sans thai looped","irisupc","itim","jasmineupc","k2d","kanit","kinnari","kodchasan","kodchiangupc","koho","krub","krungthep","laksaman","leelawadee","leelawadee ui","libre sarabun","lilyupc","loma","maitree","mali","microsoft sans serif","mitr","niramit","norasi","noto sans thai","noto sans thai looped","noto sans thai ui","noto serif thai","pattaya","pridi","prompt","purisa","sarabun","sathu","sawasdee","segoe ui","silom","sriracha","srisakdi","tahoma","taviraj","th baijam","th chakra petch","th charm of au","th charmonman","th fah kwang","th k2d july8","th kodchasal","th koho","th krub","th mali grade6","th niramit as","th sarabun new","th sarabun psk","th sarabunpsk","th srisakdi","thasadith","thonburi","tlwg typist","tlwg typo","tlwgmono","trirong","umpush","waree"]};
 
@@ -6057,14 +6057,14 @@ function repairParts(allParts, findings, font, thaiLanguage, csAll) {
 // thai-docx — profiles: the JavaScript port of scripts/thai_docx/profiles.py. A profile
 // holds settings and nothing else; its values are checked by turning them into the
 // build's own flags (ADR 0024), and reads and writes stay inside the profile
-// directories (ADR 0030).
+// directories (ADR 0040).
 
 const PROFILE_SCHEMA = 1;
 const PROFILE_DIR = ".thai-docx";
 const PROFILE_KEYS = ["schema", "id", "title", "description", "version", "source", "maintainer", "settings"];
 const PROFILE_TEXT_KEYS = ["id", "version", "source", "maintainer"];
 const PROFILE_MAX_TEXT = 200;
-const PROFILE_MAX_BYTES = 64 * 1024; // a profile is settings; anything larger is not one (ADR 0030)
+const PROFILE_MAX_BYTES = 64 * 1024; // a profile is settings; anything larger is not one (ADR 0040)
 // setting → how it is written as a flag, from the registry (ADR 0028); "switch" flags say the value that turns them on
 const PROFILE_FLAGS = Object.fromEntries(SETTINGS.map((s) => [s.key, [s.kind, s.flag]]));
 const FLOAT_SETTINGS = SETTINGS.filter((s) => s.read && (s.read[0] === "number" || s.read[0] === "numbers")).map((s) => s.key); // Python writes these as floats
@@ -6346,7 +6346,7 @@ function profileValidate(data, where) {
   return data;
 }
 
-// Where a name is looked for, first match winning (ADR 0024, 0030).
+// Where a name is looked for, first match winning (ADR 0024, 0040).
 function profileDirectories() {
   const path = require("path");
   const os = require("os");
@@ -6915,7 +6915,7 @@ function grillRun(argv) {
 
 // ---- 90-entry.js -----------------------------------------------------------
 // thai-docx — entry: the command line under Node.js, and the ThaiDocx object for a
-// sandbox that runs JavaScript with no file system (ADR 0007, 0008, 0030).
+// sandbox that runs JavaScript with no file system (ADR 0007, 0008, 0040).
 
 const OS_ERRORS = { ENOENT: "No such file or directory", EACCES: "Permission denied", EISDIR: "Is a directory", ENOTDIR: "Not a directory",
   ENOTREG: "not a regular file" };
@@ -6988,7 +6988,7 @@ function parentOf(path, p, root) {
 // The path as the file system walks it — the same walk as real_path() in
 // thai_docx/build.py: each component's symbolic link followed, `..` taken from
 // what is already resolved; a missing component stays as written. A walk that
-// meets a link past the fortieth has no end this answers for: null (ADR 0030 §4).
+// meets a link past the fortieth has no end this answers for: null (ADR 0040 §4).
 function realPath(fs, path, p) {
   if (!path.isAbsolute(p)) p = process.cwd() + path.sep + p;
   let [root, parts] = splitRoot(path, p);
@@ -7076,7 +7076,7 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
     const p = realPath(fs, path, path.isAbsolute(src) ? src : mdDir + path.sep + src);
     if (p === null) throw new BuildError("image '" + src + "': more than " + MAX_LINKS + " symbolic links");
     if (!roots.some((root) => inside(path, p, root))) {
-      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)");
+      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0040 §4)");
     }
     let b;
     try {
@@ -7340,7 +7340,7 @@ function buildDocument(markdown, args, images) {
   const table = images || {};
   const readImage = (src) => {
     if (src.split(/[\\/]/).includes("..") || src.startsWith("/") || src.startsWith("\\")) {
-      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)");
+      throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0040 §4)");
     }
     if (!Object.prototype.hasOwnProperty.call(table, src)) throw new BuildError("image '" + src + "': No such file or directory");
     return [src, table[src]];

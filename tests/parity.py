@@ -168,7 +168,7 @@ def py_build(case: dict) -> dict:
 
     def reader(src):
         if ".." in src.replace("\\", "/").split("/") or src.startswith(("/", "\\")):
-            raise b.BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)")
+            raise b.BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0040 §4)")
         if src not in IMAGES:
             raise b.BuildError("image '" + src + "': No such file or directory")
         return src, IMAGES[src]

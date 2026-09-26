@@ -12,7 +12,7 @@
 A profile holds settings and nothing else. Its values are checked by turning them into
 the build's own flags, so a profile can hold nothing a command line could not, and a
 flag typed after it wins (ADR 0024). Reads and writes stay inside the profile
-directories of ADR 0030.
+directories of ADR 0040.
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ DIR_NAME = ".thai-docx"
 KEYS = ("schema", "id", "title", "description", "version", "source", "maintainer", "settings")
 TEXT_KEYS = ("id", "version", "source", "maintainer")
 MAX_TEXT = 200
-MAX_BYTES = 64 * 1024  # a profile is settings; anything larger is not one (ADR 0030)
+MAX_BYTES = 64 * 1024  # a profile is settings; anything larger is not one (ADR 0040)
 # setting → how it is written as a flag, from the registry (ADR 0028); "switch" flags say the value that turns them on
 FLAGS: dict[str, tuple[str, str]] = {s["key"]: (s["kind"], s["flag"]) for s in st.SETTINGS}
 
@@ -166,7 +166,7 @@ def validate(data, where: str) -> dict:
 
 
 def directories(skill: pathlib.Path | None = None) -> list[tuple[str, pathlib.Path]]:
-    """Where a name is looked for, first match winning (ADR 0024, 0030)."""
+    """Where a name is looked for, first match winning (ADR 0024, 0040)."""
     skill = skill or pathlib.Path(__file__).resolve().parent.parent.parent
     home = os.path.expanduser("~")
     return [

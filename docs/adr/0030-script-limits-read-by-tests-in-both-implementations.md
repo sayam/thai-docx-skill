@@ -1,8 +1,9 @@
 # 0030 — Bundled scripts run with the agent's rights: the limits, restated with both implementations read by tests
 
-- Status: accepted
+- Status: superseded
 - Decided: 2026-09-18
 - Supersedes: 0025
+- Superseded by: 0040
 
 ## Where it came from
 

@@ -5,7 +5,7 @@
 // non-xmlns names; `text` is the text before the first child. Malformed XML — an
 // undefined entity, an unbound prefix, a mismatched or duplicated name, a character
 // XML does not allow — throws, as expat does. A DOCTYPE never reaches here: the
-// checker refuses it on the raw bytes (ADR 0030 §9).
+// checker refuses it on the raw bytes (ADR 0040 §9).
 
 class XmlError extends Error {}
 

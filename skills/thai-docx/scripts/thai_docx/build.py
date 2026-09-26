@@ -9,7 +9,7 @@ the package (writer.py, parts.py), pack it, check it (check.py), compare it with
 Markdown (fidelity.py), report. The output is written only when the package passes the
 checker and the fidelity check; otherwise nothing is written and the JSON line says why.
 Standard library only; reads the Markdown file and the images it names, writes one file
-(ADR 0030).
+(ADR 0040).
 
 Byte stability: zip entries are *stored*, not deflated — deflate output differs
 between zlib builds. No clock, host name or user name enters any part. Escaping,
@@ -134,7 +134,7 @@ def real_path(path: str) -> str | None:
     exist stays as written. A walk that meets a link past the fortieth has no end
     this answers for: None. Left as written, a forty-first link inside the directory
     passed the check and the OS then followed it out of it. js/90-entry.js walks it
-    the same way, so both implementations judge ADR 0030 §4 on the same file."""
+    the same way, so both implementations judge ADR 0040 §4 on the same file."""
     if not os.path.isabs(path):
         path = os.getcwd() + os.sep + path
     root, pending = _split_root(path)
@@ -182,7 +182,7 @@ def image_reader(md_dir: str, allow_dirs: list[str]):
         if path is None:
             raise BuildError("image '" + src + "': more than " + str(MAX_LINKS) + " symbolic links")
         if not any(_inside(path, root) for root in roots):
-            raise BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)")
+            raise BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0040 §4)")
         try:
             data = package.read_regular(path, MAX_IMAGE)
         except OSError as exc:

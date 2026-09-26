@@ -155,6 +155,6 @@ reading, which the Markdown reference already states.
 ## Will not do
 
 - Accept input other than Markdown, or run with dependencies at run time (ADR 0007, 0008).
-- Reach the network, run other programs, or read settings from environment variables (ADR 0030).
+- Reach the network, run other programs, or read settings from environment variables (ADR 0040).
 - Change a user's wording to make a build pass (ADR 0023).
 - Name or imitate a real institution's template; profiles are for users to make and share.

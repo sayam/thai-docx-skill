@@ -109,6 +109,10 @@ the rest is marked `export-ignore` (`docs/adr/0018`).
   float, a path not in normal form).
 - **A test that fails without the change.** Plant the defect your change prevents and watch
   the test go red before you call it held.
+- **A fixed finding is a row, and a `Fixed` line names its test.** Add the finding to
+  `tests/regressions.yaml` with its class and its test, and name the test in the changelog's
+  `### Fixed` line as `tests/<file>.py::<test>` — a fault is closed by what holds it closed, not
+  by the change (ADR 0041).
 - **Goldens change only on purpose.** `tests/golden/` is byte for byte what the build gives.
   A refactor leaves them alone; a change that alters them rebuilds them, says which parts
   changed and why, and asks for the files to be opened in Word 365 for Windows, the reference
@@ -145,7 +149,7 @@ review looks at:
    holds.
 4. **The goldens.** Unchanged, or changed on purpose with the parts named and a request to open the
    files in Word 365 for Windows.
-5. **The limits of ADR 0030.** No network, subprocess, `eval`, environment read or new write path;
+5. **The limits of ADR 0040.** No network, subprocess, `eval`, environment read or new write path;
    input from a user, an agent or a file is checked against an allowlist before use. A change that
    moves a boundary updates `docs/assurance-case.md`.
 6. **What the agent reads.** SKILL.md and `references/` stay true (the tests say so) and SKILL.md

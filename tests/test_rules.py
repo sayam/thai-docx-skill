@@ -29,7 +29,7 @@ INDEX = ROOT / "docs" / "adr" / "README.md"
 
 # | 0023 | [title](0023-….md) | 2026-09-16 | accepted |
 ROW = re.compile(r"^\|\s*(\d{4})\s*\|\s*\[[^\]]+\]\(([^)]+)\)\s*\|\s*[\d-]+\s*\|\s*([^|]+?)\s*\|$", re.M)
-# "ADR 0023", "ADRs 0012, 0018", "ADR-0004", "adr/0030-…md", "docs/adr/0030"
+# "ADR 0023", "ADRs 0012, 0018", "ADR-0004", "adr/0040-…md", "docs/adr/0040"
 CITED = re.compile(r"\bADRs?[\s-]+(\d{4}(?:\s*,\s*\d{4})*)|adr/(\d{4})")
 SUPERSEDED_BY = re.compile(r"superseded by (\d{4})")
 # every rule of docs/rules.md, as its trace table names it
@@ -69,7 +69,7 @@ def citations(line: str) -> set[str]:
     """The record numbers a line cites, in any of the ways this project writes them.
 
     Once a line says ADR at all, every number shaped like a record on it is a citation:
-    "ADR 0037, 0023, 0008", "ADR 0029, restating 0026", "superseded by 0030". Record numbers
+    "ADR 0037, 0023, 0008", "ADR 0029, restating 0026", "superseded by 0040". Record numbers
     open with a zero, so a year or a version is not mistaken for one.
     """
     found: set[str] = set()
@@ -140,3 +140,36 @@ def test_every_rule_has_a_trace_to_a_record_that_stands():
 def test_the_pages_that_decide_send_the_reader_to_the_rules():
     for page in ("GOVERNANCE.md", ".github/CONTRIBUTING.md", "docs/architecture.md"):
         assert "rules.md" in (ROOT / page).read_text(encoding="utf-8"), f"{page} does not link the rules"
+
+
+def test_a_dated_measurement_in_the_references_has_a_record_of_that_day():
+    """`limits.md` says every line is measured or refused; a measurement is a record, not a word.
+    Three steps on editing in Word were written "measured" with no record of them (the review of
+    0.2.0, A-02). Every date a reference gives a measurement is the date of a record in
+    docs/evidence/, by its name: a date that only appears inside some other record's text is a
+    record of something else."""
+    days = {p.name[:10] for p in (ROOT / "docs" / "evidence").glob("*.md")}
+    for page in sorted((ROOT / "skills" / "thai-docx" / "references").glob("*.md")):
+        text = " ".join(page.read_text(encoding="utf-8").split())
+        for day in re.findall(r"[Mm]easured[^.]{0,80}?(\d{4}-\d{2}-\d{2})", text):
+            assert day in days, (page.name, day)
+
+
+def test_the_newest_release_record_names_the_bytes_it_read():
+    """A record of a release reading named a commit, not the bytes: the goldens' hashes appeared in
+    no record (A-02's sibling, F-13). The newest `what-vX.Y.Z-was-read-in` record names every
+    golden's sha256, so a golden that moves needs a record of what was read on it."""
+    import hashlib
+    newest = sorted((ROOT / "docs" / "evidence").glob("*-what-v*-was-read-in.md"))[-1].read_text(encoding="utf-8")
+    for golden in sorted((ROOT / "tests" / "golden").glob("*.docx")):
+        assert hashlib.sha256(golden.read_bytes()).hexdigest() in newest, golden.name
+
+
+def test_the_records_found_stale_in_0_2_0_say_what_holds_now():
+    """Sentences of accepted records no longer true of the code (F-04, F-06, F-12) each carry a
+    Later line saying what holds."""
+    adr = {p.name[:4]: " ".join(p.read_text(encoding="utf-8").split()) for p in (ROOT / "docs" / "adr").glob("0*.md")}
+    for number, later in (("0039", "−4.1%"), ("0039", "the two records meant different things"), ("0012", "since ADR 0033"),
+                          ("0017", "the 100-deep cap is what keeps it within the stack"), ("0018", "`PROMPT.th.md`"),
+                          ("0031", "`license: MIT (LICENSE.txt)`"), ("0036", "`tools/oracle_set.py` holds the list")):
+        assert later in adr[number], (number, later)

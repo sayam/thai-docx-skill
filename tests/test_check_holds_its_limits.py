@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
-"""The checker's limits hold at the values it states, in both implementations (ADR 0017, 0030).
+"""The checker's limits hold at the values it states, in both implementations (ADR 0017, 0040).
 
 A limit held only by reading the code is not held: the review of 0.2.0 raised the per-part and
 total caps tenfold, and the hops through symbolic links a hundredfold, and every test stayed

@@ -90,7 +90,7 @@ def unproven_fixes(changelog: str, root: pathlib.Path = ROOT) -> list[str]:
 
 def test_every_fault_in_the_ledger_is_held_by_a_test_there_is():
     ledger = rows(LEDGER.read_text(encoding="utf-8"))
-    assert len(ledger) >= 83, "the ledger parsed to almost nothing"
+    assert len(ledger) >= 88, "the ledger parsed to almost nothing"
     assert faults(ledger) == []
 
 

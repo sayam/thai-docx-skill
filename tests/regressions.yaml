@@ -602,3 +602,38 @@
   found_by: planted-input
   test:
     - tests/test_what_a_command_takes.py::test_allow_dir_never_opens_the_whole_machine
+
+- id: A-02
+  what: three steps on editing in Word were written as measured with no record of them, and two Word-for-the-web limits had only an empty record
+  class: C1
+  found_by: review
+  test:
+    - tests/test_rules.py::test_a_dated_measurement_in_the_references_has_a_record_of_that_day
+
+- id: F-13
+  what: the record of what v0.2.0 was read in named a commit and no hash of the bytes it read
+  class: C1
+  found_by: review
+  test:
+    - tests/test_rules.py::test_the_newest_release_record_names_the_bytes_it_read
+
+- id: F-04
+  what: ADR 0039's table of what the change costs was measured on probe files and did not reproduce on the goldens
+  class: C1
+  found_by: review
+  test:
+    - tests/test_rules.py::test_the_records_found_stale_in_0_2_0_say_what_holds_now
+
+- id: F-06
+  what: ADR 0039 said the Thai language goes on the marked runs only, where ADR 0038 and the code put it in the whole chain with the flag
+  class: C1
+  found_by: review
+  test:
+    - tests/test_rules.py::test_the_records_found_stale_in_0_2_0_say_what_holds_now
+
+- id: F-12
+  what: accepted records 0012, 0017, 0018, 0031 and 0036 each carried a sentence no longer true of the code
+  class: C1
+  found_by: review
+  test:
+    - tests/test_rules.py::test_the_records_found_stale_in_0_2_0_say_what_holds_now

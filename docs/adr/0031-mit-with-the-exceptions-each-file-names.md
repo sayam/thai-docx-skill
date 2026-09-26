@@ -26,7 +26,8 @@ file rather than from a sentence about the repository.
   - the verifiable-gates files under `tools/`: Apache-2.0, and the rule texts in
     `tools/overlay.json` CC BY 4.0, as `tools/LICENSE` says. They are not shipped with the skill.
 - **The skill directory carries the notice it needs on its own**: `skills/thai-docx/LICENSE.txt`,
-  `LICENSES/` for the port, and `license: MIT` in the front matter — the archive of ADR 0018
+  `LICENSES/` for the port, and `license: MIT` in the front matter (written, **later**,
+  `license: MIT (LICENSE.txt)`) — the archive of ADR 0018
   carries all three.
 - The README states the exceptions in one paragraph, for a reader who does not open files.
 
