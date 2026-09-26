@@ -14,6 +14,11 @@ const GRILL_MAX_CHARS = 20000;
 // the words that may follow the phrase (ADR 0029): part → [English, Thai]
 const GRILL_PARTS = { from: ["from", "จาก"], save_to: ["save to", "บันทึกเป็น"], only: ["only", "เฉพาะ"] };
 
+// What separates words, one list written out for both implementations: str.isspace() and the
+// JavaScript \s disagreed on U+001C, U+0085 and U+FEFF, so one read `from test` and the other
+// did not. The spaces a person types, and no others.
+const GRILL_WHITESPACE = new Set([" ", "\t", "\n", "\r", "\f", "\v", "\u00a0", "\u3000"]);
+
 class GrillError extends Error {
   constructor(what) {
     super(what);
@@ -32,7 +37,7 @@ function grillWords(message) {
   const out = [];
   let current = "";
   for (const ch of message) {
-    if (/\s/.test(ch)) {
+    if (GRILL_WHITESPACE.has(ch)) {
       if (current) out.push(current);
       current = "";
     } else {
@@ -49,47 +54,69 @@ function grillPlain(message) {
   return grillFold(grillWords(message).join(" "));
 }
 
-// The language the questions are asked in: Thai when the user wrote any Thai.
+// The language the questions are asked in: the one most of the user's words are in, the phrase
+// aside — Thai on a tie. One Thai title in an English request is not a Thai request.
 function grillLanguage(message) {
-  for (const ch of message) {
-    if (ch >= "฀" && ch <= "๿") return "th";
+  let said = grillPlain(message);
+  const at = GRILL_PHRASE.exec(said);
+  if (at !== null) said = said.slice(0, at.index) + said.slice(at.index + at[0].length);
+  let thai = 0, latin = 0;
+  for (const word of said.split(" ")) {
+    if ([...word].some((ch) => ch >= "฀" && ch <= "๿")) thai += 1;
+    else if (/[a-z]/.test(word)) latin += 1;
   }
-  return "en";
+  return thai && thai >= latin ? "th" : "en";
 }
 
 function grillMode(message) {
   return GRILL_PHRASE.test(grillPlain(message)) ? "grill" : "build";
 }
 
+// The part whose words begin at rest[i], where its value begins, and the value when the Thai
+// word carries it joined on (`บันทึกเป็นv2`).
+function grillPartAt(rest, i) {
+  for (const [name, [english, thai]] of Object.entries(GRILL_PARTS)) {
+    const said = english.split(" ");
+    const here = rest.slice(i, i + said.length).map(grillFold);
+    if (here.length === said.length && here.every((w, k) => w === said[k])) return [name, i + said.length, null];
+    if (rest[i].startsWith(thai)) return [name, i + 1, rest[i].slice(thai.length) || null];
+  }
+  return [null, i, null];
+}
+
+function grillAfterPhrase(message) {
+  const joined = grillWords(message).join(" ");
+  const here = GRILL_PHRASE.exec(grillPlain(message));
+  const rest = joined.slice(here.index + here[0].length).split(" ");
+  return rest.length && rest[0] === "" ? rest.slice(1) : rest;
+}
+
+// A `from`, `save to` or `only` later in the message than the reading went, with the word
+// after it: said, it would be lost without a word, and the user answers nine questions
+// believing the interview began from their profile.
+function grillUnread(message) {
+  const rest = grillAfterPhrase(message);
+  const [, stop] = grillRead(rest);
+  for (let j = stop; j < rest.length; j++) {
+    const [part, valueAt, joined] = grillPartAt(rest, j);
+    if (part !== null) return rest.slice(j, valueAt + (joined ? 0 : 1)).join(" ");
+  }
+  return null;
+}
+
 // `from`, `save to` and `only`, read from the words directly after the phrase, as the user
 // wrote them; the first word that is none of them ends the reading.
 function grillParts(message) {
-  const joined = grillWords(message).join(" ");
-  const here = GRILL_PHRASE.exec(grillPlain(message));
-  let rest = joined.slice(here.index + here[0].length).split(" ");
-  if (rest.length && rest[0] === "") rest = rest.slice(1);
+  return grillRead(grillAfterPhrase(message))[0];
+}
+
+function grillRead(rest) {
   const found = {};
   let i = 0;
   while (i < rest.length) {
-    const word = rest[i];
-    let value = null;
-    let part = null;
-    for (const [name, [english, thai]] of Object.entries(GRILL_PARTS)) {
-      const said = english.split(" ");
-      const here = rest.slice(i, i + said.length).map(grillFold);
-      if (here.length === said.length && here.every((w, k) => w === said[k])) {
-        part = name;
-        i += said.length;
-        break;
-      }
-      if (word.startsWith(thai)) {
-        part = name;
-        i += 1;
-        value = word.slice(thai.length) || null;
-        break;
-      }
-    }
+    let [part, at, value] = grillPartAt(rest, i);
     if (part === null) break;
+    i = at;
     if (Object.prototype.hasOwnProperty.call(found, part)) throw new GrillError("'" + GRILL_PARTS[part][0] + "' is given twice");
     if (value === null) {
       if (i >= rest.length) throw new GrillError("'" + GRILL_PARTS[part][0] + "' needs a word after it");
@@ -98,7 +125,7 @@ function grillParts(message) {
     }
     found[part] = value;
   }
-  return found;
+  return [found, i];
 }
 
 function grillSame(a, b) {
@@ -220,9 +247,15 @@ function grillRun(argv) {
     then = "build with " + (start ? "`--profile " + found.from + "` and " : "") + "ARGS; for a save choice, first run" +
       " `thai_docx profile save NAME " + base + "ARGS` (add `--project` for the project) and build with `--profile NAME`";
   }
-  return { ok: true, mode: "grill", language: lang, start, save_to: saveTo,
-           questions: grillQuestions(now, lang, only, saveTo),
-           next: "ask these questions as references/interview.md says, the current choice marked; an unanswered" +
-             " question keeps its current choice. ARGS are the args of the chosen choices, in order, with the" +
-             " user's value in place of a placeholder. Then " + then };
+  const answer = { ok: true, mode: "grill", language: lang, start, save_to: saveTo,
+    questions: grillQuestions(now, lang, only, saveTo),
+    next: "ask these questions as references/interview.md says, the current choice marked; an unanswered" +
+      " question keeps its current choice. ARGS are the args of the chosen choices, in order, with the" +
+      " user's value in place of a placeholder. Then " + then };
+  const stray = grillUnread(message);
+  if (stray !== null) {
+    answer.warnings = ["'" + stray + "' was not read: from, save to and only are read only directly after" +
+      " the phrase, so tell the user, and ask whether to start again with it there"];
+  }
+  return answer;
 }

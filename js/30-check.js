@@ -10,6 +10,23 @@ const RPR_ORDER = OOXML.rpr_order;
 const PPR_ORDER = OOXML.ppr_order;
 const SETTINGS_ORDER = OOXML.settings_order;
 const INVISIBLE = OOXML.invisible;
+// Every other format character (Unicode category Cf), from the list both implementations read,
+// so neither asks its own runtime's Unicode tables, which differ in version (ADR 0008).
+const FORMAT = new Set(OOXML.format.flatMap(([first, last]) => Array.from({ length: last - first + 1 }, (_, k) => String.fromCodePoint(first + k))));
+
+// U+FDD0 to U+FDEF, and the last two code points of every plane.
+function isNoncharacter(cp) {
+  return (cp >= 0xfdd0 && cp <= 0xfdef) || (cp & 0xfffe) === 0xfffe;
+}
+
+// How a character a reader cannot see is named in a message, or null.
+function unseen(ch) {
+  if (Object.prototype.hasOwnProperty.call(INVISIBLE, ch)) return INVISIBLE[ch];
+  const cp = ch.codePointAt(0);
+  if (FORMAT.has(ch)) return "U+" + cp.toString(16).toUpperCase().padStart(4, "0") + ", a format character";
+  if (isNoncharacter(cp)) return "U+" + cp.toString(16).toUpperCase().padStart(4, "0") + ", a noncharacter";
+  return null;
+}
 const THAI_FONTS = new Set(OOXML.thai_fonts);
 
 const MAX_PART = 32 * 1024 * 1024;
@@ -253,12 +270,22 @@ function checkTextPart(name, root, report) {
           }
         }
         for (const t of texts) {
+          const text = t.text || "";
+          // the five by name first, as they always were; then any other in text order
+          let label = null;
           for (const ch of Object.keys(INVISIBLE)) {
-            if ((t.text || "").indexOf(ch) !== -1) {
-              report.find("invisible", name, "text contains " + INVISIBLE[ch]);
+            if (text.indexOf(ch) !== -1) {
+              label = INVISIBLE[ch];
               break;
             }
           }
+          if (label === null) {
+            for (const ch of text) {
+              label = unseen(ch);
+              if (label !== null) break;
+            }
+          }
+          if (label !== null) report.find("invisible", name, "text contains " + label);
         }
       }
       const shape = canonical(rpr);

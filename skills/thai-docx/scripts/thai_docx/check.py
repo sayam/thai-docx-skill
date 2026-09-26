@@ -43,6 +43,7 @@ from .ooxml import (
     THAI_FONTS,
     is_thai,
     local,
+    unseen,
     w,
 )
 
@@ -250,10 +251,13 @@ def _check_text_part(name: str, root: ET.Element, report: Report) -> None:
                     if lang is not None and lang.get(w("bidi")) == "th-TH":
                         report.counts["thai_language_runs"] = report.counts.get("thai_language_runs", 0) + 1
                 for t in texts:
-                    for ch, label in INVISIBLE.items():
-                        if ch in (t.text or ""):
-                            report.find("invisible", name, f"text contains {label}")
-                            break
+                    text = t.text or ""
+                    # the five by name first, as they always were; then any other in text order
+                    label = next((label for ch, label in INVISIBLE.items() if ch in text), None)
+                    if label is None:
+                        label = next((named for named in map(unseen, text) if named is not None), None)
+                    if label is not None:
+                        report.find("invisible", name, f"text contains {label}")
             shape = _canonical(rpr)
             if has_text and prev_has_text and shape == previous:
                 report.find("4", name, "two adjacent runs carry identical formatting; a word may be split across them")

@@ -31,6 +31,16 @@ const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 const DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main"; // the theme, and a picture's own namespace
 const EMU_PER_PX = 9525;
 const EMU_PER_TWIP = 635;
+// The most pixels a side this writes: a PNG may declare two thousand million, and an extent from
+// that is past what the format can hold, or rounds to nothing once it is made to fit.
+const MAX_SIDE_PX = 20000;
+
+function imageWithin(wpx, hpx) {
+  if (wpx > MAX_SIDE_PX || hpx > MAX_SIDE_PX) {
+    throw new BuildError("image is " + wpx + " by " + hpx + " pixels; this skill writes none wider or taller than " + MAX_SIDE_PX);
+  }
+  return [wpx, hpx];
+}
 // A run says it is complex script where its text is complex script, and says nothing where it is
 // not (ADR 0039, amending cause 2 of ADR 0004). Omission is how it says nothing: no style and no
 // document default carries the element either, so there is nothing to inherit. Whether the text
@@ -88,6 +98,20 @@ function esc(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// What a URI may carry as it is (RFC 3986): the rest — a space, Thai, a quote — is written as the
+// percent-encoded bytes of its UTF-8, as Word writes it. A `%` already there stays, so a link
+// encoded once is not encoded twice. The text a reader sees is not this; it is unchanged.
+const URI_AS_IS = new Set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=%");
+
+function uri(link) {
+  let out = "";
+  for (const ch of link) {
+    if (URI_AS_IS.has(ch)) out += ch;
+    else for (const b of utf8(ch)) out += "%" + b.toString(16).toUpperCase().padStart(2, "0");
+  }
+  return out;
+}
+
 function attr(s) {
   return '"' + esc(s).replace(/"/g, "&quot;").replace(/\t/g, "&#9;").replace(/\n/g, "&#10;").replace(/\r/g, "&#13;") + '"';
 }
@@ -104,7 +128,7 @@ function imageSize(data) {
     if (!(data[end - 8] === 0x49 && data[end - 7] === 0x45 && data[end - 6] === 0x4e && data[end - 5] === 0x44)) {
       throw new BuildError("image stops partway: a PNG ends with its IEND chunk and this one does not");
     }
-    return ["png", wpx, hpx];
+    return ["png", ...imageWithin(wpx, hpx)];
   }
   if (data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) {
     let i = 2;
@@ -126,7 +150,7 @@ function imageSize(data) {
         if (!(data[data.length - 2] === 0xff && data[data.length - 1] === 0xd9)) {
           throw new BuildError("image stops partway: a JPEG ends with its end-of-image marker and this one does not");
         }
-        return ["jpeg", wpx, hpx];
+        return ["jpeg", ...imageWithin(wpx, hpx)];
       }
       if (length < 2) break;
       i += 2 + length;
@@ -224,7 +248,7 @@ class Writer {
       if (n.t === "text" && n.link) {
         let j = i;
         while (j < nodes.length && nodes[j].t === "text" && nodes[j].link === n.link) j++;
-        const rid = this.rel(REL + "hyperlink", n.link, true);
+        const rid = this.rel(REL + "hyperlink", uri(n.link), true);
         this.counts.links += 1;
         const runs = nodes.slice(i, j).map((x) => this.textRun(x, bold)).join("");
         out.push('<w:hyperlink r:id="' + rid + '" w:history="1">' + runs + "</w:hyperlink>");
@@ -270,6 +294,15 @@ class Writer {
       cy = (cy * maxCx) / cx;
       cx = maxCx;
     }
+    // and to the page's height: a picture taller than the text area runs off the page
+    const [, ph, top, , bottom] = this.page;
+    const maxCy = BigInt(ph - top - bottom) * BigInt(EMU_PER_TWIP);
+    if (cy > maxCy) {
+      cx = (cx * maxCy) / cy;
+      cy = maxCy;
+    }
+    if (cx < 1n) cx = 1n; // a side of nothing is no picture
+    if (cy < 1n) cy = 1n;
     this.imageTwips = Number(cx / BigInt(EMU_PER_TWIP)); // what --caption-matches-object measures against
     this.docPr += 1;
     const k = String(this.docPr);
@@ -325,7 +358,7 @@ class Writer {
   fieldRuns(instr, result, rpr) {
     return (
       "<w:r>" + this.rpr(rpr + this.marker(false)) + '<w:fldChar w:fldCharType="begin"/></w:r>' +
-      "<w:r>" + this.rpr(rpr + this.marker(false)) + '<w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>" +
+      "<w:r>" + this.rpr(rpr + this.marker(false)) + '<w:instrText xml:space="preserve"> ' + esc(instr) + " </w:instrText></w:r>" +
       "<w:r>" + this.rpr(rpr + this.marker(false)) + '<w:fldChar w:fldCharType="separate"/></w:r>' +
       this.runs(result, rpr) +
       "<w:r>" + this.rpr(rpr + this.marker(false)) + '<w:fldChar w:fldCharType="end"/></w:r>'
@@ -590,7 +623,7 @@ class Writer {
   // opens in the first entry and closes in the last, as Word writes it.
   field(instr, ppr, entries) {
     const char = (kind) => "<w:r>" + this.rpr(this.marker(false)) + '<w:fldChar w:fldCharType="' + kind + '"/></w:r>';
-    const instruction = "<w:r>" + this.rpr(this.marker(false)) + '<w:instrText xml:space="preserve"> ' + instr + " </w:instrText></w:r>";
+    const instruction = "<w:r>" + this.rpr(this.marker(false)) + '<w:instrText xml:space="preserve"> ' + esc(instr) + " </w:instrText></w:r>";
     if (!entries || !entries.length) {
       return "<w:p><w:pPr>" + (ppr || "") + "</w:pPr>" + char("begin") + instruction + char("separate") + char("end") + "</w:p>";
     }

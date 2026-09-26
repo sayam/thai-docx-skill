@@ -279,3 +279,116 @@
   found_by: planted-input
   test:
     - tests/test_check_holds_its_limits.py::test_forty_links_are_followed_and_the_forty_first_is_not
+
+- id: B5
+  what: a caption label holding & or < broke the field that carried it, and one holding a quote cut the field's own string
+  class: C0, C1
+  found_by: outside-review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_label_is_escaped_in_its_field_and_one_a_field_would_misread_is_refused
+
+- id: B-06
+  what: a caption label with a space under --auto-numbering wrote a SEQ field Word cannot name, silently
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_label_with_a_space_is_refused_only_where_word_counts
+
+- id: B8
+  what: a link with any scheme was written as an external target
+  class: C0, C1
+  found_by: outside-review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_link_leads_only_to_http_https_or_mailto
+
+- id: B-07
+  what: a link's target was written raw, a space or Thai in it unencoded
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_link_target_is_a_uri_and_its_text_is_unchanged
+
+- id: D1
+  what: every unclosed link read to the end of the text, so eight thousand took most of a minute
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_two_thousand_open_links_are_read_in_a_moment
+
+- id: C-02
+  what: a list numbered from 0 was renumbered from 1, silently
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_list_numbered_from_zero_starts_at_zero
+
+- id: B-03
+  what: five invisible characters were refused and the rest of their kind passed into the file and the checker's verdict
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_every_format_character_and_noncharacter_is_refused_by_name
+    - tests/test_build_writes_what_it_was_given.py::test_the_checker_names_a_format_character_in_a_file_it_did_not_write
+
+- id: C-11
+  what: the parser said it refused noncharacters and refused two
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_every_format_character_and_noncharacter_is_refused_by_name
+
+- id: C-04
+  what: a tag name in U+017F was an HTML block to Python and text to JavaScript
+  class: C1
+  found_by: parity
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_tag_name_is_ascii_in_both
+
+- id: C-06
+  what: an allowed tag alone on its line was refused with a message that named it as allowed
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_an_allowed_tag_alone_on_its_line_is_refused_with_the_reason
+
+- id: C-07
+  what: a small float was reported as 1e-05 by one implementation and 0.00001 by the other
+  class: C1
+  found_by: parity
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_small_float_is_reported_as_python_writes_it
+
+- id: D5
+  what: a picture that declared a vast size got an extent past the format, or one of nothing
+  class: C1
+  found_by: planted-input
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_picture_is_fitted_to_the_page_and_never_to_nothing
+
+- id: B7
+  what: grill split words at U+001C, U+0085 and U+FEFF in one implementation and not the other
+  class: C0, C1
+  found_by: outside-review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_grill_reads_the_same_words_in_both
+
+- id: E-08
+  what: a from or save to later in the message than grill read was dropped without a word
+  class: C1
+  found_by: agent-run
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_grill_says_what_it_did_not_read
+
+- id: E-16
+  what: one Thai word in an English request asked all nine questions in Thai
+  class: C1
+  found_by: agent-run
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_grill_asks_in_the_language_most_of_the_words_are_in
+
+- id: GROK-04
+  what: the math warning named version 0.1
+  class: C1
+  found_by: outside-review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_math_is_said_to_be_kept_as_it_was_written_without_a_version
