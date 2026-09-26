@@ -21,8 +21,9 @@ wrote, so it can find what it answered `ok` on before; `repair` puts right what 
 - **SKILL.md** names the page-number positions and heading numbers, and says to read the settings
   reference before using any other flag; says the grill message goes untranslated, and what to do
   when the answer says it was read only in part; and that a missing picture is the user's to
-  give, never made up or deleted. Measured on three models: eighteen files of eighteen exact, and
-  the misses of the run on 0.2.1 gone ([record](docs/evidence/2026-09-26-model-equivalence-on-the-0.2.2-skill-md.md)).
+  give, never made up or deleted. Measured on three models: eighteen files of eighteen exact, no
+  flag invented; one grill message of eighteen still paraphrased, through the Skill tool's
+  argument ([record](docs/evidence/2026-09-26-model-equivalence-on-the-0.2.2-skill-md.md)).
 
 ### Fixed
 

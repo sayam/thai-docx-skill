@@ -23,11 +23,16 @@ working copy and are not part of the repository.
 - **The grill message untranslated.** Grill mode says the message goes "word for word and in the
   language they wrote it in, never translated or summarised"; and that when the answer warns the
   message was read only in part, the command runs once more on its last 20,000 characters.
-- **A missing picture** (added after the eighteen runs below, for what they found): the user's
-  files are never changed to get a build through, and nothing they name is made up — "a picture
-  that is missing is theirs to give".
+- **A missing picture** (added after a first batch of runs found it, below): the user's files are
+  never changed to get a build through, and nothing they name is made up — "a picture that is
+  missing is theirs to give".
 
 ## What came back
+
+Two batches of the same eighteen runs. The first ran on SKILL.md before the missing-picture
+sentence, billed to a subscription; the second on SKILL.md as it ships, billed to a Console API
+key (every turn's credential, as Claude Code reports it, was `ANTHROPIC_API_KEY`). The table is
+the same for both:
 
 | case | Haiku | Sonnet | Opus |
 |---|---|---|---|
@@ -36,16 +41,21 @@ working copy and are not part of the repository.
 | *change*, two turns | 3 of 3 exact (`--size 14 --page-numbers`) | 1 of 1 | 1 of 1 |
 | *trigger* | 3 of 3: the skill used, the file exact | 1 of 1 | 1 of 1 |
 
-**Eighteen of eighteen files byte for byte what was asked.** No run asked anything, and no final
-file carries a flag nobody asked for. The runs cost US$2.10 together.
+**Eighteen of eighteen files byte for byte what was asked, in each batch.** No run asked
+anything, and no final file carries a flag nobody asked for. The batches cost US$2.10 and
+US$1.46.
 
 - **Haiku no longer invents a flag.** On v0.2.1 every Haiku *thesis* run reached the file after one
-  or two refused commands (`--footer-page-number`, `footer-center`). Here none was refused, and
-  none of the three opened `references/settings.md`: the names in SKILL.md were enough.
-- **The grill command was given the message.** It ran in nine runs of eighteen, none of whose
-  messages holds the phrase, and answered `build` each time. Every message it was given was the
-  user's own. One run put the skill's name in front of it and one added the argument it was
-  invoked with, both as SKILL.md says. None was translated or summarised.
+  or two refused commands (`--footer-page-number`, `footer-center`). Here none was refused in six
+  runs, and none opened `references/settings.md`: the names in SKILL.md were enough.
+- **The grill command was given the message — but once, not.** It ran in eighteen runs of
+  thirty-six, none of whose messages holds the phrase, and answered `build` each time. Seventeen
+  times it was given the user's own message; some put the skill's name in front or added the
+  argument the skill was invoked with, as SKILL.md says. Once (Haiku, *thesis*, second batch) it
+  was given only an English sentence: Haiku had written it as the Skill tool's argument before
+  SKILL.md was loaded, and passed that alone. SKILL.md is read after the model has chosen that
+  argument, so a sentence in it cannot reach the choice; the mode came out right, and the miss
+  stays recorded rather than closed.
 
 ## A third miss, found by these runs
 

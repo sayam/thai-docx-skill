@@ -781,7 +781,8 @@
   record: docs/evidence/2026-09-26-model-equivalence-on-the-0.2.2-skill-md.md
 
 - id: M-2
-  what: a run gave the grill command an English paraphrase of the user's message instead of the message
+  what: a run gave the grill command an English paraphrase of the user's message instead of the message; once more on
+    0.2.2, through the Skill tool's argument, which the model writes before SKILL.md is read (recorded, not closed)
   class: C1, C2, C3
   found_by: agent-run
   test:
