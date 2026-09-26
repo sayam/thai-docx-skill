@@ -235,7 +235,8 @@ one no longer runs off the page.
 nothing; `--toc` beside `<!-- toc -->`, which gives two tables of contents; a font not known to
 carry Thai; `![]` with nothing between the brackets; a heading level skipped; a link definition
 nobody refers to; `ำ` typed the long way (`ํ` + `า`), which is left exactly as typed and which a
-search for `ำ` will not find; a `Table:` or `Figure:` line in a place where it is not a caption;
+search for `ำ` will not find; a Thai mark with no letter before it, or a letter with two tone
+marks, each left as typed; a `Table:` or `Figure:` line in a place where it is not a caption;
 a Thai caption prefix, which is not one — the prefix is `Table:`/`Figure:` in every language;
 a region comment inside a list, quotation or footnote; `$…$` math kept as literal LaTeX; a picture too
 narrow for a caption of its width under `--caption-matches-object`, whose caption takes the text

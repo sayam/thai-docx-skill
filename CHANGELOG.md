@@ -18,6 +18,13 @@ before two applications were read; the exception and what is owed are in
   which the release workflow runs, refuses a tag until the newest record does
   (`tests/test_rules.py::test_the_newest_release_record_names_the_bytes_it_read`).
 
+### Fixed
+
+- A Thai mark with no letter before it (`นำ้`) and a letter with two tone marks went through in
+  silence; each is named with its line and left as typed. The Markdown page says the text is read
+  in NFC, which puts marks typed out of order on one letter in order
+  (`tests/test_what_a_command_takes.py::test_a_thai_mark_out_of_place_is_named`).
+
 ## [0.2.2] - 2026-09-26
 
 **The goldens do not move**: a document is written as 0.2.1 wrote it unless it holds one of the

@@ -37,7 +37,8 @@ space, so wrapping long Thai lines in the Markdown is safe.
 
 What the build warns about rather than refuses: an image with nothing between the brackets
 of `![]`, a heading level skipped, a link definition nobody refers to, **ำ written the long way
-as `ํ` + `า`**, and a paragraph that opens with `ตาราง:` or `รูป:` where a caption would go — the prefix is `Table:` or `Figure:`,
+as `ํ` + `า`**, **a Thai mark with no letter before it** (`นำ้`, a vowel or tone mark at the start
+of a word), **a letter with two tone marks**, and a paragraph that opens with `ตาราง:` or `รูป:` where a caption would go — the prefix is `Table:` or `Figure:`,
 in English, in every language. Entities (`&nbsp;`, `&amp;`) are resolved by CommonMark, so
 `&nbsp;` becomes one non-breaking space in the document, not seven characters.
 
@@ -45,6 +46,11 @@ The text itself is never altered, only reported: `ํ` + `า` looks exactly lik
 the two characters it is, because no Unicode normalisation joins them — NFKC takes `ำ` apart into
 these two, never the other way. Replace them yourself if you meant `ำ`; a reader's search for `ำ`
 will not find the long form.
+
+The text is read in Unicode's composed form (NFC) before anything else, as the two
+implementations must agree on it. For Thai that changes one thing: marks typed in another order
+on one letter are put in the canonical one — a tone mark typed before `ุ` or `ู` comes after it.
+The letters, and what a reader sees, are the same.
 
 Anything else stops the build and names the line, and so do blocks or formatting nested
 more than 100 deep. Nothing is dropped silently.

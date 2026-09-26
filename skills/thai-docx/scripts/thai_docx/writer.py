@@ -12,6 +12,7 @@ import re
 import struct
 
 from . import markdown as md
+from .ooxml import THAI_MARKS  # the marks a measured column leaves out
 from .layout import (CAPTION_STYLE, SECTION_MARK, caption_text, has_thai, heading_styles, image_only, layout,
                      list_entries, list_field, number_text)
 from .settings import MIN_TEXT_TWIPS, BuildError, half_up, page_size
@@ -101,8 +102,6 @@ def script_runs(text: str) -> list[tuple[bool, str]]:
             pieces.append((out[start] == "C", text[start:i]))
             start = i
     return pieces
-# Thai marks above and below a consonant take no width of their own when a column is measured
-THAI_MARKS = frozenset([0x0E31, *range(0x0E34, 0x0E3B), *range(0x0E47, 0x0E4F)])
 # Word's own table default; with no table style it would otherwise be 0 and text touches the borders
 CELL_MARGINS = '<w:tblCellMar><w:left w:w="108" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar>'
 def esc(s: str) -> str:

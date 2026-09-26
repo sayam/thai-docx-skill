@@ -36,7 +36,7 @@ import pathlib
 import re
 import unicodedata
 
-from .ooxml import is_thai, unseen
+from .ooxml import THAI_MARKS, THAI_TONES, is_thai, unseen
 
 ENTITIES: dict[str, str] = json.loads(
     (pathlib.Path(__file__).resolve().parent.parent.parent / "assets" / "entities.json").read_text(encoding="utf-8")
@@ -76,6 +76,23 @@ ASCII_PUNCT = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 _WS = " \t\n\x0b\x0c\r"
 # ำ has a compatibility decomposition into these two, and no composition back (ADR 0034)
 NIKHAHIT, SARA_AA, SARA_AM = "\u0e4d", "\u0e32", "\u0e33"
+def thai_marks_out_of_place(line: str) -> list[str]:
+    """What is wrong with how a line's Thai marks sit, once each: a mark with no letter before it
+    (a reader sees it on a dotted circle, or on whatever stands before it), and a letter carrying
+    two tone marks. Named, never changed (ADR 0034)."""
+    lone, two, tones, before = "", False, 0, ""
+    for ch in line:
+        if ord(ch) in THAI_MARKS:
+            if not lone and not ("\u0e01" <= before <= "\u0e2e" or before and ord(before) in THAI_MARKS):
+                lone = ch
+            tones += ord(ch) in THAI_TONES
+            two = two or tones == 2
+        else:
+            tones = 0
+        before = ch
+    return ((["a Thai mark (U+%04X) with no letter before it; it is written as it stands" % ord(lone)] if lone else [])
+            + (["a letter with two tone marks; it is written as it stands"] if two else []))
+
 
 
 def is_space_or_tab(ch: str) -> bool:
@@ -1875,6 +1892,7 @@ def parse(text: str) -> Document:
         text = text[1:]
     text = unicodedata.normalize("NFC", text)
     long_sara_am: list[int] = []
+    marks: list[tuple[int, str]] = []
     for no, ln in enumerate(text.split("\n"), 1):
         for ch in ln:
             label = forbidden_char(ch)
@@ -1884,6 +1902,7 @@ def parse(text: str) -> Document:
         # takes ำ the other way, into these two. So it is named and left alone (ADR 0034).
         if NIKHAHIT + SARA_AA in ln:
             long_sara_am.append(no)
+        marks.extend((no, what) for what in thai_marks_out_of_place(ln))
     lines = text.split("\n")
     offset = _front_matter(lines, doc)
     # front matter lines become blank lines, so every line number stays true
@@ -1907,6 +1926,8 @@ def parse(text: str) -> Document:
         bp.warnings.append("line " + str(no) + ": " + NIKHAHIT + " followed by " + SARA_AA + " looks like "
                            + SARA_AM + " but is two characters; it is written as it stands and a search for "
                            + SARA_AM + " will not find it")
+    for no, what in marks:
+        bp.warnings.append("line " + str(no) + ": " + what)
     doc.warnings = sorted(bp.warnings, key=lambda m: int(m.split(":")[0].split()[1]))
     return doc
 
