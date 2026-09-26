@@ -1,5 +1,5 @@
 # Every change from a contributor needs the maintainer's review. With main protected
-# (the `scans`, `commits`, `tests`, `lint`, `deps` and `pr-description` checks and CodeQL's
+# (the `scans`, `commits`, `tests`, `lint`, `deps`, `pr-description` and `tests-newest` checks and CodeQL's
 # results required of everyone, review from code owners required of everyone but the
 # maintainer — ADR 0018), a pull request from a
 # fork cannot merge by weakening the gates it is held to: the workflow, the registry

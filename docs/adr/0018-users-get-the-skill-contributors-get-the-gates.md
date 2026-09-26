@@ -43,6 +43,9 @@ the repository [S32], and git cannot give one of them less than the other.
   > `commits`, `tests`, `lint`, `deps` and `pr-description`, and CodeQL's code-scanning results
   > with no alert of medium severity or higher. CONTRIBUTING, GOVERNANCE and the architecture
   > page name them; `tests/test_rules.py` holds each to the six.
+
+  > **Later (2026-09-26):** `tests-newest`, the suite on the newest runtimes the skill promises, is
+  > required too — seven checks, and each page and the test name it.
 - `.github/CODEOWNERS` covers every path, and names the workflow, the gate registry,
   `tools/` and `requirements/` explicitly [S36]. A required check reports success
   when its job is *skipped* [S35], so a pull request that edits the workflow could
