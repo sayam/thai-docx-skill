@@ -4,11 +4,19 @@ Notable changes to the thai-docx skill. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). A release is tagged only
 when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
-(`python3 tools/package_skill.py --tag vX.Y.Z`), and after the checks of ADR 0012. 0.2.0 was tagged
+(`python3 tools/package_skill.py --tag vX.Y.Z`, which also refuses a tag whose goldens no reading
+record names), and after the checks of ADR 0012. 0.2.0 was tagged
 before two applications were read; the exception and what is owed are in
 [its record](docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md). The rule is unchanged.
 
 ## [Unreleased]
+
+### Changed
+
+- The goldens may change bytes on `main` between releases. The rule that a reading record names
+  every golden's sha256 is held where it matters, at the tag: `tools/package_skill.py --tag`,
+  which the release workflow runs, refuses a tag until the newest record does
+  (`tests/test_rules.py::test_the_newest_release_record_names_the_bytes_it_read`).
 
 ## [0.2.2] - 2026-09-26
 

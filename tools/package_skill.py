@@ -5,7 +5,8 @@ one zip, and nothing else from this repository (ADR 0018).
 
     python3 tools/package_skill.py OUT.zip          # write the archive
     python3 tools/package_skill.py --list           # the paths it would pack
-    python3 tools/package_skill.py --tag v0.1.0     # exit 1 unless every version says 0.1.0
+    python3 tools/package_skill.py --tag v0.1.0     # exit 1 unless every version says 0.1.0, and the
+                                                    # newest reading record names every golden's bytes
 
 The gates, tests and records stay in the repository, where a fork carries them. The
 archive holds the files a client loads — the folder a skill upload expects — stored,
@@ -74,6 +75,17 @@ def dates() -> dict[str, str]:
     return {k: (m.group(1) if m else "(missing)") for k, m in found.items()}
 
 
+def unread_goldens(root: pathlib.Path = ROOT) -> list[str]:
+    """The goldens whose bytes the newest release reading does not name. A release is tagged on
+    bytes read in the office applications (ADR 0012): the newest `what-vX.Y.Z-was-read-in` record
+    names each golden's sha256. Between releases the goldens may move on `main`; a tag may not."""
+    import hashlib
+    records = sorted((root / "docs" / "evidence").glob("*-what-v*-was-read-in.md"))
+    newest = records[-1].read_text(encoding="utf-8") if records else ""
+    return [g.name for g in sorted((root / "tests" / "golden").glob("*.docx"))
+            if hashlib.sha256(g.read_bytes()).hexdigest() not in newest]
+
+
 def main(argv: list[str]) -> int:
     if argv == ["--list"]:
         for path in files():
@@ -85,7 +97,11 @@ def main(argv: list[str]) -> int:
         wrong = {k: v for k, v in found.items() if v != wanted}
         if len(set(days.values())) != 1 or "(missing)" in days.values():
             wrong.update(days)
-        print(json.dumps({"tag": argv[1], "versions": found, "dates": days, "ok": not wrong}, ensure_ascii=False))
+        unread = unread_goldens()
+        if unread:
+            wrong["goldens no reading record names"] = ", ".join(unread)
+        print(json.dumps({"tag": argv[1], "versions": found, "dates": days, "unread_goldens": unread, "ok": not wrong},
+                         ensure_ascii=False))
         return 1 if wrong else 0
     if len(argv) == 1 and not argv[0].startswith("-"):
         pack(pathlib.Path(argv[0]))

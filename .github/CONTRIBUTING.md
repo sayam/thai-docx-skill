@@ -182,7 +182,9 @@ Nothing merges with a failing required check.
 applications — each variant once for every application it is opened in (`sample-auto` in Word 365
 for Windows only, ADR 0036), named `<variant>-<application>.docx`, byte for
 byte the goldens — and `CHECKLIST.md` to tick (`docs/adr/0012`). Word 365 for Windows is the
-reference. `python3 tools/package_skill.py --tag vX.Y.Z` must pass, and the suite fails until the
+reference. `python3 tools/package_skill.py --tag vX.Y.Z` must pass — it refuses the tag until the
+newest `docs/evidence/*-what-vX.Y.Z-was-read-in.md` names every golden's sha256, so a change of
+bytes may reach `main` before the reading, never a release — and the suite fails until the
 archive name in the README and the guides (`thai-docx-X.Y.Z.zip`) carries the new version.
 
 ## Commits

@@ -181,3 +181,4 @@ def test_only_what_git_tracks_is_packed(tmp_path, monkeypatch):
     monkeypatch.setattr(package_skill, "ROOT", tmp_path)
     monkeypatch.setattr(package_skill, "SKILL", skill)
     assert [p.relative_to(skill).as_posix() for p in package_skill.files()] == ["SKILL.md", "scripts/run.py"]
+
