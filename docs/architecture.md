@@ -37,8 +37,8 @@ else in the repository is needed at run time ([ADR 0002](adr/0002-one-public-rep
 | Python or JavaScript scripts | parse, lay out, write, pack, check, compare; read the Markdown, images and profiles; write the output and profile files (limits: ADR 0040) |
 | file system | the Markdown file's tree, `--allow-dir` directories, `~/.thai-docx/profiles/`, `./.thai-docx/profiles/`, the output path |
 | office application (Word, LibreOffice, Google Docs, WPS) | opens the .docx; updates fields when the reader asks |
-| contributor and maintainer | propose, review and merge changes through pull requests held to the gates (`scans`, `commits`, `tests`, `lint`, `deps`, `pr-description`, and CodeQL's code-scanning results) |
-| CI (`gates.yml`) | runs scans, commit lint, the suite under coverage, lint and the dependency check (`deps`, OSV-Scanner) on every push and pull request, and the suite again on the newest runtimes promised (`tests-newest`, not a required check) |
+| contributor and maintainer | propose, review and merge changes through pull requests held to the gates (`scans`, `commits`, `tests`, `lint`, `deps`, `pr-description`, `tests-newest`, and CodeQL's code-scanning results) |
+| CI (`gates.yml`) | runs scans, commit lint, the suite under coverage, lint and the dependency check (`deps`, OSV-Scanner) on every push and pull request, and the suite again on the newest runtimes promised (`tests-newest`) |
 | code scanning (`codeql.yml`) | CodeQL's security-extended queries for Python, JavaScript and workflows, on every pull request, every push to `main` and weekly |
 | project score (`scorecard.yml`) | OpenSSF Scorecard on `main`, published for the README badge |
 | release workflow (`release.yml`) | re-checks the tag, packs the skill folder, attests it with GitHub's OIDC identity (Sigstore), verifies, attaches |
@@ -112,4 +112,4 @@ Markdown ──parse──▶ blocks ──lay out──▶ sections, numbering 
 | `tests/` | the suite; `tests/js` holds the CommonMark reference for the parser tests |
 | `gates.yaml`, `tools/` | verifiable-gates: each gate, its test or scanner, its evidence |
 | `docs/adr/`, `docs/evidence/`, `SOURCES.md` | decisions, what each gate was seen to catch, outside sources |
-| `.github/workflows/` | `gates.yml` (scans, commits, tests, lint, deps), `pr-description.yml` (the description credits nobody who did not sign), `codeql.yml`, `scorecard.yml`, `release.yml` (check, pack, attest, attach) |
+| `.github/workflows/` | `gates.yml` (scans, commits, tests, lint, deps, tests-newest), `pr-description.yml` (the description credits nobody who did not sign), `codeql.yml`, `scorecard.yml`, `release.yml` (check, pack, attest, attach) |

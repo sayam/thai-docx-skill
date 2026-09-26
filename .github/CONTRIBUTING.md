@@ -36,9 +36,9 @@ The gates come from [verifiable-gates](https://github.com/sayam/verifiable-gates
 also refuses a `tools/` file that differs from what was installed (`tools/installed.json`).
 
 CI runs `scans`, `commits`, `tests` (at least 97% coverage, branches included), `lint` (the
-coding standards below), `deps` (the dependencies below) and `pr-description` (a description
-credits nobody who did not sign) on every pull request; `main` takes a change only when all six
-pass and CodeQL raises no alert of medium severity or higher
+coding standards below), `deps` (the dependencies below), `pr-description` (a description
+credits nobody who did not sign) and `tests-newest` (the suite on the newest Python and Node the
+skill promises) on every pull request; `main` takes a change only when all seven pass and CodeQL raises no alert of medium severity or higher
 (below, "Static analysis"), and a contributor's pull request also needs a code owner's approval (`.github/CODEOWNERS`,
 `docs/adr/0018`).
 
@@ -139,7 +139,7 @@ the rest is marked `export-ignore` (`docs/adr/0018`).
 
 Every pull request is reviewed by a code owner before it merges; the maintainer's own pull
 requests are reviewed against the same list by the maintainer and by the required checks
-(`scans`, `commits`, `tests`, `lint`, `deps`, `pr-description`) and CodeQL's alerts ("Static analysis" above). A
+(`scans`, `commits`, `tests`, `lint`, `deps`, `pr-description`, `tests-newest`) and CodeQL's alerts ("Static analysis" above). A
 review looks at:
 
 1. **The claim.** The description says what changes for a user and why; a design change links

@@ -189,9 +189,9 @@ def test_every_picture_the_fixtures_carry_says_where_it_came_from():
 
 
 def test_every_page_that_says_what_a_merge_needs_names_the_checks_it_needs():
-    """F-07: the pages said five checks, or three, where the ruleset on `main` requires six and
-    CodeQL's results. Each page that says what a merge needs names the same six."""
-    required = ("scans", "commits", "tests", "lint", "deps", "pr-description")
+    """F-07: the pages said five checks, or three, where the ruleset on `main` requires seven and
+    CodeQL's results. Each page that says what a merge needs names the same seven."""
+    required = ("scans", "commits", "tests", "lint", "deps", "pr-description", "tests-newest")
     workflows = "".join(p.read_text(encoding="utf-8") for p in (ROOT / ".github" / "workflows").glob("*.yml"))
     for check in required:
         assert re.search(r"^  " + re.escape(check) + r":$", workflows, re.M), check  # a job of that name exists
