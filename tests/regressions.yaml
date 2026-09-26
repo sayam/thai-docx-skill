@@ -832,3 +832,24 @@
   found_by: review
   test:
     - tests/test_rules.py::test_every_page_that_says_what_a_merge_needs_names_the_checks_it_needs
+
+- id: B-11
+  what: ADR 0039 said --force-cs-whole-doc leaves <w:cs/> in docDefaults, as v0.1.1 wrote; no build since 0.2.0 does
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build.py::test_force_cs_marks_every_run_and_leaves_the_defaults_unmarked
+
+- id: CUR-07
+  what: the assurance case listed the input allowlists without the link schemes the build holds to
+  class: C1
+  found_by: outside-review
+  test:
+    - tests/test_rules.py::test_what_the_review_found_the_pages_left_out_they_now_say
+
+- id: C7
+  what: check.md said "complex script" where the checker reads the Thai block only
+  class: C1
+  found_by: review
+  test:
+    - tests/test_rules.py::test_what_the_review_found_the_pages_left_out_they_now_say

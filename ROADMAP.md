@@ -3,6 +3,15 @@
 What the project intends to do, and not do, from September 2026 to September 2027. It is a plan,
 not a promise; each item becomes a decision record when it is taken up.
 
+## 0.2.2 (2026-09-26)
+
+The rest of what the readings of 0.2.0 found, and what the model runs on 0.2.1 got wrong: `check`
+reads the whole package and `repair` puts right what it finds; repair, profiles and the scripts
+keep to their limits; bare addresses and footnote labels are read as GitHub reads them; SKILL.md
+names what the models guessed at; the release keeps what it published. The goldens do not move.
+What moves the bytes of every document — `พ.ศ.` in one run, scripts besides Thai, renumbering in
+`repair` — waits for 0.3, with the five applications read once on its bytes.
+
 ## 0.2.1 (2026-09-26)
 
 What the readings of 0.2.0 found, fixed without moving a byte of any document

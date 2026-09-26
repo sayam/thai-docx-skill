@@ -28,6 +28,7 @@ Find what you see in the left column.
 | **findings** | a fault in the skill itself; no file is made | please report it on [Issues](https://github.com/sayam/thai-docx-skill/issues) |
 | an image is refused | it is not PNG or JPEG, it is on the internet, or it is outside the Markdown file's folder | use a PNG or JPEG in that folder, or say which folder it is in |
 | a setting you asked for is not in the reply | the assistant missed it | ask again for that setting |
+| the assistant asked questions you did not want | your message contains `thai-docx grill` — wherever it stands, even in "don't use thai-docx grill" | send it again without those words |
 | the assistant did not ask questions | your message did not contain `thai-docx grill` (a hyphen, an underscore or a space between the two words) | send it again with those words |
 | `'' is not a question` | a space after a comma in `only size, toc` | write `only size,toc` |
 | a saved profile is not found in a chat app | chat apps forget files when the chat ends | attach the profile's `.json` file |

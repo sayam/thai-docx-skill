@@ -8,7 +8,7 @@ authors:
   - family-names: Sriphua
     given-names: Sayam
     affiliation: Burapha University
-version: 0.2.1
+version: 0.2.2
 doi: 10.5281/zenodo.22815936
 date-released: '2026-09-26'
 repository-code: https://github.com/sayam/thai-docx-skill

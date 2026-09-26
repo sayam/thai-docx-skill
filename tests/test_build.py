@@ -1260,3 +1260,19 @@ def test_a_list_collects_the_counter_where_the_application_counts(tmp_path):
     # the counter is the label, so a document that renames its captions renames its lists with them
     assert instructions("--auto-numbering", "--table-label", "Table", "--figure-label", "Figure") == [
         'TOC \\h \\z \\c "Table"', 'TOC \\h \\z \\c "Figure"']
+
+
+def test_force_cs_marks_every_run_and_leaves_the_defaults_unmarked(tmp_path):
+    """B-11: ADR 0039 said `--force-cs-whole-doc` also leaves `<w:cs/>` in docDefaults, as
+    v0.1.1 wrote; no build since 0.2.0 has. Every run carries its own, which is what the flag
+    promises; the record now says so (its Later line), and this holds the bytes to it."""
+    result, out = build(tmp_path, "# หัวข้อ\n\nข้อความ English 2567\n", force_cs_whole_doc=True)
+    assert result["ok"], result
+    with zipfile.ZipFile(out) as z:
+        styles, document = z.read("word/styles.xml").decode(), z.read("word/document.xml").decode()
+    defaults = styles[styles.index("<w:docDefaults>"):styles.index("</w:docDefaults>")]
+    assert "<w:cs/>" not in defaults
+    runs = re.findall(r"<w:r>(.*?)</w:r>", document)
+    assert runs and all("<w:cs/>" in r for r in runs if "<w:t" in r)
+    adr = " ".join((ROOT / "docs" / "adr" / "0039-complex-script-is-marked-where-it-is.md").read_text(encoding="utf-8").split())
+    assert "nothing in `docDefaults`" in adr
