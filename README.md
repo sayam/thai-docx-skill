@@ -106,7 +106,8 @@ rather than by a bot, and no score for Maintained until the repository is 90 day
   see [Fix a problem](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en/troubleshooting.md).
 - A security problem: report it privately, as
   [SECURITY.md](https://github.com/sayam/thai-docx-skill/blob/main/.github/SECURITY.md) says.
-- Verify a download: `gh attestation verify thai-docx-0.2.0.zip --repo sayam/thai-docx-skill`
+- Verify a download: `gh attestation verify thai-docx-0.2.0.zip --repo sayam/thai-docx-skill
+  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.2.0`
   ([how, and how to rebuild it byte for byte](https://github.com/sayam/thai-docx-skill/blob/main/.github/SECURITY.md#verify-a-release)).
 
 ## Contributing

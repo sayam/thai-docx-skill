@@ -343,7 +343,8 @@ thai-docx ไม่ต้องใช้ทั้งสองอย่าง
 release ของโปรเจกต์สร้างจริง
 
 ```sh
-gh attestation verify thai-docx-0.2.0.zip --repo sayam/thai-docx-skill
+gh attestation verify thai-docx-0.2.0.zip --repo sayam/thai-docx-skill \
+  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.2.0
 ```
 
 ถ้าถูกต้องจะขึ้นว่าตรวจผ่าน ถ้าเป็นไฟล์อื่นจะไม่ผ่าน
@@ -353,7 +354,8 @@ gh attestation verify thai-docx-0.2.0.zip --repo sayam/thai-docx-skill
 ไม่ต้องมีบัญชี ไม่ต้องต่อเน็ต
 
 ```sh
-gh attestation verify thai-docx-0.2.0.zip --bundle thai-docx-0.2.0.intoto.jsonl --repo sayam/thai-docx-skill
+gh attestation verify thai-docx-0.2.0.zip --bundle thai-docx-0.2.0.intoto.jsonl --repo sayam/thai-docx-skill \
+  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.2.0
 ```
 
 ## อัปเดตหรือลบสกิล

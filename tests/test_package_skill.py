@@ -7,6 +7,7 @@ nothing else, the same bytes on every run, and one version everywhere it is stat
 from __future__ import annotations
 
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -53,6 +54,25 @@ def test_every_stated_version_is_the_same():
     found = package_skill.versions()
     skill, init, bundle = found["SKILL.md metadata.version"], found["thai_docx.__version__"], found["thai_docx.js VERSION"]
     assert skill == init == bundle, found
+
+
+def test_the_citation_names_the_release_the_changelog_names(tmp_path, monkeypatch):
+    """CITATION.cff's version and date were kept by hand and read by nothing; the tag check
+    reads them now, and a citation one release behind refuses the tag."""
+    assert package_skill.versions()["CITATION.cff version"] == package_skill.versions()["CHANGELOG.md newest release"]
+    days = package_skill.dates()
+    assert len(set(days.values())) == 1 and "(missing)" not in days.values(), days
+    root = tmp_path / "root"
+    root.mkdir()
+    for name in ("CHANGELOG.md", "CITATION.cff"):
+        shutil.copy(ROOT / name, root / name)
+    monkeypatch.setattr(package_skill, "ROOT", root)
+    cff = (root / "CITATION.cff").read_text(encoding="utf-8")
+    (root / "CITATION.cff").write_text(re.sub(r"(?m)^version: .*$", "version: 0.1.9", cff), encoding="utf-8")
+    assert package_skill.versions()["CITATION.cff version"] == "0.1.9"
+    assert package_skill.main(["--tag", "v" + package_skill.versions()["CHANGELOG.md newest release"]]) == 1
+    (root / "CITATION.cff").write_text(re.sub(r"(?m)^date-released: .*$", "date-released: '2026-01-01'", cff), encoding="utf-8")
+    assert package_skill.main(["--tag", "v" + package_skill.versions()["CHANGELOG.md newest release"]]) == 1
 
 
 def test_tag_check_refuses_a_version_nobody_states():

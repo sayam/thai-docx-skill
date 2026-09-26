@@ -7,9 +7,14 @@
 # in both directions, and only then attached. The attestation is attached too, so the
 # proof travels with the archive and needs no GitHub account to read:
 #
-#     gh attestation verify thai-docx-<version>.zip --repo sayam/thai-docx-skill
+#     gh attestation verify thai-docx-<version>.zip --repo sayam/thai-docx-skill \
+#         --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v<version>
 #     gh attestation verify thai-docx-<version>.zip --bundle thai-docx-<version>.intoto.jsonl \
-#         --repo sayam/thai-docx-skill
+#         --repo sayam/thai-docx-skill \
+#         --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v<version>
+#
+# The tag is checked out as a tag — `refs/tags/<tag>` — because a bare name is looked for
+# among the branches first, and a branch of the same name would be built in its place.
 
 name: release
 
@@ -27,14 +32,23 @@ permissions:
 
 jobs:
   # The tag is held to the gates and the suite again: a release is cut from a commit,
-  # and nothing else proves that commit's own run was green.
+  # and nothing else proves that commit's own run was green. The gates are the ones
+  # gates.yml runs on a pull request — the scans, the lints, the suite under its
+  # coverage floor — not a part of them.
   release-check:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      TAG: ${{ github.event.inputs.tag || github.event.release.tag_name }}
     steps:
+      - name: the tag is a release tag
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "not a release tag: $TAG"; exit 1; }
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+          ref: refs/tags/${{ github.event.inputs.tag || github.event.release.tag_name }}
+      - name: what was checked out is the tag's commit
+        run: test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$TAG^{commit}")"
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
@@ -45,7 +59,12 @@ jobs:
       - run: python3 -m pip install --require-hashes -r requirements/dev.txt
       - run: npm ci --ignore-scripts --no-audit --no-fund
         working-directory: tests/js
-      - run: python3 -m pytest -q tests
+      - run: python3 -m ruff check --no-cache skills/thai-docx/scripts tools tests
+      - name: eslint
+        run: tests/js/node_modules/.bin/eslint --config tests/js/eslint.config.cjs js
+      # under coverage, subprocesses included; the report fails below .coveragerc's floor
+      - run: python3 -m coverage run -m pytest -q tests
+      - run: python3 -m coverage combine -q && python3 -m coverage report
       # no release while a development dependency has a known vulnerability (CONTRIBUTING, Dependencies)
       - name: osv-scanner
         uses: docker://ghcr.io/google/osv-scanner-action@sha256:71ad04ab2f8798be47870f9b18817ad317c2f8f2f97aa6726ba10d5578bc174a # v2.6.0
@@ -66,7 +85,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.inputs.tag || github.event.release.tag_name }}
+          ref: refs/tags/${{ github.event.inputs.tag || github.event.release.tag_name }}
+      - name: what was checked out is the tag's commit
+        run: test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$TAG^{commit}")"
       - name: every stated version is the tag
         run: python3 tools/package_skill.py --tag "$TAG"
       - name: pack the skill directory, and nothing else
@@ -97,8 +118,11 @@ jobs:
           ZIP=$(ls dist/*.zip)
           BUNDLE="${ZIP%.zip}.intoto.jsonl"
           # a fresh attestation can take a moment to be served
+          # bound to this workflow and to the tag, so an attestation some other workflow or ref
+          # made for the same bytes does not pass
           for try in 1 2 3 4 5; do
-            if gh attestation verify "$ZIP" --repo "$GITHUB_REPOSITORY"; then break; fi
+            if gh attestation verify "$ZIP" --repo "$GITHUB_REPOSITORY" \
+                --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" --source-ref "refs/tags/$TAG"; then break; fi
             [ "$try" = 5 ] && exit 1
             sleep 15
           done
@@ -106,7 +130,7 @@ jobs:
           # reader without a GitHub account can do
           gh attestation verify "$ZIP" --bundle "$BUNDLE" \
             --repo "$GITHUB_REPOSITORY" \
-            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" --source-ref "refs/tags/$TAG"
           cp "$ZIP" tampered.zip && printf 'x' >> tampered.zip
           if gh attestation verify tampered.zip --repo "$GITHUB_REPOSITORY"; then
             echo "a tampered archive verified — the verifier reads nothing"; exit 1

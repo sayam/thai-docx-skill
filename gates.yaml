@@ -96,7 +96,7 @@ gates:
     enforced_by: {job: release-archive}
     proved_by: docs/evidence/2026-09-18-the-release-carries-its-attestation.md
   - id: release-tag-passes-the-gates
-    title: The tag a release is cut from passes the gates and the whole suite on the oldest supported Python before its archive is built (ADR 0012)
+    title: The tag a release is cut from — checked out as a tag, never a branch of its name — passes the scans, both lints and the whole suite under its coverage floor on the oldest supported Python before its archive is built, and the archive's attestation is verified against this workflow and that tag (ADR 0012)
     kind: job
     severity: blocking
     enforced_by: {job: release-check}
@@ -178,6 +178,11 @@ gates:
       cadence: weekly, the platform's cron, and every push to main
       how: >-
         The run page is the record and GitHub e-mails the workflow's author when a scheduled run fails; a publish the API refuses fails the run. Code scanning lists each check below 10 as an alert.
+  - id: suite-passes-on-the-newest-runtimes
+    title: The whole suite passes on the newest Python and Node the skill promises, as it does on the oldest (ADR 0008, 0017)
+    kind: job
+    severity: blocking
+    enforced_by: {job: tests-newest}
   - id: suite-covers-the-skill
     title: The suite reaches at least 97% of the branches of the skill's Python, command-line runs included (.coveragerc)
     kind: job
@@ -214,6 +219,11 @@ gates:
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_build_writes_what_it_was_given.py]}
+  - id: release-is-bound-to-its-tag
+    title: The release checks out its tag as a tag and proves the commit, holds the tag to the gates a pull request passes, and every way the project says to verify a release — workflow, SECURITY.md, README, both guides — names the release workflow and the tag's ref; the suite runs on the oldest and the newest runtimes promised, and what the tools import is pinned
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_release_is_bound_to_its_tag.py]}
   - id: amendments-recorded-both-ways
     title: Every amendment is recorded on both records — `Amends:` on the new one names a record whose `Amended by:` names it back, and the reverse — read from each record's head, a link at a time (.github/CONTRIBUTING.md, Add a decision)
     kind: test

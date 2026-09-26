@@ -54,6 +54,20 @@ def versions() -> dict[str, str]:
         "thai_docx.__version__": re.search(r'__version__ = "([^"]+)"', text(SKILL / "scripts" / "thai_docx" / "__init__.py")),
         "thai_docx.js VERSION": re.search(r'^const VERSION = "([^"]+)";', text(SKILL / "scripts" / "thai_docx.js"), re.M),
         "CHANGELOG.md newest release": re.search(r"^## \[(\d[^\]]*)\]", text(ROOT / "CHANGELOG.md"), re.M),
+        "CITATION.cff version": re.search(r"^version: ['\"]?([^'\"\s]+)", text(ROOT / "CITATION.cff"), re.M),
+    }
+    return {k: (m.group(1) if m else "(missing)") for k, m in found.items()}
+
+
+def dates() -> dict[str, str]:
+    """The release date as each place that states it states it: the citation a reader copies
+    must name the day the changelog says the release was made."""
+    def text(path: pathlib.Path) -> str:
+        return path.read_text(encoding="utf-8") if path.is_file() else ""
+
+    found = {
+        "CHANGELOG.md newest release date": re.search(r"^## \[\d[^\]]*\] - (\d{4}-\d{2}-\d{2})", text(ROOT / "CHANGELOG.md"), re.M),
+        "CITATION.cff date-released": re.search(r"^date-released: ['\"]?(\d{4}-\d{2}-\d{2})", text(ROOT / "CITATION.cff"), re.M),
     }
     return {k: (m.group(1) if m else "(missing)") for k, m in found.items()}
 
@@ -65,9 +79,11 @@ def main(argv: list[str]) -> int:
         return 0
     if len(argv) == 2 and argv[0] == "--tag":
         wanted = argv[1].removeprefix("v")
-        found = versions()
+        found, days = versions(), dates()
         wrong = {k: v for k, v in found.items() if v != wanted}
-        print(json.dumps({"tag": argv[1], "versions": found, "ok": not wrong}, ensure_ascii=False))
+        if len(set(days.values())) != 1 or "(missing)" in days.values():
+            wrong.update(days)
+        print(json.dumps({"tag": argv[1], "versions": found, "dates": days, "ok": not wrong}, ensure_ascii=False))
         return 1 if wrong else 0
     if len(argv) == 1 and not argv[0].startswith("-"):
         pack(pathlib.Path(argv[0]))

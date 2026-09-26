@@ -107,6 +107,7 @@ SHOWS = {
         "Appendix headings read Appendix A, B, C; captions ตารางที่ A-1",
         "Header text on every page above the page number; footer text on every page",
         "Table columns sized by their text; table text 14 pt",
+        "บทคัดย่อ and Abstract, both level 1, are centred alike — an English heading takes its style's alignment (2026-09-19)",
     ),
     "sample-layout": (
         "F14 (8.5 × 13 in) landscape pages; margins 1 in all round; body 15 pt",
@@ -166,7 +167,9 @@ def checklist(results: list[dict]) -> str:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 1:
+    # a first word that begins with - is a question or a flag, never the directory to write
+    # into: `--help` once made a directory of that name and stopped with a trace inside it
+    if len(argv) != 1 or argv[0].startswith("-"):
         print(__doc__.split("\n\n")[1].strip())
         return 2
     results = write(pathlib.Path(argv[0]))

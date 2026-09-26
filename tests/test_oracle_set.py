@@ -43,3 +43,18 @@ def test_every_variant_for_every_application_is_its_golden(tmp_path):
         else:
             assert said == []
     assert all(a in checklist for a in oracle_set.APPLICATIONS)
+
+
+def test_a_question_is_answered_with_the_usage_and_nothing_is_made(tmp_path, monkeypatch, capsys):
+    """`--help` once made a directory named `--help` and stopped with a trace inside it."""
+    monkeypatch.chdir(tmp_path)
+    for argv in (["--help"], ["-h"], []):
+        assert oracle_set.main(argv) == 2
+        assert "python3 tools/oracle_set.py OUT_DIR" in capsys.readouterr().out
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_the_checklist_asks_whether_two_headings_match():
+    """A level-1 heading holding no Thai was placed by its paragraph, not its style, so
+    บทคัดย่อ sat centred and Abstract beside it did not; no item of ADR 0012 asked it."""
+    assert any("บทคัดย่อ and Abstract" in item for item in oracle_set.SHOWS["sample-options"])
