@@ -433,3 +433,14 @@ def test_an_extended_autolink_is_found_as_cmark_gfm_finds_it(tmp_path):
         # a target is written percent-encoded (B-07), as cmark-gfm writes its href
         written = [urllib.parse.quote(t, safe=":/@") for t in targets]
         assert re.findall(r'Target="([^"]*)" TargetMode="External"', rels) == written, (text, rels)
+
+
+def test_a_phrase_past_the_first_20000_characters_is_found_in_the_last(tmp_path):
+    """E-23: the phrase at the end of a long message was never read, and the agent built at once.
+    SKILL.md now has it run the command again on the message's last 20,000 characters; this
+    holds that the second run finds the phrase and the first says why to make it."""
+    message = "ก" * 20001 + " thai-docx grill"
+    code, first = both(["grill", "--said", message], tmp_path)
+    assert first["mode"] == "build" and any("may be among them" in w for w in first["warnings"]), first
+    code, again = both(["grill", "--said", message[-20000:]], tmp_path)
+    assert code == 0 and again["mode"] == "grill", again

@@ -771,3 +771,35 @@
   found_by: review
   test:
     - tests/test_what_a_command_takes.py::test_an_extended_autolink_is_found_as_cmark_gfm_finds_it
+
+- id: M-1
+  what: Haiku invented page-number flags before it opened settings.md; SKILL.md named none of the positions
+  class: C1, C2, C3
+  found_by: agent-run
+  test:
+    - tests/test_skill_md.py::test_what_the_model_runs_got_wrong_is_answered_where_they_read
+  record: docs/evidence/2026-09-26-model-equivalence-on-the-0.2.2-skill-md.md
+
+- id: M-2
+  what: a run gave the grill command an English paraphrase of the user's message instead of the message
+  class: C1, C2, C3
+  found_by: agent-run
+  test:
+    - tests/test_skill_md.py::test_what_the_model_runs_got_wrong_is_answered_where_they_read
+  record: docs/evidence/2026-09-26-model-equivalence-on-the-0.2.2-skill-md.md
+
+- id: M-3
+  what: with a picture missing, Haiku deleted its line from the user's Markdown or made a picture up to get the build through
+  class: C1, C2, C3
+  found_by: agent-run
+  test:
+    - tests/test_skill_md.py::test_what_the_model_runs_got_wrong_is_answered_where_they_read
+  record: docs/evidence/2026-09-26-model-equivalence-on-the-0.2.2-skill-md.md
+
+- id: E-23
+  what: a grill phrase after the first 20,000 characters was never read, and SKILL.md did not say what to do when the answer warned so
+  class: C1, C2
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_phrase_past_the_first_20000_characters_is_found_in_the_last
+    - tests/test_skill_md.py::test_what_the_model_runs_got_wrong_is_answered_where_they_read

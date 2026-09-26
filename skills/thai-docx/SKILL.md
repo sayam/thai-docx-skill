@@ -22,7 +22,8 @@ bundled command writes every attribute Thai needs. Your part is the Markdown.
   and do not read the scripts' source. The command does all of the formatting.
 - Do not add spaces between Thai words, and never add zero-width characters
   (U+200B, U+200C, U+200D, U+2060, U+FEFF). Write Thai as a Thai reader writes it.
-- Never change the user's wording to get a build through.
+- Never change the user's wording or files to get a build through, and never make up what
+  they name: a picture that is missing is theirs to give. Tell them the line instead.
 - A document with no Thai in it needs nothing this skill adds; build one only if asked to.
 
 ## Build a document (default: no questions)
@@ -70,9 +71,11 @@ grill command below says to.
 ## Settings
 
 Defaults: TH Sarabun New 16 pt, A4 portrait, margins 1 in (left 1.5 in), single spacing,
-left-aligned, no table of contents or page numbers. Every flag, its default and an example:
+left-aligned, no table of contents or page numbers. Page numbers are `--page-numbers` (top
+right), `--page-numbers top-center` or `--page-numbers bottom-center`; heading numbers are
+`--heading-numbers`. Every other flag, its default and an example:
 [references/settings.md](references/settings.md) — page and type, page furniture, tables,
-headings, thesis structure.
+headings, thesis structure. Read it before you use a flag not named here; never guess a name.
 
 When the user asks for a change ("ขอฟอนต์ Sarabun ขนาด 14", "add page numbers"), build
 again with every flag of the last build plus the flags for what they now ask, and report the
@@ -105,10 +108,12 @@ about a file, and pass on the items that apply — a warning the build printed i
 ## Grill mode
 
 You do not choose this mode: the script does. Before asking anything, give it everything the
-user typed — all of it, word for word, the argument you were invoked with included, with this
-skill's name in front of it as the user typed it, if your client took the name off. The script reads the first 20,000 characters
-and, when it answers `build`, says in `warnings` if it read fewer than the message holds. Then
-obey the script's answer:
+user typed — all of it, word for word and in the language they wrote it in, never translated or
+summarised, the argument you were invoked with included, with this skill's name in front of it
+as the user typed it, if your client took the name off. The script reads the first 20,000
+characters and, when it answers `build`, says in `warnings` if it read fewer than the message
+holds; then run it once more with the message's last 20,000 characters, and if that answers
+`grill`, that is the answer. Then obey the script's answer:
 
 ```sh
 python3 <skill>/scripts/thai_docx grill --said 'ช่วยทำไฟล์ word ให้หน่อย'
