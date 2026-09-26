@@ -82,3 +82,22 @@ def test_what_the_tools_import_the_requirements_pin():
             module = name[0] or name[1]
             if module in provides:
                 assert provides[module] in pinned, (tool.name, module)
+
+
+def test_no_checkout_leaves_its_token_behind():
+    """S3: `actions/checkout` writes the job's token into `.git/config` unless told not to, where
+    every later step — a test, a tool, a script from the tree — can read it. No job here pushes
+    with git, so none keeps it."""
+    import yaml
+    for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        for name, job in yaml.safe_load(path.read_text(encoding="utf-8"))["jobs"].items():
+            for step in job.get("steps", []):
+                if str(step.get("uses", "")).startswith("actions/checkout@"):
+                    assert (step.get("with") or {}).get("persist-credentials") is False, (path.name, name)
+
+
+def test_a_release_never_replaces_an_asset_it_already_has():
+    """S4: `gh release upload --clobber` let a second run put other bytes under a published
+    release's name. Without it, an asset already there stops the upload."""
+    assert "--clobber" not in RELEASE
+    assert re.search(r"gh release upload \"\$TAG\" dist/\*\.zip dist/\*\.intoto\.jsonl\s*$", RELEASE, re.M)

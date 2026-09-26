@@ -804,3 +804,31 @@
   test:
     - tests/test_what_a_command_takes.py::test_a_phrase_past_the_first_20000_characters_is_found_in_the_last
     - tests/test_skill_md.py::test_what_the_model_runs_got_wrong_is_answered_where_they_read
+
+- id: S3
+  what: actions/checkout left the job's token in .git/config, where every later step could read it
+  class: C1
+  found_by: review
+  test:
+    - tests/test_release_is_bound_to_its_tag.py::test_no_checkout_leaves_its_token_behind
+
+- id: S4
+  what: gh release upload --clobber let a second run replace a published release's assets with other bytes
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_release_is_bound_to_its_tag.py::test_a_release_never_replaces_an_asset_it_already_has
+
+- id: S5
+  what: the archive took every file under the skill's folder, so a file left there by hand went into a release
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_package_skill.py::test_only_what_git_tracks_is_packed
+
+- id: F-07
+  what: the pages said five required checks, or three, where the ruleset on main requires six and CodeQL's results
+  class: C1
+  found_by: review
+  test:
+    - tests/test_rules.py::test_every_page_that_says_what_a_merge_needs_names_the_checks_it_needs

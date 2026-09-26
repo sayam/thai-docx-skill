@@ -99,7 +99,9 @@ yet, and LibreOffice Writer only in one document
 The OpenSSF Scorecard badge is an automated reading of this repository's settings, workflows and
 releases, not of the skill's code or tests. It stays below 10 by design for a project with one
 maintainer: no second reviewer, no contributors from other organisations, versions bumped by hand
-rather than by a bot, and no score for Maintained until the repository is 90 days old.
+rather than by a bot, and no score for Maintained until the repository is 90 days old. It is
+read on each push to `main` and weekly, not when a release is published, so a release's signed
+archive counts from the reading after it.
 
 ## Get help
 

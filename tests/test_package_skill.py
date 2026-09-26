@@ -23,12 +23,8 @@ def test_archive_holds_the_skill_directory_and_nothing_else(tmp_path):
     out = tmp_path / "a.zip"
     assert subprocess.run(TOOL + [str(out)], capture_output=True).returncode == 0
     names = zipfile.ZipFile(out).namelist()
-    on_disk = sorted(
-        "thai-docx/" + p.relative_to(ROOT / "skills" / "thai-docx").as_posix()
-        for p in (ROOT / "skills" / "thai-docx").rglob("*")
-        if p.is_file() and "__pycache__" not in p.parts
-    )
-    assert sorted(names) == on_disk
+    tracked = subprocess.run(["git", "ls-files", "skills/thai-docx"], cwd=ROOT, capture_output=True, text=True).stdout.split()
+    assert sorted(names) == sorted("thai-docx/" + name[len("skills/thai-docx/"):] for name in tracked)
     assert {"thai-docx/SKILL.md", "thai-docx/LICENSE.txt", "thai-docx/scripts/thai_docx.js", "thai-docx/scripts/thai_docx/__main__.py"} <= set(names)
     for kept_out in ("tools/", "tests/", "docs/", "gates.yaml", ".github/", "__pycache__"):
         assert not any(kept_out in n for n in names), kept_out
@@ -39,8 +35,13 @@ def test_archive_is_the_same_bytes_on_every_run(tmp_path, monkeypatch):
         subprocess.run(TOOL + [str(tmp_path / name)], check=True, capture_output=True)
     assert (tmp_path / "a.zip").read_bytes() == (tmp_path / "b.zip").read_bytes()
     # bytecode a run leaves in the skill directory is not packed, and changes nothing
-    copy = tmp_path / "skill"
+    # a copy of the tracked skill, in a repository of its own: what is packed is what git tracks
+    repo = tmp_path / "repo"
+    copy = repo / "skills" / "thai-docx"
     shutil.copytree(ROOT / "skills" / "thai-docx", copy, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+    monkeypatch.setattr(package_skill, "ROOT", repo)
     monkeypatch.setattr(package_skill, "SKILL", copy)
     package_skill.pack(tmp_path / "c.zip")
     (copy / "scripts" / "thai_docx" / "__pycache__").mkdir()
@@ -164,3 +165,19 @@ def test_the_front_matter_survives_being_written_again():
     # flattening is lossy if a nested key shares a name with a top-level one: the installer
     # would keep one and drop the other, without saying which
     assert not set(front["metadata"]) & set(front), (set(front["metadata"]) & set(front))
+
+
+def test_only_what_git_tracks_is_packed(tmp_path, monkeypatch):
+    """S5: the archive took every file under the skill's folder, so a file left there by hand —
+    a scratch note, a local profile — went into a release. It takes what git tracks."""
+    skill = tmp_path / "skills" / "thai-docx"
+    (skill / "scripts").mkdir(parents=True)
+    (skill / "SKILL.md").write_text("tracked\n", encoding="utf-8")
+    (skill / "scripts" / "run.py").write_text("tracked\n", encoding="utf-8")
+    (skill / "notes.txt").write_text("left here by hand\n", encoding="utf-8")
+    run = lambda *a: subprocess.run(["git", *a], cwd=tmp_path, check=True, capture_output=True)  # noqa: E731
+    run("init", "-q")
+    run("add", "skills/thai-docx/SKILL.md", "skills/thai-docx/scripts/run.py")
+    monkeypatch.setattr(package_skill, "ROOT", tmp_path)
+    monkeypatch.setattr(package_skill, "SKILL", skill)
+    assert [p.relative_to(skill).as_posix() for p in package_skill.files()] == ["SKILL.md", "scripts/run.py"]

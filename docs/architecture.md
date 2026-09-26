@@ -35,7 +35,7 @@ else in the repository is needed at run time ([ADR 0002](adr/0002-one-public-rep
 | Python or JavaScript scripts | parse, lay out, write, pack, check, compare; read the Markdown, images and profiles; write the output and profile files (limits: ADR 0040) |
 | file system | the Markdown file's tree, `--allow-dir` directories, `~/.thai-docx/profiles/`, `./.thai-docx/profiles/`, the output path |
 | office application (Word, LibreOffice, Google Docs, WPS) | opens the .docx; updates fields when the reader asks |
-| contributor and maintainer | propose, review and merge changes through pull requests held to the gates (`scans`, `commits`, `tests`, `lint`, `deps`, and CodeQL's code-scanning results) |
+| contributor and maintainer | propose, review and merge changes through pull requests held to the gates (`scans`, `commits`, `tests`, `lint`, `deps`, `pr-description`, and CodeQL's code-scanning results) |
 | CI (`gates.yml`) | runs scans, commit lint, the suite under coverage, lint and the dependency check (`deps`, OSV-Scanner) on every push and pull request |
 | code scanning (`codeql.yml`) | CodeQL's security-extended queries for Python, JavaScript and workflows, on every push, pull request and weekly |
 | project score (`scorecard.yml`) | OpenSSF Scorecard on `main`, published for the README badge |

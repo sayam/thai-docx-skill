@@ -47,6 +47,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: refs/tags/${{ github.event.inputs.tag || github.event.release.tag_name }}
+          persist-credentials: false
       - name: what was checked out is the tag's commit
         run: test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$TAG^{commit}")"
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -86,6 +87,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: refs/tags/${{ github.event.inputs.tag || github.event.release.tag_name }}
+          persist-credentials: false
       - name: what was checked out is the tag's commit
         run: test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$TAG^{commit}")"
       - name: every stated version is the tag
@@ -138,7 +140,8 @@ jobs:
           if gh attestation verify tampered.zip --bundle "$BUNDLE" --repo "$GITHUB_REPOSITORY"; then
             echo "a tampered archive verified against the attached bundle"; exit 1
           fi
+      # no overwrite flag: an asset a release already has is never replaced by a second run's bytes
       - name: attach the archive and its attestation to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$TAG" dist/*.zip dist/*.intoto.jsonl --clobber
+        run: gh release upload "$TAG" dist/*.zip dist/*.intoto.jsonl
