@@ -35,6 +35,9 @@ STYLE_ORDER: list = _DATA["style_order"]
 # overrides of direction, the tag characters — from one list both implementations read, so
 # neither asks its own runtime's Unicode tables, which differ in version (ADR 0008).
 INVISIBLE: dict[str, str] = _DATA["invisible"]
+# Punctuation that belongs to the letters around it (writer.script_runs): one list both
+# implementations read, so neither asks its runtime what punctuation is
+PUNCTUATION = frozenset(_DATA["punctuation"])
 FORMAT = frozenset(chr(cp) for first, last in _DATA["format"] for cp in range(first, last + 1))
 
 

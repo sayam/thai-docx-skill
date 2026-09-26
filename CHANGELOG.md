@@ -24,6 +24,10 @@ before two applications were read; the exception and what is owed are in
   silence; each is named with its line and left as typed. The Markdown page says the text is read
   in NFC, which puts marks typed out of order on one letter in order
   (`tests/test_what_a_command_takes.py::test_a_thai_mark_out_of_place_is_named`).
+- Every ASCII mark was a Latin run of its own, so `พ.ศ.` was four runs and `๑.๑` three.
+  Punctuation with Thai on both sides is Thai now; between Thai and English it goes with the
+  English, as Word puts the comma. **This changes the bytes of most Thai documents**, the goldens
+  among them (`tests/test_what_a_command_takes.py::test_punctuation_between_thai_is_not_cut_out_of_it`).
 
 ## [0.2.2] - 2026-09-26
 

@@ -874,3 +874,10 @@
   found_by: review
   test:
     - tests/test_what_a_command_takes.py::test_a_thai_mark_out_of_place_is_named
+
+- id: B-05
+  what: every ASCII mark was a Latin run of its own, so พ.ศ. was four runs and ๑.๑ three, a word cut apart by its punctuation
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_punctuation_between_thai_is_not_cut_out_of_it

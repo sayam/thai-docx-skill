@@ -479,3 +479,20 @@ def test_a_thai_mark_out_of_place_is_named(tmp_path):
     (tmp_path / "in.md").write_text("ปุ่ม\n", encoding="utf-8")  # the tone typed before the vowel
     code, result = both(["build", "in.md", "out.docx"], tmp_path)
     assert code == 0 and result["warnings"] == [], result
+
+
+def test_punctuation_between_thai_is_not_cut_out_of_it(tmp_path):
+    """B-05: every ASCII mark was a Latin run of its own, so `พ.ศ.` was four runs and `๑.๑` three,
+    a word cut apart. Punctuation with Thai on both sides is Thai; between Thai and English it
+    goes with the English, as Word puts the comma (2026-09-22, what Word writes)."""
+    import re
+    import zipfile
+    (tmp_path / "in.md").write_text("ปี พ.ศ. 2567 ข้อ ๑.๑ คำว่า “อ้างอิง” (ร้อยละ 98.3) ครบ\n\nเอกสารภาษาไทย, Markdown\n",
+                                    encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    assert code == 0 and result["findings"] == [], result
+    with zipfile.ZipFile(tmp_path / "out.docx") as z:
+        document = z.read("word/document.xml").decode("utf-8")
+    runs = [(bool(cs), text) for cs, text in re.findall(r'<w:r>(<w:rPr><w:cs/></w:rPr>)?<w:t xml:space="preserve">([^<]*)</w:t></w:r>', document)]
+    assert runs == [(True, "ปี พ.ศ"), (False, ". 2567 "), (True, "ข้อ ๑.๑ คำว่า “อ้างอิง” (ร้อยละ "), (False, "98.3) "),
+                    (True, "ครบ"), (True, "เอกสารภาษาไทย"), (False, ", Markdown")], runs
