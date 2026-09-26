@@ -392,3 +392,66 @@
   found_by: outside-review
   test:
     - tests/test_build_writes_what_it_was_given.py::test_math_is_said_to_be_kept_as_it_was_written_without_a_version
+
+- id: S1
+  what: actions/checkout given a bare tag name builds a branch of the same name in its place
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_release_is_bound_to_its_tag.py::test_the_release_checks_out_the_tag_as_a_tag_and_proves_it
+
+- id: S2
+  what: the attestation was verified against the repository only, so one made by another workflow or ref would pass
+  class: C1
+  found_by: review
+  test:
+    - tests/test_release_is_bound_to_its_tag.py::test_every_way_to_verify_a_release_names_the_workflow_and_the_tag
+
+- id: F-03
+  what: release-check ran the suite but not the lints or the coverage floor its gate names
+  class: C1
+  found_by: review
+  test:
+    - tests/test_release_is_bound_to_its_tag.py::test_the_tag_passes_the_gates_a_pull_request_passes
+
+- id: F-05
+  what: CITATION.cff's version and date were checked by nothing
+  class: C1
+  found_by: review
+  test:
+    - tests/test_package_skill.py::test_the_citation_names_the_release_the_changelog_names
+
+- id: F-09
+  what: the install guides' verify command named neither the workflow nor the ref
+  class: C1
+  found_by: review
+  test:
+    - tests/test_release_is_bound_to_its_tag.py::test_every_way_to_verify_a_release_names_the_workflow_and_the_tag
+
+- id: F-10
+  what: CI ran only the oldest Python and Node the docs promise
+  class: C1
+  found_by: review
+  test:
+    - tests/test_release_is_bound_to_its_tag.py::test_the_suite_runs_on_the_oldest_and_the_newest_runtimes_promised
+
+- id: F-11
+  what: tools/preflight.py imported YAML, and the requirements installed none
+  class: C1
+  found_by: review
+  test:
+    - tests/test_release_is_bound_to_its_tag.py::test_what_the_tools_import_the_requirements_pin
+
+- id: A-04
+  what: tools/oracle_set.py --help made a directory named --help and stopped with a trace
+  class: C1
+  found_by: review
+  test:
+    - tests/test_oracle_set.py::test_a_question_is_answered_with_the_usage_and_nothing_is_made
+
+- id: PR-53
+  what: no checklist item asked whether two level-1 headings, one Thai and one not, are centred alike
+  class: C1
+  found_by: office-app
+  test:
+    - tests/test_oracle_set.py::test_the_checklist_asks_whether_two_headings_match

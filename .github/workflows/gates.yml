@@ -69,6 +69,24 @@ jobs:
       - run: python3 -m coverage run -m pytest -q tests
       - run: python3 -m coverage combine -q && python3 -m coverage report
 
+  # And on the newest the skill promises: the docs say Python 3.11 or later and Node 22 or later,
+  # and a newer runtime's expat, zlib or Unicode tables are where the two ends part (ADR 0017).
+  tests-newest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - run: python3 -m pip install --require-hashes -r requirements/dev.txt
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: tests/js
+      - run: python3 -m pytest -q tests
+
   # The coding standards: PEP 8, pyflakes and bugbear over the skill, the tools and the tests
   # (ruff.toml); ESLint's recommended rules over js/*.js (tests/js/eslint.config.cjs).
   lint:

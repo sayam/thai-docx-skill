@@ -355,7 +355,8 @@ Optional. If you have the [GitHub CLI](https://cli.github.com/), check that the 
 project's release workflow built:
 
 ```sh
-gh attestation verify thai-docx-0.2.0.zip --repo sayam/thai-docx-skill
+gh attestation verify thai-docx-0.2.0.zip --repo sayam/thai-docx-skill \
+  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.2.0
 ```
 
 It says the verification succeeded, or fails for any other file.
@@ -365,7 +366,8 @@ page also carries `thai-docx-0.2.0.intoto.jsonl`, download it beside the zip and
 instead — no account, no network:
 
 ```sh
-gh attestation verify thai-docx-0.2.0.zip --bundle thai-docx-0.2.0.intoto.jsonl --repo sayam/thai-docx-skill
+gh attestation verify thai-docx-0.2.0.zip --bundle thai-docx-0.2.0.intoto.jsonl --repo sayam/thai-docx-skill \
+  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.2.0
 ```
 
 ## Update or remove

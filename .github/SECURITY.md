@@ -41,10 +41,10 @@ anywhere). Check a download before you install it:
 
 ```sh
 gh attestation verify thai-docx-<version>.zip --repo sayam/thai-docx-skill \
-  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml
+  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v<version>
 ```
 
-It fails for any file the workflow did not build. The identity to expect: certificate issuer
+It fails for any file the workflow did not build, and for one it built from any other ref. The identity to expect: certificate issuer
 `https://token.actions.githubusercontent.com`, signer workflow
 `sayam/thai-docx-skill/.github/workflows/release.yml`, source ref `refs/tags/v<version>`.
 
@@ -55,7 +55,7 @@ account and no network:
 ```sh
 gh attestation verify thai-docx-<version>.zip --bundle thai-docx-<version>.intoto.jsonl \
   --repo sayam/thai-docx-skill \
-  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml
+  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v<version>
 ```
 
 The release workflow verifies both ways itself, against the very file it is about to attach, and
