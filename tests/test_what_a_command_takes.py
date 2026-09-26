@@ -299,3 +299,99 @@ def test_allow_dir_never_opens_the_whole_machine(tmp_path):
     code, result = both(["build", "in.md", "out.docx", "--allow-dir", ""], tmp_path)
     assert code == 2 and result["error"] == "--allow-dir takes a directory; an empty one names none", result
     assert not (tmp_path / "out.docx").exists()
+
+
+# --- what the review of 0.2.0 left for 0.2.2 -------------------------------------------------
+
+
+def test_profile_export_writes_where_it_is_told_and_makes_no_folder(tmp_path):
+    """`export PATH` made every missing folder above PATH; only the two profile folders are the
+    skill's to make (ADR 0040)."""
+    def saved():
+        one(PY, ["profile", "save", "mine", "--size", "15"], tmp_path)
+    code, result = both(["profile", "export", "mine", "a/b/c/mine.json"], tmp_path, setup=saved)
+    assert code == 2 and result["error"].startswith("cannot write a/b/c/mine.json"), result
+    assert not (tmp_path / "a").exists()
+    code, result = both(["profile", "export", "mine", "mine.json"], tmp_path, setup=saved)
+    assert code == 0 and (tmp_path / "mine.json").is_file(), result
+
+
+def test_an_entry_encrypted_anywhere_in_the_package_is_refused(tmp_path):
+    """Only the XML parts were asked; repair then copied an encrypted picture under flags that
+    said it was not."""
+    parts = replaced(good(), "word/document.xml", "<w:cs/>", "<w:noProof/><w:cs/>")
+    data = bytearray(pack({**parts, "word/media/image1.png": b"\x89PNG not really"}))
+    name = b"word/media/image1.png"
+    # the encryption bit set in the entry's local and central headers, as a writer that
+    # encrypted it would; the bytes themselves do not matter to what is asked
+    for signature, flags_at, name_at in ((b"PK\x03\x04", 6, 30), (b"PK\x01\x02", 8, 46)):
+        at = data.find(signature)
+        while data[at + name_at:at + name_at + len(name)] != name:
+            at = data.find(signature, at + 1)
+        data[at + flags_at] |= 0x1
+    (tmp_path / "in.docx").write_bytes(bytes(data))
+    for args in (["check", "in.docx"], ["repair", "in.docx", "out.docx"]):
+        code, result = both(args, tmp_path)
+        assert code == 2 and "entry uses encryption" in json.dumps(result), (args, result)
+    assert both(["check", "in.docx"], tmp_path)[1]["findings"][0]["part"] == "word/media/image1.png"
+    assert not (tmp_path / "out.docx").exists()
+
+
+def test_an_unused_definition_is_named_at_its_own_line(tmp_path):
+    """Every definition after the first in a paragraph was said to be on the first one's line."""
+    (tmp_path / "in.md").write_text("[a]: /1\n[b]:\n  /2\n[c]: /3\n\ntext [a]\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    assert code == 0 and [w["message"].split(":")[0] for w in result["warnings"]] == ["line 2", "line 4"], result
+
+
+def test_a_drive_path_is_a_path_not_a_remote_image(tmp_path):
+    """`C:\\…` was answered as a URL: "remote images are not supported"."""
+    for src in ("C:\\Users\\x\\p.png", "C:/Users/x/p.png"):
+        (tmp_path / "in.md").write_text("![p](" + src + ")\n", encoding="utf-8")
+        code, result = both(["build", "in.md", "out.docx"], tmp_path)
+        assert code == 2 and "remote" not in result["error"], (src, result)
+    (tmp_path / "in.md").write_text("![p](https://example.org/p.png)\n", encoding="utf-8")
+    assert "remote images are not supported" in both(["build", "in.md", "out.docx"], tmp_path)[1]["error"]
+
+
+def test_a_flag_that_reaches_nothing_says_so(tmp_path):
+    """limits.md §6 promised a warning for a flag that changes nothing; these two gave none."""
+    (tmp_path / "th.md").write_text("# หัวข้อ\n\nข้อความ **หนา**\n", encoding="utf-8")
+    (tmp_path / "en.md").write_text("# Title\n\nEnglish only text.\n", encoding="utf-8")
+    plain = both(["build", "th.md", "out.docx"], tmp_path)[1]
+    code, result = both(["build", "th.md", "out.docx", "--force-cs-whole-doc"], tmp_path)
+    assert result["sha256"] == plain["sha256"], "the flag did change a byte; the warning would be false"
+    assert {"code": "settings", "message": "--force-cs-whole-doc changed nothing: every run is Thai text,"
+            " and is marked complex script already"} in result["warnings"], result
+    code, result = both(["build", "en.md", "out.docx", "--thai-language"], tmp_path)
+    # it names the language in the styles all the same, so it did change bytes: not "changed nothing"
+    assert result["sha256"] != both(["build", "en.md", "out.docx"], tmp_path)[1]["sha256"]
+    assert {"code": "settings", "message": "--thai-language reached no run: the document has no Thai text,"
+            " and only the styles name the language"} in result["warnings"], result
+    for args in (["en.md", "out.docx", "--force-cs-whole-doc"], ["th.md", "out.docx", "--thai-language"]):
+        assert not [w for w in both(["build", *args], tmp_path)[1]["warnings"] if w["code"] == "settings"], args
+
+
+def test_a_caption_is_never_given_less_than_an_inch(tmp_path):
+    """A hang past the text, or a caption box as narrow as a small picture, wrote a line of no
+    width, or of less than none."""
+    import struct
+    import zlib
+
+    def png(width: int) -> bytes:
+        rows = b"".join(b"\x00" + b"\xff\xff\xff" * width for _ in range(40))
+        chunk = lambda kind, data: struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))  # noqa: E731
+        return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, 40, 8, 2, 0, 0, 0))
+                + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b""))
+    (tmp_path / "small.png").write_bytes(png(40))
+    (tmp_path / "wide.png").write_bytes(png(400))
+    (tmp_path / "in.md").write_text("![a](small.png)\n\nFigure: ขั้นตอน\n\n![b](wide.png)\n\nFigure: กว้าง\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx", "--margins", "1,3.6,1,3.6", "--caption-hanging-indent", "4"], tmp_path)
+    assert code == 2 and result["error"] == "--caption-hanging-indent leaves less than one inch for text", result
+    code, result = both(["build", "in.md", "out.docx", "--caption-matches-object", "--caption-hanging-indent", "0.75"], tmp_path)
+    assert code == 0 and [w["message"] for w in result["warnings"]] == [
+        "line 3: the picture is too narrow for a caption of its width; the caption takes the width of the text"], result
+    import zipfile
+    with zipfile.ZipFile(tmp_path / "out.docx") as z:
+        document = z.read("word/document.xml").decode("utf-8")
+    assert '<w:ind w:left="1080" w:hanging="1080"/>' in document and 'w:right="' in document

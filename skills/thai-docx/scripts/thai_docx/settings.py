@@ -48,6 +48,8 @@ STRUCTURES = {
     "front": ("a `<!-- front -->` comment", "the document has no <!-- front --> comment"),
     "numbers": ("a numbered heading, an ordered list or a caption",
                 "the document has no numbered heading, ordered list or caption"),
+    "other text": ("a run that is not Thai (a number, a Latin word, a footnote's mark)",
+                   "every run is Thai text, and is marked complex script already"),
 }
 # (what the document places, as the reference names it; what the flag then does; the warning)
 CLASHES = {
@@ -125,6 +127,7 @@ SETTINGS: tuple[dict, ...] = (
      "doc": ("the complex-script language of the text", "left to the reader's machine",
              "`--thai-language` (writes `w:bidi=\"th-TH\"`; see [limits.md](limits.md) §3)")},
     {"key": "force_cs_whole_doc", "flag": "--force-cs-whole-doc", "kind": "switch", "default": False, "layer": 1,  # ADR 0039
+     "needs": "other text",
      "report": ("force_cs_whole_doc", "value"),
      "doc": ("which runs are marked complex script", "the runs whose text is complex script",
              '`--force-cs-whole-doc` (every run, as releases before 0.2.0 wrote: one font throughout, '
@@ -182,7 +185,9 @@ SETTINGS: tuple[dict, ...] = (
     {"key": "caption_matches_object", "flag": "--caption-matches-object", "kind": "switch", "default": False, "layer": 5,
      "needs": "figure captions",
      "report": ("caption_matches_object", "value"),
-     "doc": ("the width of a caption", "the width of the text", "`--caption-matches-object` (as wide as the picture it belongs to)")},
+     "doc": ("the width of a caption", "the width of the text",
+             "`--caption-matches-object` (as wide as the picture it belongs to; a picture too narrow to leave "
+             "an inch gives its caption the text width, and the build says so)")},
     {"key": "front_page_numbers", "flag": "--front-page-numbers", "kind": "value", "default": "thai-letters", "layer": 5,
      "read": ("choice", tuple(FRONT_NUMBERS)), "takes": ", ".join(FRONT_NUMBERS),
      "needs": "front",
@@ -329,6 +334,10 @@ def parse_args(argv: list[str]) -> tuple[dict, list[str], list[str]]:
         raise BuildError("--margins leave less than one inch for text")
     if pw - left - right - half_up(opts["indent"] * 1440) < MIN_TEXT_TWIPS:
         raise BuildError("--indent leaves less than one inch for text")
+    if pw - left - right - half_up(opts["caption_hanging_indent"] * 1440) < MIN_TEXT_TWIPS:
+        # every line of a caption after its first stands that far in: past the text, a line
+        # of negative width, which no application lays out as the user meant
+        raise BuildError("--caption-hanging-indent leaves less than one inch for text")
     return opts, positional, allow
 
 
@@ -360,6 +369,10 @@ def settings_warnings(opts: dict, present: set[str]) -> list[str]:
         if need in STRUCTURES and need not in present and opts[s["key"]] != s["default"]:
             missing.setdefault(need, []).append(s["flag"])
     out = [_and(flags) + " changed nothing: " + STRUCTURES[need][1] for need, flags in missing.items()]
+    # --thai-language names the language in the styles whatever the text is, so it changed bytes
+    # and is not a flag that "changed nothing"; with no Thai text it still reached no run
+    if opts["thai_language"] and "thai text" not in present:
+        out.append("--thai-language reached no run: the document has no Thai text, and only the styles name the language")
     for s in SETTINGS:
         clash = s.get("clashes")
         if clash in present and opts[s["key"]] != s["default"]:

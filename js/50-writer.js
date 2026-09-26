@@ -176,6 +176,7 @@ class Writer {
     this.imageTwips = 0; // the width the last image was drawn at, for --caption-matches-object
     this.cs = opts.thai_language ? CS_THAI : CS;
     this.csAll = opts.force_cs_whole_doc; // mark every run, as releases before 0.2.0 did
+    this.scripts = new Set(); // whether a run of each kind was written: a flag's need
     // a style is not a run: it names the Latin language for an application that reads styles but
     // not docDefaults, and never says complex script, which each run says for itself
     this.styleLang = '<w:lang w:val="en-US"' + (opts.thai_language ? ' w:bidi="th-TH"' : "") + "/>";
@@ -198,6 +199,7 @@ class Writer {
 
   // What says a run is complex script, or nothing when its text is not.
   marker(complexScript) {
+    this.scripts.add(complexScript);
     return complexScript || this.csAll ? this.cs : "";
   }
 
@@ -274,7 +276,8 @@ class Writer {
 
   image(node) {
     const src = node.src;
-    if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(src)) {
+    // a drive letter is a path, not a URL scheme (writer.py says why)
+    if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(src) && !/^[A-Za-z]:[\\/]/.test(src)) {
       throw new BuildError("image '" + src + "': remote images are not supported; only local PNG or JPEG files");
     }
     const [path, data] = this.readImage(src);
@@ -413,7 +416,7 @@ class Writer {
       const b = item.block;
       if (item.new_section) out.push(SECTION_MARK);
       if (item.caption) {
-        out.push(this.caption(item.caption, Boolean(item.keep_next)));
+        out.push(this.caption(item.caption, Boolean(item.keep_next), b.line));
       } else if (b.t === "directive") {
         out.push(this.field(listField(b.name, this.opts), "", listEntries(this.items, b.name)));
       } else if (b.t === "heading") {
@@ -433,14 +436,14 @@ class Writer {
   // after the label and starting again at each chapter, in Thai digits when those are asked for
   // — with the results written in, so an application that never updates fields still shows them.
   // settings.xml carries the label itself (captionsXml).
-  caption(c, keepNext) {
+  caption(c, keepNext, line) {
     this.counts.paragraphs += 1;
     const bold = "<w:b/><w:bCs/>";
     const run = (text, rpr) => this.runs(text, rpr);
     // --caption-hanging-indent: the label and number keep the margin and every line after the
     // first is indented, so a caption that runs on reads as one block beside its number
     const hang = halfUp(this.opts.caption_hanging_indent * 1440);
-    const [boxLeft, boxRight] = this.captionBox(c);
+    const [boxLeft, boxRight] = this.captionBox(c, hang, line);
     const attrs = (boxLeft + hang ? ' w:left="' + (boxLeft + hang) + '"' : "") + (boxRight ? ' w:right="' + boxRight + '"' : "");
     const ind = attrs || hang ? "<w:ind" + attrs + (hang ? ' w:hanging="' + hang + '"' : "") + "/>" : "";
     let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + ind +
@@ -483,8 +486,15 @@ class Writer {
   // split, so the caption's box is the picture's box. The width is the last picture written,
   // which is this caption's: a Figure: caption is made only where the paragraph just before it
   // holds a picture and nothing else (48-layout.js).
-  captionBox(c) {
+  // A picture too narrow to leave an inch for the caption's lines gives its caption the text
+  // width instead, and says so (writer.py's caption_box says why).
+  captionBox(c, hang, line) {
     if (!(this.opts.caption_matches_object && c.kind === "figure" && this.imageTwips)) return [0, 0];
+    if (Math.min(this.imageTwips, this.textWidthTwips) - hang < MIN_TEXT_TWIPS) {
+      this.layoutWarnings.push("line " + line + ": the picture is too narrow for a caption of its width;" +
+        " the caption takes the width of the text");
+      return [0, 0];
+    }
     const slack = Math.max(this.textWidthTwips - this.imageTwips, 0);
     const left = this.opts.center_images ? Math.floor(slack / 2) : 0;
     return [left, slack - left];

@@ -582,13 +582,15 @@ function finalizeDocument(p, doc) {
 function takeReferences(p, b) {
   let content = b.stringContent;
   let hasDefs = false;
+  let dropped = 0; // lines already taken: the next definition starts that many lines further down
   while (peekCh(content, 0) === "[") {
-    const pos = new InlineParser(p, b.line).parseReference(content, p.refmap);
+    const pos = new InlineParser(p, b.line + dropped).parseReference(content, p.refmap);
     if (!pos) break;
     const consumed = content.slice(0, pos);
     content = content.slice(pos);
     hasDefs = true;
     const drop = consumed.split("\n").length - 1;
+    dropped += drop;
     b.lines = b.lines.slice(drop);
   }
   b.stringContent = content;

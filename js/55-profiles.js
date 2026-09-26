@@ -377,14 +377,15 @@ function profileIsFile(p) {
 }
 
 // The whole file or none of it: written beside the target, then put in its place, so a
-// write that fails leaves the profile that was there as it was.
-function profileWrite(profile, p) {
+// write that fails leaves the profile that was there as it was. Only the two profile folders
+// are made when missing (ADR 0040); `export` writes where it is told, or nowhere.
+function profileWrite(profile, p, makeFolder = true) {
   const fs = require("fs");
   const path = require("path");
   const data = utf8(profileCanonical(profile));
   const partial = p + ".partial";
   try {
-    fs.mkdirSync(path.dirname(p), { recursive: true });
+    if (makeFolder) fs.mkdirSync(path.dirname(p), { recursive: true });
     fs.writeFileSync(partial, data);
     fs.renameSync(partial, p);
   } catch (e) {
@@ -561,7 +562,7 @@ function profileRun(argv) {
     const data = profileRead(p);
     const name = path.basename(p, ".json");
     const out = rest.length === 2 ? rest[1] : name + ".json";
-    profileWrite(data, out);
+    profileWrite(data, out, false);
     return { ok: true, name, path: out, sha256: profileDigest(data.settings),
       share: "send this file; the other side runs `thai_docx profile import " + path.basename(out) + "`" };
   }

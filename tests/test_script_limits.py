@@ -88,3 +88,20 @@ def test_the_limits_catch_what_they_name(tmp_path):
     clean = tmp_path / "clean.py"
     clean.write_text("import os\nimport json\nfrom xml.etree import ElementTree\nprint(os.path.join('a', 'b'))\n", encoding="utf-8")
     assert _findings(clean, tmp_path) == []
+
+
+def test_running_the_package_leaves_no_cache(tmp_path):
+    """Every run wrote sixteen `.pyc` files into the installed skill's folder: a write ADR 0040
+    does not name. One is left, the entry point's, which the interpreter writes before any line
+    of the skill runs; `-B` leaves none. The test may start a process; the scripts may not."""
+    import shutil
+    import subprocess
+    import sys
+    copy = tmp_path / "thai-docx"
+    shutil.copytree(SCRIPTS.parent, copy, ignore=shutil.ignore_patterns("__pycache__"))
+    for flags, left in (([], ["__main__"]), (["-B"], [])):
+        done = subprocess.run([sys.executable, *flags, str(copy / "scripts" / "thai_docx"), "check", str(tmp_path / "none.docx")],
+                              capture_output=True, timeout=30)
+        assert done.returncode == 2, done.stdout
+        assert sorted(p.name.split(".")[0] for p in copy.rglob("*.pyc")) == left, flags
+        shutil.rmtree(copy / "scripts" / "thai_docx" / "__pycache__", ignore_errors=True)

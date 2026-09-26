@@ -66,6 +66,7 @@ def test_save_show_export_import_and_build_with_a_profile(home):
     assert shown["settings"] == saved["settings"] and shown["sha256"] == saved["sha256"]
     assert shown["resolved"]["size_pt"] == 15 and shown["resolved"]["font"] == b.DEFAULTS["font"]
 
+    pathlib.Path("share").mkdir()  # export writes where it is told, and makes no folder (D-12)
     exported = run("profile", "export", "thesis", "share/thesis.json")
     assert exported["ok"] and pathlib.Path("share/thesis.json").read_bytes() == path.read_bytes()
     assert "profile import thesis.json" in exported["share"]

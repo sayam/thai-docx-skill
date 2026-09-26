@@ -662,14 +662,16 @@ def _take_references(p, b) -> bool:
     """Strip leading link reference definitions; True when nothing else is left."""
     content = b.string_content
     has_defs = False
+    dropped = 0  # lines already taken: the next definition starts that many lines further down
     while _peek(content, 0) == "[":
-        pos = InlineParser(p, b.line).parse_reference(content, p.refmap)
+        pos = InlineParser(p, b.line + dropped).parse_reference(content, p.refmap)
         if not pos:
             break
         consumed = content[:pos]
         content = content[pos:]
         has_defs = True
         drop = consumed.count("\n")
+        dropped += drop
         b.lines = b.lines[drop:]
     b.string_content = content
     return has_defs and not re_non_space.search(content)
