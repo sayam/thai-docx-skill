@@ -366,7 +366,7 @@ function checkTextPart(name, root, report, roles) {
         // one direction only: a run that holds no complex script may carry the marker, because
         // --force-cs-whole-doc writes it on every run and that file is ours too
         if (thai && !marked) {
-          report.find("2", name, "a run whose text is complex script has no <w:cs/> element");
+          report.find("2", name, "a run whose text is Thai has no <w:cs/> element");
         }
         if (marked) {
           const lang = rpr.find(w("lang"));

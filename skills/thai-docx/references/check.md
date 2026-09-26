@@ -19,7 +19,7 @@ not a damaged document. Explain each finding by its code, in the user's language
 | `5` | a Latin property with no complex-script twin (`w:cs` font, `szCs`, `bCs`, `iCs`) — in a run, a style, a paragraph mark or a numbering level — or a Symbol-font bullet | Thai in the wrong font or size, bold not bold, broken bullets |
 | `invisible` | a character a reader cannot see: the zero-width five by name, and any other format character (a soft hyphen, a direction mark) or noncharacter by its code point | words that do not wrap, text that searches wrongly or reads in the wrong direction |
 | `order` | formatting properties in an order the schema does not allow: a run's, a paragraph's or its mark's, a section's, a table's, a row's or a cell's, a style's, a numbering level's, the settings' | a setting silently ignored, e.g. bold or size not applied |
-| `package`, `doctype`, `size` | the file is damaged, not a Word document, saved as Strict Open XML (ask the user to save it again as Word Document), a part is not UTF-8 (a part in UTF-16 is refused before it is read), or refused as unsafe (exit 2) | the file may not open at all |
+| `package`, `doctype`, `size` | the file is damaged, not a Word document, saved as Strict Open XML (ask the user to save it again as Word Document), holds an entry encrypted or compressed other than stored or deflate, a part is not UTF-8 (a part in UTF-16 is refused before it is read), or refused as unsafe (exit 2) | the file may not open at all |
 
 `warnings` never fail the check (exit 0 with warnings is a pass): today there is one, a
 complex-script font the checker does not know to carry Thai glyphs. Pass it on — the Thai may
@@ -33,7 +33,8 @@ The check reads every part of the package that holds text a reader sees: the bod
 comments, the footnotes and endnotes, and each header and footer. It finds them as Word does,
 by the package's relationships, not by their file names — a first-page header may be
 `headerFirst.xml`. A finding names the part it is in, so say which one when the answer is not
-the body. Formatting that a tracked change says a style once had is history, and not checked.
+the body. Formatting that a tracked change says a style once had is history: its twins are not asked for,
+though its order still is.
 
 This reports. To fix a file whose content the user does not have, `repair` writes a new one
 with every finding gone but `4`, `invisible` and a compatibility mode the file never declared, which it reports — [repair.md](repair.md).

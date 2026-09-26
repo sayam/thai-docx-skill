@@ -121,15 +121,19 @@ the same settings under a name ([profiles.md](profiles.md)).
 
 ## What stops the build
 
-It stops rather than writes a file it is unsure of, and names the line (exit 2):
+It stops rather than writes a file it is unsure of, and names the line — for a picture, its path (exit 2):
 
-- an HTML tag that is not one of the five above — rewrite it as Markdown;
-- an invisible character (zero width space, joiner, word joiner, byte order mark);
+- an HTML tag that is not one of the five above, or one of them alone on its own line — rewrite it
+  as Markdown; `<?…?>`, `<!DOCTYPE …>`, `<![CDATA[…]]>`; a comment never closed, or text after a
+  comment on its line;
+- a link to anything but `http`, `https` or `mailto` (a link with no scheme is written as it is);
+- a character a reader cannot see: a zero-width character, a soft hyphen, a direction mark, any
+  other format character, a noncharacter;
 - blocks or inline formatting nested more than 100 deep;
 - a footnote defined but never referenced, or defined twice; a table row with more cells than its
   header; region comments out of order or twice;
-- an image that is not PNG or JPEG, is not whole, is outside the Markdown's folder
-  (unless `--allow-dir` names one), or is too large for a .docx;
+- an image that is missing, remote, not PNG or JPEG, not whole, wider or taller than 20,000
+  pixels, outside the Markdown's folder (unless `--allow-dir` names one), or too large for a .docx;
 - a front matter declaration or a flag value outside what [settings.md](settings.md) allows.
 
 ## What only warns
@@ -137,8 +141,10 @@ It stops rather than writes a file it is unsure of, and names the line (exit 2):
 The file is written; pass the warnings on. An image with nothing between the brackets of `![]`;
 a heading level skipped; a link definition nobody uses; `ำ` typed as `ํ` + `า`; a paragraph that
 opens with `ตาราง:` or `รูป:` where a caption would go — the prefix is `Table:` or `Figure:`, in
-English, in every language; `$…$` math, kept as literal LaTeX; and a flag whose structure the
-document has not got.
+English, in every language; a `Table:` or `Figure:` line where no caption can go; a region comment
+inside a list, quotation or footnote; a font not known to carry Thai; `--toc` beside `<!-- toc -->`;
+`$…$` math, kept as literal LaTeX; a picture too narrow for a caption of its width; a flag whose
+structure the document has not got; and `--thai-language` with no Thai text to reach.
 
 ## Writing Thai
 

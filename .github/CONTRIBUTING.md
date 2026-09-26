@@ -139,7 +139,7 @@ the rest is marked `export-ignore` (`docs/adr/0018`).
 
 Every pull request is reviewed by a code owner before it merges; the maintainer's own pull
 requests are reviewed against the same list by the maintainer and by the required checks
-(`scans`, `commits`, `tests`, `lint`, `deps`) and CodeQL's alerts ("Static analysis" above). A
+(`scans`, `commits`, `tests`, `lint`, `deps`, `pr-description`) and CodeQL's alerts ("Static analysis" above). A
 review looks at:
 
 1. **The claim.** The description says what changes for a user and why; a design change links
@@ -173,6 +173,8 @@ Nothing merges with a failing required check.
    `Superseded by: NNNN` — the doctor reads both sides. A record that changes part of an older one
    says `Amends: NNNN (what)`, and the older one gets `Amended by: NNNN (what)` — the tests read
    both sides (`tests/test_adr_amendments.py`).
+5. An accepted record is never rewritten. When a sentence of it stops being true of the code, it
+   keeps its words and gains a dated line beneath them, `> **Later (YYYY-MM-DD):** what holds now`.
 
 ## Before a release
 

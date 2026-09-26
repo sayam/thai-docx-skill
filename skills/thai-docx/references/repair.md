@@ -9,14 +9,14 @@ python3 <skill>/scripts/thai_docx repair IN.docx OUT.docx
 
 A new file is written; the one given is never touched — an OUT that is IN, by its path, a
 symbolic link or a hard link, is refused before anything is read. Tell the user both paths.
-`--font NAME` takes what the build's `--font` takes.
+`--font NAME` takes what the build's `--font` takes, written after IN and OUT (not `--font=NAME`).
 
 ## What this version repairs
 
 | code | what it does |
 |---|---|
-| `1` | sets a declared compatibility mode to 15 and drops a second one; a file that declares none is left so, and `1` stays in `remaining` |
-| `2` | marks a run `<w:cs/>` where its text is complex script (deleted text too; a `<w:cs w:val="0"/>` there becomes `<w:cs/>`) and takes the mark off where it is not — off the document defaults and the styles too, or a run would only inherit it again; cuts a run that holds both scripts where the script changes. A run that carries a field, a picture, a tab, a break or a numeric character reference is never cut. `--force-cs-whole-doc` marks every run instead and cuts nothing. `--thai-language` also writes `<w:lang w:bidi="th-TH"/>` on the marked runs, and the report says into how many — see [limits.md](limits.md) §3 and §10 |
+| `1` | sets a declared compatibility mode to 15 and drops a second one; a file that declares none is left so, and `1` stays in `remaining` — when that is its only finding, nothing is written and the answer is an `error` (exit 2) |
+| `2` | marks a run `<w:cs/>` where its text is complex script (deleted text too; a `<w:cs w:val="0"/>` there becomes `<w:cs/>`) and takes the mark off where it is not — off the document defaults and the styles too, or a run would only inherit it again; cuts a run that holds both scripts where the script changes. A run that carries a field, a picture, a tab, a break or a numeric character reference is never cut. `--force-cs-whole-doc` marks every run instead and cuts nothing — in a file it repairs for another finding; a file with none is answered `clean` and left as it is (rebuild it with the flag instead). `--thai-language` also writes `<w:lang w:bidi="th-TH"/>` on the marked runs, and the report says into how many — see [limits.md](limits.md) §3 and §10 |
 | `3` | removes `<w:noProof/>`, wherever in the package it is; one that says `w:val="0"` already switches proofing on, and stays |
 | `5` | writes the missing twin of `w:sz`, `w:b` and `w:i` — in a run, a style, a paragraph mark or a numbering level; adds a complex-script font to an `w:rFonts` that names only a Latin one; gives a Symbol bullet a font with Thai in it |
 | `order` | puts a run's, a paragraph's or its mark's, a section's, a table's, a row's, a cell's, a style's, a numbering level's and the settings' properties back in the order the schema fixes |
@@ -34,13 +34,15 @@ A part holding an XML comment, a CDATA section or a processing instruction — W
 is left as it came, with a `left` warning, and its findings stay in `remaining`. A document
 written under a prefix other than `w:` is refused.
 
-**The font.** A run that names no complex-script font is given one: what `--font` says, else the
-complex-script font the document already uses most — counting only fonts known to carry Thai —
-else this skill's own default. The choice comes back in `warnings`; read it out to the user.
+**The font.** A run whose `w:rFonts` names a Latin font and no complex-script one is given one,
+and so is a Symbol bullet: what `--font` says, else the complex-script font the document already
+uses most — counting only fonts known to carry Thai — else this skill's own default. When one was
+written, the choice comes back in `warnings` as `font`; read it out to the user. A run with no
+`w:rFonts` is given none.
 
 **The file is about the size it was.** The parts this rewrites are compressed again, by a
 deflate this project wrote so that both implementations produce the same bytes; a python-docx
-file of 36,810 bytes comes back as 39,415. A part is stored instead when compressing would not
+file of 36,810 bytes comes back as 39,422. A part is stored instead when compressing would not
 make it smaller.
 
 ## What it never does

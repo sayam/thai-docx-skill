@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
-"""The .docx container: writing stored entries, and reading entries by the rules
+"""The .docx container: writing stored entries (a build), writing a package again with its
+rewritten parts deflated by `deflate` (a repair), and reading entries by the rules
 ADR 0017 numbers — the same rules js/10-zip.js follows, so a damaged package gets
 the same verdict from both implementations and from every Python release.
 """

@@ -853,3 +853,17 @@
   found_by: review
   test:
     - tests/test_rules.py::test_what_the_review_found_the_pages_left_out_they_now_say
+
+- id: AU-01
+  what: repair's `font` warning ("complex-script font written where a run named none") came with every mark or twin repaired, where no font was written
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_repair_says_it_wrote_a_font_only_where_it_did
+
+- id: AU-02
+  what: a picture refused for its bytes or its size was not named, in a document of several pictures
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_picture_refused_is_named

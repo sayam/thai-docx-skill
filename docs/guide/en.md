@@ -14,7 +14,7 @@ a character of your text.
 | asking an AI assistant — in a chat, an editor or a terminal — for a Word file | **thai-docx**. The assistant writes the content, the bundled command builds the file |
 | a program or a script of your own that writes .docx | **thai-docx** at the command line |
 | you already have a Word file that shows red squiggles or breaks lines oddly | **thai-docx** checks it and says what is wrong, whatever made it |
-| hoping Word will repair such a file when you open and save it | it does not. Word rewrites the runs as English and leaves the Thai unmarked — and an assistant working inside Word does the same |
+| hoping Word will repair such a file when you open and save it | it does not. Saved without an edit, the file comes back as it was; edited in Word for the web, the runs are rewritten as English and the Thai left unmarked — and an assistant working inside Word does the same |
 
 The difference is who wrote the file, and when. Word marks Thai correctly as you type it; almost
 nothing else does, and Word does not go back and fix what it did not type. That is the fault this

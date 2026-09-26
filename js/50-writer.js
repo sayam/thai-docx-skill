@@ -282,7 +282,14 @@ class Writer {
     }
     const [path, data] = this.readImage(src);
     if (!this.imageRel.has(path)) {
-      const [kind, wpx, hpx] = imageSize(data);
+      let size;
+      try {
+        size = imageSize(data);
+      } catch (e) {
+        if (!(e instanceof BuildError)) throw e;
+        throw new BuildError("image '" + src + "'" + e.what.slice("image".length)); // which picture
+      }
+      const [kind, wpx, hpx] = size;
       const n = this.media.length + 1;
       this.media.push(["word/media/image" + n + "." + kind, data]);
       const rid = this.rel(REL + "image", "media/image" + n + "." + kind);

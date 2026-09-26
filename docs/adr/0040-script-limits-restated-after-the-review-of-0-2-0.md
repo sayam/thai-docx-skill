@@ -50,6 +50,11 @@ unchanged.
      only after refusing a name that is a path, and whole or not at all: an existing profile is
      replaced only by a file that was written completely;
    - on `profile export`, the one path the user gave.
+
+   > **Later (2026-09-26):** with no path given, `profile export NAME` writes `./NAME.json` in the
+   > working directory, as its usage says; and every profile write, `export` included, first writes
+   > `<path>.partial` beside the target and renames it into place, removing it if the write fails.
+   > Since 0.2.2 `export` makes no folder: a path whose folder is missing is refused.
 4. **Reads** only regular files — judged on the file once opened, opened without waiting, so a FIFO
    cannot hang the open and nothing changes between the look and the read — each with a ceiling it
    checks by reading one byte past it rather than by asking the size first:
