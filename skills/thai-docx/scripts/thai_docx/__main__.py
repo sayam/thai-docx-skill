@@ -14,6 +14,7 @@ Standard library only; no network, no subprocesses (ADR 0030).
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import sys
 
@@ -25,21 +26,41 @@ else:
     from . import build, check, grill, profiles, repair
 
 
+COMMANDS = {"check": check.main, "build": build.main, "repair": repair.main, "profile": profiles.main, "grill": grill.main}
+
+
+def not_text(arg: str) -> bool:
+    """An argument that held bytes of another encoding. Python keeps each such byte as a lone
+    surrogate; Node puts U+FFFD in its place and cannot tell it from one typed, so both refuse
+    either, and give the same answer for the same argument."""
+    return "\ufffd" in arg or any("\ud800" <= c <= "\udfff" for c in arg)
+
+
+def refuse(message: str, code: int) -> int:
+    print(json.dumps({"ok": False, "error": message}, ensure_ascii=False))
+    return code
+
+
 def main(argv: list[str]) -> int:
-    if argv and argv[0] == "check":
-        return check.main(argv[1:])
-    if argv and argv[0] == "build":
-        return build.main(argv[1:])
-    if argv and argv[0] == "repair":
-        return repair.main(argv[1:])
-    if argv and argv[0] == "profile":
-        return profiles.main(argv[1:])
-    if argv and argv[0] == "grill":
-        return grill.main(argv[1:])
-    print(json.dumps({"ok": False, "error": "usage: thai_docx check FILE.docx | build IN.md OUT.docx"
-                                               " | repair IN.docx OUT.docx | profile ... | grill --said ..."}))
-    return 2
+    bad = next((i for i, arg in enumerate(argv) if not_text(arg)), None)
+    if bad is not None:
+        return refuse("argument " + str(bad + 1) + " is not UTF-8 text; a name or value in another encoding cannot be read", 2)
+    try:
+        os.getcwd()
+    except OSError:
+        return refuse("the working directory no longer exists; run the command from one that does", 2)
+    command = COMMANDS.get(argv[0]) if argv else None
+    if command is None:
+        return refuse("usage: thai_docx check FILE.docx | build IN.md OUT.docx"
+                      " | repair IN.docx OUT.docx | profile ... | grill --said ...", 2)
+    try:
+        return command(argv[1:])
+    except Exception:  # noqa: BLE001  whatever it was, the answer is still one JSON line
+        # SKILL.md reads exit 1 as a defect in this skill: that is what this is
+        return refuse("a defect in thai-docx stopped this command; do not retry — report it with the input that caused it", 1)
 
 
 if __name__ == "__main__":
+    # the JSON line is UTF-8 whatever the terminal or pipe was set to, as Node writes it
+    sys.stdout.reconfigure(encoding="utf-8")
     sys.exit(main(sys.argv[1:]))

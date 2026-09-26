@@ -247,15 +247,23 @@ def _read(s: dict, value: str):
         if value not in how[1]:
             raise refused
         return value
+    # a number too long for a float is infinite, and an infinite length is not one
     if how[0] == "numbers":
         vals = value.split(",")
-        if len(vals) != how[1] or not all(NUMBER.fullmatch(v) for v in vals):
+        if len(vals) != how[1] or not all(NUMBER.fullmatch(v) and math.isfinite(float(v)) for v in vals):
             raise refused
         return tuple(float(v) for v in vals)
-    if not NUMBER.fullmatch(value) or (how[1] is not None and not how[1] <= float(value) <= how[2]):
+    if (not NUMBER.fullmatch(value) or not math.isfinite(float(value))
+            or (how[1] is not None and not how[1] <= float(value) <= how[2])):
         raise refused
     x = float(value)
     return int(x) if how[0] == "points" and x == int(x) else x
+
+
+def read_value(flag: str, value: str):
+    """One flag's value, read as the build reads it — for a command that takes the flag
+    without the rest of the build's (repair's --font)."""
+    return _read(BY_FLAG[flag], value)
 
 
 def parse_args(argv: list[str]) -> tuple[dict, list[str], list[str]]:
@@ -272,6 +280,8 @@ def parse_args(argv: list[str]) -> tuple[dict, list[str], list[str]]:
             i += 1
             continue
         name, eq, value = arg.partition("=")
+        if name == "--help":
+            raise BuildError(USAGE)
         s = BY_FLAG.get(name)
         if s is not None and s["kind"] == "option" and s["read"][0] == "position":
             # the position is optional: taken only when it names one

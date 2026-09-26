@@ -242,10 +242,13 @@ def test_a_symbol_bullet_gets_a_font_with_thai_in_it(tmp_path):
 
 
 def test_a_clean_file_is_left_alone(tmp_path):
+    """Nothing to repair is an answer, not a fault: ok, exit 0, and no file written — an agent
+    told `error` here would tell the user the file cannot be repaired, when it needs nothing."""
     src = GOLDEN / "sample-default.docx"
     out = tmp_path / "out.docx"
     result = rp.repair(str(src), str(out))
-    assert not result["ok"] and not out.exists() and result["remaining"] == []
+    assert result["ok"] and not out.exists() and result["remaining"] == [] and "file" not in result
+    assert result["warnings"][0]["code"] == "clean" and "error" not in result
 
 
 def test_repairing_a_repaired_file_changes_nothing(tmp_path):
@@ -254,7 +257,7 @@ def test_repairing_a_repaired_file_changes_nothing(tmp_path):
     assert rp.repair(str(FIXTURES / "legacy-python-docx-default.docx"), str(once))["ok"]
     twice = tmp_path / "twice.docx"
     result = rp.repair(str(once), str(twice))
-    assert not result["ok"] and not twice.exists()
+    assert result["repaired"] == {} and result["warnings"][0]["code"] == "clean" and not twice.exists()
 
 
 def test_a_file_it_cannot_read_is_refused_not_repaired(tmp_path):
@@ -278,7 +281,8 @@ def test_the_command_takes_two_paths_and_one_flag(argv, capsys):
 
 
 def test_exit_codes_say_what_happened(tmp_path, capsys):
-    """0: repaired, nothing left. 1: repaired, findings remain. 2: nothing written."""
+    """0: repaired, nothing left — or nothing to repair. 1: repaired, findings remain. 2: the
+    input or the output is at fault, and nothing was written."""
     clean = replaced(good(), "word/settings.xml", 'w:val="15"', 'w:val="14"')
     assert rp.main([str(written(tmp_path, clean)), str(tmp_path / "a.docx")]) == 0
     capsys.readouterr()
@@ -286,7 +290,10 @@ def test_exit_codes_say_what_happened(tmp_path, capsys):
     four = replaced(four, "word/settings.xml", 'w:val="15"', 'w:val="14"')
     assert rp.main([str(written(tmp_path, four, "four.docx")), str(tmp_path / "b.docx")]) == 1
     capsys.readouterr()
-    assert rp.main([str(GOLDEN / "sample-default.docx"), str(tmp_path / "c.docx")]) == 2
+    assert rp.main([str(GOLDEN / "sample-default.docx"), str(tmp_path / "c.docx")]) == 0
+    assert not (tmp_path / "c.docx").exists()
+    capsys.readouterr()
+    assert rp.main([str(tmp_path / "missing.docx"), str(tmp_path / "d.docx")]) == 2
 
 
 def test_the_file_it_writes_is_a_package_another_reader_opens(tmp_path):

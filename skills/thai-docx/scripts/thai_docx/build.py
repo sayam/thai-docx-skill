@@ -111,6 +111,10 @@ def build_text(text: str, opts: dict, read_image) -> tuple[dict, bytes | None]:
 
 
 MAX_LINKS = 40
+# Read no further than this: a package is at most 64 MiB, and no Markdown a
+# package could hold, nor one picture in it, comes near these.
+MAX_MARKDOWN = 16 * 1024 * 1024
+MAX_IMAGE = 32 * 1024 * 1024
 
 
 def _split_root(path: str) -> tuple[str, list[str]]:
@@ -174,12 +178,14 @@ def image_reader(md_dir: str, allow_dirs: list[str]):
         if not any(_inside(path, root) for root in roots):
             raise BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)")
         try:
-            with open(path, "rb") as f:
-                return path, f.read()
+            data = package.read_regular(path, MAX_IMAGE)
         except OSError as exc:
             raise BuildError("image '" + src + "': " + os_error(exc)) from None
         except ValueError:  # a path the OS cannot name, e.g. with a NUL
             raise BuildError("image '" + src + "': cannot be read") from None
+        if len(data) > MAX_IMAGE:
+            raise BuildError("image '" + src + "': larger than 32 MiB")
+        return path, data
 
     return read
 
@@ -187,11 +193,16 @@ def image_reader(md_dir: str, allow_dirs: list[str]):
 def build(md_path, out_path, opts: dict, allow_dirs: list) -> dict:
     md_path, out_path = str(md_path), str(out_path)
     result: dict = {"ok": False, "file": out_path, "settings": settings_json(opts)}
-    src = pathlib.Path(md_path)
+    if package.same_file(md_path, out_path):
+        result["error"] = "the output is the Markdown file itself; the build writes a new file, never over its input"
+        return result
     try:
-        raw = src.read_bytes()
+        raw = package.read_regular(md_path, MAX_MARKDOWN)
     except OSError as exc:
         result["error"] = "cannot read " + md_path + ": " + os_error(exc)
+        return result
+    if len(raw) > MAX_MARKDOWN:
+        result["error"] = "cannot read " + md_path + ": larger than 16 MiB"
         return result
     try:
         text = raw.decode("utf-8")

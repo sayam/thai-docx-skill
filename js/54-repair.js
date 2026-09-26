@@ -367,7 +367,9 @@ function fixNumbering(xml, font) {
 // The font a run that names none is given, and why (ADR 0037): what the user asked for, else
 // the complex-script font this document already uses most, else the skill's default.
 function complexScriptFont(parts, asked) {
-  if (asked) return [asked, "the font the command was given"];
+  // an attribute value, escaped where it is written; a font found in the document below is
+  // taken from an attribute already
+  if (asked) return [asked.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"), "the font the command was given"];
   const counted = new Map();
   for (const [name, bytes] of parts) {
     // the XML parts only: an image or a font holds no run properties, and reading one as text

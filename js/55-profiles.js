@@ -151,7 +151,8 @@ function jsonParsePy(text, where) {
     const c = text[i];
     if (c === "{") {
       i += 1;
-      const out = {};
+      // no prototype: "__proto__" is then a key like any other, refused as Python refuses it
+      const out = Object.create(null);
       ws();
       if (text[i] === "}") {
         i += 1;
@@ -214,9 +215,46 @@ function jsonParsePy(text, where) {
   return out;
 }
 
+function profileIsNumber(v) {
+  return typeof v === "number" ? Number.isFinite(v) : v instanceof PyFloat && Number.isFinite(v.value);
+}
+
+// What is wrong with a setting's value before it becomes a flag, or null: a value of the
+// wrong type would otherwise reach the flag writer and stop it.
+function profileValueFault(key, value) {
+  const [kind] = PROFILE_FLAGS[key];
+  const s = SETTINGS.find((x) => x.key === key);
+  const read = s.read ? s.read[0] : "switch";
+  if (kind === "switch" || kind === "off") return typeof value === "boolean" ? null : "true or false";
+  if (kind === "list") return Array.isArray(value) && value.every(profileIsNumber) ? null : "a list of numbers";
+  if (kind === "option" && (value === null || value === false)) return null;
+  if (read === "text" || read === "choice" || read === "position") return typeof value === "string" ? null : "text";
+  return profileIsNumber(value) ? null : "a number";
+}
+
+// Does any key or string in the JSON hold a lone surrogate — which \ud800 spells, and which
+// no file can hold as text?
+function profileSurrogateIn(data) {
+  const pending = [data];
+  while (pending.length) {
+    const value = pending.pop();
+    if (typeof value === "string") {
+      if (/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(value)) return true;
+    } else if (Array.isArray(value)) {
+      pending.push(...value);
+    } else if (value !== null && typeof value === "object" && !(value instanceof PyFloat)) {
+      for (const k of Object.keys(value)) pending.push(k, value[k]);
+    }
+  }
+  return false;
+}
+
 // A profile as ADR 0024 allows it, or ProfileError naming the file and the key.
 function profileValidate(data, where) {
-  if (data === null || typeof data !== "object" || Array.isArray(data)) throw new ProfileError(where + ": a profile is a JSON object");
+  if (data === null || typeof data !== "object" || Array.isArray(data) || data instanceof PyFloat) {
+    throw new ProfileError(where + ": a profile is a JSON object");
+  }
+  if (profileSurrogateIn(data)) throw new ProfileError(where + ": holds a lone surrogate (\\ud800 to \\udfff), which is not text");
   if (data.schema !== PROFILE_SCHEMA) throw new ProfileError(where + ': "schema" must be ' + PROFILE_SCHEMA);
   for (const key of Object.keys(data)) {
     if (!PROFILE_KEYS.includes(key)) throw new ProfileError(where + ': unknown key "' + key + '"; a profile holds ' + PROFILE_KEYS.join(", "));
@@ -235,11 +273,15 @@ function profileValidate(data, where) {
     if (bad) throw new ProfileError(where + ': "' + key + '" takes th and/or en text of at most ' + PROFILE_MAX_TEXT + " characters");
   }
   const settings = data.settings;
-  if (settings === null || typeof settings !== "object" || Array.isArray(settings)) throw new ProfileError(where + ': "settings" must be an object');
+  if (settings === null || typeof settings !== "object" || Array.isArray(settings) || settings instanceof PyFloat) {
+    throw new ProfileError(where + ': "settings" must be an object');
+  }
   for (const key of Object.keys(settings)) {
     if (!Object.prototype.hasOwnProperty.call(PROFILE_FLAGS, key)) {
       throw new ProfileError(where + ': unknown setting "' + key + '"; the settings are ' + Object.keys(PROFILE_FLAGS).join(", "));
     }
+    const fault = profileValueFault(key, settings[key]);
+    if (fault !== null) throw new ProfileError(where + ': "' + key + '" takes ' + fault);
   }
   try {
     parseArgs(profileAsFlags(settings).concat(["in.md", "out.docx"]));
@@ -266,9 +308,11 @@ function profileIsPath(name) {
   return name.includes("/") || name.includes("\\") || name.endsWith(".json");
 }
 
-// A name, never a path: what a profile is saved, imported or looked for under.
+// A name, never a path: what a profile is saved, imported or looked for under. Letters — Thai
+// among them, with their marks — digits, - and _, and nothing a shell reads, since grill hands
+// the name back inside a command; never a leading -, which is a flag.
 function profileCheckName(name) {
-  if (!name || codePointLength(name) > 64 || [...'\\/:*?"<>| \t'].some((c) => name.includes(c)) || name.startsWith(".")) {
+  if (!name || codePointLength(name) > 64 || name.startsWith("-") || !/^[\p{L}\p{M}\p{N}_-]+$/u.test(name)) {
     throw new ProfileError("profile name '" + name + "' is not a name; use letters, digits, - or _");
   }
   return name;
@@ -303,22 +347,24 @@ function profileRead(p) {
   const fs = require("fs");
   // read at most one byte past the limit, rather than ask the size first: a file that
   // changes between the two, or has no size (/dev/zero), cannot get past it
-  const raw = new Uint8Array(PROFILE_MAX_BYTES + 1);
-  let n = 0;
+  let raw;
   try {
-    const fd = fs.openSync(p, "r");
-    try {
-      let got;
-      while (n < raw.length && (got = fs.readSync(fd, raw, n, raw.length - n, null)) > 0) n += got;
-    } finally {
-      fs.closeSync(fd);
-    }
+    raw = readRegular(fs, p, PROFILE_MAX_BYTES);
   } catch (e) {
     throw new ProfileError("cannot read " + p + ": " + osError(e));
   }
-  if (n > PROFILE_MAX_BYTES) throw new ProfileError(p + ": larger than 64 KiB; a profile is settings");
-  const text = new TextDecoder("utf-8").decode(raw.subarray(0, n));
-  return profileValidate(jsonParsePy(text, p), p);
+  if (raw.length > PROFILE_MAX_BYTES) throw new ProfileError(p + ": larger than 64 KiB; a profile is settings");
+  const text = fromUtf8(raw); // strictly, as Python decodes it
+  if (text === null) throw new ProfileError(p + ": not UTF-8 text");
+  let data;
+  try {
+    data = jsonParsePy(text, p);
+  } catch (e) {
+    // nested past the stack's depth is not a profile either
+    if (e instanceof RangeError) throw new ProfileError(p + ": not JSON");
+    throw e;
+  }
+  return profileValidate(data, p);
 }
 
 function profileIsFile(p) {
@@ -330,13 +376,23 @@ function profileIsFile(p) {
   }
 }
 
+// The whole file or none of it: written beside the target, then put in its place, so a
+// write that fails leaves the profile that was there as it was.
 function profileWrite(profile, p) {
   const fs = require("fs");
   const path = require("path");
+  const data = utf8(profileCanonical(profile));
+  const partial = p + ".partial";
   try {
     fs.mkdirSync(path.dirname(p), { recursive: true });
-    fs.writeFileSync(p, profileCanonical(profile));
+    fs.writeFileSync(partial, data);
+    fs.renameSync(partial, p);
   } catch (e) {
+    try {
+      fs.unlinkSync(partial);
+    } catch {
+      // there was none
+    }
     throw new ProfileError("cannot write " + p + ": " + osError(e));
   }
 }
@@ -451,6 +507,7 @@ function profileRun(argv) {
   if (!argv.length) throw new ProfileError(PROFILE_USAGE);
   const command = argv[0];
   let rest = argv.slice(1);
+  if (rest.length && rest[0].startsWith("-")) throw new ProfileError(PROFILE_USAGE); // `save --help` is a question, not a name
   if (command === "list" && !rest.length) return { ok: true, profiles: profileListing() };
   if (command === "show" && rest.length === 1) {
     const [where, p] = profileFind(rest[0]);

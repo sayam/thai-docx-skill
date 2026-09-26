@@ -19,8 +19,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import pathlib
+import unicodedata
 
 from . import build as b
 from . import settings as st
@@ -85,11 +87,55 @@ def digest(settings: dict) -> str:
     return hashlib.sha256(canonical(settings).encode("utf-8")).hexdigest()
 
 
+def _is_number(value) -> bool:
+    """A finite number, as JavaScript reads one: an integer too large for a float is not."""
+    if type(value) not in (int, float):
+        return False
+    try:
+        return math.isfinite(float(value))
+    except OverflowError:
+        return False
+
+
+def _value_fault(key: str, value) -> str | None:
+    """What is wrong with a setting's value before it becomes a flag, or None: a value of
+    the wrong type would otherwise reach the flag writer and stop it."""
+    kind, flag = FLAGS[key]
+    read = st.BY_KEY[key].get("read", ("switch",))[0]
+    if kind in ("switch", "off"):
+        return None if type(value) is bool else "true or false"
+    if kind == "list":
+        return None if type(value) is list and all(_is_number(v) for v in value) else "a list of numbers"
+    if kind == "option" and (value is None or value is False):
+        return None
+    if read in ("text", "choice", "position"):
+        return None if type(value) is str else "text"
+    return None if _is_number(value) else "a number"
+
+
+def _surrogate_in(data) -> bool:
+    """Does any key or string in the JSON hold a lone surrogate — which `\\ud800` spells,
+    and which no file can hold as text?"""
+    pending = [data]
+    while pending:
+        value = pending.pop()
+        if isinstance(value, str):
+            if any("\ud800" <= c <= "\udfff" for c in value):
+                return True
+        elif isinstance(value, dict):
+            pending += list(value.keys()) + list(value.values())
+        elif isinstance(value, list):
+            pending += value
+    return False
+
+
 def validate(data, where: str) -> dict:
     """A profile as ADR 0024 allows it, or ProfileError naming the file and the key."""
     if not isinstance(data, dict):
         raise ProfileError(where + ": a profile is a JSON object")
-    if data.get("schema") != SCHEMA:
+    if _surrogate_in(data):
+        raise ProfileError(where + ": holds a lone surrogate (\\ud800 to \\udfff), which is not text")
+    if type(data.get("schema")) is not int or data["schema"] != SCHEMA:
         raise ProfileError(where + ': "schema" must be ' + str(SCHEMA))
     for key in data:
         if key not in KEYS:
@@ -109,6 +155,9 @@ def validate(data, where: str) -> dict:
     for key in settings:
         if key not in FLAGS:
             raise ProfileError(where + ': unknown setting "' + key + '"; the settings are ' + ", ".join(FLAGS))
+        fault = _value_fault(key, settings[key])
+        if fault is not None:
+            raise ProfileError(where + ': "' + key + '" takes ' + fault)
     try:
         b.parse_args(as_flags(settings) + ["in.md", "out.docx"])
     except b.BuildError as exc:
@@ -132,8 +181,13 @@ def is_path(name: str) -> bool:
 
 
 def check_name(name: str) -> str:
-    """A name, never a path: what a profile is saved, imported or looked for under."""
-    if not name or len(name) > 64 or any(c in name for c in '\\/:*?"<>| \t') or name.startswith("."):
+    """A name, never a path: what a profile is saved, imported or looked for under. Letters —
+    Thai among them, with their marks — digits, - and _, and nothing a shell reads, since
+    grill hands the name back inside a command; never a leading -, which is a
+    flag, and never the name of an option."""
+    fine = bool(name) and len(name) <= 64 and not name.startswith("-") and all(
+        c in "-_" or unicodedata.category(c)[0] in "LMN" for c in name)
+    if not fine:
         raise ProfileError("profile name '" + name + "' is not a name; use letters, digits, - or _")
     return name
 
@@ -153,8 +207,7 @@ def read(path: pathlib.Path) -> dict:
     # read at most one byte past the limit, rather than ask the size first: a file that
     # changes between the two, or has no size (/dev/zero), cannot get past it
     try:
-        with path.open("rb") as f:
-            raw = f.read(MAX_BYTES + 1)
+        raw = b.package.read_regular(str(path), MAX_BYTES)
     except OSError as exc:
         raise ProfileError("cannot read " + str(path) + ": " + b.os_error(exc)) from None
     if len(raw) > MAX_BYTES:
@@ -165,7 +218,7 @@ def read(path: pathlib.Path) -> dict:
         raise ProfileError(str(path) + ": not UTF-8 text") from None
     try:
         data = json.loads(text)
-    except ValueError:
+    except (ValueError, RecursionError):  # nested past the parser's depth is not a profile either
         # the two implementations read JSON with their own parsers; the fault is the file
         raise ProfileError(str(path) + ": not JSON") from None
     return validate(data, str(path))
@@ -177,10 +230,19 @@ def load(name: str) -> tuple[dict, str, pathlib.Path]:
 
 
 def write(profile: dict, path: pathlib.Path) -> None:
+    """The whole file or none of it: written beside the target, then put in its place, so
+    a write that fails leaves the profile that was there as it was."""
+    data = canonical(profile).encode("utf-8")
+    partial = path.with_name(path.name + ".partial")
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(canonical(profile), encoding="utf-8")
+        partial.write_bytes(data)
+        os.replace(partial, path)
     except OSError as exc:
+        try:
+            partial.unlink()
+        except OSError:
+            pass  # there was none, or it is not ours to remove
         raise ProfileError("cannot write " + str(path) + ": " + b.os_error(exc)) from None
 
 
@@ -277,6 +339,8 @@ def run(argv: list[str]) -> dict:
     if not argv:
         raise ProfileError(USAGE)
     command, rest = argv[0], argv[1:]
+    if rest and rest[0].startswith("-"):
+        raise ProfileError(USAGE)  # `save --help` is a question, not a name
     if command == "list" and not rest:
         return {"ok": True, "profiles": listing()}
     if command == "show" and len(rest) == 1:

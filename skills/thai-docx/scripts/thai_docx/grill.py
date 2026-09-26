@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 
 from . import profiles as pf
 from . import settings as st
@@ -73,6 +74,19 @@ def language(message: str) -> str:
 
 def mode(message: str) -> str:
     return "grill" if PHRASE.search(plain(message)) else "build"
+
+
+# `from` goes back to the agent inside a command it will run: a name is held to check_name,
+# and a path to the characters a path needs and no shell reads
+PATH_MARKS = "-_./\\:"
+
+
+def _carried(source: str) -> None:
+    if not pf.is_path(source):
+        pf.check_name(source)
+    elif not all(c in PATH_MARKS or unicodedata.category(c)[0] in "LMN" for c in source):
+        raise GrillError("'from' is carried into a command, so a path there holds letters, digits and "
+                         + " ".join(PATH_MARKS) + " only: " + source)
 
 
 def parts(message: str) -> dict:
@@ -174,6 +188,7 @@ def run(argv: list[str]) -> dict:
         found = parts(message)
         start, now = None, dict(st.DEFAULTS)
         if "from" in found:
+            _carried(found["from"])
             data, where, path = pf.load(found["from"])
             now, _, _ = st.parse_args(pf.as_flags(data["settings"]) + ["in.md", "out.docx"])
             start = {"name": found["from"], "where": where, "path": str(path), "settings": data["settings"]}

@@ -8,6 +8,8 @@ the same verdict from both implementations and from every Python release.
 from __future__ import annotations
 
 import errno
+import os
+import stat
 import zlib
 
 from .deflate import deflate
@@ -23,7 +25,40 @@ _OS_ERRORS = {
 
 def os_error(exc: OSError) -> str:
     """The reason a path could not be read, in the same words in both implementations."""
+    if isinstance(exc, NotRegularFile):
+        return "not a regular file"
     return _OS_ERRORS.get(exc.errno, "cannot be read")
+
+
+class NotRegularFile(OSError):
+    """A path that names a FIFO, a device or a socket: opening one can wait forever, and
+    reading one has no end."""
+
+
+def read_regular(path: str, cap: int) -> bytes:
+    """At most `cap + 1` bytes of a regular file, so a caller sees that it is over the cap
+    without asking the size first. The file is opened without waiting — a FIFO would otherwise
+    wait for a writer — and what was opened is what is judged, so nothing can change between
+    the look and the read. A directory is refused as the OS would name it; anything else that
+    is not a regular file is refused before a byte is read."""
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0))
+    with os.fdopen(fd, "rb") as f:
+        mode = os.fstat(fd).st_mode
+        if stat.S_ISDIR(mode):
+            raise IsADirectoryError(errno.EISDIR, "Is a directory", path)
+        if not stat.S_ISREG(mode):
+            raise NotRegularFile(path)
+        return f.read(cap + 1)
+
+
+def same_file(a: str, b: str) -> bool:
+    """Do two paths name one file — the same path, a symbolic link to it, or a hard link?
+    A path that does not exist names no file yet."""
+    try:
+        one, two = os.stat(a), os.stat(b)
+    except (OSError, ValueError):
+        return False
+    return (one.st_dev, one.st_ino) == (two.st_dev, two.st_ino)
 
 
 MAX_FILE = 64 * 1024 * 1024

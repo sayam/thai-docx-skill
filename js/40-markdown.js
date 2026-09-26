@@ -60,6 +60,7 @@ function forbiddenChar(ch) {
   if (Object.prototype.hasOwnProperty.call(INVISIBLE, ch)) return INVISIBLE[ch];
   if ((cp < 0x20 && ch !== "\t" && ch !== "\n") || (cp >= 0x7f && cp <= 0x9f)) return "U+" + hex4(cp) + ", a control character";
   if (cp === 0xfffe || cp === 0xffff) return "U+" + hex4(cp) + ", a noncharacter";
+  if (cp >= 0xd800 && cp <= 0xdfff) return "U+" + hex4(cp) + ", a lone surrogate"; // only a profile's JSON can carry one
   return null;
 }
 
