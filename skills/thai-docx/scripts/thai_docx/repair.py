@@ -22,13 +22,15 @@ import io
 import json
 import pathlib
 import re
+import unicodedata
+from xml.etree import ElementTree as ET
 
 from . import check as check_mod
 from . import ooxml
 from . import package
 from . import settings as st
 from .ooxml import is_thai
-from .fidelity import docx_text
+from .fidelity import paragraphs
 from .writer import script_runs
 
 USAGE = ('usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"] [--thai-language]'
@@ -36,15 +38,30 @@ USAGE = ('usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"] [--
 
 # A part is edited as bytes, not re-serialised from a tree: a tree would rewrite prefixes,
 # attribute order and empty-element spelling across the whole part, and ADR 0037 allows only
-# the attributes named. Both elements below are empty ones, so the shapes are few.
-NO_PROOF = re.compile(rb"<w:noProof(?:\s[^>]*?)?/>|<w:noProof(?:\s[^>]*?)?>\s*</w:noProof>")
-COMPAT_SETTING = re.compile(rb"<w:compatSetting\s[^>]*?/>")
-ATTR = re.compile(rb'([\w:]+)\s*=\s*"([^"]*)"')
+# the attributes named.
+#
+# Every start tag is read the one way XML writes it: a quoted value may hold `>` or `/`, in
+# either quote, and a tag that ends `/>` is empty. Read any other way, a `>` inside a value
+# ended the tag in the middle of it and the part was written back broken.
+ATTRS = rb"""(?:\s(?:[^<>"'/]|/(?!>)|"[^"]*"|'[^']*')*)?"""
+
+
+def opening(name: bytes) -> re.Pattern:
+    """`<name …>` or `<name …/>`; group 1 is the `/` of an empty element."""
+    return re.compile(rb"<" + name + ATTRS + rb"(/?)>")
+
+
+NO_PROOF = re.compile(rb"<w:noProof" + ATTRS + rb"(?:/>|>\s*</w:noProof>)")
+COMPAT_SETTING = re.compile(rb"<w:compatSetting" + ATTRS + rb"/>")
+ATTR = re.compile(rb"""([\w:]+)\s*=\s*(?:"([^"]*)"|'([^']*)')""")
+VALUE = rb"""\s*=\s*(?:"[^"]*"|'[^']*')"""
 MODE, URI = b"compatibilityMode", check_mod.COMPAT_URI.encode()
+W_URI = ooxml.W.encode()
+XMLNS = re.compile(rb"""xmlns(?::([\w.-]+))?\s*=\s*(?:"([^"]*)"|'([^']*)')""")
 
 
 def _attrs(tag: bytes) -> dict[bytes, bytes]:
-    return dict(ATTR.findall(tag))
+    return {name: a or b for name, a, b in ATTR.findall(tag)}
 
 
 def remove_no_proof(xml: bytes) -> tuple[bytes, int]:
@@ -67,7 +84,7 @@ def one_compatibility_mode(xml: bytes) -> tuple[bytes, int]:
         if i == 0:
             tag = m.group(0)
             if _attrs(tag).get(b"w:val") != b"15":
-                tag = re.sub(rb'(w:val\s*=\s*)"[^"]*"', rb'\g<1>"15"', tag)
+                tag = re.sub(rb"""(w:val\s*=\s*)(?:"[^"]*"|'[^']*')""", rb'\g<1>"15"', tag)
                 if tag == m.group(0):  # no w:val at all: the default is not 15, so say it
                     tag = tag[:-2].rstrip() + b' w:val="15"/>'
                 changed += 1
@@ -82,9 +99,14 @@ def one_compatibility_mode(xml: bytes) -> tuple[bytes, int]:
 # --- the marks a Thai run needs, and the twins a Latin property needs ------------------
 
 TAG = re.compile(rb"<(/?)(w:[\w.-]+)((?:[^<>\"']|\"[^\"]*\"|'[^']*')*?)(/?)>")
-RUN_START = re.compile(rb"<w:r(?:\s[^<>]*?)?>")
-# the one run shape a split may touch: properties, if any, then one w:t and nothing else
-SIMPLE_INNER = re.compile(rb"\A(<w:rPr(?:\s[^<>]*?)?>.*?</w:rPr>)?(<w:t(?:\s[^<>]*?)?>)(.*)</w:t>\Z", re.S)
+RUN_START = opening(b"w:r")
+RPR_START = opening(b"w:rPr")
+T_START = re.compile(rb"<w:t" + ATTRS + rb">")
+# the one run shape a split may touch: properties, if any, then one w:t holding text and
+# nothing else — no tab, no break, no second w:t, which a split would read as text
+SIMPLE_INNER = re.compile(rb"\A(<w:rPr" + ATTRS + rb">.*?</w:rPr>)?(<w:t" + ATTRS + rb">)([^<]*)</w:t>\Z", re.S)
+PRESERVE = re.compile(rb"xml:space" + rb"""\s*=\s*["']preserve["']""")
+XML_SPACE = " \t\n\r"
 LATIN_FONT = (b"w:ascii", b"w:hAnsi", b"w:asciiTheme", b"w:hAnsiTheme")
 
 
@@ -157,15 +179,15 @@ def fix_rpr(inner: bytes, font: bytes, mark: bool | None,
 
     for latin, twin in ((b"w:sz", b"w:szCs"), (b"w:b", b"w:bCs"), (b"w:i", b"w:iCs")):
         if latin in by_name and twin not in by_name:
-            attrs = re.search(rb'(\sw:val\s*=\s*"[^"]*")', by_name[latin])
+            attrs = re.search(rb"(\sw:val" + VALUE + rb")", by_name[latin])
             children = _insert(children, twin, b"<" + twin + (attrs.group(1) if attrs else b"") + b"/>")
             by_name[twin] = b""
             five += 1
 
     fonts = by_name.get(b"w:rFonts")
     if fonts is not None:
-        has_latin = any(re.search(a + rb'\s*=\s*"', fonts) for a in LATIN_FONT)
-        has_cs = re.search(rb'w:cs(?:theme)?\s*=\s*"', fonts)
+        has_latin = any(re.search(a + rb"""\s*=\s*["']""", fonts) for a in LATIN_FONT)
+        has_cs = re.search(rb"""w:cs(?:theme)?\s*=\s*["']""", fonts)
         if has_latin and not has_cs:
             new = fonts[:-2].rstrip() + b' w:cs="' + font + b'"/>'
             children = [(n, new if n == b"w:rFonts" else raw) for n, raw in children]
@@ -184,9 +206,9 @@ def fix_rpr(inner: bytes, font: bytes, mark: bool | None,
             if lang is None:
                 children = _insert(children, b"w:lang", b'<w:lang w:bidi="th-TH"/>')
                 marked += 1
-            elif not re.search(rb'w:bidi\s*=\s*"th-TH"', lang):
-                new = (re.sub(rb'w:bidi\s*=\s*"[^"]*"', b'w:bidi="th-TH"', lang)
-                       if re.search(rb'w:bidi\s*=\s*"', lang) else lang[:-2].rstrip() + b' w:bidi="th-TH"/>')
+            elif not re.search(rb"""w:bidi\s*=\s*["']th-TH["']""", lang):
+                new = (re.sub(rb"w:bidi" + VALUE, b'w:bidi="th-TH"', lang)
+                       if re.search(rb"w:bidi" + VALUE, lang) else lang[:-2].rstrip() + b' w:bidi="th-TH"/>')
                 children = [(n, new if n == b"w:lang" else raw) for n, raw in children]
                 marked += 1
 
@@ -203,29 +225,63 @@ def reorder(xml: bytes, element: bytes, order: list[str]) -> tuple[bytes, int]:
     other elements hold while this walks them.
     """
     rank = {name: i for i, name in enumerate(order)}
-    start = re.compile(rb"<" + element + rb"(?:\s[^<>]*?)?>")
-    count = 0
-    for m in reversed(list(start.finditer(xml))):   # inner elements first: they sit further on
-        inner_end, _element_end = _end_of(xml, m.end(), element)
-        children = _children(xml[m.end():inner_end])
-        known = [(i, c) for i, c in enumerate(children) if c[0].decode()[2:] in rank]
-        if len(known) < 2:
-            continue
-        # a stable sort, so two children of one name keep the order they were written in
-        ordered = sorted(known, key=lambda pair: rank[pair[1][0].decode()[2:]])
-        if [c for _i, c in known] == [c for _i, c in ordered]:
-            continue
-        put = list(children)
-        for (slot, _was), (_at, now) in zip(known, ordered, strict=True):
-            put[slot] = now
-        xml = xml[:m.end()] + b"".join(raw for _n, raw in put) + xml[inner_end:]
-        count += 1
-    return xml, count
+    start = opening(element)
+
+    def region(xml: bytes) -> tuple[list[bytes], int]:
+        # One walk, written out once: the part was once rebuilt whole at every element put
+        # right, which took twenty seconds on a part of nine kilobytes. An element of this
+        # name can hold another (w:rPrChange holds a w:rPr), so the inner one is put right
+        # first, inside the walk of its own element.
+        out, pos, count = [], 0, 0
+        for m in start.finditer(xml):
+            if m.start() < pos or m.group(1):
+                continue
+            inner_end, element_end = _end_of(xml, m.end(), element)
+            pieces, inside = region(xml[m.end():inner_end])
+            count += inside
+            inner = b"".join(pieces)
+            children = _children(inner)
+            known = [(i, c) for i, c in enumerate(children) if c[0].decode()[2:] in rank]
+            # a stable sort, so two children of one name keep the order they were written in
+            ordered = sorted(known, key=lambda pair: rank[pair[1][0].decode()[2:]])
+            if [c for _i, c in known] != [c for _i, c in ordered]:
+                for (slot, _was), (_at, now) in zip(known, ordered, strict=True):
+                    children[slot] = now
+                inner = b"".join(raw for _n, raw in children)
+                count += 1
+            out += [xml[pos:m.end()], inner, xml[inner_end:element_end]]
+            pos = element_end
+        out.append(xml[pos:])
+        return out, count
+
+    pieces, count = region(xml)
+    return (b"".join(pieces), count) if count else (xml, 0)
 
 
 def _run_text(inner: bytes) -> str:
     """Everything the run's own w:t elements hold, as the text reads."""
-    return _unescape(b"".join(re.findall(rb"<w:t(?:\s[^<>]*?)?>(.*?)</w:t>", inner, re.S))).decode("utf-8", "replace")
+    return _unescape(b"".join(re.findall(rb"<w:t" + ATTRS + rb">(.*?)</w:t>", inner, re.S))).decode("utf-8", "replace")
+
+
+def _with_invisibles_joined(pieces: list[tuple[bool, str]]) -> list[tuple[bool, str]]:
+    """A piece of nothing but format characters (U+200B, U+200D, U+00AD …) belongs to the text
+    beside it: cut out on its own it would be a run of its own in the middle of a Thai word,
+    for no script it has."""
+    out: list[tuple[bool, str]] = []
+    pending = ""
+    for complex_script, piece in pieces:
+        if all(unicodedata.category(c) == "Cf" for c in piece):
+            if out:
+                out[-1] = (out[-1][0], out[-1][1] + piece)
+            else:
+                pending += piece
+            continue
+        piece, pending = pending + piece, ""
+        if out and out[-1][0] == complex_script:
+            out[-1] = (complex_script, out[-1][1] + piece)
+        else:
+            out.append((complex_script, piece))
+    return out or [(False, pending)]
 
 
 def _split_run(start: bytes, inner: bytes, font: bytes, counts: dict[str, int],
@@ -242,7 +298,13 @@ def _split_run(start: bytes, inner: bytes, font: bytes, counts: dict[str, int],
     if m is None or b"&#" in m.group(3):
         return None
     rpr_raw, topen, body = m.group(1), m.group(2), m.group(3)
-    pieces = script_runs(_unescape(body).decode("utf-8"))
+    text = _unescape(body).decode("utf-8")
+    if PRESERVE.search(topen) is None:
+        if text != text.strip(XML_SPACE):
+            return None  # space an application drops at the ends; cut, it would be kept
+        # a space at a cut is inside the text, and only xml:space keeps it there
+        topen = topen[:-1].rstrip() + b' xml:space="preserve">'
+    pieces = _with_invisibles_joined(script_runs(text))
     if len(pieces) < 2:
         return None
     rpr_inner = b"" if rpr_raw is None else rpr_raw[rpr_raw.index(b">") + 1:-len(b"</w:rPr>")]
@@ -263,7 +325,7 @@ def _fix_runs(xml: bytes, font: bytes, counts: dict[str, int], thai_language: bo
     runs included, and a run that holds both scripts cut where the script changes."""
     out, pos = bytearray(), 0
     for m in RUN_START.finditer(xml):
-        if m.start() < pos:
+        if m.start() < pos or m.group(1):  # <w:r/> holds nothing to mark
             continue
         inner_end, element_end = _end_of(xml, m.end(), b"w:r")
         inner, start = xml[m.end():inner_end], xml[m.start():m.end()]
@@ -279,9 +341,9 @@ def _fix_runs(xml: bytes, font: bytes, counts: dict[str, int], thai_language: bo
 
 def _fix_run(inner: bytes, font: bytes, counts: dict[str, int], thai_language: bool = False,
              cs_all: bool = False) -> bytes:
-    has_text = re.search(rb"<w:t(?:\s[^<>]*?)?>", inner) is not None
+    has_text = T_START.search(inner) is not None
     mark = True if cs_all else (has_text and any(is_thai(ch) for ch in _run_text(inner)))
-    rpr = re.match(rb"<w:rPr(?:\s[^<>]*?)?(/?)>", inner)
+    rpr = RPR_START.match(inner)
     rest_from = 0
     head = b""
     if rpr is not None and rpr.group(1):           # <w:rPr/>
@@ -320,8 +382,8 @@ def fix_styles(xml: bytes, font: bytes, cs_all: bool = False) -> tuple[bytes, in
     is left exactly as it was — each run then says it for itself.
     """
     out, pos, five, unmarked = bytearray(), 0, 0, 0
-    for m in re.finditer(rb"<w:rPr(?:\s[^<>]*?)?>", xml):
-        if m.start() < pos:
+    for m in RPR_START.finditer(xml):
+        if m.start() < pos or m.group(1):
             continue
         inner_end, _element_end = _end_of(xml, m.end(), b"w:rPr")
         new_body, _two, n, _marked, off = fix_rpr(xml[m.end():inner_end], font, None if cs_all else False)
@@ -335,13 +397,13 @@ def fix_styles(xml: bytes, font: bytes, cs_all: bool = False) -> tuple[bytes, in
 def fix_numbering(xml: bytes, font: bytes) -> tuple[bytes, int]:
     """A bullet level drawn in Symbol has no Thai glyphs; give it the document's font."""
     out, pos, five = bytearray(), 0, 0
-    for m in re.finditer(rb"<w:lvl(?:\s[^<>]*?)?>", xml):
-        if m.start() < pos:
+    for m in opening(b"w:lvl").finditer(xml):
+        if m.start() < pos or m.group(1):
             continue
         inner_end, _element_end = _end_of(xml, m.end(), b"w:lvl")
         level = xml[m.end():inner_end]
-        if re.search(rb'<w:numFmt\s[^<>]*?w:val="bullet"', level):
-            fonts = re.search(rb"<w:rFonts(?:\s[^<>]*?)?/>", level)
+        if any(_attrs(f.group(0)).get(b"w:val") == b"bullet" for f in opening(b"w:numFmt").finditer(level)):
+            fonts = re.search(rb"<w:rFonts" + ATTRS + rb"/>", level)
             if fonts is not None and b'"Symbol"' in fonts.group(0):
                 level = level[:fonts.start()] + fonts.group(0).replace(b'"Symbol"', b'"' + font + b'"') + level[fonts.end():]
                 five += 1
@@ -374,9 +436,36 @@ def complex_script_font(parts: dict[str, bytes], asked: str | None) -> tuple[byt
     return st.DEFAULTS["font"].encode("utf-8"), "this skill's default, as the document names none"
 
 
+def _is_xml(name: str) -> bool:
+    return name.startswith("word/") and name.endswith(".xml")
+
+
+def _holds_what_is_not_markup(xml: bytes) -> bool:
+    """A comment, a CDATA section or a processing instruction past the declaration: text that
+    reads like tags and is not. Word writes none of them; a part that holds one is left as it
+    came rather than edited around them."""
+    return b"<!--" in xml or b"<![CDATA[" in xml or b"<?" in xml[2:]
+
+
+def foreign_prefix(parts: dict[str, bytes]) -> str | None:
+    """The first part that writes WordprocessingML under a prefix other than `w`, or binds `w`
+    to something else: every pattern here spells `w:`, and would read such a part wrongly."""
+    for name in sorted(parts):
+        if not _is_xml(name):
+            continue
+        for prefix, a, b in XMLNS.findall(parts[name]):
+            uri = a or b
+            if (uri == W_URI) != (prefix == b"w"):
+                return name
+    return None
+
+
 def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None = None,
-                 thai_language: bool = False, cs_all: bool = False) -> tuple[dict[str, bytes], dict[str, int]]:
-    """The parts to write anew, and how many of each code were repaired."""
+                 thai_language: bool = False, cs_all: bool = False):
+    """The parts to write anew, how many of each code were repaired, the font chosen, and the
+    parts left as they came because they hold what is not markup."""
+    left = sorted(n for n, x in parts.items() if _is_xml(n) and _holds_what_is_not_markup(x))
+    parts = {n: x for n, x in parts.items() if _is_xml(n) and n not in left}
     codes = {f["code"] for f in findings}
     replace: dict[str, bytes] = {}
     repaired: dict[str, int] = {}
@@ -386,9 +475,8 @@ def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None
             replace["word/settings.xml"] = settings
             repaired["1"] = n
     if "3" in codes:
+        # the XML parts only (above): a picture's bytes can spell <w:noProof/> by chance
         for name, xml in parts.items():
-            if not name.startswith("word/"):
-                continue
             new, n = remove_no_proof(replace.get(name, xml))
             if n:
                 replace[name] = new
@@ -437,7 +525,20 @@ def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None
         if any(code in repaired for code in ("2", "5")):
             chosen = {"code": "font", "message": "complex-script font written where a run named none: '"
                       + cs_font.decode("utf-8") + "' — " + why}
-    return replace, repaired, chosen
+    return replace, repaired, chosen, left
+
+
+MADE_WORSE = "the repair made a file its own checker faults"
+
+
+def package_text(parts: dict[str, bytes]) -> list[str]:
+    """The text of every part a reader sees — body, headers, footers, notes, comments — each
+    paragraph as fidelity reads it, the parts in name order."""
+    out: list[str] = []
+    for name in sorted(parts):
+        if check_mod.TEXT_PARTS.fullmatch(name):
+            paragraphs(ET.fromstring(parts[name]), out)
+    return out
 
 
 def repair(in_path: str, out_path: str, font: str | None = None, thai_language: bool = False,
@@ -464,7 +565,15 @@ def repair(in_path: str, out_path: str, font: str | None = None, thai_language: 
 
     ents = package.entries(data)
     parts = {e.name: package.read(data, e) for e in ents}
-    replace, repaired, chosen = repair_parts(parts, before.findings, font, thai_language, cs_all)
+    foreign = foreign_prefix(parts)
+    if foreign is not None:
+        result["error"] = (foreign + " writes WordprocessingML under a prefix other than w:; this version repairs"
+                           " only the prefix Word writes, so nothing was written")
+        return result
+    replace, repaired, chosen, left_names = repair_parts(parts, before.findings, font, thai_language, cs_all)
+    left = [{"code": "left", "message": name + " holds a comment, a CDATA section or a processing instruction;"
+             " it is left as it came, and its findings with it"} for name in left_names
+            if any(f.get("part") == name for f in before.findings)]
     if not replace and not before.findings:
         # a clean file is an answer, not a fault: nothing to repair, so nothing is written
         del result["file"]
@@ -480,14 +589,21 @@ def repair(in_path: str, out_path: str, font: str | None = None, thai_language: 
 
     out = package.repack(data, ents, replace)
 
-    # the text is the user's (ADR 0023, 0037): a difference of one character writes nothing
+    # a repair answers for the file it writes: a fault its own checker finds there that the
+    # input did not have is this version's, and nothing is written (exit 1)
     after = check_mod.check(io.BytesIO(out))
-    footnotes = before.counts.get("footnotes", 0)
-    was, now = docx_text(parts, footnotes), docx_text({**parts, **replace}, footnotes)
-    if was != now:
+    had = {(f["code"], f.get("part")) for f in before.findings}
+    made = [f for f in after.findings if (f["code"], f.get("part")) not in had]
+    if made:
+        result["error"] = MADE_WORSE + " (" + made[0]["code"] + " in " + str(made[0].get("part")) + "); nothing was written"
+        return result
+    # the text is the user's (ADR 0023, 0037): every part a reader sees, not only the body —
+    # a difference of one character writes nothing
+    if package_text(parts) != package_text({**parts, **replace}):
         result["error"] = "the repair would have changed the document's text; nothing was written"
         return result
-    still = {f["code"] for f in after.findings}
+    # a finding in a part left as it came is still there by design, not a repair that failed
+    still = {f["code"] for f in after.findings if f.get("part") not in left_names}
     marked = repaired.pop("thai-language", 0)
     for code in repaired:
         if code in still:
@@ -499,7 +615,7 @@ def repair(in_path: str, out_path: str, font: str | None = None, thai_language: 
     except OSError as exc:
         result["error"] = "cannot write " + out_path + ": " + package.os_error(exc)
         return result
-    warnings = ([chosen] if chosen else []) + after.warnings
+    warnings = ([chosen] if chosen else []) + left + after.warnings
     if marked:
         warnings = warnings + [{"code": "thai-language", "message":
                                 'the Thai complex-script language w:bidi="th-TH" was written into '
@@ -529,6 +645,8 @@ def main(argv: list[str]) -> int:
         return 2
     result = repair(argv[0], argv[1], font, thai_language, cs_all)
     print(json.dumps(result, ensure_ascii=False))
+    if result.get("error", "").startswith(MADE_WORSE):
+        return 1  # this version's fault, not the file's: SKILL.md reads 1 as do not retry
     if "error" in result:
         return 2
     return 1 if result["remaining"] else 0

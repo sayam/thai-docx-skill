@@ -148,3 +148,96 @@
   found_by: review
   test:
     - tests/test_what_a_command_takes.py::test_a_defect_is_one_json_line_and_exit_1_not_a_traceback
+
+- id: R1
+  what: repair compared only the body and the footnotes, and changed the text of a header, a footer or a comment unseen
+  class: C1
+  found_by: review
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_the_text_of_a_header_is_compared_too
+    - tests/test_repair_reads_xml_as_xml.py::test_a_part_holding_a_comment_or_cdata_is_left_as_it_came
+
+- id: R2
+  what: repair wrote a part its own checker could not read and answered ok
+  class: C1
+  found_by: review
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_a_repair_that_breaks_the_package_writes_nothing_and_is_this_versions_fault
+
+- id: R4
+  what: JavaScript repair stopped on a picture in the package, read as text
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_a_picture_is_left_byte_for_byte_whatever_its_bytes_spell
+
+- id: R5
+  what: Python repair could edit a picture whose bytes spelled <w:noProof/>
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_a_picture_is_left_byte_for_byte_whatever_its_bytes_spell
+
+- id: D2
+  what: putting properties in order copied the whole part at every element — twenty seconds for nine kilobytes
+  class: C1
+  found_by: review
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_putting_properties_in_order_takes_time_in_proportion_to_the_part
+
+- id: B-01
+  what: a run cut at the script lost xml:space, so the space between Thai and English was no longer text
+  class: C1
+  found_by: review
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_a_cut_run_keeps_the_space_at_the_cut
+
+- id: B-02
+  what: a run holding a tab or two w:t was cut through its markup, and the whole repair refused with a false reason
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_a_run_with_a_tab_is_marked_whole_not_cut_through_its_markup
+
+- id: A-01
+  what: an invisible character inside a Thai word was cut out as a run of its own
+  class: C1
+  found_by: review
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_an_invisible_character_inside_a_thai_word_is_not_a_place_to_cut
+
+- id: D-06
+  what: a > inside an attribute, or an empty run written <w:r />, ended a tag in the middle and stopped repair
+  class: C0, C1
+  found_by: planted-input
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_a_greater_than_inside_an_attribute_is_not_the_end_of_the_tag
+    - tests/test_repair_reads_xml_as_xml.py::test_an_empty_run_is_passed_over
+
+- id: D-08
+  what: a size in single quotes got a twin with no value
+  class: C1
+  found_by: planted-input
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_a_single_quoted_size_gets_its_twin_with_the_same_value
+
+- id: D-10
+  what: a part under another prefix, or with w bound elsewhere, was half repaired or edited where the checker saw nothing
+  class: C1
+  found_by: planted-input
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_a_part_under_another_prefix_is_refused_not_half_repaired
+
+- id: B-12
+  what: a part written under the prefix ns0 was not repaired, with a reason that did not say why
+  class: C1
+  found_by: review
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_a_part_under_another_prefix_is_refused_not_half_repaired
+
+- id: F-01
+  what: the guard that refuses a repair changing the text was never exercised by a test
+  class: C1
+  found_by: review
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_a_repair_that_changes_a_character_writes_nothing

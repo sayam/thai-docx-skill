@@ -199,6 +199,11 @@ gates:
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_regressions.py]}
+  - id: repair-reads-xml-as-xml
+    title: repair reads every tag the way XML writes it — a quoted `>`, single quotes, an empty run, a run holding a tab, another prefix, a comment or CDATA, a picture's bytes — keeps the space at every cut, compares the text of every part a reader sees, and writes nothing when its output has a fault the input did not, each shown in both implementations or on a planted repair
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_repair_reads_xml_as_xml.py]}
   - id: amendments-recorded-both-ways
     title: Every amendment is recorded on both records — `Amends:` on the new one names a record whose `Amended by:` names it back, and the reverse — read from each record's head, a link at a time (.github/CONTRIBUTING.md, Add a decision)
     kind: test
