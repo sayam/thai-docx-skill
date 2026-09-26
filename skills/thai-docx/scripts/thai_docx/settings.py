@@ -306,6 +306,8 @@ def parse_args(argv: list[str]) -> tuple[dict, list[str], list[str]]:
             i += 1
         i += 1
         if s is None:
+            if not value:  # an empty directory is the working directory, which nobody named
+                raise BuildError("--allow-dir takes a directory; an empty one names none")
             allow.append(value)
         else:
             opts[s["key"]] = _read(s, value)

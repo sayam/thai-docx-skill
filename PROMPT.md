@@ -3,8 +3,9 @@
 [ภาษาไทย: อธิบายทีละขั้น](PROMPT.th.md)
 
 For an AI chat app that does not load Agent Skills but can run Python on files you
-upload. Upload `thai-docx-<version>.zip` from this repository's releases, then paste
-everything below the line as your first message, followed by your request.
+upload. Upload `thai-docx-<version>.zip` from this repository's releases — the file under
+**Assets**, not *Source code*, and not unzipped — then paste everything below the line as your
+first message, followed by your request.
 
 The document comes out byte for byte the same as the skill makes it, because the
 same program makes it. An app that cannot run Python on an uploaded file cannot use
@@ -13,6 +14,20 @@ this; ask it for Markdown instead and build the file yourself with
 
 This route has not been tried in any app yet. If you try it, please say in an
 [issue](https://github.com/sayam/thai-docx-skill/issues) which app you used and what happened.
+
+If something goes wrong:
+
+| what you see | what to do |
+|---|---|
+| the app cannot take a zip file | it cannot use this; try an app with skills, or build the file yourself: [without AI](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en/command-line.md) |
+| the app cannot run Python, or has none | turn code execution on in its settings; if it has none, ask it for the content as Markdown and build the file yourself as above |
+| the app says its Python is too old | the program needs Python 3.11 or later; this app cannot use it |
+| the app writes its own code to make the Word file | say "use the program in thai-docx, as my first message says" |
+| every Thai word in the file has a red squiggle | the app did not use the program; say so as above, and ask for the file again |
+| the app reports an **error on line …** | that line holds something the program does not take; ask the app to change that line without changing its meaning |
+| the app asks about fonts though you did not write `thai-docx grill` | say "use the defaults for now" |
+
+Never attach anybody's real document to an issue.
 
 ---
 

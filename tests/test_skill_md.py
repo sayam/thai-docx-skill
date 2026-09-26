@@ -235,7 +235,9 @@ def test_commands_in_skill_md_run_as_written_from_the_download(unpacked, tmp_pat
         done = subprocess.run(argv, cwd=tmp_path, capture_output=True, text=True, timeout=60, env=env)
         result = json.loads(done.stdout)
         assert done.returncode == 0 and result["ok"] and done.stderr == "", argv[1:]
-    assert json.loads((tmp_path / "thesis.json").read_text(encoding="utf-8"))["settings"] == {"size": 15, "align": "thai"}
+        # an example that hides the profile the skill ships takes it from every user who copies it
+        assert "shadows" not in result, argv[1:]
+    assert json.loads((tmp_path / "my-thesis.json").read_text(encoding="utf-8"))["settings"] == {"size": 15, "align": "thai"}
 
 
 def test_skill_md_sends_the_mode_decision_to_the_script(unpacked, tmp_path):

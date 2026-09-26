@@ -92,7 +92,7 @@ row names, in those words or plainly the same; a request that names none of them
 
 | the user asks for | flag |
 |---|---|
-| page numbers | `--page-numbers bottom-center` (or `top-center`, or `--page-numbers` for top right) |
+| page numbers | `--page-numbers` (top right); `bottom-center` or `top-center` only when they say where |
 | no number on the first page of each section | `--no-page-number-first`, with `--page-numbers` |
 | front pages numbered i ii iii, I II III or 1 2 3 | `--front-page-numbers lower-roman`, `upper-roman` or `decimal` |
 | numbered sub-headings: 1.1, 1.1.1 (and ก.1 in appendices) | `--heading-numbers` |

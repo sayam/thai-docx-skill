@@ -24,6 +24,8 @@ the Word file. Every command on this page was run as written.
    unzip thai-docx-0.2.0.zip
    ```
 
+   On Windows, in PowerShell: `Expand-Archive thai-docx-0.2.0.zip -DestinationPath .`
+
 Nothing else is installed, and nothing uses the internet.
 
 The commands below use Python. For Node.js, replace `python3 thai-docx/scripts/thai_docx` with
@@ -105,9 +107,9 @@ For heading colors and sizes in the front matter:
 ## Keep settings as a profile
 
 ```sh
-python3 thai-docx/scripts/thai_docx profile save thesis --size 15 --align thai
-python3 thai-docx/scripts/thai_docx build report.md report.docx --profile thesis
-python3 thai-docx/scripts/thai_docx build report.md report.docx --profile thesis --size 18
+python3 thai-docx/scripts/thai_docx profile save my-thesis --size 15 --align thai
+python3 thai-docx/scripts/thai_docx build report.md report.docx --profile my-thesis
+python3 thai-docx/scripts/thai_docx build report.md report.docx --profile my-thesis --size 18
 ```
 
 A flag after `--profile` wins over the profile. The other profile commands:
@@ -115,26 +117,29 @@ A flag after `--profile` wins over the profile. The other profile commands:
 | command | does |
 |---|---|
 | `profile list` | lists your profiles and where they are |
-| `profile show thesis` | shows a profile's settings, and every setting a build would use |
-| `profile save thesis --size 15 --project` | saves in this folder's `.thai-docx/profiles/`, not your home folder |
-| `profile save thesis-v2 --from thesis --default align --size 14` | a new profile from an old one: `align` back to its default, size 14 |
-| `profile export thesis thesis.json` | writes the file to send to someone |
-| `profile import thesis.json --name school-thesis` | takes a profile someone sent, under a name you choose (add `--project` for this folder only) |
-| `build report.md report.docx --profile thesis.json` | uses a profile file straight from its path |
-| `build report.md report.docx --profile thesis --default toc` | uses a profile without one of its settings |
+| `profile show my-thesis` | shows a profile's settings, and every setting a build would use |
+| `profile save my-thesis --size 15 --project` | saves in this folder's `.thai-docx/profiles/`, not your home folder |
+| `profile save my-thesis-v2 --from my-thesis --default align --size 14` | a new profile from an old one: `align` back to its default, size 14 |
+| `profile export my-thesis my-thesis.json` | writes the file to send to someone |
+| `profile import my-thesis.json --name school-thesis` | takes a profile someone sent, under a name you choose (add `--project` for this folder only) |
+| `build report.md report.docx --profile my-thesis.json` | uses a profile file straight from its path |
+| `build report.md report.docx --profile my-thesis --default toc` | uses a profile without one of its settings |
 
 ```sh
 python3 thai-docx/scripts/thai_docx profile list
-python3 thai-docx/scripts/thai_docx profile show thesis
-python3 thai-docx/scripts/thai_docx profile save thesis-v2 --from thesis --default align --size 14
-python3 thai-docx/scripts/thai_docx profile export thesis thesis.json
-python3 thai-docx/scripts/thai_docx profile import thesis.json --name school-thesis
+python3 thai-docx/scripts/thai_docx profile show my-thesis
+python3 thai-docx/scripts/thai_docx profile save my-thesis-v2 --from my-thesis --default align --size 14
+python3 thai-docx/scripts/thai_docx profile export my-thesis my-thesis.json
+python3 thai-docx/scripts/thai_docx profile import my-thesis.json --name school-thesis
 ```
 
 **Careful:** `profile save` and `profile import` replace a profile of the same name without
-asking. When they did, the line they print says `"replaced": true` and has a warning.
+asking. When they did, the line they print says `"replaced": true` and has a warning. A name that
+hides another one — the skill ships a profile named `thesis` — says `"shadows"` and has a warning
+too. A name is letters, digits, `-` and `_`.
 
-Profiles live in `~/.thai-docx/profiles/`, or `.thai-docx/profiles/` in a project; a project
+Profiles live in `~/.thai-docx/profiles/` (on Windows, `%USERPROFILE%\.thai-docx\profiles\`), or
+`.thai-docx/profiles/` in a project; a project
 profile wins over one of the same name. A profile is a small JSON file of settings, nothing
 else. Details: [references/profiles.md](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/profiles.md).
 

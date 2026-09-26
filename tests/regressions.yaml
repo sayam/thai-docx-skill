@@ -469,3 +469,136 @@
   found_by: agent-run
   test:
     - tests/test_what_a_command_takes.py::test_a_profile_that_hides_another_of_its_name_says_so
+
+- id: E-01
+  what: SKILL.md said every other setting keeps its default, so the next change dropped the flags of the last build
+  class: C1, C2
+  found_by: agent-run
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_a_change_keeps_the_flags_of_the_last_build
+
+- id: E-03
+  what: the only exit table in SKILL.md was build's, and read exit 1 from check or repair as a defect in the skill
+  class: C1, C2
+  found_by: agent-run
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_exit_1_is_read_as_the_command_that_gave_it
+
+- id: E-05
+  what: the one no-shell example passed --toc, a flag nobody asked for
+  class: C1, C2
+  found_by: agent-run
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_the_no_shell_example_asks_for_nothing_nobody_asked_for
+
+- id: E-06
+  what: SKILL.md gave no way to answer a request to change a .docx the skill did not build, but document code
+  class: C1, C2
+  found_by: agent-run
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_a_document_this_skill_did_not_build_is_never_rewritten_with_code
+
+- id: E-07
+  what: two sentences on the grill argument pointed opposite ways, and the phrase could be cut before --said
+  class: C1, C2
+  found_by: agent-run
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_the_grill_argument_is_passed_whole
+
+- id: E-09
+  what: specs.md let an agent ask, or wait after showing the Markdown, where SKILL.md said build at once
+  class: C1, C2
+  found_by: agent-run
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_the_markdown_is_shown_with_the_build_and_nothing_is_asked
+
+- id: E-10
+  what: grill, profile and repair were shown only for python3
+  class: C1, C2
+  found_by: agent-run
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_every_command_names_both_runtimes_and_the_skill_directory
+
+- id: E-11
+  what: fix what the message names met a Markdown file the user gave, which is used as it is
+  class: C1, C2
+  found_by: agent-run
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_a_file_the_user_gave_is_changed_only_as_they_say
+
+- id: E-12
+  what: repair.md's command had no <skill>/ and ran nothing
+  class: C1
+  found_by: agent-run
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_every_command_names_both_runtimes_and_the_skill_directory
+
+- id: E-13
+  what: page numbers meant bottom-center on one page and top right on another
+  class: C1, C2
+  found_by: agent-run
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_page_numbers_mean_the_same_on_every_page
+
+- id: E-14
+  what: check.md never said what check's warnings are
+  class: C1, C2
+  found_by: agent-run
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_the_check_page_says_what_its_warnings_are
+
+- id: E-18
+  what: the grill example quoted the message in double quotes, which the shell changes
+  class: C1, C2
+  found_by: agent-run
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_the_grill_argument_is_passed_whole
+
+- id: E-19
+  what: the short form of an answer had no place for a value or a profile name
+  class: C1, C2
+  found_by: agent-run
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_the_grill_argument_is_passed_whole
+
+- id: E-20
+  what: the links SKILL.md and the references carry to examples/ and to each other were tested by nothing
+  class: C1
+  found_by: review
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_every_relative_link_the_skill_carries_reaches_a_file
+
+- id: A-06
+  what: the command-line guide gave only unzip and ~ on a page that promises Windows
+  class: C1
+  found_by: review
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_the_command_line_guide_serves_windows_too
+
+- id: A-08
+  what: the Thai guides said flag three ways and left complex script unexplained
+  class: C1
+  found_by: review
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_the_thai_guides_use_one_word_for_a_flag
+
+- id: A-09
+  what: scenarios said the phrase needs a hyphen where the script takes a hyphen, an underscore or a space
+  class: C1
+  found_by: review
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_the_phrase_is_described_as_the_script_reads_it
+
+- id: A-10
+  what: PROMPT.md lacked the trouble table and the download warning its Thai page carries
+  class: C1
+  found_by: review
+  test:
+    - tests/test_the_docs_say_what_the_skill_does.py::test_the_english_prompt_page_carries_the_trouble_table
+
+- id: D-16
+  what: --allow-dir / widened the picture limit to the whole machine, and --allow-dir '' to the working directory
+  class: C1
+  found_by: planted-input
+  test:
+    - tests/test_what_a_command_takes.py::test_allow_dir_never_opens_the_whole_machine

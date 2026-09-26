@@ -199,7 +199,10 @@ function parseArgs(argv) {
       i += 1;
     }
     i += 1;
-    if (s === undefined) allow.push(value);
+    if (s === undefined) {
+      if (!value) throw new BuildError("--allow-dir takes a directory; an empty one names none"); // an empty directory is the working directory, which nobody named
+      allow.push(value);
+    }
     else opts[s.key] = readSetting(s, value);
   }
   if (positional.length !== 2) throw new BuildError(USAGE);

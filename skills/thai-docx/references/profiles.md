@@ -20,14 +20,17 @@ thai_docx build IN.md OUT.docx --profile NAME|PATH [flags]
 
 Each prints one JSON line beginning `"ok"`. `save`, `show` and `import` add the `"path"` written
 or read, the `"settings"` and the `"sha256"` — the same profile gives the same sha256 in both
-runtimes — and `"replaced"`, with a `"warnings"` line, when the file took the place of one.
+runtimes — and `"replaced"`, with a `"warnings"` line, when the file took the place of one;
+`"shadows"`, with a `"warnings"` line, when it now hides a profile of that name further down the
+search (`"skill"` or `"home"`).
 `list` gives `"profiles"`; `export` gives the `"path"` written and `"share"`.
 
 ## What to tell the user
 
 - **Saving:** say the name, where it was written, and that `--profile NAME` uses it. When
   `"replaced"` is true (`save` or `import`), pass on its warning: it replaced the profile of that
-  name.
+  name. When `"shadows"` is there, pass that one on too: `--profile NAME` and `grill from NAME`
+  now take this profile where they took the other.
 - **Sharing:** `profile export` writes one JSON file; the user sends it by any means. The
   other person runs `profile import FILE.json`. `"share"` in the output is that sentence.
 - **Building:** a build that used a profile reports it under `"profile"`; say the name, and
@@ -45,9 +48,12 @@ runtimes — and `"replaced"`, with a `"warnings"` line, when the file took the 
   `examples/README.md` says which parts of a document a profile holds and which belong to the
   Markdown itself.
 - **`save` and `import` write** to `~/.thai-docx/profiles/` — with `--project`, to
-  `./.thai-docx/profiles/`. Nowhere else; a name is a name, never a path.
-- **A profile file is read only up to 64 KiB**; a larger one is refused with "larger than 64 KiB;
-  a profile is settings" (ADR 0030).
+  `./.thai-docx/profiles/`. Nowhere else; a name is a name, never a path: letters — Thai among
+  them, with its marks — digits, `-` and `_`, 1 to 64 of them, never starting with `-`. A file is
+  written whole or not at all: a save that fails leaves the profile that was there as it was.
+- **A profile file is read only up to 64 KiB**, and only when it is a regular file; a larger one is
+  refused with "larger than 64 KiB; a profile is settings". It must be UTF-8 JSON whose values have
+  the types the settings take; `"schema"` is the integer 1.
 - **Precedence:** the defaults, then the profile, then the flags typed after it. A flag can
   only add to a profile; `--default SETTING[,SETTING]` after `--profile` or `--from` takes
   settings out of it first, back to their defaults.

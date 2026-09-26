@@ -206,12 +206,25 @@ was published here in error.
 ## 9. What the build refuses, and what it only warns about
 
 **Refused — no file is written, and the line is named:** any HTML but `<br> <sup> <sub> <u>
-<kbd>`; invisible characters in the text; nesting past 100 deep; a footnote defined and never
+<kbd>` — and one of those alone on its own line, which is an HTML block; a character a reader
+cannot see — a zero-width character, a soft hyphen, a direction mark or any other format
+character, or a noncharacter; a link to anything but `http`, `https` or `mailto` (a link with no
+scheme, `#top` or `other.docx`, is written as before); nesting past 100 deep; a footnote defined and never
 referenced, or defined twice; an image that is not PNG or JPEG by its bytes, is truncated, is
-remote, or lies outside the Markdown's own directory unless `--allow-dir` names one; a table row
+remote, is wider or taller than 20,000 pixels, is larger than 32 MiB, or lies outside the
+Markdown's own directory unless `--allow-dir` names one — through at most 40 symbolic links; a table row
 with more cells than its header; region comments out of order or twice; a front-matter or flag
-value outside its range; margins or an indent that leave less than an inch for text; and any
-difference at all between the text written and the Markdown.
+value outside its range; a caption label holding `%`, `"` or `\`, or a table or figure label
+holding a space under `--auto-numbering` (Word's counter takes one word); margins or an indent that
+leave less than an inch for text; and any difference at all between the text written and the
+Markdown.
+
+**Refused before anything is read:** a Markdown file larger than 16 MiB, or one that is not a
+regular file (a FIFO, a device); an output path that is the Markdown file itself; an argument that
+is not UTF-8 text.
+
+**A picture is fitted to the page** — to the text width, and to the text height too, so a tall
+one no longer runs off the page.
 
 **Warned — the file is written, and the warning must be passed to the user:** a flag that changed
 nothing; `--toc` beside `<!-- toc -->`, which gives two tables of contents; a font not known to
@@ -221,10 +234,11 @@ search for `ำ` will not find; a `Table:` or `Figure:` line in a place where it
 a Thai caption prefix, which is not one — the prefix is `Table:`/`Figure:` in every language;
 a region comment inside a list, quotation or footnote; `$…$` math kept as literal LaTeX.
 
-**`build` overwrites the output path without asking.** Give a new name to keep the old file.
+**`build` overwrites the output path without asking** — any path but the Markdown's own. Give a
+new name to keep the old file.
 
-**Exit 1 with `findings` means a defect in this skill**: nothing was written, do not retry, quote
-the codes.
+**Exit 1 with `findings`, or with an `error` that says so, means a defect in this skill**: nothing
+was written, do not retry, quote the codes.
 
 ## 10. What `repair` does, and what it never does
 
@@ -239,14 +253,20 @@ give a run that names only a Latin font a complex-script one; give a Symbol bull
 in it; put properties back into schema order. `--force-cs-whole-doc` marks every run instead and cuts nothing, which is the shape
 releases before 0.2.0 wrote.
 
-**It never:** changes a character of the text — the output's text is compared with the input's and
-a one-character difference writes nothing; **cuts a run that carries anything but its own text** —
+**It never:** changes a character of the text — the output's text, in every part a reader sees, is
+compared with the input's, and a one-character difference writes nothing — nor writes a file its
+own checker faults where the input was sound (a defect: exit 1); cuts a run inside a word at an
+invisible character, or where a space at its ends lacks `xml:space="preserve"`; edits a part that
+holds an XML comment, CDATA or a processing instruction (left as it came, with a warning); repairs
+a document written under a prefix other than `w:` (refused); **cuts a run that carries anything but its own text** —
 a field, a picture, a tab, a line break, or a numeric character reference such as `&#x20;`, which
 could not be written again without changing the text, so each of those keeps its whole run and the
 English inside it keeps its underline; merges a word split across two runs (reported, left);
 removes an invisible character (reported, left); touches fonts, styles, layout, tracked changes,
 fields or document properties beyond the list above; or overwrites the original — a new file is
-written, always, and both paths are given to the user.
+written, always, both paths are given to the user, and an output that is the input — by its
+path, a link or a hard link — is refused. A file with nothing to repair is answered `ok`, with
+nothing written.
 
 **What follows from it:** compatibility mode 15 **reflows the document, and page breaks can move**
 — say so before the user sends the file to anyone. The complex-script font it writes where a run
@@ -264,5 +284,11 @@ about the layout of a document somebody else made; it is measured only by its ow
 - **A document with no Thai in it needs nothing this skill adds.**
 - **Reading a PDF or a photograph of an example is the assistant's ability, not the skill's.**
 - **It never reaches the network, installs nothing, and reads only the Markdown's own directory
-  tree (or an `--allow-dir`) and the profile locations** — writing only the output path and the one
-  profile file it was asked to save.
+  tree (or an `--allow-dir`, never `/` or an empty one) and the profile locations** — only regular
+  files, each to a ceiling — writing only the output path and the one profile file it was asked to
+  save, that one whole or not at all.
+- **The two implementations give the same bytes when their runtimes share a Unicode version.**
+  Whether `_` or `*` opens emphasis, and how a link label's case is folded, are read from the
+  runtime's own Unicode tables; a character newer than one runtime's tables can read differently
+  in the other. The characters the skill refuses are one list both read, whatever the
+  version.

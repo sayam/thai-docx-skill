@@ -68,7 +68,9 @@ and below a figure. The counter is the document's own, so a caption inserted bet
 takes the next number and the ones after it move on when fields are updated (Ctrl+A, then F9,
 choosing **Update entire table** when Word asks).
 
-A label carrying a space is not one Word's `SEQ` field can name; keep a caption label to one word.
+A label carrying a space is not one Word's `SEQ` field can name, so under `--auto-numbering` the
+build refuses a table or figure label with a space; a label the build writes as text may hold one.
+No label holds `%`, `"` or `\`.
 
 The list of tables and the list of figures gain it. Under this flag they collect the document's
 counter rather than the caption's style, so a caption joins them whichever way it was added and

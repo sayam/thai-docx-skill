@@ -6,14 +6,15 @@ surface in one page: what the format can express, what stops the build, and what
 
 **This describes a format, not a house style.** The skill carries no ministry's, university's or
 company's form, and never will. When the user shows you one of their own — a PDF, a .docx, a
-photograph of a page — read theirs and write Markdown that matches it. When they show none, ask
-or keep it plain; do not invent an official format for them.
+photograph of a page — read theirs and write Markdown that matches it. When they show none, keep
+it plain and say so; do not ask, and do not invent an official format for them.
 
 ## The way through
 
 1. Read what the user gave you: their example, their text, or what you agreed earlier.
 2. Write the Markdown. Say which parts of their example you could express and which you could not.
-3. Show it to them, or write it to a file, before building.
+3. Show it to them, or write it to a file, in the same reply as the build, so they can correct it
+   afterwards.
 4. Build it — `python3 <skill>/scripts/thai_docx build doc.md doc.docx [flags]`.
 5. If they like the result and want it again, `profile save <name> [the same flags]`.
 
