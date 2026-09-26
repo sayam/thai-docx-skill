@@ -126,7 +126,7 @@ then update the fields again.
 ## A caption that runs to a second line
 
 By default every line of a caption starts at the margin, so a caption that runs on continues under
-its own number. `--caption-hanging-indent 0.75` (inches, 0 to 4) keeps the label and number at the
+its own number. `--caption-hanging-indent 0.75` (inches, 0 to 4, and refused if it leaves less than an inch for text) keeps the label and number at the
 margin and indents every line after the first, which puts the caption's text in one block beside
 its number. It is its own setting: `--indent` is the first line of a body paragraph and changes no
 caption, and a caption is not indented until this flag asks for it.
@@ -139,7 +139,8 @@ is centred in what is left; a table's caption is left-aligned and hangs as the f
 By default a caption fills the width of the text, whatever the size of the picture above it, so a
 caption under a small picture runs on past both its edges. `--caption-matches-object` indents a
 figure's caption to the picture's own box: the caption then starts and ends where the picture
-does. `--center-images` centres a picture that stands alone on its line, and the caption's box is
+does — unless the picture leaves the caption less than an inch, when the caption takes the text
+width and the build says so. `--center-images` centres a picture that stands alone on its line, and the caption's box is
 centred with it; without it the picture keeps the left margin and all the indent goes on the right.
 Each flag works on its own, and both are off unless asked for.
 

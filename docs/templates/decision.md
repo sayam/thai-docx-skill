@@ -5,7 +5,9 @@
 
 <!-- If this replaces an older record, add a line `- Supersedes: NNNN` above,
      and `- Superseded by: <this number>` to the older one. If it changes part of one,
-     add `- Amends: NNNN (what)` here and `- Amended by: <this number> (what)` there. -->
+     add `- Amends: NNNN (what)` here and `- Amended by: <this number> (what)` there.
+     Once accepted, it is never rewritten: a sentence no longer true gains a line beneath it,
+     `> **Later (YYYY-MM-DD):** what holds now`. -->
 
 ## Where it came from
 

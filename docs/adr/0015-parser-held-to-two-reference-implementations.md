@@ -57,6 +57,11 @@ cmark-gfm decides:
   then `[^x]`. An undefined `[^x]` is text.
 - Extended autolinks cover `www.`, `http(s)://` and bare email addresses.
 
+  > **Later (2026-09-26):** since 0.2.2 they are found as cmark-gfm's `autolink.c` finds them
+  > (a domain read in ASCII, `mailto:` part of its link, an entity at the end left out), save two
+  > named cases: `ftp://` and `xmpp:` stay text, the schemes ADR 0040 refuses; and an entity or `*`
+  > or `~` inside a bare address, which cmark-gfm reads in the source (references/markdown.md).
+
 **One character model for both implementations.**
 
 - Whitespace is named explicitly: space and tab, and the Zs category where

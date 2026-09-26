@@ -5,10 +5,17 @@
 
     thai_docx repair IN.docx OUT.docx
 
-This version repairs two findings, and reports every other one:
+This version repairs these findings, and reports every other one:
 
-    1  compatibilityMode is not exactly one 15 — set it, or drop the ones that are not 15
-    3  <w:noProof/> switches Thai proofing, and Thai line breaking, off — remove it
+    1      compatibilityMode is not exactly one 15 — set it, or drop the ones that are not 15
+    2      a Thai run without <w:cs/> — mark it; take the mark off a run that is not Thai, and
+           out of the styles and docDefaults it would inherit from; cut a run holding both
+           scripts where the script changes (ADR 0039)
+    3      <w:noProof/> switches Thai proofing, and Thai line breaking, off — remove it
+    5      a missing complex-script twin — write it, in a run, a style, a paragraph mark or a
+           numbering level; give a Symbol bullet the document's font
+    order  properties out of the schema's order — put them back, in every property list the
+           checker reads
 
 Everything else in the package comes through byte for byte, including the compressed bytes of
 every part this did not rewrite (`package.repack`). The text of the output must equal the text
@@ -590,7 +597,10 @@ def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None
             if n:
                 replace[numbering] = new
                 repaired["5"] = repaired.get("5", 0) + n
-        if any(code in repaired for code in ("2", "5")):
+        # said only where it was written — into an rFonts that named a Latin font alone, or
+        # over a Symbol bullet — not whenever a mark or a twin was
+        quoted = b'"' + cs_font + b'"'
+        if sum(x.count(quoted) for x in replace.values()) > sum(parts[n].count(quoted) for n in replace if n in parts):
             chosen = {"code": "font", "message": "complex-script font written where a run named none: '"
                       + cs_font.decode("utf-8") + "' — " + why}
     return replace, repaired, chosen, left

@@ -6,7 +6,7 @@ still carries, plus the two things ADR 0023 and 0040 make the checker refuse.
 Findings, each with a `code`:
 
     1        compatibilityMode is not declared exactly once as 15
-    2        a run whose text is complex script lacks <w:cs/> (ADR 0039: a run whose
+    2        a run whose text is Thai (U+0E00 to U+0E7F, the one complex script read) lacks <w:cs/> (ADR 0039: a run whose
              text is not complex script must not be asked to carry it, and a file built
              with --force-cs-whole-doc carries it everywhere, which is not a finding)
     3        <w:noProof/> appears somewhere
@@ -16,7 +16,8 @@ Findings, each with a `code`:
     order    a property stands in the wrong place for the schema (Word ignores it): in a run's,
              a paragraph's or a paragraph mark's properties, a section's, a table's, a row's, a
              cell's, a style, a numbering level, the settings
-    invisible  a zero-width character is in the text
+    invisible  a character a reader cannot see is in the text: a zero-width one, any other format
+               character, a noncharacter
     doctype  an XML part declares a DOCTYPE — refused before parsing (ADR 0040 §9)
     size     the package would decompress past the cap — refused (ADR 0040 §9)
     package  not a WordprocessingML package, or a Strict one (ISO/IEC 29500 Strict), which
@@ -28,7 +29,7 @@ part is not known by its file name (a first-page header may be `headerFirst.xml`
 such as `<w:cs w:val="0"/>` is read as the off it says. Deleted text is text.
 
 Warnings never fail the check; today there is one: a complex-script font the
-checker does not know to carry Thai glyphs (ADR 0029).
+checker does not know to carry Thai glyphs (ADR 0020).
 
 Role: decider — exit 0 when there are no findings, 1 when there are, 2 when the
 file could not be examined at all. The output is one JSON line, and never carries
@@ -350,7 +351,7 @@ def _check_text_part(name: str, root: ET.Element, report: Report, roles: dict) -
                 # one direction only: a run that holds no complex script may carry the marker,
                 # because --force-cs-whole-doc writes it on every run and that file is ours too
                 if thai and not marked:
-                    report.find("2", name, "a run whose text is complex script has no <w:cs/> element")
+                    report.find("2", name, "a run whose text is Thai has no <w:cs/> element")
                 if marked:
                     lang = rpr.find(w("lang"))
                     if lang is not None and lang.get(w("bidi")) == "th-TH":

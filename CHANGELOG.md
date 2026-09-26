@@ -87,6 +87,11 @@ wrote, so it can find what it answered `ok` on before; `repair` puts right what 
   the Unicode version decides
   (`tests/test_build.py::test_force_cs_marks_every_run_and_leaves_the_defaults_unmarked`,
   `tests/test_rules.py::test_what_the_review_found_the_pages_left_out_they_now_say`).
+- `repair` said it wrote a complex-script font whenever it marked a run or wrote a twin, where it
+  wrote none; it says so only where it did
+  (`tests/test_what_a_command_takes.py::test_repair_says_it_wrote_a_font_only_where_it_did`).
+- A picture refused for its bytes or its size was not named; the error names it
+  (`tests/test_what_a_command_takes.py::test_a_picture_refused_is_named`).
 
 ## [0.2.1] - 2026-09-26
 

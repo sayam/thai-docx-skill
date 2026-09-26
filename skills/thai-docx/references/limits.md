@@ -209,7 +209,7 @@ was published here in error.
 
 ## 9. What the build refuses, and what it only warns about
 
-**Refused — no file is written, and the line is named:** any HTML but `<br> <sup> <sub> <u>
+**Refused — no file is written, and the line is named (for a picture, its path):** any HTML but `<br> <sup> <sub> <u>
 <kbd>` — and one of those alone on its own line, which is an HTML block; a character a reader
 cannot see — a zero-width character, a soft hyphen, a direction mark or any other format
 character, or a noncharacter; a link to anything but `http`, `https` or `mailto` (a link with no
@@ -237,7 +237,9 @@ carry Thai; `![]` with nothing between the brackets; a heading level skipped; a 
 nobody refers to; `ำ` typed the long way (`ํ` + `า`), which is left exactly as typed and which a
 search for `ำ` will not find; a `Table:` or `Figure:` line in a place where it is not a caption;
 a Thai caption prefix, which is not one — the prefix is `Table:`/`Figure:` in every language;
-a region comment inside a list, quotation or footnote; `$…$` math kept as literal LaTeX.
+a region comment inside a list, quotation or footnote; `$…$` math kept as literal LaTeX; a picture too
+narrow for a caption of its width under `--caption-matches-object`, whose caption takes the text
+width; `--thai-language` in a document with no Thai text, which reached no run.
 
 **`build` overwrites the output path without asking** — any path but the Markdown's own. Give a
 new name to keep the old file.
@@ -255,7 +257,7 @@ without which a run that leaves it off only inherits it again; **cut a run that 
 where the script changes**, so the English inside a Thai sentence stops being proofed with a
 complex-script dictionary; remove `noProof`; write the missing twin of a size, bold or italic;
 give a run that names only a Latin font a complex-script one; give a Symbol bullet a font with Thai
-in it; put properties back into schema order. `--force-cs-whole-doc` marks every run instead and cuts nothing, which is the shape
+in it; put properties back into schema order. `--force-cs-whole-doc` marks every run instead and cuts nothing — in a file it repairs for another finding — which is the shape
 releases before 0.2.0 wrote.
 
 **It never:** changes a character of the text — the output's text, in every part a reader sees, is

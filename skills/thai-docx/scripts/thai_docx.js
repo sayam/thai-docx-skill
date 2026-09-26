@@ -220,7 +220,8 @@ function sticky(source, flags) {
 }
 
 // ---- 10-zip.js -------------------------------------------------------------
-// thai-docx — zip: writing stored entries, and reading stored or deflated entries
+// thai-docx — zip: writing stored entries, repacking with rewritten parts deflated (repair),
+// and reading stored or deflated entries
 // by the rules ADR 0017 numbers, as thai_docx/package.py does (ADR 0008, 0040 §9).
 
 class ZipError extends Error {}
@@ -1402,7 +1403,7 @@ function checkTextPart(name, root, report, roles) {
         // one direction only: a run that holds no complex script may carry the marker, because
         // --force-cs-whole-doc writes it on every run and that file is ours too
         if (thai && !marked) {
-          report.find("2", name, "a run whose text is complex script has no <w:cs/> element");
+          report.find("2", name, "a run whose text is Thai has no <w:cs/> element");
         }
         if (marked) {
           const lang = rpr.find(w("lang"));
@@ -4693,7 +4694,14 @@ class Writer {
     }
     const [path, data] = this.readImage(src);
     if (!this.imageRel.has(path)) {
-      const [kind, wpx, hpx] = imageSize(data);
+      let size;
+      try {
+        size = imageSize(data);
+      } catch (e) {
+        if (!(e instanceof BuildError)) throw e;
+        throw new BuildError("image '" + src + "'" + e.what.slice("image".length)); // which picture
+      }
+      const [kind, wpx, hpx] = size;
       const n = this.media.length + 1;
       this.media.push(["word/media/image" + n + "." + kind, data]);
       const rid = this.rel(REL + "image", "media/image" + n + "." + kind);
@@ -5728,15 +5736,12 @@ function buildText(text, opts, readImage) {
 
 // ---- 54-repair.js ----------------------------------------------------------
 // Repair a .docx this skill did not write: the attributes that break Thai, never the text
-// (ADR 0037) — the port of thai_docx/repair.py. This version repairs two findings and
-// reports every other one:
-//
-//   1  compatibilityMode is not exactly one 15 — set it, or drop the ones that are not 15
-//   3  <w:noProof/> switches Thai proofing, and Thai line breaking, off — remove it
+// (ADR 0037) — the port of thai_docx/repair.py, whose docstring lists the findings this
+// version repairs (1, 2, 3, 5 and order) and reports every other one.
 //
 // A part is edited as text, not re-serialised from a tree: a tree would rewrite prefixes,
 // attribute order and empty-element spelling across the whole part, and ADR 0037 allows only
-// the attributes named. Both elements below are empty ones, so the shapes are few.
+// the attributes named. Every tag is read the one way XML writes it (ATTRS below).
 
 const REPAIR_USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"] [--thai-language]' +
   " [--force-cs-whole-doc]";
@@ -6331,7 +6336,15 @@ function repairParts(allParts, findings, font, thaiLanguage, csAll) {
         repaired["5"] = (repaired["5"] || 0) + n;
       }
     }
-    if (repaired["2"] || repaired["5"]) {
+    // said only where it was written (repair.py says why)
+    const quoted = '"' + csFont + '"';
+    const count = (text) => text.split(quoted).length - 1;
+    let after = 0, before = 0;
+    for (const [name, bytes] of replace) {
+      after += count(fromUtf8(bytes));
+      if (parts.has(name)) before += count(fromUtf8(parts.get(name)));
+    }
+    if (after > before) {
       chosen = { code: "font", message: "complex-script font written where a run named none: '" + csFont + "' — " + why };
     }
   }
@@ -6717,7 +6730,8 @@ function profileIsFile(p) {
 
 // The whole file or none of it: written beside the target, then put in its place, so a
 // write that fails leaves the profile that was there as it was. Only the two profile folders
-// are made when missing (ADR 0040); `export` writes where it is told, or nowhere.
+// are made when missing (ADR 0040); `export` writes where it is told (`./NAME.json` when told
+// nothing), or nowhere.
 function profileWrite(profile, p, makeFolder = true) {
   const fs = require("fs");
   const path = require("path");

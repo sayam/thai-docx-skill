@@ -19,7 +19,7 @@ application that opens the result, and the development tools under `tools/` (rep
 | # | requirement | from |
 |---|---|---|
 | R1 | Make no network connection; start no process; evaluate no code from input or from outside the skill. | ADR 0040 §1–2 |
-| R2 | Write only the output path given, the one profile file a `profile save`/`import` names in the profile directories, and the path given to `profile export`. | ADR 0040 §3 |
+| R2 | Write only the output path given, the one profile file a `profile save`/`import` names in the profile directories, and the path given to `profile export` (`./NAME.json` when none is). Each profile write goes through a `.partial` file beside its target. | ADR 0040 §3 |
 | R3 | Read images only from the Markdown file's tree or a directory named with `--allow-dir`, and only PNG or JPEG by magic bytes. | ADR 0040 §4 |
 | R4 | Read a profile only as JSON of at most 64 KiB that passes the settings schema; a profile is data and can hold nothing a flag could not. | ADR 0040 §4, ADR 0024 |
 | R5 | Read no environment variable except the platform's own lookup of the home directory. | ADR 0040 §6 |

@@ -41,6 +41,10 @@ the UTF-8 flag only for a non-ASCII name, no extra fields or comments. Reading:
 anything that breaks rules 1–5 is "not a zip package"; 6 and 7 are their own
 findings; anything that breaks 8–10 is "entry cannot be read".
 
+> **Later (2026-09-26):** that is how `build` writes. `repair` writes a package again with every
+> part it rewrote deflated by the project's own `deflate`, and every other entry's bytes as they
+> were (ADR 0037, `package.repack`).
+
 1. At most 64 MiB of the file is read; a longer file is refused by size.
 2. The end record is the last 22 bytes when they carry its signature and no
    comment; otherwise the last signature in the final 65,557 bytes whose comment
@@ -60,6 +64,10 @@ findings; anything that breaks 8–10 is "entry cannot be read".
 7. Declared sizes are capped as 0011 §7 says, before anything is inflated. Only
    `.xml` and `.rels` entries are read; one that is encrypted, or compressed by
    anything but store or deflate, is refused.
+
+   > **Later (2026-09-26):** since 0.2.2 every entry is refused on encryption or method, not only
+   > the ones read: `repair` copies the others as they are, and an encrypted picture was written
+   > back under flags that said it was not (the review of 0.2.0, D-14).
 8. The local header has its signature, lies inside the file, and repeats the
    central directory's name byte for byte; the data follows it inside the file.
 9. A stored entry's two sizes are equal. A deflated entry is decoded as RFC 1951

@@ -378,7 +378,8 @@ function profileIsFile(p) {
 
 // The whole file or none of it: written beside the target, then put in its place, so a
 // write that fails leaves the profile that was there as it was. Only the two profile folders
-// are made when missing (ADR 0040); `export` writes where it is told, or nowhere.
+// are made when missing (ADR 0040); `export` writes where it is told (`./NAME.json` when told
+// nothing), or nowhere.
 function profileWrite(profile, p, makeFolder = true) {
   const fs = require("fs");
   const path = require("path");

@@ -114,7 +114,7 @@ user, and is where a new measurement goes.
 | LibreOffice Writer | `thaiNumbers` drawn as 1, 2, 3; `STYLEREF 1 \s` answers the chapter's *title* (`ตารางที่ บทนำ-ก`); `SEQ \* ThaiArabic` a Thai letter, its restart ignored. In Arabic digits with no regions, correct | ADR 0035, measured 2026-09-19 with LibreOffice 26.8 |
 | WPS Writer | the Thai of a chapter label drawn as Latin letters (`ÓõõõyA`); with `--thai-digits` the value 1 drawn as ๕ | [2026-09-16](../evidence/2026-09-16-office-check-five-applications.md), [2026-09-19](../evidence/2026-09-19-wps-writer.md) |
 
-> **Later:** the WPS row did not reproduce on 2026-09-23, before or after ADR 0039; what changed is
+> **Later (2026-09-24):** the WPS row did not reproduce on 2026-09-23, before or after ADR 0039; what changed is
 > not established. The LibreOffice row was measured again on 2026-09-23
 > ([2026-09-24](../evidence/2026-09-24-what-v0.2.0-was-read-in.md) §1, §2).
 
@@ -162,7 +162,7 @@ them. `sample.md` built with `--auto-numbering` is byte for byte the `sample-def
 this record (`50776ea25c45…`), which is how the old path is known to be whole.
 
 **The oracle set gains a variant**, `sample-auto`: the thesis with `--heading-numbers
---thai-digits --auto-numbering`, held as a golden. (**Later:** it is built from every flag of
+--thai-digits --auto-numbering`, held as a golden. (**Later (2026-09-26):** it is built from every flag of
 `sample-options` with `--auto-numbering` added; `tools/oracle_set.py` holds the list, and is the
 one place to read it.) Its checklist asks what no other variant can:
 that a heading, a list item and a caption inserted in the application renumber what follows. The

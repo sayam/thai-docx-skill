@@ -444,3 +444,23 @@ def test_a_phrase_past_the_first_20000_characters_is_found_in_the_last(tmp_path)
     assert first["mode"] == "build" and any("may be among them" in w for w in first["warnings"]), first
     code, again = both(["grill", "--said", message[-20000:]], tmp_path)
     assert code == 0 and again["mode"] == "grill", again
+
+
+def test_repair_says_it_wrote_a_font_only_where_it_did(tmp_path):
+    """The `font` warning came with every mark or twin repaired, where no font was written;
+    an agent reads it out to the user (repair.md). It comes only where one was."""
+    marked_only = replaced(good(), "word/document.xml", "<w:cs/>", "")
+    (tmp_path / "in.docx").write_bytes(pack(marked_only))
+    code, result = both(["repair", "in.docx", "out.docx"], tmp_path)
+    assert code == 0 and result["repaired"].get("2") and not [w for w in result["warnings"] if w["code"] == "font"], result
+    shutil.copy(FIXTURES / "legacy-python-docx-default.docx", tmp_path / "legacy.docx")
+    code, result = both(["repair", "legacy.docx", "out.docx"], tmp_path)
+    assert [w["code"] for w in result["warnings"]].count("font") == 1, result
+
+
+def test_a_picture_refused_is_named(tmp_path):
+    """"image is not a PNG or JPEG file" did not say which, in a document of several pictures."""
+    (tmp_path / "bad.png").write_bytes(b"not a picture")
+    (tmp_path / "in.md").write_text("![a](bad.png)\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    assert code == 2 and result["error"] == "image 'bad.png' is not a PNG or JPEG file (by its bytes, not its name)", result

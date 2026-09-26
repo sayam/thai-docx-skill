@@ -93,7 +93,7 @@ and modes.
 What the scripts are designed never to do is written down in `docs/adr/0040`: no network;
 no subprocesses, `eval` or code loaded from outside the skill; no environment variable read
 beyond the platform's own lookup of the home directory; writing only the output path, the one profile file `profile save` or `import` names in the
-profile directories, and the path `profile export` is given; reading images only from the
+profile directories, and the path `profile export` is given (or `./NAME.json` when it is given none); reading images only from the
 Markdown file's directory or one named with `--allow-dir`; profiles only as checked JSON of
 at most 64 KiB; DOCTYPE and oversized packages refused. A way to make them do any of it is
 in scope, and so is a profile file that makes a build do what its flags could not.

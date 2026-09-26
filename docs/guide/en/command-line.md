@@ -158,7 +158,7 @@ The check reports. To fix a file you do not have the content for:
 python3 thai-docx/scripts/thai_docx repair theirs.docx theirs-fixed.docx
 ```
 
-It writes a new file — the one you gave is never changed — with these faults gone: the marks
+It writes a new file — the one you gave is never changed, and nothing is written when there is nothing it repairs — with these faults gone: the marks
 every Thai run needs, proofing switched off, the complex-script twins, properties in the wrong
 order, and the compatibility mode when the file declares one. A file that declares no mode is
 left so, and the mode stays under `"remaining"`. A word split across two runs and invisible

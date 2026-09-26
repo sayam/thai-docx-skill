@@ -232,7 +232,8 @@ def load(name: str) -> tuple[dict, str, pathlib.Path]:
 def write(profile: dict, path: pathlib.Path, make_folder: bool = True) -> None:
     """The whole file or none of it: written beside the target, then put in its place, so
     a write that fails leaves the profile that was there as it was. Only the two profile
-    folders are made when missing (ADR 0040); `export` writes where it is told, or nowhere."""
+    folders are made when missing (ADR 0040); `export` writes where it is told (`./NAME.json` when
+    told nothing), or nowhere."""
     data = canonical(profile).encode("utf-8")
     partial = path.with_name(path.name + ".partial")
     try:

@@ -303,7 +303,10 @@ class Writer:
             raise BuildError("image '" + src + "': remote images are not supported; only local PNG or JPEG files")
         path, data = self.read_image(src)
         if path not in self.image_rel:
-            kind, wpx, hpx = _image_size(data)
+            try:
+                kind, wpx, hpx = _image_size(data)
+            except BuildError as exc:  # which picture, when a document holds several
+                raise BuildError("image '" + src + "'" + exc.what[len("image"):]) from None
             n = len(self.media) + 1
             self.media.append(("word/media/image" + str(n) + "." + kind, data))
             rid = self.rel(REL + "image", "media/image" + str(n) + "." + kind)

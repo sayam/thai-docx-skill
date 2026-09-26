@@ -40,7 +40,7 @@ search (`"skill"` or `"home"`).
 
 ## The rules
 
-- **Where a name is found**, first wins: a path (it has `/` or ends `.json`), then
+- **Where a name is found**, first wins: a path (it has `/` or `\`, or ends `.json`), then
   `./.thai-docx/profiles/`, then `~/.thai-docx/profiles/`, then the skill's own.
 - **The skill ships one profile, `thesis`** — the most a document asks for, with more than the
   interview asks about. It is an example to copy and change, not a format anyone must follow; say so

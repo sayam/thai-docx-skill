@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 """The checker, proved in both directions: a clean package passes, and each planted
 violation is reported under its own code (ADR 0004, 0023, 0040; gate
-`checkers-proven-two-way`).
+`docx-checker-proven-two-way`).
 """
 
 from __future__ import annotations

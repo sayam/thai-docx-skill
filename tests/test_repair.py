@@ -1,8 +1,8 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
 """Repair: the attributes that break Thai, never the text (ADR 0037; gate
-`repair-changes-only-what-it-names`). This version repairs findings 1 and 3 and reports
-every other one.
+`repair-changes-only-what-it-names`). This version repairs findings 1, 2, 3, 5 and `order`
+and reports every other one (repair.py's docstring lists them).
 """
 
 from __future__ import annotations

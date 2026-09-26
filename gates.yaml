@@ -163,7 +163,7 @@ gates:
   - id: sast-codeql
     title: CodeQL's security-extended queries analyse the Python, the JavaScript and the workflows on every pull request, every push to main and weekly; an alert of medium severity or higher is fixed or dismissed with a reason before merge (CONTRIBUTING.md, Static analysis)
     kind: job
-    severity: advisory
+    severity: blocking
     enforced_by: {job: codeql}
     proved_by: docs/evidence/2026-09-18-codeql-alerts-triaged.md
   - id: scorecard-published

@@ -137,8 +137,9 @@ What you can ask for:
 | smaller text in tables | "table text size 14" |
 
 Every setting: [references/settings.md](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/settings.md).
-Ask for something the document has nothing for, such as a table setting with no table, and the
-assistant tells you it "changed nothing".
+Ask for something the document has nothing for, such as `--no-repeat-table-header` with no table,
+and the assistant tells you it "changed nothing". A setting that still changes the file there —
+`--table-size` or `--thai-digits` sets a style all the same — says nothing.
 
 ## Scenario 4: give the settings in your first message
 
@@ -258,7 +259,7 @@ Good to know:
   again. Out of order,
   the build stops and names the line.
 - Front pages are numbered ก ข ค only when you ask for page numbers.
-- Outside a chapter, captions read "ตารางที่ 1".
+- Outside a chapter, captions read "ตารางที่ 1"; in an appendix, "ตารางที่ ก-1".
 - **Chapter, heading, list and caption numbers are written into the file, not numbers Word keeps
   up to date.** That is why the file reads the same in Word, LibreOffice, WPS and Google Docs, in
   Arabic digits or Thai. If you open the .docx and insert a chapter or a table yourself, renumber

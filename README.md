@@ -37,7 +37,7 @@ file right in the first place, and checks one that another program produced.
    | Claude (web, desktop) | turn on code execution, then **Customize > Skills > + > Create skill > Upload a skill** and choose the zip |
    | Claude Code | `mkdir -p ~/.claude/skills && unzip thai-docx-0.2.2.zip -d ~/.claude/skills` |
    | Codex, ChatGPT desktop app | `mkdir -p ~/.agents/skills && unzip thai-docx-0.2.2.zip -d ~/.agents/skills` |
-   | ChatGPT Business, Enterprise, Edu | **Plugins > Skills > Create > Upload from your computer** |
+   | ChatGPT Business, Enterprise, Edu, Healthcare | **Plugins > Skills > Create > Upload from your computer** |
    | GitHub Copilot | `mkdir -p ~/.copilot/skills && unzip thai-docx-0.2.2.zip -d ~/.copilot/skills` |
    | Cursor | `mkdir -p ~/.cursor/skills && unzip thai-docx-0.2.2.zip -d ~/.cursor/skills` |
    | Gemini, other agents, the APIs | [step by step for each app](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en/install.md) |
@@ -92,7 +92,7 @@ Version 0.2.2, which writes byte for byte the files 0.2.0 and 0.2.1 wrote from t
 flags, except where its [changes](CHANGELOG.md) say — a bare address or a footnote label now read as
 GitHub reads it, a caption too narrow for its picture: what was read on those holds for all three. The five applications are Word 365 for Windows (the reference), Word for macOS,
 Google Docs, LibreOffice Writer and WPS Writer. On those files Word 365 for Windows passes every
-item, and WPS Writer and Google Docs pass where they were read; Word for macOS has not been read
+item; WPS Writer passes six of seven (with `--thai-language` it places ำ over the wrong letter) and Google Docs passes where it was read; Word for macOS has not been read
 yet, and LibreOffice Writer only in one document
 ([what was read](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md)). Changes are listed in
 [CHANGELOG.md](https://github.com/sayam/thai-docx-skill/blob/main/CHANGELOG.md).

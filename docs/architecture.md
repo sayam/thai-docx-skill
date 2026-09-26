@@ -14,10 +14,12 @@ rule of its own; `rules.md` ends with the table that maps each rule to its recor
 thai-docx/                     the skill folder (the release archive holds only this)
 ├── SKILL.md                   what the agent reads first: rules, the build, when to read more
 ├── references/*.md            read only when needed: settings, Markdown, chapters, profiles,
-│                              heading styles, grill questions, check codes, JS sandbox
+│                              heading styles, grill questions, check codes, repair, limits,
+│                              numbering, specs, JS sandbox
 ├── scripts/thai_docx/         the Python implementation (standard library only)
 ├── scripts/thai_docx.js       the JavaScript implementation, one generated file
 ├── assets/*.json              fixed XML fragments and data shared by both implementations
+├── examples/, profiles/       the thesis example and the profile the skill ships
 └── LICENSE.txt, LICENSES/
 ```
 
@@ -36,8 +38,8 @@ else in the repository is needed at run time ([ADR 0002](adr/0002-one-public-rep
 | file system | the Markdown file's tree, `--allow-dir` directories, `~/.thai-docx/profiles/`, `./.thai-docx/profiles/`, the output path |
 | office application (Word, LibreOffice, Google Docs, WPS) | opens the .docx; updates fields when the reader asks |
 | contributor and maintainer | propose, review and merge changes through pull requests held to the gates (`scans`, `commits`, `tests`, `lint`, `deps`, `pr-description`, and CodeQL's code-scanning results) |
-| CI (`gates.yml`) | runs scans, commit lint, the suite under coverage, lint and the dependency check (`deps`, OSV-Scanner) on every push and pull request |
-| code scanning (`codeql.yml`) | CodeQL's security-extended queries for Python, JavaScript and workflows, on every push, pull request and weekly |
+| CI (`gates.yml`) | runs scans, commit lint, the suite under coverage, lint and the dependency check (`deps`, OSV-Scanner) on every push and pull request, and the suite again on the newest runtimes promised (`tests-newest`, not a required check) |
+| code scanning (`codeql.yml`) | CodeQL's security-extended queries for Python, JavaScript and workflows, on every pull request, every push to `main` and weekly |
 | project score (`scorecard.yml`) | OpenSSF Scorecard on `main`, published for the README badge |
 | release workflow (`release.yml`) | re-checks the tag, packs the skill folder, attests it with GitHub's OIDC identity (Sigstore), verifies, attaches |
 | Zenodo | archives the source of each release and assigns a DOI |
@@ -52,14 +54,15 @@ it from `js/` and fails on any byte of difference.
 |---|---|---|
 | `build IN.md OUT.docx [flags]` | Markdown to a .docx | `build`, `markdown`, `layout`, `writer`, `parts`, `package`, `check`, `fidelity`, `settings` · `53-build`, `40-markdown`, `48-layout`, `50-writer`, `51-parts`, `10-zip`, `30-check`, `52-fidelity`, `45-settings` |
 | `check FILE.docx` | reports the causes of broken Thai in any .docx | `check`, `package`, `ooxml` · `30-check`, `10-zip`, `20-xml` |
-| `repair IN.docx OUT.docx [--font F] [--thai-language] [--force-cs-whole-doc]` | writes a new .docx with the Thai findings cleared, text unchanged | `repair`, `package`, `deflate`, `check`, `ooxml` · `54-repair`, `10-zip`, `11-deflate`, `30-check`, `20-xml` |
+| `repair IN.docx OUT.docx [--font F] [--thai-language] [--force-cs-whole-doc]` | writes a new .docx with the Thai findings cleared, text unchanged | `repair`, `package`, `deflate`, `check`, `ooxml`, `fidelity`, `writer`, `settings` · `54-repair`, `10-zip`, `11-deflate`, `30-check`, `20-xml`, `52-fidelity`, `50-writer`, `45-settings` |
 | `profile list/show/save/export/import` | settings a user keeps and shares | `profiles`, `settings` · `55-profiles` |
 | `grill --said "MESSAGE"` | decides whether to ask questions, and which | `grill`, `settings` · `56-grill` |
 
 Each prints one JSON line and exits 0 (done) or 2 (input refused, with the reason). Exit 1
 means findings, and whose depends on the command: for `build` a defect of the skill (the file it
 made failed its own check, so nothing was written); for `check` a problem in the user's file; for `repair` findings it
-did not clear (`remaining`).
+did not clear (`remaining`), or a fault its own output would have had, so nothing was written. Any
+command exits 1, too, on a defect that stopped it.
 
 ## The build, step by step
 
@@ -97,7 +100,7 @@ Markdown ──parse──▶ blocks ──lay out──▶ sections, numbering 
 | Same bytes everywhere: same input → same sha256 on every run, machine and runtime | no clock, host or user name in any part; stored zip entries; goldens in `tests/golden`; parity tests ([0008](adr/0008-two-zero-dependency-implementations-byte-identical.md)) |
 | Zero run-time dependencies | Python standard library; one JS file needing only `TextEncoder`/`TextDecoder` |
 | The user's text is never changed | the fidelity check on every build |
-| Limited reach | no network, subprocess or eval; writes only named paths; bounded reads ([0030](adr/0040-script-limits-restated-after-the-review-of-0-2-0.md)) — see the [assurance case](assurance-case.md) |
+| Limited reach | no network, subprocess or eval; writes only named paths; bounded reads ([0040](adr/0040-script-limits-restated-after-the-review-of-0-2-0.md)) — see the [assurance case](assurance-case.md) |
 | The script, not the agent, decides the interview | `grill --said` reads the user's words ([0029](adr/0029-grill-from-a-profile-save-as-another.md)) |
 | Documentation matches the code | tests run SKILL.md's commands, the generated settings reference and the user guides |
 

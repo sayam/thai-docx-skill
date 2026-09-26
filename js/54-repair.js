@@ -1,15 +1,12 @@
 // SPDX-FileCopyrightText: 2026 Sayam Sriphua
 // SPDX-License-Identifier: MIT
 // Repair a .docx this skill did not write: the attributes that break Thai, never the text
-// (ADR 0037) — the port of thai_docx/repair.py. This version repairs two findings and
-// reports every other one:
-//
-//   1  compatibilityMode is not exactly one 15 — set it, or drop the ones that are not 15
-//   3  <w:noProof/> switches Thai proofing, and Thai line breaking, off — remove it
+// (ADR 0037) — the port of thai_docx/repair.py, whose docstring lists the findings this
+// version repairs (1, 2, 3, 5 and order) and reports every other one.
 //
 // A part is edited as text, not re-serialised from a tree: a tree would rewrite prefixes,
 // attribute order and empty-element spelling across the whole part, and ADR 0037 allows only
-// the attributes named. Both elements below are empty ones, so the shapes are few.
+// the attributes named. Every tag is read the one way XML writes it (ATTRS below).
 
 const REPAIR_USAGE = 'usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"] [--thai-language]' +
   " [--force-cs-whole-doc]";
@@ -604,7 +601,15 @@ function repairParts(allParts, findings, font, thaiLanguage, csAll) {
         repaired["5"] = (repaired["5"] || 0) + n;
       }
     }
-    if (repaired["2"] || repaired["5"]) {
+    // said only where it was written (repair.py says why)
+    const quoted = '"' + csFont + '"';
+    const count = (text) => text.split(quoted).length - 1;
+    let after = 0, before = 0;
+    for (const [name, bytes] of replace) {
+      after += count(fromUtf8(bytes));
+      if (parts.has(name)) before += count(fromUtf8(parts.get(name)));
+    }
+    if (after > before) {
       chosen = { code: "font", message: "complex-script font written where a run named none: '" + csFont + "' — " + why };
     }
   }

@@ -17,9 +17,10 @@ What moves the bytes of every document — `พ.ศ.` in one run, scripts beside
 What the readings of 0.2.0 found, fixed without moving a byte of any document
 ([record](docs/evidence/2026-09-24-three-readings-of-0.2.0.md)): what every command reads, writes
 and accepts (ADR 0040), repair's reading of XML, the checker's limits held at their values, the
-release bound to its tag, and a finding closed by the test that holds it (ADR 0041). The five
-applications are read once, on these bytes, after the tag — Word for macOS, LibreOffice and Word
-for the web still owed from 0.2.0 among them. What moves bytes waits for 0.3.
+release bound to its tag, and a finding closed by the test that holds it (ADR 0041). The reading
+in the five applications, with Word for macOS, LibreOffice and Word for the web still owed from
+0.2.0, was put off by the maintainer: it comes once, on the bytes of a later release. What moves
+bytes waits for 0.3.
 
 ## 0.2.0 (2026-09-24)
 

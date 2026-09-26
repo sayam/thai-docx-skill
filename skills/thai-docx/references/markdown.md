@@ -52,7 +52,7 @@ more than 100 deep. Nothing is dropped silently.
 **Where this reading and GitHub's differ, on purpose.** GitHub drops or bends these; the build
 stops and names the line: a comment never closed, or text after a comment on its line; a table
 row with more cells than its header — a `|` inside `` `code` `` in a table is written `\|`; a
-footnote defined twice or never referenced; `<?…?>`, `<!DOCTYPE …>`, `<![CDATA[…]]>`; `&#0;`. A
+footnote defined twice or never referenced; `<?…?>`, `<!DOCTYPE …>`, `<![CDATA[…]]>`. A
 non-breaking space at the edge of a paragraph is kept, as CommonMark says. In a bare address
 GitHub reads the source as written: an entity inside one is written as the character it stands
 for, and `*` or `~` inside one may be read as formatting instead.

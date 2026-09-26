@@ -1,6 +1,6 @@
 # Grill mode: asking the questions
 
-Read this only after `thai_docx grill --said "<the user's message>"` answered
+Read this only after `thai_docx grill --said '<the user's message>'` answered
 `"mode": "grill"` (SKILL.md, Grill mode). The questions are not in this file: they are in
 that JSON, under `"questions"`, and there is nothing to ask without it. If you have not run
 the command on the user's own message, run it now.
@@ -9,7 +9,7 @@ the command on the user's own message, run it now.
 
 - `"language"`: ask in Thai (`th`) or English (`en`); the texts are already in it. It is the
   language most of the user's words are in, the phrase aside.
-- `"warnings"`, when there are any: pass them on before asking — one says a `from` or `save to`
+- `"warnings"`, when there are any: pass them on before asking — one says a `from`, a `save to` or an `only`
   later in the message was not read, since those are read only directly after the phrase.
 - `"start"`: the profile the user asked to start from, or `null` for the defaults.
 - `"save_to"`: the name the answers will be saved under, or `null`.
