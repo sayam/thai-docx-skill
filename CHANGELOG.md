@@ -10,6 +10,33 @@ before two applications were read; the exception and what is owed are in
 
 ## [Unreleased]
 
+**No document changes**: the build writes byte for byte what 0.2.1 wrote. `check` reads more of a
+file someone else wrote, so it can find what it answered `ok` on before; `repair` puts right what
+it now finds.
+
+### Fixed
+
+- `check` read a Strict Open XML package as an empty document and answered `ok`; it is refused
+  (`tests/test_check_reads_the_whole_package.py::test_a_strict_package_is_refused_not_read_as_empty`).
+- `check` and `repair` read a switch that says off as on: `<w:cs w:val="0"/>` passed as marked,
+  and `<w:noProof w:val="0"/>` was finding `3`
+  (`tests/test_check_reads_the_whole_package.py::test_an_off_switch_is_read_as_off`).
+- A part was known by its file name: a header named `headerFirst.xml` went unread, and a main
+  document under another name was refused. Parts are found by the package's relationships
+  (`tests/test_check_reads_the_whole_package.py::test_a_part_is_found_by_its_relationship_not_its_name`).
+- A numbering level's and a paragraph mark's properties were never asked for their twins, and
+  `repair` never gave them
+  (`tests/test_check_reads_the_whole_package.py::test_a_numbering_level_has_its_twins_checked`,
+  `tests/test_check_reads_the_whole_package.py::test_a_paragraph_marks_properties_are_checked`).
+- The formatting a tracked change says a style once had was a finding
+  (`tests/test_check_reads_the_whole_package.py::test_formatting_a_revision_replaced_is_not_a_finding`).
+- Thai only in deleted text was not read, so its run passed unmarked
+  (`tests/test_check_reads_the_whole_package.py::test_deleted_text_is_text`).
+- `order` was checked in a run's, a paragraph's and the settings' properties only; a section's, a
+  table's, a row's, a cell's, a paragraph mark's, a numbering level's and a style's are checked
+  and repaired too
+  (`tests/test_check_reads_the_whole_package.py::test_the_order_of_every_property_list_is_checked`).
+
 ## [0.2.1] - 2026-09-26
 
 Every fix below was found in the readings of 0.2.0 on the day it was released

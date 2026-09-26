@@ -4,8 +4,10 @@
 
 The data lives once, in `assets/ooxml.json`, and the JavaScript implementation
 embeds the same file (ADR 0008). Element orders are the schema's sequences
-(ECMA-376 Part 1, CT_RPr / CT_PPr / CT_Settings): Word ignores a property that
-stands in the wrong place without any error, so order is checked, not assumed.
+(ECMA-376 Part 1, CT_RPr / CT_PPr / CT_Settings / CT_SectPr / CT_TblPr / CT_TrPr / CT_TcPr /
+CT_Lvl / CT_Style): Word ignores a property that stands in the wrong place without any error, so
+order is checked, not assumed. A list inside an order is one place: the schema lets those names
+come in any order among themselves.
 """
 
 from __future__ import annotations
@@ -22,6 +24,12 @@ W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 RPR_ORDER: list[str] = _DATA["rpr_order"]
 PPR_ORDER: list[str] = _DATA["ppr_order"]
 SETTINGS_ORDER: list[str] = _DATA["settings_order"]
+SECTPR_ORDER: list = _DATA["sectpr_order"]
+TBLPR_ORDER: list = _DATA["tblpr_order"]
+TRPR_ORDER: list = _DATA["trpr_order"]
+TCPR_ORDER: list = _DATA["tcpr_order"]
+LVL_ORDER: list = _DATA["lvl_order"]
+STYLE_ORDER: list = _DATA["style_order"]
 # Invisible characters the builder never adds and the checker always reports, by name; and
 # every other format character (Unicode category Cf) with them — the soft hyphen, the marks and
 # overrides of direction, the tag characters — from one list both implementations read, so
@@ -57,6 +65,20 @@ def w(tag: str) -> str:
 
 def local(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
+
+
+def rank(order: list) -> dict[str, int]:
+    """Each name's place in an order; the names of a list inside it share one."""
+    return {name: i for i, entry in enumerate(order) for name in ([entry] if isinstance(entry, str) else entry)}
+
+
+# ST_OnOff: an element that switches a property says "off" by one of these values, and "on" by
+# any other or by none. Read as present-means-on, `<w:cs w:val="0"/>` passed as marked.
+OFF = frozenset(("0", "false", "off"))
+
+
+def is_on(el) -> bool:
+    return el.get(w("val")) not in OFF
 
 
 def is_thai(ch: str) -> bool:

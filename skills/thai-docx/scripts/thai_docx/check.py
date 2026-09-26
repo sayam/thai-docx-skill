@@ -13,11 +13,19 @@ Findings, each with a `code`:
     4        two adjacent runs carry identical formatting (a word may be split)
     5        a complex-script twin is missing (cs font, szCs, bCs, iCs), or a bullet
              level uses the Symbol font
-    order    a property stands in the wrong place for the schema (Word ignores it)
+    order    a property stands in the wrong place for the schema (Word ignores it): in a run's,
+             a paragraph's or a paragraph mark's properties, a section's, a table's, a row's, a
+             cell's, a style, a numbering level, the settings
     invisible  a zero-width character is in the text
     doctype  an XML part declares a DOCTYPE — refused before parsing (ADR 0040 §9)
     size     the package would decompress past the cap — refused (ADR 0040 §9)
-    package  not a WordprocessingML package
+    package  not a WordprocessingML package, or a Strict one (ISO/IEC 29500 Strict), which
+             names every element in another namespace and would read as an empty document
+
+The parts are found as Word finds them: the main document by the package's relationship, and
+its headers, footers, notes, comments, styles, numbering and settings by the document's — a
+part is not known by its file name (a first-page header may be `headerFirst.xml`). A switch
+such as `<w:cs w:val="0"/>` is read as the off it says. Deleted text is text.
 
 Warnings never fail the check; today there is one: a complex-script font the
 checker does not know to carry Thai glyphs (ADR 0029).
@@ -37,12 +45,20 @@ from xml.etree import ElementTree as ET
 from . import package
 from .ooxml import (
     INVISIBLE,
+    LVL_ORDER,
     PPR_ORDER,
     RPR_ORDER,
+    SECTPR_ORDER,
     SETTINGS_ORDER,
+    STYLE_ORDER,
+    TBLPR_ORDER,
+    TCPR_ORDER,
     THAI_FONTS,
+    TRPR_ORDER,
+    is_on,
     is_thai,
     local,
+    rank,
     unseen,
     w,
 )
@@ -50,7 +66,18 @@ from .ooxml import (
 MAX_PART = 32 * 1024 * 1024
 MAX_TOTAL = 64 * 1024 * 1024
 COMPAT_URI = "http://schemas.microsoft.com/office/word"
+# the names Word gives the parts that hold text: read by name as well as by relationship, so a
+# part no relationship reaches is not skipped for that
 TEXT_PARTS = re.compile(r"word/(document|comments|footnotes|endnotes|header[0-9]*|footer[0-9]*)\.xml")  # fullmatch
+RELATIONSHIPS = ("http://schemas.openxmlformats.org/officeDocument/2006/relationships/",
+                 "http://purl.oclc.org/ooxml/officeDocument/relationships/")
+TEXT_KINDS = ("header", "footer", "footnotes", "endnotes", "comments")
+STRICT_W = "http://purl.oclc.org/ooxml/wordprocessingml/main"
+RPR_RANK, PPR_RANK, SETTINGS_RANK = rank(RPR_ORDER), rank(PPR_ORDER), rank(SETTINGS_ORDER)
+LVL_RANK, STYLE_RANK = rank(LVL_ORDER), rank(STYLE_ORDER)
+# the property lists a table and a section hold, wherever they stand — a body, a paragraph, a style
+STRUCTURE = (("sectPr", rank(SECTPR_ORDER)), ("tblPr", rank(TBLPR_ORDER)), ("trPr", rank(TRPR_ORDER)),
+             ("tcPr", rank(TCPR_ORDER)))
 DOCTYPE = re.compile(rb"<!DOCTYPE", re.IGNORECASE)
 DECLARED_ENCODING = re.compile("\ufeff?<\\?xml[^>]*?[ \\t\\r\\n]encoding[ \\t\\r\\n]*=[ \\t\\r\\n]*[\"']([^\"']*)[\"']")
 
@@ -109,9 +136,6 @@ def _read_parts(data: bytes, report: Report) -> dict[str, bytes] | None:
     if total > MAX_TOTAL or any(i.file_size > MAX_PART for i in infos):
         report.find("size", "", "package would decompress to " + str(total) + " bytes; refused")
         return None
-    if "word/document.xml" not in seen:
-        report.find("package", "", "no word/document.xml; not a WordprocessingML package")
-        return None
     parts = {}
     for info in infos:
         if not info.name.endswith((".xml", ".rels")):
@@ -157,6 +181,78 @@ def _parse(parts: dict[str, bytes], report: Report) -> dict[str, ET.Element]:
     return trees
 
 
+def _ascii_lower(name: str) -> str:
+    # a part name matches in any case (OPC); ASCII only, which both runtimes lower alike
+    return "".join(chr(ord(c) + 32) if "A" <= c <= "Z" else c for c in name)
+
+
+def _resolve(source: str, target: str) -> str:
+    """A relationship's target as a part name: relative to the folder of `source`, or to the
+    package's root when it begins with a slash."""
+    path = [] if target.startswith("/") else source.split("/")[:-1]
+    for segment in target.split("/"):
+        if segment == "..":
+            if path:
+                path.pop()
+        elif segment not in ("", "."):
+            path.append(segment)
+    return "/".join(path)
+
+
+def _related(names: dict[str, str], tree_of, source: str) -> list[tuple[str, str]]:
+    """(kind, part) for each relationship of `source` ("" for the package's own) to a part the
+    package holds. `names` maps each part name, lowered, to the name itself."""
+    folder, _, file = source.rpartition("/")
+    root = tree_of(names.get(_ascii_lower((folder + "/" if folder else "") + "_rels/" + file + ".rels"), ""))
+    out = []
+    for rel in [] if root is None else list(root):
+        kind = rel.get("Type") or ""
+        prefix = next((p for p in RELATIONSHIPS if kind.startswith(p)), None)
+        if local(rel.tag) != "Relationship" or rel.get("TargetMode") == "External" or prefix is None:
+            continue
+        name = names.get(_ascii_lower(_resolve(source, rel.get("Target") or "")))
+        if name is not None:
+            out.append((kind[len(prefix):], name))
+    return out
+
+
+def part_roles(names: list[str], tree_of) -> dict:
+    """Which part is which, as Word finds them: the main document by the package's relationship
+    (else `word/document.xml`), then its text parts, styles, numbering and settings by the
+    document's (else by the names Word gives them). `names` in package order; `tree_of(name)` is
+    that part parsed, or None. The text parts come in package order."""
+    lowered = {_ascii_lower(n): n for n in reversed(names)}
+    main = next((n for kind, n in _related(lowered, tree_of, "") if kind == "officeDocument"), None)
+    if main is None and "word/document.xml" in names:
+        main = "word/document.xml"
+    roles: dict = {"document": main, "text": [], "footnotes": None, "styles": None, "numbering": None, "settings": None}
+    if main is None:
+        return roles
+    text = {main} | {n for n in names if TEXT_PARTS.fullmatch(n)}
+    for kind, name in _related(lowered, tree_of, main):
+        if kind in TEXT_KINDS:
+            text.add(name)
+        if kind in ("footnotes", "styles", "numbering", "settings") and roles[kind] is None:
+            roles[kind] = name
+    for kind in ("footnotes", "styles", "numbering", "settings"):
+        if roles[kind] is None and "word/" + kind + ".xml" in names:
+            roles[kind] = "word/" + kind + ".xml"
+    roles["text"] = [n for n in names if n in text]
+    return roles
+
+
+def part_roles_of(parts: dict[str, bytes]) -> dict:
+    """`part_roles` for a package the checker has already read without a finding that refuses it."""
+    def tree_of(name: str):
+        if not name.endswith(".rels") or name not in parts:
+            return None
+        try:
+            return ET.fromstring(parts[name])
+        except ET.ParseError:
+            return None
+    return part_roles(list(parts), tree_of)
+
+
 def _canonical(el: ET.Element | None) -> tuple:
     """A run's formatting as a comparable value; rsid attributes are noise. Flat — each element
     opens, its children follow, and it closes — and built with a stack of its own, because the
@@ -177,19 +273,24 @@ def _canonical(el: ET.Element | None) -> tuple:
     return tuple(out)
 
 
-def _check_order(el: ET.Element, order: list[str], part: str, report: Report, what: str) -> None:
-    rank = {name: i for i, name in enumerate(order)}
+def _check_order(el: ET.Element, ranks: dict[str, int], part: str, report: Report, what: str) -> None:
     last_rank, last_name = -1, ""
     for child in el:
         name = local(child.tag)
-        if name not in rank:  # an extension element: not this schema's concern
+        if name not in ranks:  # an extension element: not this schema's concern
             continue
-        if rank[name] < last_rank:
+        if ranks[name] < last_rank:
             report.find(
                 "order", part, f"in {what}, <w:{name}> must come before <w:{last_name}>"
             )
             return
-        last_rank, last_name = rank[name], name
+        last_rank, last_name = ranks[name], name
+
+
+def _check_structure(root: ET.Element, part: str, report: Report) -> None:
+    for tag, ranks in STRUCTURE:
+        for el in root.iter(w(tag)):
+            _check_order(el, ranks, part, report, "w:" + tag)
 
 
 def _check_rpr_twins(rpr: ET.Element, part: str, report: Report, what: str, thai: bool = True) -> None:
@@ -208,9 +309,8 @@ def _check_rpr_twins(rpr: ET.Element, part: str, report: Report, what: str, thai
             report.find("5", part, f"in {what}, <w:{latin}> has no <w:{twin}> beside it")
 
 
-def _check_settings(root: ET.Element, report: Report) -> None:
-    part = "word/settings.xml"
-    _check_order(root, SETTINGS_ORDER, part, report, "w:settings")
+def _check_settings(part: str, root: ET.Element, report: Report) -> None:
+    _check_order(root, SETTINGS_RANK, part, report, "w:settings")
     modes = [
         cs.get(w("val"))
         for cs in root.iter(w("compatSetting"))
@@ -220,7 +320,7 @@ def _check_settings(root: ET.Element, report: Report) -> None:
         report.find("1", part, "compatibilityMode declared as " + (", ".join(str(m) for m in modes) or "nothing") + "; must be exactly one 15")
 
 
-def _check_text_part(name: str, root: ET.Element, report: Report) -> None:
+def _check_text_part(name: str, root: ET.Element, report: Report, roles: dict) -> None:
     for parent in root.iter():
         if not any(c.tag == w("r") for c in parent):
             continue
@@ -233,15 +333,17 @@ def _check_text_part(name: str, root: ET.Element, report: Report) -> None:
                 previous, prev_has_text = None, False
                 continue
             rpr = run.find(w("rPr"))
-            texts = run.findall(w("t"))
+            # deleted text is text: a reviewer reads it, and rejecting the deletion brings it back
+            texts = [t for t in run if t.tag in (w("t"), w("delText"))]
             has_text = bool(texts)
             thai = any(is_thai(ch) for t in texts for ch in (t.text or ""))
             if rpr is not None:
-                _check_order(rpr, RPR_ORDER, name, report, "a run's w:rPr")
+                _check_order(rpr, RPR_RANK, name, report, "a run's w:rPr")
                 _check_rpr_twins(rpr, name, report, "a run", thai)
             if has_text:
                 report.counts["runs"] = report.counts.get("runs", 0) + 1
-                marked = rpr is not None and rpr.find(w("cs")) is not None
+                cs = None if rpr is None else rpr.find(w("cs"))
+                marked = cs is not None and is_on(cs)
                 # one direction only: a run that holds no complex script may carry the marker,
                 # because --force-cs-whole-doc writes it on every run and that file is ours too
                 if thai and not marked:
@@ -265,22 +367,35 @@ def _check_text_part(name: str, root: ET.Element, report: Report) -> None:
     for p in root.iter(w("p")):
         ppr = p.find(w("pPr"))
         if ppr is not None:
-            _check_order(ppr, PPR_ORDER, name, report, "a paragraph's w:pPr")
+            _check_order(ppr, PPR_RANK, name, report, "a paragraph's w:pPr")
+            mark = ppr.find(w("rPr"))
+            if mark is not None:
+                # the paragraph mark's own properties: no text, so no marker is asked of them
+                _check_order(mark, RPR_RANK, name, report, "a paragraph mark's w:rPr")
+                _check_rpr_twins(mark, name, report, "a paragraph mark", False)
+    _check_structure(root, name, report)
     report.counts["paragraphs"] = report.counts.get("paragraphs", 0) + len(root.findall(f".//{w('p')}"))
-    if name == "word/document.xml":
+    if name == roles["document"]:
         report.counts["tables"] = len(root.findall(f".//{w('tbl')}"))
-    if name == "word/footnotes.xml":
+    if name == roles["footnotes"]:
         report.counts["footnotes"] = len(
             [f for f in root.iter(w("footnote")) if f.get(w("type")) not in ("separator", "continuationSeparator")]
         )
 
 
 def _check_styles(name: str, root: ET.Element, report: Report) -> None:
+    # what a tracked change says the formatting was: history, not formatting any text has
+    history = {id(el) for change in root.iter() if change.tag in (w("rPrChange"), w("pPrChange"))
+               for el in change.iter() if el is not change}
+    for style in root.iter(w("style")):
+        _check_order(style, STYLE_RANK, name, report, "w:style")
     for rpr in root.iter(w("rPr")):
-        _check_order(rpr, RPR_ORDER, name, report, "a style's w:rPr")
-        _check_rpr_twins(rpr, name, report, "a style")
+        _check_order(rpr, RPR_RANK, name, report, "a style's w:rPr")
+        if id(rpr) not in history:
+            _check_rpr_twins(rpr, name, report, "a style")
     for ppr in root.iter(w("pPr")):
-        _check_order(ppr, PPR_ORDER, name, report, "a style's w:pPr")
+        _check_order(ppr, PPR_RANK, name, report, "a style's w:pPr")
+    _check_structure(root, name, report)
 
 
 def _check_numbering(name: str, root: ET.Element, report: Report) -> None:
@@ -290,9 +405,15 @@ def _check_numbering(name: str, root: ET.Element, report: Report) -> None:
         if fmt is not None and fmt.get(w("val")) == "bullet" and fonts is not None:
             if any(v == "Symbol" for v in fonts.attrib.values()):
                 report.find("5", name, "a bullet level uses the Symbol font; bullets need a Thai-capable font")
+        _check_order(lvl, LVL_RANK, name, report, "w:lvl")
+        ppr = lvl.find(w("pPr"))
+        if ppr is not None:
+            _check_order(ppr, PPR_RANK, name, report, "a numbering level's w:pPr")
         rpr = lvl.find(w("rPr"))
         if rpr is not None:
-            _check_order(rpr, RPR_ORDER, name, report, "a numbering level's w:rPr")
+            _check_order(rpr, RPR_RANK, name, report, "a numbering level's w:rPr")
+            # the number or the bullet: its font need not carry Thai, but its twins are asked
+            _check_rpr_twins(rpr, name, report, "a numbering level", False)
 
 
 def check(path) -> Report:
@@ -312,21 +433,37 @@ def check(path) -> Report:
     if parts is None:
         return report
     trees = _parse(parts, report)
+    roles = part_roles(list(parts), trees.get)
+    document = roles["document"]
+    if document is None:
+        report.find("package", "", "no main document (word/document.xml, or the part _rels/.rels names);"
+                                   " not a WordprocessingML package")
+        return report
+    if document not in trees:
+        return report  # not UTF-8 or not well-formed, and found so above
+    if trees[document].tag != w("document"):
+        if trees[document].tag.startswith("{" + STRICT_W + "}"):
+            report.find("package", document, "Strict Open XML (ISO/IEC 29500 Strict) is not read: every element"
+                                              " would be missed; save it from Word as Word Document (.docx)")
+        else:
+            report.find("package", document, "the main document is not a WordprocessingML document")
+        return report
+    named = {n for n in (roles["styles"], roles["numbering"], roles["settings"]) if n} | set(roles["text"])
     for name, root in trees.items():
-        if name.startswith("word/") and root.find(f".//{w('noProof')}") is not None:
+        if (name.startswith("word/") or name in named) and any(is_on(e) for e in root.iter(w("noProof"))):
             report.find("3", name, "<w:noProof/> switches Thai proofing — and Thai line breaking — off")
-    settings = trees.get("word/settings.xml")
-    if settings is None:
-        report.find("1", "word/settings.xml", "no settings part; compatibilityMode is not declared")
+    settings = roles["settings"] or "word/settings.xml"
+    if settings not in trees:
+        report.find("1", settings, "no settings part; compatibilityMode is not declared")
     else:
-        _check_settings(settings, report)
-    for name, root in trees.items():
-        if TEXT_PARTS.fullmatch(name):
-            _check_text_part(name, root, report)
-    if "word/styles.xml" in trees:
-        _check_styles("word/styles.xml", trees["word/styles.xml"], report)
-    if "word/numbering.xml" in trees:
-        _check_numbering("word/numbering.xml", trees["word/numbering.xml"], report)
+        _check_settings(settings, trees[settings], report)
+    for name in roles["text"]:
+        if name in trees:
+            _check_text_part(name, trees[name], report, roles)
+    if roles["styles"] in trees:
+        _check_styles(roles["styles"], trees[roles["styles"]], report)
+    if roles["numbering"] in trees:
+        _check_numbering(roles["numbering"], trees[roles["numbering"]], report)
     return report
 
 

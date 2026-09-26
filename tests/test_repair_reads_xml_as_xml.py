@@ -25,7 +25,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 
-from docx_fixture import good, pack
+from docx_fixture import good, pack, replaced
 from test_what_a_command_takes import _node, both  # noqa: F401  the fixture runs here too
 from thai_docx import repair as rp
 from thai_docx.check import check
@@ -122,20 +122,29 @@ def test_a_single_quoted_size_gets_its_twin_with_the_same_value(tmp_path):
     assert "<w:szCs w:val='40'/>" in part(tmp_path / "out.docx", "word/document.xml")
 
 
-@pytest.mark.parametrize("declared", [
-    ('xmlns:w="' + W_URI + '"', "xmlns:x=\"" + W_URI + "\""),                  # WordprocessingML under x:
-    ('xmlns:w="' + W_URI + '"', 'xmlns:x="' + W_URI + '" xmlns:w="urn:other"'),  # w: bound elsewhere
+@pytest.mark.parametrize("name, declared", [
+    ("word/document.xml", ('xmlns:w="' + W_URI + '"', "xmlns:x=\"" + W_URI + "\"")),                  # under x:
+    ("word/styles.xml", ('xmlns:w="' + W_URI + '"', 'xmlns:x="' + W_URI + '" xmlns:w="urn:other"')),  # w: elsewhere
 ])
-def test_a_part_under_another_prefix_is_refused_not_half_repaired(tmp_path, declared):
+def test_a_part_under_another_prefix_is_refused_not_half_repaired(tmp_path, name, declared):
     parts = good()
     was, now = declared
-    xml = parts["word/document.xml"].replace(was, now, 1)
+    xml = parts[name].replace(was, now, 1)
     if "urn:other" not in now:
         xml = re.sub(r"<(/?)w:", r"<\1x:", xml).replace(" w:", " x:")
-    parts["word/document.xml"] = xml
+    parts[name] = xml
     (tmp_path / "in.docx").write_bytes(pack(parts))
     code, result = both(["repair", "in.docx", "out.docx"], tmp_path)
     assert code == 2 and "under a prefix other than w:" in result["error"], result
+    assert not (tmp_path / "out.docx").exists()
+
+
+def test_a_main_document_whose_w_is_not_wordprocessingml_is_refused_by_the_check(tmp_path):
+    # its root is then no w:document at all: the checker refuses it before repair reads a prefix
+    parts = replaced(good(), "word/document.xml", 'xmlns:w="' + W_URI + '"', 'xmlns:w="urn:other"')
+    (tmp_path / "in.docx").write_bytes(pack(parts))
+    code, result = both(["repair", "in.docx", "out.docx"], tmp_path)
+    assert code == 2 and result["error"] == "in.docx: the main document is not a WordprocessingML document", result
     assert not (tmp_path / "out.docx").exists()
 
 
