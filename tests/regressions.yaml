@@ -644,3 +644,11 @@
   found_by: review
   test:
     - tests/test_rules.py::test_every_picture_the_fixtures_carry_says_where_it_came_from
+
+- id: E-21
+  what: the skill's description might miss a Thai request that names no file type; left until it could be measured
+  class: C1, C3
+  found_by: agent-run
+  test:
+    - tests/test_skill_md.py::test_the_description_is_the_one_measured
+  record: docs/evidence/2026-09-26-model-equivalence-on-v0.2.1.md
