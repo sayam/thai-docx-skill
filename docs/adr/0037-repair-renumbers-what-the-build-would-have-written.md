@@ -97,6 +97,11 @@ The order the work goes in: the reading of a document's numbering kind (it is wo
 own, because it is what lets the assistant ask the right question), then the numbers, then the
 indent and font.
 
+> **Later (2026-09-26):** the first step shipped in 0.3 in `check`, which answers every document
+> with `numbering`: `automatic`, `written`, `mixed` or `none`, and how many headings, captions and
+> list items of each kind. `repair` still changes attributes only; the numbers and the indent and
+> font remain owed.
+
 ## Why
 
 - **Rule 3**: the skill answers for the hole it opened. Writing numbers as text is what makes an

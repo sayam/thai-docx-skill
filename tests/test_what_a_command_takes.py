@@ -540,3 +540,26 @@ def test_a_captioned_table_is_named_and_an_empty_toc_is_said(tmp_path):
     assert '<w:tblCaption w:val="ตารางที่ 1 ผล &amp; &quot;ค่า&quot;"/></w:tblPr>' in document
     (tmp_path / "in.md").write_text("# หัวข้อ\n\nข้อความ\n", encoding="utf-8")
     assert both(["build", "in.md", "out.docx", "--toc"], tmp_path)[1]["warnings"] == []
+
+
+def test_check_reads_which_way_the_numbers_are_made(tmp_path):
+    """ADR 0037, what ships first: before anything renumbers a document, say which kind of
+    numbering it has — the application counting (automatic), the numbers written as text (the
+    build's kind), both, or none — so the assistant can ask the right question."""
+    shutil.copy(FIXTURES / "thesis" / "thesis.md", tmp_path / "thesis.md")
+    for name in ("chart.png", "flow.png"):
+        shutil.copy(FIXTURES / "thesis" / name, tmp_path / name)
+    kinds = {}
+    for flags, out in (([], "written.docx"), (["--heading-numbers", "--auto-numbering"], "counted.docx")):
+        assert both(["build", "thesis.md", out, *flags], tmp_path)[0] == 0
+        code, result = both(["check", out], tmp_path)
+        kinds[out] = result["numbering"]
+    written, counted = kinds["written.docx"], kinds["counted.docx"]
+    assert written["kind"] == "written" and not any(written["automatic"].values()), written
+    assert counted["kind"] == "automatic" and not any(counted["written"].values()), counted
+    # the same captions and list items, counted one way or the other
+    assert written["written"]["captions"] == counted["automatic"]["captions"] > 0
+    assert written["written"]["lists"] == counted["automatic"]["lists"] > 0
+    (tmp_path / "plain.md").write_text("ข้อความเท่านั้น\n", encoding="utf-8")
+    both(["build", "plain.md", "plain.docx"], tmp_path)
+    assert both(["check", "plain.docx"], tmp_path)[1]["numbering"]["kind"] == "none"
