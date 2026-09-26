@@ -221,6 +221,9 @@ def build(md_path, out_path, opts: dict, allow_dirs: list) -> dict:
         return result
     # a directory past the fortieth link is no directory this answers for, so it allows nothing
     allowed = [d for d in (real_path(str(d)) for d in allow_dirs) if d is not None]
+    if any(d == _split_root(d)[0] for d in allowed):
+        result["error"] = "--allow-dir names the filesystem's root, which would allow every picture on the machine"
+        return result
     reader = image_reader(_parent(resolved, _split_root(resolved)[0]), allowed)
     outcome, data = build_text(text, opts, reader)
     result.update(outcome)

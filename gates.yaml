@@ -224,6 +224,11 @@ gates:
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_release_is_bound_to_its_tag.py]}
+  - id: the-docs-say-what-the-skill-does
+    title: The sentences the review of 0.2.0 found misleading say what the skill does — a change keeps the last build's flags, exit 1 is read by the command that gave it, a user's file is changed only as they say, the grill argument is passed whole and quoted, every command names both runtimes and the skill directory, the no-shell example asks for nothing, every relative link reaches a file, and the guides serve Windows and say one Thai word for a flag
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_the_docs_say_what_the_skill_does.py]}
   - id: amendments-recorded-both-ways
     title: Every amendment is recorded on both records — `Amends:` on the new one names a record whose `Amended by:` names it back, and the reverse — read from each record's head, a link at a time (.github/CONTRIBUTING.md, Add a decision)
     kind: test

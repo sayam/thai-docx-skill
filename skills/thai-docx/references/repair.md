@@ -4,10 +4,12 @@ Read this when the user has a Word file with findings and does not have its cont
 rebuild from (SKILL.md, Check an existing .docx).
 
 ```sh
-python3 scripts/thai_docx repair IN.docx OUT.docx
+python3 <skill>/scripts/thai_docx repair IN.docx OUT.docx
 ```
 
-A new file is written; the one given is never touched. Tell the user both paths.
+A new file is written; the one given is never touched — an OUT that is IN, by its path, a
+symbolic link or a hard link, is refused before anything is read. Tell the user both paths.
+`--font NAME` takes what the build's `--font` takes.
 
 ## What this version repairs
 
@@ -20,7 +22,17 @@ A new file is written; the one given is never touched. Tell the user both paths.
 | `order` | puts a run's, a paragraph's and the settings' properties back in the order the schema fixes |
 
 Findings `4` (a word split across two runs) and `invisible` are **reported and left**, in
-`remaining`. A file whose only findings are those is not written at all.
+`remaining`. A file whose only findings are those is not written at all. An invisible character
+inside a word is never a place to cut a run.
+
+A run is cut only in its plain shape: its properties, then one `w:t` holding text. Each piece
+that has a space at the cut says `xml:space="preserve"`, or the space would stop being text. A
+run whose `w:t` has a space at either end and does not say `preserve` is marked whole, not cut:
+an application drops that space, and a cut would bring it back.
+
+A part holding an XML comment, a CDATA section or a processing instruction — Word writes none —
+is left as it came, with a `left` warning, and its findings stay in `remaining`. A document
+written under a prefix other than `w:` is refused.
 
 **The font.** A run that names no complex-script font is given one: what `--font` says, else the
 complex-script font the document already uses most — counting only fonts known to carry Thai —
@@ -52,11 +64,14 @@ make it smaller.
 ```
 
 `repaired` counts by code, plus `unmarked`: complex-script marks taken off runs and styles whose
-text is not complex script.
+text is not complex script; and `split`: runs cut where the script changes.
 
-Exit 0: repaired, and no finding remains. Exit 1: repaired, and findings remain — `4`,
-`invisible`, or one this version cannot reach — read them out by code from [check.md](check.md). Exit 2: nothing was
-written, and `error` says why.
+Exit 0: repaired, and no finding remains — or nothing needed repairing, when `"ok": true` comes
+with a `clean` warning, no `file`, and nothing written. Exit 1: repaired, and findings remain —
+`4`, `invisible`, or one this version cannot reach — read them out by code from
+[check.md](check.md); or an `error` that says the repair made a file its own checker faults, which
+is a defect in this skill (nothing was written; do not retry). Exit 2: nothing was written, and
+`error` says why.
 
 ## What to tell the user
 

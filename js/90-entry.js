@@ -154,6 +154,10 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
   const mdDir = parentOf(path, resolved, splitRoot(path, resolved)[0]);
   // a directory past the fortieth link is no directory this answers for, so it allows nothing
   const roots = [mdDir, ...allowDirs.map((d) => realPath(fs, path, d)).filter((d) => d !== null)];
+  if (roots.slice(1).some((d) => d === splitRoot(path, d)[0])) {
+    result.error = "--allow-dir names the filesystem's root, which would allow every picture on the machine";
+    return result;
+  }
   const readImage = (src) => {
     const p = realPath(fs, path, path.isAbsolute(src) ? src : mdDir + path.sep + src);
     if (p === null) throw new BuildError("image '" + src + "': more than " + MAX_LINKS + " symbolic links");

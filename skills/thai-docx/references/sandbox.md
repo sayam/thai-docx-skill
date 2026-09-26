@@ -6,10 +6,11 @@ Evaluate `<skill>/scripts/thai_docx.js` as a plain script — it needs no module
 `TextEncoder` and `TextDecoder` — and it defines `ThaiDocx`.
 
 ```js
-const { result, bytes } = ThaiDocx.buildDocument(markdown, ["--toc"], { "chart.png": pngBytes });
+const { result, bytes } = ThaiDocx.buildDocument(markdown, [], { "chart.png": pngBytes });
 // result is the JSON the command prints; bytes is a Uint8Array .docx, or null when refused
 const report = ThaiDocx.checkDocument(docxBytes);
 ```
 
-Image keys are the paths exactly as the Markdown writes them. Offer `bytes` to the
+The second argument is the flags, e.g. `["--page-numbers"]` — only for what the user asked. Image
+keys are the paths exactly as the Markdown writes them. Offer `bytes` to the
 user as `report.docx`.

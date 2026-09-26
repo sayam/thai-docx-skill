@@ -91,5 +91,7 @@ Something went wrong? See [Fix a problem](en/troubleshooting.md).
 | Markdown | plain text with a few marks for formatting: `#` for a heading, `**word**` for bold |
 | setting | something that controls how the file looks: font, size, paper, page numbers |
 | profile | a saved set of settings you can use again |
+| flag | an option typed after a command, such as `--size 14` |
+| complex script | a script a program has to shape specially, such as Thai; a Word file has to say which text is in one |
 | grill | a mode where the assistant asks you about the settings before it makes the file |
 | field | a part of a Word file that Word works out itself, such as the page numbers in a table of contents |

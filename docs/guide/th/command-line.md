@@ -24,6 +24,8 @@
    unzip thai-docx-0.2.0.zip
    ```
 
+   บน Windows ใน PowerShell: `Expand-Archive thai-docx-0.2.0.zip -DestinationPath .`
+
 ไม่ต้องติดตั้งอะไรเพิ่ม และไม่ใช้อินเทอร์เน็ต
 
 คำสั่งด้านล่างใช้ Python ถ้าใช้ Node.js ให้เปลี่ยน `python3 thai-docx/scripts/thai_docx` เป็น
@@ -103,9 +105,9 @@ python3 thai-docx/scripts/thai_docx build report.md report.docx --font "Sarabun"
 ## เก็บการตั้งค่าเป็นโปรไฟล์
 
 ```sh
-python3 thai-docx/scripts/thai_docx profile save thesis --size 15 --align thai
-python3 thai-docx/scripts/thai_docx build report.md report.docx --profile thesis
-python3 thai-docx/scripts/thai_docx build report.md report.docx --profile thesis --size 18
+python3 thai-docx/scripts/thai_docx profile save my-thesis --size 15 --align thai
+python3 thai-docx/scripts/thai_docx build report.md report.docx --profile my-thesis
+python3 thai-docx/scripts/thai_docx build report.md report.docx --profile my-thesis --size 18
 ```
 
 ตัวเลือกที่ใส่หลัง `--profile` ชนะโปรไฟล์ คำสั่งอื่นของโปรไฟล์
@@ -113,26 +115,27 @@ python3 thai-docx/scripts/thai_docx build report.md report.docx --profile thesis
 | คำสั่ง | ทำอะไร |
 |---|---|
 | `profile list` | แสดงโปรไฟล์ทั้งหมด และอยู่ที่ไหน |
-| `profile show thesis` | แสดงการตั้งค่าในโปรไฟล์ และการตั้งค่าทั้งหมดที่จะใช้ตอนสร้างไฟล์ |
-| `profile save thesis --size 15 --project` | บันทึกใน `.thai-docx/profiles/` ของโฟลเดอร์นี้ ไม่ใช่โฟลเดอร์บ้าน |
-| `profile save thesis-v2 --from thesis --default align --size 14` | สร้างโปรไฟล์ใหม่จากของเดิม: `align` กลับเป็นค่าเริ่มต้น ขนาด 14 |
-| `profile export thesis thesis.json` | เขียนไฟล์ไว้ส่งให้คนอื่น |
-| `profile import thesis.json --name school-thesis` | รับโปรไฟล์ที่คนอื่นส่งมา ตั้งชื่อเอง (เพิ่ม `--project` ถ้าใช้เฉพาะโฟลเดอร์นี้) |
-| `build report.md report.docx --profile thesis.json` | ใช้ไฟล์โปรไฟล์จากที่อยู่ของไฟล์ได้โดยตรง |
-| `build report.md report.docx --profile thesis --default toc` | ใช้โปรไฟล์ แต่ตัดการตั้งค่าหนึ่งออก |
+| `profile show my-thesis` | แสดงการตั้งค่าในโปรไฟล์ และการตั้งค่าทั้งหมดที่จะใช้ตอนสร้างไฟล์ |
+| `profile save my-thesis --size 15 --project` | บันทึกใน `.thai-docx/profiles/` ของโฟลเดอร์นี้ ไม่ใช่โฟลเดอร์บ้าน |
+| `profile save my-thesis-v2 --from my-thesis --default align --size 14` | สร้างโปรไฟล์ใหม่จากของเดิม: `align` กลับเป็นค่าเริ่มต้น ขนาด 14 |
+| `profile export my-thesis my-thesis.json` | เขียนไฟล์ไว้ส่งให้คนอื่น |
+| `profile import my-thesis.json --name school-thesis` | รับโปรไฟล์ที่คนอื่นส่งมา ตั้งชื่อเอง (เพิ่ม `--project` ถ้าใช้เฉพาะโฟลเดอร์นี้) |
+| `build report.md report.docx --profile my-thesis.json` | ใช้ไฟล์โปรไฟล์จากที่อยู่ของไฟล์ได้โดยตรง |
+| `build report.md report.docx --profile my-thesis --default toc` | ใช้โปรไฟล์ แต่ตัดการตั้งค่าหนึ่งออก |
 
 ```sh
 python3 thai-docx/scripts/thai_docx profile list
-python3 thai-docx/scripts/thai_docx profile show thesis
-python3 thai-docx/scripts/thai_docx profile save thesis-v2 --from thesis --default align --size 14
-python3 thai-docx/scripts/thai_docx profile export thesis thesis.json
-python3 thai-docx/scripts/thai_docx profile import thesis.json --name school-thesis
+python3 thai-docx/scripts/thai_docx profile show my-thesis
+python3 thai-docx/scripts/thai_docx profile save my-thesis-v2 --from my-thesis --default align --size 14
+python3 thai-docx/scripts/thai_docx profile export my-thesis my-thesis.json
+python3 thai-docx/scripts/thai_docx profile import my-thesis.json --name school-thesis
 ```
 
 **ระวัง:** `profile save` และ `profile import` เขียนทับโปรไฟล์ชื่อเดียวกันโดยไม่ถาม
-ถ้าเขียนทับ บรรทัดที่พิมพ์ออกมาจะมี `"replaced": true` และคำเตือน
+ถ้าเขียนทับ บรรทัดที่พิมพ์ออกมาจะมี `"replaced": true` และคำเตือน ถ้าชื่อไปบังโปรไฟล์อื่นที่ชื่อเดียวกัน
+(สกิลมีโปรไฟล์ชื่อ `thesis` มาให้) จะมี `"shadows"` และคำเตือนเช่นกัน ชื่อโปรไฟล์ใช้ได้เฉพาะตัวอักษร ตัวเลข `-` และ `_`
 
-โปรไฟล์อยู่ที่ `~/.thai-docx/profiles/` หรือ `.thai-docx/profiles/` ในโปรเจกต์ โปรไฟล์ของโปรเจกต์ชนะโปรไฟล์ชื่อเดียวกัน
+โปรไฟล์อยู่ที่ `~/.thai-docx/profiles/` (บน Windows คือ `%USERPROFILE%\.thai-docx\profiles\`) หรือ `.thai-docx/profiles/` ในโปรเจกต์ โปรไฟล์ของโปรเจกต์ชนะโปรไฟล์ชื่อเดียวกัน
 เป็นไฟล์ JSON ขนาดเล็กที่มีเฉพาะการตั้งค่า
 รายละเอียด: [references/profiles.md](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/profiles.md)
 
@@ -152,7 +155,7 @@ python3 thai-docx/scripts/thai_docx repair theirs.docx theirs-fixed.docx
 ```
 
 จะได้ไฟล์ใหม่ ไฟล์เดิมไม่ถูกแตะ ข้อที่แก้ให้คือ เครื่องหมายที่ทุกช่วงข้อความไทยต้องมี การปิดการตรวจคำสะกด
-คุณสมบัติคู่ของ complex script ลำดับคุณสมบัติที่ผิด และโหมดความเข้ากันได้ในกรณีที่ไฟล์ประกาศโหมดไว้
+คุณสมบัติคู่สำหรับอักษรซับซ้อน (complex script) ลำดับคุณสมบัติที่ผิด และโหมดความเข้ากันได้ในกรณีที่ไฟล์ประกาศโหมดไว้
 ไฟล์ที่ไม่ได้ประกาศโหมดจะถูกปล่อยไว้ตามเดิม และโหมดจะยังอยู่ใน `"remaining"` ส่วนคำที่ถูกแยกเป็นสองช่วง
 กับอักขระที่มองไม่เห็น ก็แจ้งไว้ในนั้นเช่นกัน เพราะการแก้สองข้อนั้นต้องแตะข้อความ
 รายงานจะบอกด้วยว่าเขียนฟอนต์อะไรลงไปในที่ที่ไม่ได้ระบุไว้ หากต้องการเลือกเอง ใช้ `--font "Sarabun"`
@@ -169,7 +172,7 @@ python3 thai-docx/scripts/thai_docx repair theirs.docx theirs-fixed.docx
 python3 thai-docx/scripts/thai_docx grill --said "thai-docx grill ช่วยทำรายงาน"
 ```
 
-จะได้คำถาม ตัวเลือก และ flag ของแต่ละตัวเลือก ในหน้าจอคำสั่ง ใส่ flag เหล่านั้นให้ `build` ได้ทันที
+จะได้คำถาม คำตอบให้เลือก และตัวเลือก (flag) ของแต่ละคำตอบ ในหน้าจอคำสั่ง ใส่ตัวเลือกเหล่านั้นให้ `build` ได้ทันที
 
 ## ในหน้าเว็บหรือ sandbox
 

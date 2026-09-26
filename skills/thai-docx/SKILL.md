@@ -34,7 +34,8 @@ bundled command writes every attribute Thai needs. Your part is the Markdown.
    used as it is. **When the user wants a document of a particular shape** — a letter, a form, a
    report — and shows you one of their own or describes it, read
    [references/specs.md](references/specs.md) first: it is everything the format can express, in
-   one page. Match their example, never a form of your own; show the Markdown before building.
+   one page. Match their example, never a form of your own; show the Markdown in the same reply
+   as the build, so they can correct it afterwards.
 2. **Run the build** with the first runtime you have:
 
    ```sh
@@ -42,15 +43,16 @@ bundled command writes every attribute Thai needs. Your part is the Markdown.
    node <skill>/scripts/thai_docx.js build report.md report.docx
    ```
 
-   Both give the same file, byte for byte. With no shell:
-   [references/sandbox.md](references/sandbox.md).
-3. **Read the one JSON line it prints**, and the exit code:
+   Both give the same file, byte for byte, and every command below runs the same with
+   `node <skill>/scripts/thai_docx.js` in place of `python3 <skill>/scripts/thai_docx`. With no
+   shell: [references/sandbox.md](references/sandbox.md).
+3. **Read the one JSON line it prints**, and the exit code — these are `build`'s:
 
    | exit | JSON | what to do |
    |---|---|---|
    | 0 | `"ok": true` | Done. |
-   | 2 | `"error"`, often with `"line"` | Fix what the message names — usually unsupported HTML on that line of the Markdown — and run again. |
-   | 1 | `"findings"` | A defect in this skill. Nothing was written. Do not retry; tell the user and quote the finding codes. |
+   | 2 | `"error"`, often with `"line"` | Fix what the message names in Markdown you wrote, and run again. In a file the user gave you, tell them the line and what the build takes instead, and change it only as they say. |
+   | 1 | `"findings"`, or an `"error"` that says so | A defect in this skill. Nothing was written. Do not retry; tell the user and quote the finding codes. |
 
    `"warnings"` never stop the build. Pass them on to the user.
 4. **Tell the user**, in two or three lines in the language they wrote to you in (not
@@ -73,8 +75,9 @@ left-aligned, no table of contents or page numbers. Every flag, its default and 
 headings, thesis structure.
 
 When the user asks for a change ("ขอฟอนต์ Sarabun ขนาด 14", "add page numbers"), build
-again with the flags and report the new settings. Add a flag only for what the user asked
-for; every other setting keeps its default. A font without Thai glyphs, or a flag the
+again with every flag of the last build plus the flags for what they now ask, and report the
+new settings; a setting they ask to remove goes back to its default. Add a flag only for what
+the user asked for; a setting nobody has mentioned keeps its default. A font without Thai glyphs, or a flag the
 document gives nothing to act on, is a warning, not an error.
 
 Heading, list and caption numbers are text the build writes: the same in every application,
@@ -101,22 +104,23 @@ about a file, and pass on the items that apply — a warning the build printed i
 
 ## Grill mode
 
-You do not choose this mode and an argument you were invoked with is not the user's word.
-Before asking anything, give the script the user's own message — all of it, word for word.
-If the message begins with this skill's name and words after it, those words are part of the
-message: pass them, never only what follows them. The script reads the first 20,000 characters
+You do not choose this mode: the script does. Before asking anything, give it everything the
+user typed — all of it, word for word, the argument you were invoked with included, with this
+skill's name in front of it as the user typed it, if your client took the name off. The script reads the first 20,000 characters
 and, when it answers `build`, says in `warnings` if it read fewer than the message holds. Then
 obey the script's answer:
 
 ```sh
-python3 <skill>/scripts/thai_docx grill --said "ช่วยทำไฟล์ word ให้หน่อย"
+python3 <skill>/scripts/thai_docx grill --said 'ช่วยทำไฟล์ word ให้หน่อย'
 ```
 
+In single quotes, so the shell changes nothing in it (a `'` in the message is written `'\''`).
 `"mode": "build"` means build at once, asking nothing. `"mode": "grill"` means ask the
 questions the JSON lists, as [references/interview.md](references/interview.md) says — as
 choices the user can pick, with your client's question tool if it has one — then run what
 its `"next"` says with the args of the chosen choices. An unanswered question keeps its
-current choice.
+current choice. Pass on any `"warnings"` in the answer before asking — one says when a `from` or
+`save to` later in the message was not read.
 
 ## Heading styles
 
@@ -129,15 +133,17 @@ matter, with CSS-like declarations —
 A profile is a file of settings the user keeps and shares. Only when they ask for one.
 
 ```sh
-python3 <skill>/scripts/thai_docx profile save thesis --size 15 --align thai
-python3 <skill>/scripts/thai_docx build report.md report.docx --profile thesis
-python3 <skill>/scripts/thai_docx profile export thesis thesis.json
-python3 <skill>/scripts/thai_docx profile import thesis.json
+python3 <skill>/scripts/thai_docx profile save my-thesis --size 15 --align thai
+python3 <skill>/scripts/thai_docx build report.md report.docx --profile my-thesis
+python3 <skill>/scripts/thai_docx profile export my-thesis my-thesis.json
+python3 <skill>/scripts/thai_docx profile import my-thesis.json
 ```
 
-`profile list` shows the names there are. A flag typed after `--profile` wins. The skill ships
-one, `thesis` — an example to copy and change, never a format the user must follow; the document
-beside it is [examples/README.md](examples/README.md). Details:
+`profile list` shows the names there are. A flag typed after `--profile` wins. A name is
+letters, digits, `-` and `_`. The skill ships one, `thesis` — an example to copy and change,
+never a format the user must follow; the document beside it is
+[examples/README.md](examples/README.md). A save under a name that hides another says so in its
+`"warnings"`: pass it on. Details:
 [references/profiles.md](references/profiles.md).
 
 ## Chapters, captions and lists
@@ -156,8 +162,14 @@ node <skill>/scripts/thai_docx.js check file.docx
 ```
 
 Explain each finding by its code, in the user's language:
-[references/check.md](references/check.md). If the user has the content, rebuilding from Markdown
-with this skill fixes everything. If they do not, `repair IN.docx OUT.docx` writes a new file with
-every finding gone but a split word, invisible characters and a compatibility mode the file never
-declared, which it reports; it says which
-complex-script font it wrote: [references/repair.md](references/repair.md).
+[references/check.md](references/check.md). `check` exits 1 when the user's file has findings,
+and `repair` exits 1 when it wrote the file and findings remain: that is the answer about their
+file, not a defect. If the user has the content, rebuilding from Markdown with this skill fixes
+everything. If they do not, `repair IN.docx OUT.docx` writes a new file with every finding gone
+but a split word, invisible characters and a compatibility mode the file never declared, which it
+reports; it says which complex-script font it wrote, and a file with nothing to repair is answered
+`ok` with nothing written: [references/repair.md](references/repair.md).
+
+To change a setting of a .docx this skill did not build — its font, page numbers, margins — say
+that the skill builds from Markdown: ask for the content, or the Markdown, and build. `repair`
+changes the attributes Thai needs and nothing else. Never rewrite the file with document code.

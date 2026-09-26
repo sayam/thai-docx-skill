@@ -4,8 +4,9 @@ Read this when `thai_docx check` has reported (SKILL.md, Check an existing .docx
 
 ## Codes
 
-Exit 0: no findings. Exit 1: findings. Exit 2: the file could not be read, is not a
-.docx, or was refused as unsafe. A path that cannot be read answers with `error`
+Exit 0: no findings. Exit 1: findings in the user's file — the answer about their file, not a
+defect in this skill. Exit 2: the file could not be read, is not a .docx, or was refused as
+unsafe. A path that cannot be read answers with `error`
 ("cannot read …: No such file or directory") and no findings — that is a name to fix,
 not a damaged document. Explain each finding by its code, in the user's language:
 
@@ -16,9 +17,13 @@ not a damaged document. Explain each finding by its code, in the user's language
 | `3` | proofing switched off (`<w:noProof/>`) | squiggles gone, but Thai lines no longer break inside words |
 | `4` | one word split across two runs with the same formatting | odd gaps or breaks where formatting changed |
 | `5` | a Latin property with no complex-script twin (`w:cs` font, `szCs`, `bCs`, `iCs`), or a Symbol-font bullet | Thai in the wrong font or size, bold not bold, broken bullets |
-| `invisible` | zero-width or other invisible characters in the text | words that do not wrap, text that searches wrongly |
+| `invisible` | a character a reader cannot see: the zero-width five by name, and any other format character (a soft hyphen, a direction mark) or noncharacter by its code point | words that do not wrap, text that searches wrongly or reads in the wrong direction |
 | `order` | formatting properties in an order the schema does not allow | a setting silently ignored, e.g. bold or size not applied |
-| `package`, `doctype`, `size` | the file is damaged, not a Word document, or refused as unsafe (exit 2) | the file may not open at all |
+| `package`, `doctype`, `size` | the file is damaged, not a Word document, a part is not UTF-8 (a part in UTF-16 is refused before it is read), or refused as unsafe (exit 2) | the file may not open at all |
+
+`warnings` never fail the check (exit 0 with warnings is a pass): today there is one, a
+complex-script font the checker does not know to carry Thai glyphs. Pass it on — the Thai may
+show in a substitute.
 
 `counts` says how many run properties carry the Thai complex-script language
 (`thai_language_runs`). Its absence is not a finding: the language is `--thai-language`'s to write

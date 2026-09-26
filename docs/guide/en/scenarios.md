@@ -157,7 +157,7 @@ assistant tells you it "changed nothing".
 
 **Use it when** you are not sure what to choose and want to pick from choices (grill mode).
 
-1. Put **`thai-docx grill`** in your message, with the hyphen. The start of the message is easiest.
+1. Put **`thai-docx grill`** in your message — a hyphen, an underscore or a space between the first two words. The start of the message is easiest.
    Without those words, the assistant does not ask.
 
    ```text

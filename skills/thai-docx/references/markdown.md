@@ -10,10 +10,19 @@ footnotes.
   blockquotes; `---`; task items `- [ ]` and `- [x]`; footnotes `[^1]`.
 - **Inline:** `*italic*`, `**bold**`, `~~strike~~`, `` `code` ``, links, footnote
   references, images.
+- **Links** lead to `http`, `https` or `mailto`, in any case; a link with no scheme (`#top`,
+  `other.docx`) is written as it is. Any other scheme (`javascript:`, `file:`, `ftp:`) stops the
+  build with its line number. A link's target is written percent-encoded, as Word writes one; its
+  text is unchanged. Parentheses nest in a link's destination 32 deep, as cmark reads them.
+- **Numbered lists** start where the first number says, `0.` included.
 - **Images:** local PNG or JPEG only, in the Markdown file's folder or below it. For
   an image elsewhere, add `--allow-dir <that folder>`. No remote images, no SVG.
-- **HTML:** only `<br>`, `<sup>`, `<sub>`, `<u>`, `<kbd>`, and comments (removed).
-  Any other tag stops the build with its line number: rewrite it as Markdown.
+- **HTML:** only `<br>`, `<sup>`, `<sub>`, `<u>`, `<kbd>`, and comments (removed), inside the
+  text of a paragraph. Any other tag stops the build with its line number: rewrite it as Markdown.
+  One of those five alone on its own line is an HTML block, and stops it too: write it on the
+  line with the words around it.
+- **Characters a reader cannot see** stop the build with their line: the zero-width five, a soft
+  hyphen, a direction mark, any other format character, and noncharacters.
 - **Math:** `$…$` and `$$…$$` stay literal LaTeX in code formatting, with a warning.
 - **Front matter:** only flat `key: value` lines between `---` lines at the very top;
   `title` and `author` become the document properties, `heading-1` … `heading-6` style

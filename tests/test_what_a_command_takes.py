@@ -286,3 +286,16 @@ def test_a_profile_that_hides_another_of_its_name_says_so(tmp_path):
                                   " --profile thesis and grill from thesis use this one"]
     code, result = both(["profile", "save", "my-thesis", "--size", "15"], tmp_path)
     assert code == 0 and "shadows" not in result and "warnings" not in result, result
+
+
+def test_allow_dir_never_opens_the_whole_machine(tmp_path):
+    """`--allow-dir /` widened the picture limit to every file there is, and `--allow-dir ''`
+    to the working directory, which nobody named."""
+    (tmp_path / "in.md").write_text("ก\n", encoding="utf-8")
+    (tmp_path / "root").symlink_to("/") if POSIX else None
+    for value in (["/"], ["root"] if POSIX else ["/"], ["/tmp/.."]):
+        code, result = both(["build", "in.md", "out.docx", "--allow-dir", value[0]], tmp_path)
+        assert code == 2 and result["error"].startswith("--allow-dir names the filesystem's root"), (value, result)
+    code, result = both(["build", "in.md", "out.docx", "--allow-dir", ""], tmp_path)
+    assert code == 2 and result["error"] == "--allow-dir takes a directory; an empty one names none", result
+    assert not (tmp_path / "out.docx").exists()

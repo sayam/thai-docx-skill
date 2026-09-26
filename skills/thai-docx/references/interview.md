@@ -7,7 +7,10 @@ the command on the user's own message, run it now.
 
 ## What the JSON gives
 
-- `"language"`: ask in Thai (`th`) or English (`en`); the texts are already in it.
+- `"language"`: ask in Thai (`th`) or English (`en`); the texts are already in it. It is the
+  language most of the user's words are in, the phrase aside.
+- `"warnings"`, when there are any: pass them on before asking — one says a `from` or `save to`
+  later in the message was not read, since those are read only directly after the phrase.
 - `"start"`: the profile the user asked to start from, or `null` for the defaults.
 - `"save_to"`: the name the answers will be saved under, or `null`.
 - `"questions"`: in order, each with `number`, `key`, `text` and `choices`. Each choice has
@@ -28,8 +31,8 @@ reword a question or a choice, and do not suggest other values. Mark the current
   "other" choice the user types the value; if the tool adds its own free-text option, leave
   that choice out.
 - **Otherwise:** one message with every question as `N. text — a) label · b) label …`,
-  and let the user answer in short form, e.g. `1b 3c` — anything not mentioned keeps its
-  current choice. Say so in the first line.
+  and let the user answer in short form, e.g. `1b 3c 2d=18 9b=my-thesis` — a value or a name
+  after `=`; anything not mentioned keeps its current choice. Say so in the first line.
 
 Ask once, and stop there: save nothing and build nothing until the user has answered — a
 start profile is not an answer. If an answer is unclear, keep the current choice and say so
