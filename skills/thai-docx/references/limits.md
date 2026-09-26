@@ -33,9 +33,8 @@ went out with Word for macOS not yet read on its bytes and LibreOffice Writer re
 **Nothing outside those five applications is covered**, and it must never be described as working.
 
 **`--auto-numbering` is held to Word on the desktop, and to nothing else.** Word on the web is not
-covered for it, so a document meant to be edited there is a ready-to-use one. (That the web
-version cannot insert a section break, and that its Format Painter does not carry a heading's
-number, was seen but never recorded; it is owed with the Word for the web reading.) What the other
+covered for it, so a document meant to be edited there is a ready-to-use one (§7 says what it
+cannot do). What the other
 applications draw with `--auto-numbering` is recorded in [numbering.md](numbering.md), each line
 measured; a blank there is not a promise.
 
@@ -77,7 +76,10 @@ lists updating from what is there. Every setting works in both kinds; only the n
   underlines every Thai word until that is set to Thai (measured 2026-09-23 on an
   `--auto-numbering` document; expected of every document built without `--thai-language`, not yet
   measured on one). Whether
-  `--thai-language` settles it there has not been measured.
+  `--thai-language` settles it there has not been measured. **Word for the web does not read the
+  machine's languages either**: it proofs such Thai as Arabic (Saudi Arabia), the status bar says
+  so, and every Thai word is underlined — `--hide-spelling-errors` does not hide it there (measured
+  2026-09-26). Whether `--thai-language` settles it there has not been measured.
 - **Install the font the file names.** The default is TH Sarabun New; a file names whatever
   `--font` said. A font that is not on the reader's machine is outside the rendering contract —
   the application substitutes, and the page will not look the same. Sarabun is free from Google
@@ -164,9 +166,9 @@ application. None can be reached by anything the file could say differently.
 | application | what it draws its own way |
 |---|---|
 | **WPS Writer** | **with `--thai-language`, SARA AM (ำ) placed over the wrong letter** — it is that flag's `w:bidi="th-TH"` that WPS trips over, measured attribute by attribute on 2026-09-20 and again on 2026-09-23, and a ำ under a tone mark (น้ำ) is drawn correctly; the three lists show no page numbers until References → Update (§3). A chapter label drawn as Latin letters (`ÓõõõyA 1`) and the value 1 drawn as ๕, recorded on 2026-09-19, did not reproduce on 2026-09-23 — on a build from before ADR 0039 as well as the current one — and what changed is not established |
-| **LibreOffice Writer** | with `--auto-numbering`: Thai-digit numbering drawn as 1, 2, 3, and a chapter-numbered caption as `ตารางที่ บทนำ-ก` — it answers the chapter-number field with the chapter's *title*, ignores the restart at each chapter and draws the Thai-digit counter as Thai letters (ก, ข, ค). A chapter-numbered caption LibreOffice makes itself loses its chapter number the same way once saved as .docx, opened again and updated (measured 2026-09-24) |
-| **Google Docs** | converts a table of contents into an object of its own, with its own font and page numbers; **has no list of tables and no list of figures**, so asking it to update rewrites all three as heading lists and the two lose their entries (§3 — do not ask it to update) |
-| **Word on the web** | **has no TH Sarabun New in its font list** (TH SarabunPSK is there), and the font it substitutes floats the tone marks above the letter (§3 — build with `--font "TH SarabunPSK"` for that destination); cannot insert a section break (Layout → Breaks offers Page and Column only); Format Painter does not carry a heading's number — apply the Heading style instead |
+| **LibreOffice Writer** | **page numbers set to Thai digits, and footnote numbers, drawn as 1, 2, 3** — front pages counted ก ข ค or i ii iii are drawn as set; **Thai distributed alignment drawn as left-aligned**: it does not know `thaiDistribute`, whether the paragraph or the document defaults say it (measured 2026-09-26); with `--auto-numbering`: Thai-digit numbering drawn as 1, 2, 3, and a chapter-numbered caption as `ตารางที่ บทนำ-ก` — it answers the chapter-number field with the chapter's *title*, ignores the restart at each chapter and draws the Thai-digit counter as Thai letters (ก, ข, ค). A chapter-numbered caption LibreOffice makes itself loses its chapter number the same way once saved as .docx, opened again and updated (measured 2026-09-24) |
+| **Google Docs** | converts a table of contents into an object of its own, with its own font and page numbers; **has no list of tables and no list of figures**, so asking it to update rewrites all three as heading lists and the two lose their entries (§3 — do not ask it to update); **draws every page number in Arabic digits** — the front pages' ก ข ค or i ii iii and the chapters' Thai digits are not kept — and footnote numbers in Arabic too; a table that ends at the foot of the last page of a chapter is followed by a page blank but for its number (measured 2026-09-26) |
+| **Word on the web** | **has no TH Sarabun New in its font list** (TH SarabunPSK is there), and the font it substitutes floats the tone marks above the letter (§3 — build with `--font "TH SarabunPSK"` for that destination); cannot insert a section break (Layout → Breaks offers Page and Column only); Format Painter does not carry a heading's number — apply the Heading style instead; **its table-of-contents update numbers each entry by the page's place counted from the cover, in Arabic digits** (บทที่ 1 listed at 7 where its page shows 1), not by the page number each region prints — a second update gives the same, and the list of tables and list of figures are numbered right (measured 2026-09-26); proofs Thai as Arabic (§3); its Download as PDF is made on a server with no TH Sarabun New either (Cordia New stands in), so that PDF shows the layout, not the font |
 | **Word for macOS** | correct in what was measured, on the bytes before 0.2.0 (not yet read on 0.2.0's); a heading's number takes its heading's size |
 
 Two more that are not any application's fault:
