@@ -475,7 +475,7 @@ class Writer {
     const attrs = (boxLeft + hang ? ' w:left="' + (boxLeft + hang) + '"' : "") + (boxRight ? ' w:right="' + boxRight + '"' : "");
     const ind = attrs || hang ? "<w:ind" + attrs + (hang ? ' w:hanging="' + hang + '"' : "") + "/>" : "";
     let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + ind +
-      (c.kind === "figure" ? '<w:jc w:val="center"/>' : "");
+      (c.kind === "figure" && !this.opts.caption_matches_object ? '<w:jc w:val="center"/>' : "");
     ppr += this.latinJc(ppr, captionText(c));
     const rest = c.inlines;
     if (!this.numbersAreText()) {
@@ -509,21 +509,20 @@ class Writer {
   // The indents that make a caption as wide as the picture it belongs to, in twips
   // (--caption-matches-object), or [0, 0] for a caption that fills the text width. Only a
   // picture: a table is written at the full width of the text, so its caption already ends
-  // where it does. The width is the one the image was drawn at — its own, or the text width
-  // where the picture was wider — and where --center-images centres the picture the slack is
-  // split, so the caption's box is the picture's box. The width is the last picture written,
-  // which is this caption's: a Figure: caption is made only where the paragraph just before it
-  // holds a picture and nothing else (48-layout.js).
-  // A picture too narrow to leave an inch for the caption's lines gives its caption the text
-  // width instead, and says so (writer.py's caption_box says why).
+  // where it does. The width is the one the image was drawn at, and never less than 3 inches
+  // (or the text width where that is less); where --center-images centres the picture the slack
+  // is split, so the box is centred with it. A caption in a box aligns as the body does.
+  // A box that hang leaves less than an inch gives its caption the text width instead, and says
+  // so (writer.py's caption_box says why).
   captionBox(c, hang, line) {
     if (!(this.opts.caption_matches_object && c.kind === "figure" && this.imageTwips)) return [0, 0];
-    if (Math.min(this.imageTwips, this.textWidthTwips) - hang < MIN_TEXT_TWIPS) {
-      this.layoutWarnings.push("line " + line + ": the picture is too narrow for a caption of its width;" +
-        " the caption takes the width of the text");
+    const box = Math.max(Math.min(this.imageTwips, this.textWidthTwips), Math.min(MIN_CAPTION_TWIPS, this.textWidthTwips));
+    if (box - hang < MIN_TEXT_TWIPS) {
+      this.layoutWarnings.push("line " + line + ": --caption-hanging-indent leaves the caption of this picture" +
+        " less than an inch; the caption takes the width of the text");
       return [0, 0];
     }
-    const slack = Math.max(this.textWidthTwips - this.imageTwips, 0);
+    const slack = this.textWidthTwips - box;
     const left = this.opts.center_images ? Math.floor(slack / 2) : 0;
     return [left, slack - left];
   }

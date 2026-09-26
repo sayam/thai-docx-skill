@@ -131,18 +131,21 @@ margin and indents every line after the first, which puts the caption's text in 
 its number. It is its own setting: `--indent` is the first line of a body paragraph and changes no
 caption, and a caption is not indented until this flag asks for it.
 
-A figure's caption is centred, so the indent there moves the block in from the left and each line
-is centred in what is left; a table's caption is left-aligned and hangs as the flag describes.
+A figure's caption is centred — unless `--caption-matches-object` boxes it — so the indent there
+moves the block in from the left and each line is centred in what is left; a table's caption is left-aligned and hangs as the flag describes.
 
 ## A caption as wide as the picture it belongs to
 
 By default a caption fills the width of the text, whatever the size of the picture above it, so a
 caption under a small picture runs on past both its edges. `--caption-matches-object` indents a
 figure's caption to the picture's own box: the caption then starts and ends where the picture
-does — unless the picture leaves the caption less than an inch, when the caption takes the text
-width and the build says so. `--center-images` centres a picture that stands alone on its line, and the caption's box is
+does, and aligns as the body does rather than centred, so its first line starts at the picture's
+left edge. A picture narrower than 3 inches gives its caption a 3-inch box (or the text width,
+where that is less): a caption a few words to a line reads badly. A `--caption-hanging-indent`
+that leaves the box less than an inch gives the caption the text width, and the build says so.
+`--center-images` centres a picture that stands alone on its line, and the caption's box is
 centred with it; without it the picture keeps the left margin and all the indent goes on the right.
-Each flag works on its own, and both are off unless asked for.
+Each flag works on its own; both are off by default, and the `thesis` profile turns both on.
 
 A table is written at the full width of the text, so its caption is already as wide as it is and
 neither flag moves it. A picture wider than the text is drawn at the text width, so there is

@@ -25,8 +25,9 @@ anything.
 
 **The profile — settings you reuse across documents.** `--profile thesis` carries Thai
 distributed alignment, a first-line indent, 1.5 line spacing, page numbers at the top right with
-none on the first page of a section, numbered sub-headings, Thai digits, and the chapter title on
-its own line. The interview (`thai-docx grill`) asks about some of these; save your own with `profile save`,
+none on the first page of a section, numbered sub-headings, Thai digits, the chapter title on
+its own line, and a picture centred on its line with its caption as wide as the picture (never
+narrower than 3 inches), starting where the picture starts. The interview (`thai-docx grill`) asks about some of these; save your own with `profile save`,
 under a name of your own.
 
 ```sh
