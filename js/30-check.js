@@ -92,6 +92,7 @@ class Report {
     this.findings = [];
     this.warnings = [];
     this.counts = {};
+    this.numbering = null; // which way the document's numbers are made (ADR 0037)
   }
 
   find(code, part, message) {
@@ -110,7 +111,9 @@ class Report {
 
   asDict() {
     if (this.error !== null) return { ok: false, file: this.path, error: this.error };
-    return { ok: this.ok, file: this.path, counts: this.counts, findings: this.findings, warnings: this.warnings };
+    const out = { ok: this.ok, file: this.path, counts: this.counts, findings: this.findings, warnings: this.warnings };
+    if (this.numbering !== null) out.numbering = this.numbering;
+    return out;
   }
 }
 
@@ -509,5 +512,72 @@ function checkBytes(bytes, label) {
   for (const name of roles.text) if (trees.has(name)) checkTextPart(name, trees.get(name), report, roles);
   if (roles.styles !== null && trees.has(roles.styles)) checkStyles(roles.styles, trees.get(roles.styles), report);
   if (roles.numbering !== null && trees.has(roles.numbering)) checkNumbering(roles.numbering, trees.get(roles.numbering), report);
+  report.numbering = numberingKind(trees.get(document), trees.get(roles.styles || "") || null, trees.get(roles.numbering || "") || null);
   return report;
+}
+
+const WRITTEN_HEADING = /^(?:(?:บทที่|ภาคผนวก)\s|[0-9๐-๙]+(?:\.[0-9๐-๙]+)*\.?\s)/;
+const WRITTEN_CAPTION = /^(?:ตารางที่|รูปที่|Table|Figure)\s*[0-9๐-๙ก-ฮA-Za-z]+(?:[-.][0-9๐-๙]+)?/;
+const WRITTEN_ITEM = /^[0-9๐-๙]+[.)](?![0-9๐-๙])/;
+
+// Which way the document's numbers are made (check.py's numbering_kind says how and why).
+function numberingKind(document, styles, numbering) {
+  const headingStyles = new Set(), captionStyles = new Set(), countedStyles = new Set(), listingStyles = new Set();
+  for (const style of styles === null ? [] : styles.iter(w("style"))) {
+    const sid = style.get(w("styleId")) || "";
+    const nameEl = style.find(w("name"));
+    const name = nameEl === null ? "" : (nameEl.get(w("val")) || "").toLowerCase();
+    if (name.startsWith("heading ") || sid.toLowerCase().startsWith("heading")) headingStyles.add(sid);
+    if (name.includes("caption") || sid.toLowerCase().includes("caption")) captionStyles.add(sid);
+    if (name.startsWith("toc ") || name === "table of figures" || sid.toLowerCase().startsWith("toc") ||
+        sid.toLowerCase().startsWith("tableoffigures")) listingStyles.add(sid);
+    const ppr = style.find(w("pPr"));
+    const numPr = ppr === null ? null : ppr.find(w("numPr"));
+    const num = numPr === null ? null : numPr.find(w("numId"));
+    if (num !== null && ![null, "0"].includes(num.get(w("val")))) countedStyles.add(sid);
+  }
+  const formats = new Map();
+  if (numbering !== null) {
+    const abstract = new Map();
+    for (const a of numbering.iter(w("abstractNum"))) abstract.set(a.get(w("abstractNumId")), a); // the last, as check.py's dict
+    for (const lvl of numbering.iter(w("lvl"))) {
+      const tied = lvl.find(w("pStyle"));
+      if (tied !== null) countedStyles.add(tied.get(w("val")));
+    }
+    for (const num of numbering.iter(w("num"))) {
+      const ref = num.find(w("abstractNumId"));
+      if (ref === null || !abstract.has(ref.get(w("val")))) continue;
+      for (const lvl of abstract.get(ref.get(w("val"))).iter(w("lvl"))) {
+        const fmt = lvl.find(w("numFmt"));
+        formats.set(num.get(w("numId")) + "\u0000" + lvl.get(w("ilvl")), fmt === null ? "" : fmt.get(w("val")) || "");
+      }
+    }
+  }
+  const found = { automatic: { headings: 0, captions: 0, lists: 0 }, written: { headings: 0, captions: 0, lists: 0 } };
+  for (const p of document.iter(w("p"))) {
+    const ppr = p.find(w("pPr"));
+    const styleEl = ppr === null ? null : ppr.find(w("pStyle"));
+    const style = styleEl === null ? "" : styleEl.get(w("val")) || "";
+    const numPr = ppr === null ? null : ppr.find(w("numPr"));
+    const numId = numPr === null ? null : numPr.find(w("numId"));
+    const ilvl = numPr === null ? null : numPr.find(w("ilvl"));
+    const ownNum = numId === null ? null : numId.get(w("val"));
+    let text = "";
+    for (const t of p.iter(w("t"))) text += t.text || "";
+    const fields = [...[...p.iter(w("instrText"))].map((t) => t.text || ""), ...[...p.iter(w("fldSimple"))].map((f) => f.get(w("instr")) || "")].join(" ");
+    if (listingStyles.has(style)) continue;
+    if (headingStyles.has(style)) {
+      if (![null, "0"].includes(ownNum) || (ownNum === null && countedStyles.has(style))) found.automatic.headings += 1;
+      else if (WRITTEN_HEADING.test(text)) found.written.headings += 1;
+    } else if (/\bSEQ\b/.test(fields)) found.automatic.captions += 1;
+    else if (captionStyles.has(style) || WRITTEN_CAPTION.test(text)) {
+      if (WRITTEN_CAPTION.test(text)) found.written.captions += 1;
+    } else if (![null, "0"].includes(ownNum)) {
+      const level = ilvl === null ? "0" : ilvl.get(w("val")) || "0";
+      if (!["bullet", "none"].includes(formats.get(ownNum + "\u0000" + level) || "")) found.automatic.lists += 1;
+    } else if (WRITTEN_ITEM.test(text)) found.written.lists += 1;
+  }
+  const automatic = Object.values(found.automatic).some((n) => n > 0), written = Object.values(found.written).some((n) => n > 0);
+  const kind = automatic && written ? "mixed" : automatic ? "automatic" : written ? "written" : "none";
+  return { kind, automatic: found.automatic, written: found.written };
 }

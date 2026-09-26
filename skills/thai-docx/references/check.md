@@ -25,6 +25,13 @@ not a damaged document. Explain each finding by its code, in the user's language
 complex-script font the checker does not know to carry Thai glyphs. Pass it on — the Thai may
 show in a substitute.
 
+`numbering` says which way the document's numbers are made — `automatic` (Word counts: a heading
+style tied to a numbering definition, a `SEQ` field in a caption, a list item numbered by Word),
+`written` (the number is text at the head of the paragraph, as this skill writes it by default),
+`mixed`, or `none` — with how many headings, captions and list items of each. It is read, never
+changed: say it when the user asks about the numbers, or before they edit a numbered document.
+`repair` does not renumber yet (ADR 0037).
+
 `counts` says how many run properties carry the Thai complex-script language
 (`thai_language_runs`). Its absence is not a finding: the language is `--thai-language`'s to write
 (ADR 0038), and a document without it takes the language from the reader's machine.

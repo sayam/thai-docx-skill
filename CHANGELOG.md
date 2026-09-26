@@ -11,6 +11,13 @@ before two applications were read; the exception and what is owed are in
 
 ## [Unreleased]
 
+### Added
+
+- `check` says which way a document's numbers are made — `numbering`: `automatic`, `written`,
+  `mixed` or `none`, with how many headings, captions and list items of each — the first step of
+  ADR 0037, which lets the assistant ask which the document should be before anything renumbers
+  it (`tests/test_what_a_command_takes.py::test_check_reads_which_way_the_numbers_are_made`).
+
 ### Changed
 
 - The goldens may change bytes on `main` between releases. The rule that a reading record names

@@ -91,6 +91,7 @@ class Report:
         self.findings: list[dict] = []
         self.warnings: list[dict] = []
         self.counts: dict[str, int] = {}
+        self.numbering: dict | None = None  # which way the document's numbers are made (ADR 0037)
 
     def find(self, code: str, part: str, message: str, **where) -> None:
         self.findings.append({"code": code, "part": part, "message": message, **where})
@@ -113,6 +114,7 @@ class Report:
             "counts": self.counts,
             "findings": self.findings,
             "warnings": self.warnings,
+            **({"numbering": self.numbering} if self.numbering is not None else {}),
         }
 
 
@@ -470,7 +472,77 @@ def check(path) -> Report:
         _check_styles(roles["styles"], trees[roles["styles"]], report)
     if roles["numbering"] in trees:
         _check_numbering(roles["numbering"], trees[roles["numbering"]], report)
+    report.numbering = numbering_kind(trees[document], trees.get(roles["styles"] or ""), trees.get(roles["numbering"] or ""))
     return report
+
+
+WRITTEN_HEADING = re.compile(r"(?:(?:บทที่|ภาคผนวก)\s|[0-9๐-๙]+(?:\.[0-9๐-๙]+)*\.?\s)")
+WRITTEN_CAPTION = re.compile(r"(?:ตารางที่|รูปที่|Table|Figure)\s*[0-9๐-๙ก-ฮA-Za-z]+(?:[-.][0-9๐-๙]+)?")
+WRITTEN_ITEM = re.compile(r"[0-9๐-๙]+[.)](?![0-9๐-๙])")  # "1." "2)" — not "98.3"
+
+
+def numbering_kind(document: ET.Element, styles: ET.Element | None, numbering: ET.Element | None) -> dict:
+    """Which way the document's numbers are made, heading by heading, caption by caption and item
+    by item (ADR 0037, what ships first): **automatic**, the application counting — a heading in
+    a style tied to a numbering definition, a `SEQ` field in a caption, a list item numbered by
+    `w:numPr`; or **written**, the number as text at the head of the paragraph, the build's own
+    kind. Both is `mixed`; neither, `none`. It is read, not changed: this is what lets the
+    assistant ask which the document should be, before anything renumbers it."""
+    heading_styles, caption_styles, counted_styles, listing_styles = set(), set(), set(), set()
+    for style in [] if styles is None else styles.iter(w("style")):
+        sid, name = style.get(w("styleId")) or "", (style.find(w("name")).get(w("val")) or "").lower() if style.find(w("name")) is not None else ""
+        if name.startswith("heading ") or sid.lower().startswith("heading"):
+            heading_styles.add(sid)
+        if "caption" in name or "caption" in sid.lower():
+            caption_styles.add(sid)
+        if name.startswith("toc ") or name == "table of figures" or sid.lower().startswith(("toc", "tableoffigures")):
+            listing_styles.add(sid)  # the lines a contents or figures field lists, not numbers of their own
+        num = style.find(f"{w('pPr')}/{w('numPr')}/{w('numId')}")
+        if num is not None and num.get(w("val")) not in (None, "0"):
+            counted_styles.add(sid)
+    formats: dict[tuple[str, str], str] = {}
+    if numbering is not None:
+        abstract = {a.get(w("abstractNumId")): a for a in numbering.iter(w("abstractNum"))}
+        for lvl in numbering.iter(w("lvl")):
+            tied = lvl.find(w("pStyle"))
+            if tied is not None:
+                counted_styles.add(tied.get(w("val")))
+        for num in numbering.iter(w("num")):
+            ref = num.find(w("abstractNumId"))
+            for lvl in [] if ref is None or ref.get(w("val")) not in abstract else abstract[ref.get(w("val"))].iter(w("lvl")):
+                fmt = lvl.find(w("numFmt"))
+                formats[(num.get(w("numId")), lvl.get(w("ilvl")))] = "" if fmt is None else fmt.get(w("val")) or ""
+    found = {"automatic": {"headings": 0, "captions": 0, "lists": 0}, "written": {"headings": 0, "captions": 0, "lists": 0}}
+    for p in document.iter(w("p")):
+        ppr = p.find(w("pPr"))
+        style_el = None if ppr is None else ppr.find(w("pStyle"))
+        style = "" if style_el is None else style_el.get(w("val")) or ""
+        num_id = None if ppr is None else ppr.find(f"{w('numPr')}/{w('numId')}")
+        ilvl = None if ppr is None else ppr.find(f"{w('numPr')}/{w('ilvl')}")
+        own_num = None if num_id is None else num_id.get(w("val"))
+        text = "".join(t.text or "" for t in p.iter(w("t")))
+        fields = " ".join([t.text or "" for t in p.iter(w("instrText"))] + [f.get(w("instr")) or "" for f in p.iter(w("fldSimple"))])
+        if style in listing_styles:
+            continue
+        if style in heading_styles:
+            if own_num not in (None, "0") or (own_num is None and style in counted_styles):
+                found["automatic"]["headings"] += 1
+            elif WRITTEN_HEADING.match(text):
+                found["written"]["headings"] += 1
+        elif re.search(r"\bSEQ\b", fields):
+            found["automatic"]["captions"] += 1
+        elif style in caption_styles or WRITTEN_CAPTION.match(text):
+            if WRITTEN_CAPTION.match(text):
+                found["written"]["captions"] += 1
+        elif own_num not in (None, "0"):
+            level = "0" if ilvl is None else ilvl.get(w("val")) or "0"
+            if formats.get((own_num, level), "") not in ("bullet", "none"):
+                found["automatic"]["lists"] += 1
+        elif WRITTEN_ITEM.match(text):
+            found["written"]["lists"] += 1
+    automatic, written = any(found["automatic"].values()), any(found["written"].values())
+    kind = "mixed" if automatic and written else "automatic" if automatic else "written" if written else "none"
+    return {"kind": kind, **found}
 
 
 def main(argv: list[str]) -> int:
