@@ -496,3 +496,28 @@ def test_punctuation_between_thai_is_not_cut_out_of_it(tmp_path):
     runs = [(bool(cs), text) for cs, text in re.findall(r'<w:r>(<w:rPr><w:cs/></w:rPr>)?<w:t xml:space="preserve">([^<]*)</w:t></w:r>', document)]
     assert runs == [(True, "ปี พ.ศ"), (False, ". 2567 "), (True, "ข้อ ๑.๑ คำว่า “อ้างอิง” (ร้อยละ "), (False, "98.3) "),
                     (True, "ครบ"), (True, "เอกสารภาษาไทย"), (False, ", Markdown")], runs
+
+
+def test_every_complex_script_is_marked_checked_and_repaired(tmp_path):
+    """B-09: "complex script" was the Thai block, so a Lao, Khmer, Arabic or Devanagari run in a
+    Thai document was written as Latin — Word takes its font and size from the Latin slot — and
+    the checker passed it. One list of the complex scripts, in assets/ooxml.json, now marks the
+    run, finds it unmarked, and marks it in a repair."""
+    import zipfile
+    text = "ภาษาไทย ກຳລັງ ພາສາລາວ และ العربية และ ខ្មែរ และ हिन्दी จบ"
+    (tmp_path / "in.md").write_text(text + "\n\nEnglish only.\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    assert code == 0 and result["findings"] == [], result
+    with zipfile.ZipFile(tmp_path / "out.docx") as z:
+        document = z.read("word/document.xml").decode("utf-8")
+    assert '<w:r><w:rPr><w:cs/></w:rPr><w:t xml:space="preserve">' + text + "</w:t></w:r>" in document
+    assert '<w:r><w:t xml:space="preserve">English only.</w:t></w:r>' in document
+    lao = replaced(good(), "word/document.xml", "<w:t xml:space=\"preserve\">รายการ</w:t>",
+                   "<w:t xml:space=\"preserve\">ພາສາລາວ</w:t>")
+    unmarked = replaced(lao, "word/document.xml", '<w:rPr><w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/></w:rPr><w:t xml:space="preserve">ພາສາລາວ',
+                        '<w:rPr><w:lang w:val="en-US" w:bidi="th-TH"/></w:rPr><w:t xml:space="preserve">ພາສາລາວ')
+    (tmp_path / "in.docx").write_bytes(pack(unmarked))
+    code, result = both(["check", "in.docx"], tmp_path)
+    assert code == 1 and [f["code"] for f in result["findings"]] == ["2"], result
+    code, result = both(["repair", "in.docx", "fixed.docx"], tmp_path)
+    assert code == 0 and result["repaired"].get("2") == 1 and result["remaining"] == [], result

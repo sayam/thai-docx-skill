@@ -1040,7 +1040,7 @@ function parseXml(source) {
 // thai-docx — check: the JavaScript port of scripts/thai_docx/check.py. Findings,
 // messages, counts and their order match it exactly (ADR 0004, 0023, 0008, 0040).
 
-const OOXML = {"format":[[173,173],[1536,1541],[1564,1564],[1757,1757],[1807,1807],[2192,2193],[2274,2274],[6158,6158],[8203,8207],[8234,8238],[8288,8292],[8294,8303],[65279,65279],[65529,65531],[69821,69821],[69837,69837],[78896,78911],[113824,113827],[119155,119162],[917505,917505],[917536,917631]],"format_unicode":"15.1.0","invisible":{"\u200b":"U+200B ZERO WIDTH SPACE","\u200c":"U+200C ZERO WIDTH NON-JOINER","\u200d":"U+200D ZERO WIDTH JOINER","\u2060":"U+2060 WORD JOINER","\ufeff":"U+FEFF ZERO WIDTH NO-BREAK SPACE"},"lvl_order":["start","numFmt","lvlRestart","pStyle","isLgl","suff","lvlText","lvlPicBulletId","legacy","lvlJc","pPr","rPr"],"ppr_order":["pStyle","keepNext","keepLines","pageBreakBefore","framePr","widowControl","numPr","suppressLineNumbers","pBdr","shd","tabs","suppressAutoHyphens","kinsoku","wordWrap","overflowPunct","topLinePunct","autoSpaceDE","autoSpaceDN","bidi","adjustRightInd","snapToGrid","spacing","ind","contextualSpacing","mirrorIndents","suppressOverlap","jc","textDirection","textAlignment","textboxTightWrap","outlineLvl","divId","cnfStyle","rPr","sectPr","pPrChange"],"punctuation":"!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~\u00ab\u00bb\u2010\u2011\u2012\u2013\u2014\u2015\u2018\u2019\u201a\u201c\u201d\u201e\u2022\u2026","rpr_order":["rStyle","rFonts","b","bCs","i","iCs","caps","smallCaps","strike","dstrike","outline","shadow","emboss","imprint","noProof","snapToGrid","vanish","webHidden","color","spacing","w","kern","position","sz","szCs","highlight","u","effect","bdr","shd","fitText","vertAlign","rtl","cs","em","lang","eastAsianLayout","specVanish","oMath","rPrChange"],"sectpr_order":[["headerReference","footerReference"],"footnotePr","endnotePr","type","pgSz","pgMar","paperSrc","pgBorders","lnNumType","pgNumType","cols","formProt","vAlign","noEndnote","titlePg","textDirection","bidi","rtlGutter","docGrid","printerSettings","sectPrChange"],"settings_order":["writeProtection","view","zoom","removePersonalInformation","removeDateAndTime","doNotDisplayPageBoundaries","displayBackgroundShape","printPostScriptOverText","printFractionalCharacterWidth","printFormsData","embedTrueTypeFonts","embedSystemFonts","saveSubsetFonts","saveFormsData","mirrorMargins","alignBordersAndEdges","bordersDoNotSurroundHeader","bordersDoNotSurroundFooter","gutterAtTop","hideSpellingErrors","hideGrammaticalErrors","activeWritingStyle","proofState","formsDesign","attachedTemplate","linkStyles","stylePaneFormatFilter","stylePaneSortMethod","documentType","mailMerge","revisionView","trackRevisions","doNotTrackMoves","doNotTrackFormatting","documentProtection","autoFormatOverride","styleLockTheme","styleLockQFSet","defaultTabStop","autoHyphenation","consecutiveHyphenLimit","hyphenationZone","doNotHyphenateCaps","showEnvelope","summaryLength","clickAndTypeStyle","defaultTableStyle","evenAndOddHeaders","bookFoldRevPrinting","bookFoldPrinting","bookFoldPrintingSheets","drawingGridHorizontalSpacing","drawingGridVerticalSpacing","displayHorizontalDrawingGridEvery","displayVerticalDrawingGridEvery","doNotUseMarginsForDrawingGridOrigin","drawingGridHorizontalOrigin","drawingGridVerticalOrigin","doNotShadeFormData","noPunctuationKerning","characterSpacingControl","printTwoOnOne","strictFirstAndLastChars","noLineBreaksAfter","noLineBreaksBefore","savePreviewPicture","doNotValidateAgainstSchema","saveInvalidXml","ignoreMixedContent","alwaysShowPlaceholderText","doNotDemarcateInvalidXml","saveXmlDataOnly","useXSLTWhenSaving","saveThroughXslt","showXMLTags","alwaysMergeEmptyNamespace","updateFields","hdrShapeDefaults","footnotePr","endnotePr","compat","docVars","rsids","mathPr","attachedSchema","themeFontLang","clrSchemeMapping","doNotIncludeSubdocsInStats","doNotAutoCompressPictures","forceUpgrade","captions","readModeInkLockDown","smartTagType","schemaLibrary","shapeDefaults","doNotEmbedSmartTags","decimalSymbol","listSeparator"],"style_order":["name","aliases","basedOn","next","link","autoRedefine","hidden","uiPriority","semiHidden","unhideWhenUsed","qFormat","locked","personal","personalCompose","personalReply","rsid","pPr","rPr","tblPr","trPr","tcPr","tblStylePr"],"tblpr_order":["tblStyle","tblpPr","tblOverlap","bidiVisual","tblStyleRowBandSize","tblStyleColBandSize","tblW","jc","tblCellSpacing","tblInd","tblBorders","shd","tblLayout","tblCellMar","tblLook","tblCaption","tblDescription","tblPrChange"],"tcpr_order":["cnfStyle","tcW","gridSpan","hMerge","vMerge","tcBorders","shd","noWrap","tcMar","textDirection","tcFitText","vAlign","hideMark","headers",["cellIns","cellDel","cellMerge"],"tcPrChange"],"thai_fonts":["angsana new","angsanaupc","anuphan","arial unicode ms","athiti","ayuthaya","bai jamjuree","browallia new","browalliaupc","chakra petch","charm","charmonman","chonburi","cordia new","cordiaupc","dilleniaupc","eucrosiaupc","fahkwang","freesiaupc","garuda","ibm plex sans thai","ibm plex sans thai looped","irisupc","itim","jasmineupc","k2d","kanit","kinnari","kodchasan","kodchiangupc","koho","krub","krungthep","laksaman","leelawadee","leelawadee ui","libre sarabun","lilyupc","loma","maitree","mali","microsoft sans serif","mitr","niramit","norasi","noto sans thai","noto sans thai looped","noto sans thai ui","noto serif thai","pattaya","pridi","prompt","purisa","sarabun","sathu","sawasdee","segoe ui","silom","sriracha","srisakdi","tahoma","taviraj","th baijam","th chakra petch","th charm of au","th charmonman","th fah kwang","th k2d july8","th kodchasal","th koho","th krub","th mali grade6","th niramit as","th sarabun new","th sarabun psk","th sarabunpsk","th srisakdi","thasadith","thonburi","tlwg typist","tlwg typo","tlwgmono","trirong","umpush","waree"],"trpr_order":[["cnfStyle","divId","gridBefore","gridAfter","wBefore","wAfter","cantSplit","trHeight","tblHeader","tblCellSpacing","jc","hidden"],"ins","del","trPrChange"]};
+const OOXML = {"complex_script":[[1424,2303],[2304,3583],[3584,4095],[4096,4255],[6016,6143],[6624,6655],[43232,43263],[43488,43519],[43616,43647],[64285,65023],[65136,65279]],"format":[[173,173],[1536,1541],[1564,1564],[1757,1757],[1807,1807],[2192,2193],[2274,2274],[6158,6158],[8203,8207],[8234,8238],[8288,8292],[8294,8303],[65279,65279],[65529,65531],[69821,69821],[69837,69837],[78896,78911],[113824,113827],[119155,119162],[917505,917505],[917536,917631]],"format_unicode":"15.1.0","invisible":{"\u200b":"U+200B ZERO WIDTH SPACE","\u200c":"U+200C ZERO WIDTH NON-JOINER","\u200d":"U+200D ZERO WIDTH JOINER","\u2060":"U+2060 WORD JOINER","\ufeff":"U+FEFF ZERO WIDTH NO-BREAK SPACE"},"lvl_order":["start","numFmt","lvlRestart","pStyle","isLgl","suff","lvlText","lvlPicBulletId","legacy","lvlJc","pPr","rPr"],"ppr_order":["pStyle","keepNext","keepLines","pageBreakBefore","framePr","widowControl","numPr","suppressLineNumbers","pBdr","shd","tabs","suppressAutoHyphens","kinsoku","wordWrap","overflowPunct","topLinePunct","autoSpaceDE","autoSpaceDN","bidi","adjustRightInd","snapToGrid","spacing","ind","contextualSpacing","mirrorIndents","suppressOverlap","jc","textDirection","textAlignment","textboxTightWrap","outlineLvl","divId","cnfStyle","rPr","sectPr","pPrChange"],"punctuation":"!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~\u00ab\u00bb\u2010\u2011\u2012\u2013\u2014\u2015\u2018\u2019\u201a\u201c\u201d\u201e\u2022\u2026","rpr_order":["rStyle","rFonts","b","bCs","i","iCs","caps","smallCaps","strike","dstrike","outline","shadow","emboss","imprint","noProof","snapToGrid","vanish","webHidden","color","spacing","w","kern","position","sz","szCs","highlight","u","effect","bdr","shd","fitText","vertAlign","rtl","cs","em","lang","eastAsianLayout","specVanish","oMath","rPrChange"],"sectpr_order":[["headerReference","footerReference"],"footnotePr","endnotePr","type","pgSz","pgMar","paperSrc","pgBorders","lnNumType","pgNumType","cols","formProt","vAlign","noEndnote","titlePg","textDirection","bidi","rtlGutter","docGrid","printerSettings","sectPrChange"],"settings_order":["writeProtection","view","zoom","removePersonalInformation","removeDateAndTime","doNotDisplayPageBoundaries","displayBackgroundShape","printPostScriptOverText","printFractionalCharacterWidth","printFormsData","embedTrueTypeFonts","embedSystemFonts","saveSubsetFonts","saveFormsData","mirrorMargins","alignBordersAndEdges","bordersDoNotSurroundHeader","bordersDoNotSurroundFooter","gutterAtTop","hideSpellingErrors","hideGrammaticalErrors","activeWritingStyle","proofState","formsDesign","attachedTemplate","linkStyles","stylePaneFormatFilter","stylePaneSortMethod","documentType","mailMerge","revisionView","trackRevisions","doNotTrackMoves","doNotTrackFormatting","documentProtection","autoFormatOverride","styleLockTheme","styleLockQFSet","defaultTabStop","autoHyphenation","consecutiveHyphenLimit","hyphenationZone","doNotHyphenateCaps","showEnvelope","summaryLength","clickAndTypeStyle","defaultTableStyle","evenAndOddHeaders","bookFoldRevPrinting","bookFoldPrinting","bookFoldPrintingSheets","drawingGridHorizontalSpacing","drawingGridVerticalSpacing","displayHorizontalDrawingGridEvery","displayVerticalDrawingGridEvery","doNotUseMarginsForDrawingGridOrigin","drawingGridHorizontalOrigin","drawingGridVerticalOrigin","doNotShadeFormData","noPunctuationKerning","characterSpacingControl","printTwoOnOne","strictFirstAndLastChars","noLineBreaksAfter","noLineBreaksBefore","savePreviewPicture","doNotValidateAgainstSchema","saveInvalidXml","ignoreMixedContent","alwaysShowPlaceholderText","doNotDemarcateInvalidXml","saveXmlDataOnly","useXSLTWhenSaving","saveThroughXslt","showXMLTags","alwaysMergeEmptyNamespace","updateFields","hdrShapeDefaults","footnotePr","endnotePr","compat","docVars","rsids","mathPr","attachedSchema","themeFontLang","clrSchemeMapping","doNotIncludeSubdocsInStats","doNotAutoCompressPictures","forceUpgrade","captions","readModeInkLockDown","smartTagType","schemaLibrary","shapeDefaults","doNotEmbedSmartTags","decimalSymbol","listSeparator"],"style_order":["name","aliases","basedOn","next","link","autoRedefine","hidden","uiPriority","semiHidden","unhideWhenUsed","qFormat","locked","personal","personalCompose","personalReply","rsid","pPr","rPr","tblPr","trPr","tcPr","tblStylePr"],"tblpr_order":["tblStyle","tblpPr","tblOverlap","bidiVisual","tblStyleRowBandSize","tblStyleColBandSize","tblW","jc","tblCellSpacing","tblInd","tblBorders","shd","tblLayout","tblCellMar","tblLook","tblCaption","tblDescription","tblPrChange"],"tcpr_order":["cnfStyle","tcW","gridSpan","hMerge","vMerge","tcBorders","shd","noWrap","tcMar","textDirection","tcFitText","vAlign","hideMark","headers",["cellIns","cellDel","cellMerge"],"tcPrChange"],"thai_fonts":["angsana new","angsanaupc","anuphan","arial unicode ms","athiti","ayuthaya","bai jamjuree","browallia new","browalliaupc","chakra petch","charm","charmonman","chonburi","cordia new","cordiaupc","dilleniaupc","eucrosiaupc","fahkwang","freesiaupc","garuda","ibm plex sans thai","ibm plex sans thai looped","irisupc","itim","jasmineupc","k2d","kanit","kinnari","kodchasan","kodchiangupc","koho","krub","krungthep","laksaman","leelawadee","leelawadee ui","libre sarabun","lilyupc","loma","maitree","mali","microsoft sans serif","mitr","niramit","norasi","noto sans thai","noto sans thai looped","noto sans thai ui","noto serif thai","pattaya","pridi","prompt","purisa","sarabun","sathu","sawasdee","segoe ui","silom","sriracha","srisakdi","tahoma","taviraj","th baijam","th chakra petch","th charm of au","th charmonman","th fah kwang","th k2d july8","th kodchasal","th koho","th krub","th mali grade6","th niramit as","th sarabun new","th sarabun psk","th sarabunpsk","th srisakdi","thasadith","thonburi","tlwg typist","tlwg typo","tlwgmono","trirong","umpush","waree"],"trpr_order":[["cnfStyle","divId","gridBefore","gridAfter","wBefore","wAfter","cantSplit","trHeight","tblHeader","tblCellSpacing","jc","hidden"],"ins","del","trPrChange"]};
 
 const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const RPR_ORDER = OOXML.rpr_order;
@@ -1113,6 +1113,13 @@ const STRUCTURE = [["sectPr", rankOf(SECTPR_ORDER)], ["tblPr", rankOf(TBLPR_ORDE
 
 function isThai(ch) {
   return ch >= "฀" && ch <= "๿";
+}
+
+// A character of a complex script: the run holding it is marked <w:cs/> (ooxml.py's is_complex).
+const COMPLEX_SCRIPT = OOXML.complex_script;
+function isComplex(ch) {
+  const cp = ch.codePointAt(0);
+  return COMPLEX_SCRIPT.some(([a, b]) => a <= cp && cp <= b);
 }
 
 class Report {
@@ -1391,7 +1398,13 @@ function checkTextPart(name, root, report, roles) {
       const texts = run.children.filter((c) => c.tag === w("t") || c.tag === w("delText"));
       const hasText = texts.length > 0;
       let thai = false;
-      for (const t of texts) for (const ch of t.text || "") if (isThai(ch)) thai = true;
+      let complexText = false;
+      for (const t of texts) {
+        for (const ch of t.text || "") {
+          if (isThai(ch)) thai = true; // the font warning's: Thai glyphs
+          if (isComplex(ch)) complexText = true;
+        }
+      }
       if (rpr !== null) {
         checkOrder(rpr, RPR_RANK, name, report, "a run's w:rPr");
         checkRprTwins(rpr, name, report, "a run", thai);
@@ -1402,8 +1415,8 @@ function checkTextPart(name, root, report, roles) {
         const marked = cs !== null && isOn(cs);
         // one direction only: a run that holds no complex script may carry the marker, because
         // --force-cs-whole-doc writes it on every run and that file is ours too
-        if (thai && !marked) {
-          report.find("2", name, "a run whose text is Thai has no <w:cs/> element");
+        if (complexText && !marked) {
+          report.find("2", name, "a run whose text is complex script has no <w:cs/> element");
         }
         if (marked) {
           const lang = rpr.find(w("lang"));
@@ -4481,8 +4494,6 @@ function imageWithin(wpx, hpx) {
 // No run carries w:lang otherwise: docDefaults declares the Latin and East Asian languages once.
 const CS = "<w:cs/>";
 const CS_THAI = '<w:cs/><w:lang w:bidi="th-TH"/>';
-const THAI_FIRST = 0x0e00;
-const THAI_LAST = 0x0e7f;
 
 // `C` complex script, `L` not, `N` neutral — it takes the script of the letter beside it. Thai is
 // the complex script this skill writes. Arabic digits and ASCII punctuation are not complex
@@ -4492,8 +4503,7 @@ const THAI_LAST = 0x0e7f;
 // ooxml.json's, so neither runtime is asked what punctuation is.
 const PUNCTUATION = new Set(Array.from(OOXML.punctuation));
 function script(ch) {
-  const c = ch.codePointAt(0);
-  if (c >= THAI_FIRST && c <= THAI_LAST) return "C";
+  if (isComplex(ch)) return "C";
   if (/\s/.test(ch)) return "N";
   return PUNCTUATION.has(ch) ? "P" : "L";
 }
@@ -6126,7 +6136,7 @@ function fixRuns(xml, font, counts, thaiLanguage, csAll) {
 
 function fixRun(inner, font, counts, thaiLanguage, csAll) {
   const hasText = RE_T_START.test(inner);
-  const mark = csAll ? true : hasText && Array.from(runText(inner)).some(isThai);
+  const mark = csAll ? true : hasText && Array.from(runText(inner)).some(isComplex);
   const rpr = new RegExp("^<w:rPr" + ATTRS + "(\\/?)>").exec(inner);
   let body, restFrom, head = "";
   if (rpr !== null && rpr[1]) {

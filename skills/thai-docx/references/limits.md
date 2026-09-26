@@ -295,6 +295,10 @@ about the layout of a document somebody else made; it is measured only by its ow
   tree (or an `--allow-dir`, never `/` or an empty one) and the profile locations** — only regular
   files, each to a ceiling — writing only the output path and the one profile file it was asked to
   save, that one whole or not at all.
+- **It is made for Thai.** A run of Lao, Khmer, Arabic, Devanagari or another complex script is
+  marked as one and takes the complex-script font, but the fonts the skill knows carry Thai glyphs:
+  unless `--font` names one that also carries that script, the application draws it in a
+  substitute. Right-to-left text (Arabic, Hebrew) is marked, not set right to left.
 - **The two implementations give the same bytes when their runtimes share a Unicode version.**
   Whether `_` or `*` opens emphasis, and how a link label's case is folded, are read from the
   runtime's own Unicode tables, and so is the NFC normalisation the build applies to the text

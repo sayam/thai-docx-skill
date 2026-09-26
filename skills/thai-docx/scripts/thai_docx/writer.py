@@ -12,7 +12,7 @@ import re
 import struct
 
 from . import markdown as md
-from .ooxml import PUNCTUATION, THAI_MARKS
+from .ooxml import PUNCTUATION, THAI_MARKS, is_complex
 from .layout import (CAPTION_STYLE, SECTION_MARK, caption_text, has_thai, heading_styles, image_only, layout,
                      list_entries, list_field, number_text)
 from .settings import MIN_TEXT_TWIPS, BuildError, half_up, page_size
@@ -60,7 +60,6 @@ MAX_SIDE_PX = 20000
 # No run carries `w:lang` otherwise: docDefaults declares the Latin and East Asian languages once.
 CS = "<w:cs/>"
 CS_THAI = '<w:cs/><w:lang w:bidi="th-TH"/>'
-THAI_FIRST, THAI_LAST = "\u0e00", "\u0e7f"
 
 
 def _script(ch: str) -> str:
@@ -73,7 +72,7 @@ def _script(ch: str) -> str:
     types). Punctuation with Thai on both sides — `พ.ศ`, `๑.๑`, the brackets and quotes of a Thai
     phrase — is not a Latin run cut into a Thai word (B-05, ADR 0039, Later).
     """
-    if THAI_FIRST <= ch <= THAI_LAST:
+    if is_complex(ch):
         return "C"
     if ch.isspace():
         return "N"

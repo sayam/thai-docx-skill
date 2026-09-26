@@ -90,5 +90,17 @@ THAI_MARKS = frozenset([0x0E31, *range(0x0E34, 0x0E3B), *range(0x0E47, 0x0E4F)])
 THAI_TONES = frozenset(range(0x0E48, 0x0E4C))
 
 
+# The scripts Word writes from a run's complex-script font and size: Thai, and the others of the
+# Middle East and of South and South-East Asia (B-09). Ranges of code points, one list both
+# implementations read.
+COMPLEX_SCRIPT: tuple[tuple[int, int], ...] = tuple((a, b) for a, b in _DATA["complex_script"])
+
+
+def is_complex(ch: str) -> bool:
+    """A character of a complex script: the run holding it is marked `<w:cs/>` (ADR 0039)."""
+    cp = ord(ch)
+    return any(a <= cp <= b for a, b in COMPLEX_SCRIPT)
+
+
 def is_thai(ch: str) -> bool:
     return "฀" <= ch <= "๿"

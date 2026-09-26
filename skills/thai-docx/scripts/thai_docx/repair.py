@@ -36,7 +36,7 @@ from . import check as check_mod
 from . import ooxml
 from . import package
 from . import settings as st
-from .ooxml import is_thai
+from .ooxml import is_complex
 from .fidelity import paragraphs
 from .writer import script_runs
 
@@ -371,7 +371,7 @@ def _fix_runs(xml: bytes, font: bytes, counts: dict[str, int], thai_language: bo
 def _fix_run(inner: bytes, font: bytes, counts: dict[str, int], thai_language: bool = False,
              cs_all: bool = False) -> bytes:
     has_text = T_START.search(inner) is not None
-    mark = True if cs_all else (has_text and any(is_thai(ch) for ch in _run_text(inner)))
+    mark = True if cs_all else (has_text and any(is_complex(ch) for ch in _run_text(inner)))
     rpr = RPR_START.match(inner)
     rest_from = 0
     head = b""

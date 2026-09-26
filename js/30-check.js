@@ -78,6 +78,13 @@ function isThai(ch) {
   return ch >= "฀" && ch <= "๿";
 }
 
+// A character of a complex script: the run holding it is marked <w:cs/> (ooxml.py's is_complex).
+const COMPLEX_SCRIPT = OOXML.complex_script;
+function isComplex(ch) {
+  const cp = ch.codePointAt(0);
+  return COMPLEX_SCRIPT.some(([a, b]) => a <= cp && cp <= b);
+}
+
 class Report {
   constructor(label) {
     this.path = label;
@@ -354,7 +361,13 @@ function checkTextPart(name, root, report, roles) {
       const texts = run.children.filter((c) => c.tag === w("t") || c.tag === w("delText"));
       const hasText = texts.length > 0;
       let thai = false;
-      for (const t of texts) for (const ch of t.text || "") if (isThai(ch)) thai = true;
+      let complexText = false;
+      for (const t of texts) {
+        for (const ch of t.text || "") {
+          if (isThai(ch)) thai = true; // the font warning's: Thai glyphs
+          if (isComplex(ch)) complexText = true;
+        }
+      }
       if (rpr !== null) {
         checkOrder(rpr, RPR_RANK, name, report, "a run's w:rPr");
         checkRprTwins(rpr, name, report, "a run", thai);
@@ -365,8 +378,8 @@ function checkTextPart(name, root, report, roles) {
         const marked = cs !== null && isOn(cs);
         // one direction only: a run that holds no complex script may carry the marker, because
         // --force-cs-whole-doc writes it on every run and that file is ours too
-        if (thai && !marked) {
-          report.find("2", name, "a run whose text is Thai has no <w:cs/> element");
+        if (complexText && !marked) {
+          report.find("2", name, "a run whose text is complex script has no <w:cs/> element");
         }
         if (marked) {
           const lang = rpr.find(w("lang"));

@@ -881,3 +881,10 @@
   found_by: review
   test:
     - tests/test_what_a_command_takes.py::test_punctuation_between_thai_is_not_cut_out_of_it
+
+- id: B-09
+  what: complex script meant the Thai block, so a Lao, Khmer, Arabic or Devanagari run was written, checked and repaired as Latin
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_every_complex_script_is_marked_checked_and_repaired

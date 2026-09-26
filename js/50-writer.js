@@ -49,8 +49,6 @@ function imageWithin(wpx, hpx) {
 // No run carries w:lang otherwise: docDefaults declares the Latin and East Asian languages once.
 const CS = "<w:cs/>";
 const CS_THAI = '<w:cs/><w:lang w:bidi="th-TH"/>';
-const THAI_FIRST = 0x0e00;
-const THAI_LAST = 0x0e7f;
 
 // `C` complex script, `L` not, `N` neutral — it takes the script of the letter beside it. Thai is
 // the complex script this skill writes. Arabic digits and ASCII punctuation are not complex
@@ -60,8 +58,7 @@ const THAI_LAST = 0x0e7f;
 // ooxml.json's, so neither runtime is asked what punctuation is.
 const PUNCTUATION = new Set(Array.from(OOXML.punctuation));
 function script(ch) {
-  const c = ch.codePointAt(0);
-  if (c >= THAI_FIRST && c <= THAI_LAST) return "C";
+  if (isComplex(ch)) return "C";
   if (/\s/.test(ch)) return "N";
   return PUNCTUATION.has(ch) ? "P" : "L";
 }
