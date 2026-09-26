@@ -189,6 +189,11 @@ gates:
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_skill_md.py]}
     proved_by: [docs/evidence/2026-09-15-skill-md-archive-and-agents.md, docs/evidence/2026-09-16-agents-with-the-grown-skill.md, docs/evidence/2026-09-16-agents-after-the-redesign.md, docs/evidence/2026-09-17-agents-with-the-flag-table.md, docs/evidence/2026-09-17-a-description-of-200-characters.md, docs/evidence/2026-09-17-user-guides-hold.md]
+  - id: amendments-recorded-both-ways
+    title: Every amendment is recorded on both records — `Amends:` on the new one names a record whose `Amended by:` names it back, and the reverse — read from each record's head, a link at a time (.github/CONTRIBUTING.md, Add a decision)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_adr_amendments.py]}
   - id: live-pages-cite-the-record-in-force
     title: The rules page is one text — Thai the rule, the English below it marked a translation — every link on it reaches a file, each rule traces to a record the index marks accepted, the pages that decide send a reader there, and no live page of this project cites a record the index marks superseded unless it names the record in force on the same line (docs/rules.md, ADR 0001)
     kind: test
