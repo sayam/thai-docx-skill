@@ -56,10 +56,14 @@ const THAI_LAST = 0x0e7f;
 // the complex script this skill writes. Arabic digits and ASCII punctuation are not complex
 // script, which is measured, not assumed: Word cuts `120 ` out of a Thai sentence and leaves it
 // unmarked (2026-09-22, what Word writes when a person types).
+// `P` punctuation, which is Thai only between Thai (writer.py's _script says why); the list is
+// ooxml.json's, so neither runtime is asked what punctuation is.
+const PUNCTUATION = new Set(Array.from(OOXML.punctuation));
 function script(ch) {
   const c = ch.codePointAt(0);
   if (c >= THAI_FIRST && c <= THAI_LAST) return "C";
-  return /\s/.test(ch) ? "N" : "L";
+  if (/\s/.test(ch)) return "N";
+  return PUNCTUATION.has(ch) ? "P" : "L";
 }
 
 // `text` cut where the script changes, as Word cuts it (ADR 0039). A neutral character takes the
@@ -71,7 +75,24 @@ function script(ch) {
 function scriptRuns(text) {
   const chars = Array.from(text);
   if (!chars.length) return [[false, ""]];
-  const marks = chars.map(script);
+  let marks = chars.map(script);
+  // punctuation takes Thai where the nearest letter on each side that has one is Thai
+  const before = new Array(marks.length).fill(""), after = new Array(marks.length).fill("");
+  let last = "";
+  for (let i = 0; i < marks.length; i++) {
+    before[i] = last;
+    if (marks[i] === "C" || marks[i] === "L") last = marks[i];
+  }
+  last = "";
+  for (let i = marks.length - 1; i >= 0; i--) {
+    after[i] = last;
+    if (marks[i] === "C" || marks[i] === "L") last = marks[i];
+  }
+  marks = marks.map((m, i) => {
+    if (m !== "P") return m;
+    const sides = [before[i], after[i]].filter((x) => x);
+    return sides.length && sides.every((x) => x === "C") ? "C" : "L";
+  });
   const first = marks.find((m) => m !== "N") || "L";
   const out = [];
   let prev = "";

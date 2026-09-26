@@ -12,7 +12,7 @@ import re
 import struct
 
 from . import markdown as md
-from .ooxml import THAI_MARKS  # the marks a measured column leaves out
+from .ooxml import PUNCTUATION, THAI_MARKS
 from .layout import (CAPTION_STYLE, SECTION_MARK, caption_text, has_thai, heading_styles, image_only, layout,
                      list_entries, list_field, number_text)
 from .settings import MIN_TEXT_TWIPS, BuildError, half_up, page_size
@@ -64,15 +64,20 @@ THAI_FIRST, THAI_LAST = "\u0e00", "\u0e7f"
 
 
 def _script(ch: str) -> str:
-    """`C` complex script, `L` not, `N` neutral — it takes the script of the letter beside it.
+    """`C` complex script, `L` not, `N` a space — it takes the script of the letter before it —
+    and `P` punctuation, which is Thai only between Thai.
 
-    Thai is the complex script this skill writes. Arabic digits and ASCII punctuation are not
-    complex script, which is measured, not assumed: Word cuts `120 ` out of a Thai sentence and
-    leaves it unmarked (2026-09-22, what Word writes when a person types).
+    Thai is the complex script this skill writes. Arabic digits are not complex script, which is
+    measured, not assumed: Word cuts `120 ` out of a Thai sentence and leaves it unmarked; and a
+    comma between Thai and Latin starts the Latin run (2026-09-22, what Word writes when a person
+    types). Punctuation with Thai on both sides — `พ.ศ`, `๑.๑`, the brackets and quotes of a Thai
+    phrase — is not a Latin run cut into a Thai word (B-05, ADR 0039, Later).
     """
     if THAI_FIRST <= ch <= THAI_LAST:
         return "C"
-    return "N" if ch.isspace() else "L"
+    if ch.isspace():
+        return "N"
+    return "P" if ch in PUNCTUATION else "L"
 
 
 def script_runs(text: str) -> list[tuple[bool, str]]:
@@ -87,6 +92,16 @@ def script_runs(text: str) -> list[tuple[bool, str]]:
     if not text:
         return [(False, "")]
     marks = [_script(ch) for ch in text]
+    # punctuation takes Thai where the nearest letter on each side that has one is Thai
+    before, after, last = [""] * len(marks), [""] * len(marks), ""
+    for i, m in enumerate(marks):
+        before[i] = last
+        last = m if m in "CL" else last
+    last = ""
+    for i in range(len(marks) - 1, -1, -1):
+        after[i] = last
+        last = marks[i] if marks[i] in "CL" else last
+    marks = [("C" if {before[i], after[i]} - {""} == {"C"} else "L") if m == "P" else m for i, m in enumerate(marks)]
     first = next((m for m in marks if m != "N"), "L")
     out: list[str] = []
     prev = ""

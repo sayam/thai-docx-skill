@@ -87,6 +87,13 @@ The build follows the seven rules above, which are Word's own, with one exceptio
   would make the whole change invisible.
 - **Arabic digits and ASCII punctuation are not complex script.** A neutral character takes the
   script of the strong character before it.
+
+  > **Later (2026-09-26):** punctuation is Thai where the nearest letter on each side that has one
+  > is Thai — `พ.ศ`, `๑.๑`, a Thai phrase's brackets and quotes are no longer Latin runs cut into
+  > it (the review of 0.2.0, B-05); anywhere else it is not complex script, so the measured comma
+  > between Thai and English still starts the English run. The list of punctuation is
+  > `assets/ooxml.json`'s. Only the space and that comma were measured in Word; the rest is owed
+  > to the reading of 0.3's bytes.
 - **`w:b` and `w:bCs` are still written together**, as are `w:i`/`w:iCs` and `w:sz`/`w:szCs`, so
   cause 5 of ADR 0004 is untouched.
 - **No run declares the Latin language any more.** Word writes no `w:lang` on a run at all — zero

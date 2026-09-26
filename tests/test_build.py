@@ -896,9 +896,9 @@ def test_header_and_footer_text_share_their_place_with_the_page_number(tmp_path)
     def centre(style: str, *pieces: tuple[bool, str]) -> str:
         """The paragraph, with its text as runs — one per stretch of a single script (ADR 0039).
 
-        `ลับ & <ด่วน>` is four of them: the space after `ลับ` is neutral and takes the Thai
-        before it, while `&` and `<` are not complex script and take the Latin side, as Word
-        does with a comma between Thai and English.
+        `ลับ & <ด่วน>` is one: the spaces take the Thai before them, and `&`, `<` and `>` have
+        Thai on every side that has a letter, so they are Thai too (B-05) — where a comma between
+        Thai and English starts the English run, as Word does.
         """
         runs = "".join("<w:r>" + ("<w:rPr>" + wr.CS + "</w:rPr>" if cs else "")
                        + '<w:t xml:space="preserve">' + text + "</w:t></w:r>" for cs, text in pieces)
@@ -908,7 +908,7 @@ def test_header_and_footer_text_share_their_place_with_the_page_number(tmp_path)
     result, out = build(tmp_path, "ก", **opts)
     parts = _page_parts(out)
     assert result["ok"] and result["findings"] == [] and result["settings"]["header"] == "ลับ & <ด่วน>"
-    header = centre("Header", (True, "ลับ "), (False, "&amp; &lt;"), (True, "ด่วน"), (False, "&gt;"))
+    header = centre("Header", (True, "ลับ &amp; &lt;ด่วน&gt;"))
     assert list(parts) == ["word/header1.xml"] and header in parts["word/header1.xml"]
     assert "PAGE" not in parts["word/header1.xml"]
     # header text, footer text and a footer number: the text comes first, then the number
