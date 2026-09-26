@@ -173,3 +173,16 @@ def test_the_records_found_stale_in_0_2_0_say_what_holds_now():
                           ("0017", "the 100-deep cap is what keeps it within the stack"), ("0018", "`PROMPT.th.md`"),
                           ("0031", "`license: MIT (LICENSE.txt)`"), ("0036", "`tools/oracle_set.py` holds the list")):
         assert later in adr[number], (number, later)
+
+
+def test_every_picture_the_fixtures_carry_says_where_it_came_from():
+    """ADR 0040 §10 asks for synthetic content only, which a reader can check only if the
+    picture's origin, or what it holds, is written down somewhere. Two thesis pictures had
+    neither (F-14)."""
+    records = "\n".join(p.read_text(encoding="utf-8") for p in (ROOT / "docs" / "evidence").glob("*.md"))
+    records += (ROOT / "skills" / "thai-docx" / "examples" / "README.md").read_text(encoding="utf-8")
+    pictures = [*(ROOT / "tests" / "fixtures").rglob("*.png"), *(ROOT / "tests" / "fixtures").rglob("*.jpg"),
+                *(ROOT / "skills" / "thai-docx" / "examples").glob("*.png")]
+    assert len(pictures) >= 4
+    for picture in pictures:
+        assert picture.name in records, picture.relative_to(ROOT)

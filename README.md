@@ -28,18 +28,18 @@ file right in the first place, and checks one that another program produced.
 
 ## Quick start
 
-1. **Download** `thai-docx-0.2.0.zip` from the
+1. **Download** `thai-docx-0.2.1.zip` from the
    [latest release](https://github.com/sayam/thai-docx-skill/releases/latest).
 2. **Install it** in your app:
 
    | app | do this |
    |---|---|
    | Claude (web, desktop) | turn on code execution, then **Customize > Skills > + > Create skill > Upload a skill** and choose the zip |
-   | Claude Code | `mkdir -p ~/.claude/skills && unzip thai-docx-0.2.0.zip -d ~/.claude/skills` |
-   | Codex, ChatGPT desktop app | `mkdir -p ~/.agents/skills && unzip thai-docx-0.2.0.zip -d ~/.agents/skills` |
+   | Claude Code | `mkdir -p ~/.claude/skills && unzip thai-docx-0.2.1.zip -d ~/.claude/skills` |
+   | Codex, ChatGPT desktop app | `mkdir -p ~/.agents/skills && unzip thai-docx-0.2.1.zip -d ~/.agents/skills` |
    | ChatGPT Business, Enterprise, Edu | **Plugins > Skills > Create > Upload from your computer** |
-   | GitHub Copilot | `mkdir -p ~/.copilot/skills && unzip thai-docx-0.2.0.zip -d ~/.copilot/skills` |
-   | Cursor | `mkdir -p ~/.cursor/skills && unzip thai-docx-0.2.0.zip -d ~/.cursor/skills` |
+   | GitHub Copilot | `mkdir -p ~/.copilot/skills && unzip thai-docx-0.2.1.zip -d ~/.copilot/skills` |
+   | Cursor | `mkdir -p ~/.cursor/skills && unzip thai-docx-0.2.1.zip -d ~/.cursor/skills` |
    | Gemini, other agents, the APIs | [step by step for each app](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en/install.md) |
 
 3. **Ask** for a Word file:
@@ -88,8 +88,9 @@ Each one, step by step, with the words to type:
 
 ## Status
 
-Version 0.2.0. The five applications are Word 365 for Windows (the reference), Word for macOS,
-Google Docs, LibreOffice Writer and WPS Writer. On 0.2.0's files Word 365 for Windows passes every
+Version 0.2.1, which writes byte for byte the files 0.2.0 wrote: what was read on those holds for
+both. The five applications are Word 365 for Windows (the reference), Word for macOS,
+Google Docs, LibreOffice Writer and WPS Writer. On those files Word 365 for Windows passes every
 item, and WPS Writer and Google Docs pass where they were read; Word for macOS has not been read
 yet, and LibreOffice Writer only in one document
 ([what was read](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md)). Changes are listed in
@@ -106,8 +107,8 @@ rather than by a bot, and no score for Maintained until the repository is 90 day
   see [Fix a problem](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en/troubleshooting.md).
 - A security problem: report it privately, as
   [SECURITY.md](https://github.com/sayam/thai-docx-skill/blob/main/.github/SECURITY.md) says.
-- Verify a download: `gh attestation verify thai-docx-0.2.0.zip --repo sayam/thai-docx-skill
-  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.2.0`
+- Verify a download: `gh attestation verify thai-docx-0.2.1.zip --repo sayam/thai-docx-skill
+  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.2.1`
   ([how, and how to rebuild it byte for byte](https://github.com/sayam/thai-docx-skill/blob/main/.github/SECURITY.md#verify-a-release)).
 
 ## Contributing

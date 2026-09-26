@@ -36,7 +36,8 @@ there is:
 | #88 | the build, the parser and grill: B5, B-06, B8, B-07, D1, C-02, B-03, C-11, C-04, C-06, C-07, D5, B7, E-08, E-16, and the stale version string |
 | #89 | the release and CI: S1, S2, F-03, F-05, F-09, F-10, F-11, A-04 |
 | #90, #91 | a profile that hides another (A-03, E-02); the docs (E-01, E-03, E-05–E-07, E-09–E-14, E-18–E-20, A-06, A-08–A-10); `--allow-dir` of the root (D-16) |
-| this record's pull request | the records: A-02, F-04, F-06, F-12, F-13 |
+| #92 | the records: A-02, F-04, F-06, F-12, F-13 |
+| the release pull request | F-14, below, and the changelog |
 
 **Decided, not fixed, in v0.2.1**, and why:
 
@@ -48,7 +49,12 @@ there is:
   read with the five applications after v0.2.1 is tagged; any change moves bytes, so it is 0.3's.
 - **E-21** — the skill's description. What triggers a skill is measured in the model-equivalence
   runs, not argued; it waits for them.
-- **F-14** — where the two thesis pictures came from is not written down; the maintainer states it.
+- **F-14** — where the two thesis pictures came from was never written down, and is not
+  remembered. What can be checked is recorded instead: `tests/fixtures/thesis/chart.png` (600×320,
+  a bar chart of five bars) and `tests/fixtures/thesis/flow.png` (600×260, four boxes and their
+  arrows) were looked at on 2026-09-26 and hold no text, no number and no data — shapes and
+  colours only — so they are synthetic content, as ADR 0040 §10 requires. They are not redrawn:
+  new pictures would move four goldens, which v0.2.1 does not.
 
 **Deferred to 0.3**, because each moves the build's bytes or widens what the checker judges, and
 v0.2.1 moves no golden: C1–C8 and B-04 (the checker's reach), S3–S5 (the release workflow's

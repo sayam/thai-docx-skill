@@ -3,6 +3,15 @@
 What the project intends to do, and not do, from September 2026 to September 2027. It is a plan,
 not a promise; each item becomes a decision record when it is taken up.
 
+## 0.2.1 (2026-09-26)
+
+What the readings of 0.2.0 found, fixed without moving a byte of any document
+([record](docs/evidence/2026-09-24-three-readings-of-0.2.0.md)): what every command reads, writes
+and accepts (ADR 0040), repair's reading of XML, the checker's limits held at their values, the
+release bound to its tag, and a finding closed by the test that holds it (ADR 0041). The five
+applications are read once, on these bytes, after the tag — Word for macOS, LibreOffice and Word
+for the web still owed from 0.2.0 among them. What moves bytes waits for 0.3.
+
 ## 0.2.0 (2026-09-24)
 
 Four things, decided 2026-09-18.

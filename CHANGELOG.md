@@ -10,6 +10,124 @@ before two applications were read; the exception and what is owed are in
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-26
+
+Every fix below was found in the readings of 0.2.0 on the day it was released
+([record](docs/evidence/2026-09-24-three-readings-of-0.2.0.md)). **No document changes**: 0.2.1
+writes byte for byte what 0.2.0 wrote, so what was read in the five applications on 0.2.0's files
+holds for it. Each `Fixed` line names the test that fails without the fix (ADR 0041).
+
+### Added
+
+- **A finding is closed by the control that holds it** (ADR 0041). `tests/regressions.yaml` lists
+  every finding closed since 0.2.0 with its class and its test, and `tests/test_regressions.py`
+  holds each row, and each `Fixed` line from this release on, to naming a test there is.
+- **The limits, restated** (ADR 0040, superseding 0030): what every command reads, writes and
+  accepts, including what the review added — the ceilings, links, text, escaping, names.
+- `profile save` and `import` say `"shadows"`, with a warning, when the name written hides a
+  profile of the same name further down the search — the skill ships one named `thesis`.
+- CI runs the suite on the newest runtimes the skill promises (Python 3.13, Node.js 24) beside the
+  oldest.
+
+### Changed
+
+- **`repair` on a file with nothing to repair** answers `"ok": true` with a `clean` warning and
+  writes nothing (exit 0), where it answered an error pointing at findings it did not have.
+- **The build refuses** a link to anything but `http`, `https` or `mailto` (a link with no scheme
+  is written as before); any format character or noncharacter, named; a caption label holding
+  `"` or `\`, or a table or figure label holding a space under `--auto-numbering`; a picture
+  wider or taller than 20,000 pixels; `--allow-dir` of the filesystem's root or of nothing. A
+  picture is fitted to the page's height as well as its width. A link's target is written
+  percent-encoded.
+- `grill` asks in the language most of the message's words are in, and warns when a `from` or
+  `save to` later in the message was not read.
+- The release workflow builds the tag as `refs/tags/<tag>`, proves the commit, runs the lints and
+  the coverage floor, and verifies the attestation against the workflow and the tag; every
+  documented verify command names both.
+
+### Fixed
+
+- `build` and `repair` could write over their own input — by path, symbolic link or hard link
+  (`tests/test_what_a_command_takes.py::test_the_input_is_never_the_output`).
+- A FIFO given as Markdown, picture, profile or package hung the command; the Markdown, and
+  JavaScript `repair`'s input, were read whole with no ceiling
+  (`tests/test_what_a_command_takes.py::test_a_file_that_is_not_a_regular_file_is_refused_before_it_is_opened`,
+  `tests/test_what_a_command_takes.py::test_a_markdown_file_past_its_ceiling_is_refused_not_read_whole`,
+  `tests/test_build.py::test_one_picture_past_its_cap_is_refused_before_it_is_read_whole`).
+- An argument in another encoding, or a lone surrogate in a profile, stopped Python with a trace
+  and was written as U+FFFD by JavaScript
+  (`tests/test_what_a_command_takes.py::test_an_argument_in_another_encoding_is_refused_the_same_way`).
+- A number too long for a float stopped Python with a trace
+  (`tests/test_what_a_command_takes.py::test_a_number_too_long_for_a_float_is_refused_not_a_traceback`).
+- `repair --font` was written into the XML unread and unescaped
+  (`tests/test_what_a_command_takes.py::test_the_font_given_to_repair_is_read_like_the_builds_and_escaped`).
+- A profile name could hold what a shell reads, and `grill` handed it back in a command;
+  `profile save --help` saved a profile named `--help`
+  (`tests/test_what_a_command_takes.py::test_a_profile_name_is_letters_digits_dash_and_underscore`,
+  `tests/test_what_a_command_takes.py::test_grill_never_hands_back_a_word_a_shell_would_read`).
+- A profile with a value of the wrong type, nested past the parser, keyed `__proto__`, saying
+  `"schema": true`, or not UTF-8, stopped one implementation or split them
+  (`tests/test_what_a_command_takes.py::test_a_profile_that_is_not_a_profile_is_named_not_obeyed`); a failed import emptied the
+  profile it replaced (`tests/test_what_a_command_takes.py::test_a_profile_is_replaced_whole_or_not_at_all`).
+- `--help` after `build` or `check`, a pipe that is not UTF-8, a working directory removed, and
+  any other fault left a trace where one JSON line belongs
+  (`tests/test_what_a_command_takes.py::test_help_is_the_usage_line`, `tests/test_what_a_command_takes.py::test_a_pipe_that_is_not_utf8_still_gets_the_json_line`,
+  `tests/test_what_a_command_takes.py::test_a_working_directory_that_is_gone_is_said_not_a_traceback`,
+  `tests/test_what_a_command_takes.py::test_the_entry_answers_before_any_command_runs`).
+- `repair` cut a run without `xml:space`, so the space between Thai and English stopped being
+  text (`tests/test_repair_reads_xml_as_xml.py::test_a_cut_run_keeps_the_space_at_the_cut`); cut through a tab's markup and refused
+  the file (`tests/test_repair_reads_xml_as_xml.py::test_a_run_with_a_tab_is_marked_whole_not_cut_through_its_markup`); cut a Thai word
+  at an invisible character (`tests/test_repair_reads_xml_as_xml.py::test_an_invisible_character_inside_a_thai_word_is_not_a_place_to_cut`).
+- `repair` read a `>` inside an attribute, or `<w:r />`, as the end of a tag, and gave a size in
+  single quotes a twin with no value
+  (`tests/test_repair_reads_xml_as_xml.py::test_a_greater_than_inside_an_attribute_is_not_the_end_of_the_tag`,
+  `tests/test_repair_reads_xml_as_xml.py::test_an_empty_run_is_passed_over`, `tests/test_repair_reads_xml_as_xml.py::test_a_single_quoted_size_gets_its_twin_with_the_same_value`).
+- `repair` half repaired a part under another prefix, edited around comments and CDATA, and could
+  touch a picture whose bytes spelled a tag, or stop on it in JavaScript
+  (`tests/test_repair_reads_xml_as_xml.py::test_a_part_under_another_prefix_is_refused_not_half_repaired`,
+  `tests/test_repair_reads_xml_as_xml.py::test_a_part_holding_a_comment_or_cdata_is_left_as_it_came`,
+  `tests/test_repair_reads_xml_as_xml.py::test_a_picture_is_left_byte_for_byte_whatever_its_bytes_spell`).
+- `repair` compared only the body's text, and wrote a file its own checker faulted
+  (`tests/test_repair_reads_xml_as_xml.py::test_the_text_of_a_header_is_compared_too`,
+  `tests/test_repair_reads_xml_as_xml.py::test_a_repair_that_breaks_the_package_writes_nothing_and_is_this_versions_fault`); its
+  text guard is now shown to bite (`tests/test_repair_reads_xml_as_xml.py::test_a_repair_that_changes_a_character_writes_nothing`);
+  putting properties in order took seconds on a small part
+  (`tests/test_repair_reads_xml_as_xml.py::test_putting_properties_in_order_takes_time_in_proportion_to_the_part`).
+- A part in UTF-16 with no byte-order mark got past the DOCTYPE refusal in Python and had its
+  entities expanded (`tests/test_check_holds_its_limits.py::test_a_utf16_part_is_refused_not_parsed`); a run's properties nested 500
+  deep stopped `check` (`tests/test_check_holds_its_limits.py::test_a_run_nested_past_any_stack_is_read_not_a_trace`).
+- A chain of 41 symbolic links embedded a picture from outside the Markdown's directory
+  (`tests/test_check_holds_its_limits.py::test_forty_links_are_followed_and_the_forty_first_is_not`); the size caps were held by no
+  test at their values (`tests/test_check_holds_its_limits.py::test_the_size_caps_hold_at_their_values`,
+  `tests/test_check_holds_its_limits.py::test_each_limit_is_the_value_both_implementations_state`).
+- A caption label holding `&` or `<` broke its field
+  (`tests/test_build_writes_what_it_was_given.py::test_a_label_is_escaped_in_its_field_and_one_a_field_would_misread_is_refused`); a list
+  numbered from 0 was renumbered from 1 (`tests/test_build_writes_what_it_was_given.py::test_a_list_numbered_from_zero_starts_at_zero`);
+  eight thousand unclosed links took most of a minute
+  (`tests/test_build_writes_what_it_was_given.py::test_two_thousand_open_links_are_read_in_a_moment`).
+- The two implementations disagreed on `<ſ>`, on a small float in the JSON line, and on where
+  grill splits words (`tests/test_build_writes_what_it_was_given.py::test_a_tag_name_is_ascii_in_both`,
+  `tests/test_build_writes_what_it_was_given.py::test_a_small_float_is_reported_as_python_writes_it`, `tests/test_build_writes_what_it_was_given.py::test_grill_reads_the_same_words_in_both`).
+- A picture declaring a vast size got an extent past the format, or one of nothing
+  (`tests/test_build_writes_what_it_was_given.py::test_a_picture_is_fitted_to_the_page_and_never_to_nothing`); the math warning named
+  version 0.1 (`tests/test_build_writes_what_it_was_given.py::test_math_is_said_to_be_kept_as_it_was_written_without_a_version`).
+- `tools/oracle_set.py --help` made a directory named `--help`
+  (`tests/test_oracle_set.py::test_a_question_is_answered_with_the_usage_and_nothing_is_made`);
+  `CITATION.cff` was checked by nothing
+  (`tests/test_package_skill.py::test_the_citation_names_the_release_the_changelog_names`);
+  `tools/preflight.py` could not import YAML (`tests/test_release_is_bound_to_its_tag.py::test_what_the_tools_import_the_requirements_pin`).
+- SKILL.md's sentences that sent an agent the wrong way — the last build's flags dropped on a
+  change, exit 1 read as a defect, a user's file edited, the grill argument cut
+  (`tests/test_the_docs_say_what_the_skill_does.py::test_a_change_keeps_the_flags_of_the_last_build`,
+  `tests/test_the_docs_say_what_the_skill_does.py::test_exit_1_is_read_as_the_command_that_gave_it`,
+  `tests/test_the_docs_say_what_the_skill_does.py::test_a_file_the_user_gave_is_changed_only_as_they_say`, `tests/test_the_docs_say_what_the_skill_does.py::test_the_grill_argument_is_passed_whole`).
+- Records: a measurement with no record, a release record with no hash of its bytes, sentences of
+  accepted records no longer true, two pictures of unknown origin
+  (`tests/test_rules.py::test_a_dated_measurement_in_the_references_has_a_record_of_that_day`,
+  `tests/test_rules.py::test_the_newest_release_record_names_the_bytes_it_read`,
+  `tests/test_rules.py::test_the_records_found_stale_in_0_2_0_say_what_holds_now`,
+  `tests/test_rules.py::test_every_picture_the_fixtures_carry_says_where_it_came_from`).
+
 ## [0.2.0] - 2026-09-24
 
 ### Added

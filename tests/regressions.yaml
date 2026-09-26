@@ -637,3 +637,10 @@
   found_by: review
   test:
     - tests/test_rules.py::test_the_records_found_stale_in_0_2_0_say_what_holds_now
+
+- id: F-14
+  what: where the two thesis pictures came from was written nowhere, so their being synthetic could not be checked
+  class: C1
+  found_by: review
+  test:
+    - tests/test_rules.py::test_every_picture_the_fixtures_carry_says_where_it_came_from
