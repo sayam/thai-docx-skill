@@ -6,7 +6,7 @@ still carries, plus the two things ADR 0023 and 0040 make the checker refuse.
 Findings, each with a `code`:
 
     1        compatibilityMode is not declared exactly once as 15
-    2        a run whose text is Thai (U+0E00 to U+0E7F, the one complex script read) lacks <w:cs/> (ADR 0039: a run whose
+    2        a run whose text is complex script (Thai, and ooxml.COMPLEX_SCRIPT's others) lacks <w:cs/> (ADR 0039: a run whose
              text is not complex script must not be asked to carry it, and a file built
              with --force-cs-whole-doc carries it everywhere, which is not a finding)
     3        <w:noProof/> appears somewhere
@@ -57,6 +57,7 @@ from .ooxml import (
     THAI_FONTS,
     TRPR_ORDER,
     is_on,
+    is_complex,
     is_thai,
     local,
     rank,
@@ -340,7 +341,8 @@ def _check_text_part(name: str, root: ET.Element, report: Report, roles: dict) -
             # deleted text is text: a reviewer reads it, and rejecting the deletion brings it back
             texts = [t for t in run if t.tag in (w("t"), w("delText"))]
             has_text = bool(texts)
-            thai = any(is_thai(ch) for t in texts for ch in (t.text or ""))
+            thai = any(is_thai(ch) for t in texts for ch in (t.text or ""))  # the font warning's: Thai glyphs
+            complex_text = any(is_complex(ch) for t in texts for ch in (t.text or ""))
             if rpr is not None:
                 _check_order(rpr, RPR_RANK, name, report, "a run's w:rPr")
                 _check_rpr_twins(rpr, name, report, "a run", thai)
@@ -350,8 +352,8 @@ def _check_text_part(name: str, root: ET.Element, report: Report, roles: dict) -
                 marked = cs is not None and is_on(cs)
                 # one direction only: a run that holds no complex script may carry the marker,
                 # because --force-cs-whole-doc writes it on every run and that file is ours too
-                if thai and not marked:
-                    report.find("2", name, "a run whose text is Thai has no <w:cs/> element")
+                if complex_text and not marked:
+                    report.find("2", name, "a run whose text is complex script has no <w:cs/> element")
                 if marked:
                     lang = rpr.find(w("lang"))
                     if lang is not None and lang.get(w("bidi")) == "th-TH":

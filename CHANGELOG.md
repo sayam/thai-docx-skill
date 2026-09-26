@@ -28,6 +28,10 @@ before two applications were read; the exception and what is owed are in
   Punctuation with Thai on both sides is Thai now; between Thai and English it goes with the
   English, as Word puts the comma. **This changes the bytes of most Thai documents**, the goldens
   among them (`tests/test_what_a_command_takes.py::test_punctuation_between_thai_is_not_cut_out_of_it`).
+- "Complex script" meant the Thai block, so a Lao, Khmer, Arabic or Devanagari run in a Thai
+  document was written, checked and repaired as Latin. One list of the complex scripts marks,
+  checks and repairs them all; finding `2` says "complex script" again
+  (`tests/test_what_a_command_takes.py::test_every_complex_script_is_marked_checked_and_repaired`).
 
 ## [0.2.2] - 2026-09-26
 

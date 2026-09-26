@@ -350,7 +350,7 @@ function fixRuns(xml, font, counts, thaiLanguage, csAll) {
 
 function fixRun(inner, font, counts, thaiLanguage, csAll) {
   const hasText = RE_T_START.test(inner);
-  const mark = csAll ? true : hasText && Array.from(runText(inner)).some(isThai);
+  const mark = csAll ? true : hasText && Array.from(runText(inner)).some(isComplex);
   const rpr = new RegExp("^<w:rPr" + ATTRS + "(\\/?)>").exec(inner);
   let body, restFrom, head = "";
   if (rpr !== null && rpr[1]) {

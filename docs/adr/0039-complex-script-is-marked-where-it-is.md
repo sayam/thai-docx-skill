@@ -71,6 +71,12 @@ underline anywhere**, and that is the state this record aims at. It does this by
 **Cause 2 of ADR 0004 now reads: a run whose text contains complex-script characters carries
 `<w:cs/>`; a run whose text contains none does not.**
 
+> **Later (2026-09-26):** until 0.3 the code read "complex-script characters" as the Thai block
+> alone, so Lao, Khmer, Arabic or Devanagari in a Thai document was written, checked and repaired
+> as Latin (the review of 0.2.0, B-09). The build, `check` and `repair` now read one list of the
+> complex scripts, `complex_script` in `assets/ooxml.json`: Hebrew to the Arabic extensions, the
+> Indic blocks to Sinhala, Thai, Lao, Tibetan, Myanmar, Khmer and their extensions.
+
 The build follows the seven rules above, which are Word's own, with one exception set out below.
 
 - **Runs are split at script boundaries**, in addition to the splits formatting already forces.
