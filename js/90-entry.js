@@ -73,8 +73,8 @@ function parentOf(path, p, root) {
 
 // The path as the file system walks it — the same walk as real_path() in
 // thai_docx/build.py: each component's symbolic link followed, `..` taken from
-// what is already resolved; a missing component, or a link past the fortieth,
-// stays as written (ADR 0030 §4).
+// what is already resolved; a missing component stays as written. A walk that
+// meets a link past the fortieth has no end this answers for: null (ADR 0030 §4).
 function realPath(fs, path, p) {
   if (!path.isAbsolute(p)) p = process.cwd() + path.sep + p;
   let [root, parts] = splitRoot(path, p);
@@ -94,10 +94,11 @@ function realPath(fs, path, p) {
     } catch {
       isLink = false;
     }
-    if (!isLink || links >= MAX_LINKS) {
+    if (!isLink) {
       resolved = candidate;
       continue;
     }
+    if (links >= MAX_LINKS) return null;
     links++;
     let target;
     try {
@@ -146,10 +147,16 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
     return result;
   }
   const resolved = realPath(fs, path, mdPath);
+  if (resolved === null) {
+    result.error = "cannot read " + mdPath + ": more than " + MAX_LINKS + " symbolic links";
+    return result;
+  }
   const mdDir = parentOf(path, resolved, splitRoot(path, resolved)[0]);
-  const roots = [mdDir, ...allowDirs.map((d) => realPath(fs, path, d))];
+  // a directory past the fortieth link is no directory this answers for, so it allows nothing
+  const roots = [mdDir, ...allowDirs.map((d) => realPath(fs, path, d)).filter((d) => d !== null)];
   const readImage = (src) => {
     const p = realPath(fs, path, path.isAbsolute(src) ? src : mdDir + path.sep + src);
+    if (p === null) throw new BuildError("image '" + src + "': more than " + MAX_LINKS + " symbolic links");
     if (!roots.some((root) => inside(path, p, root))) {
       throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)");
     }

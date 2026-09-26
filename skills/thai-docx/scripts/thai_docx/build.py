@@ -128,10 +128,12 @@ def _parent(path: str, root: str) -> str:
     return root if cut < len(root) else path[:cut]
 
 
-def real_path(path: str) -> str:
+def real_path(path: str) -> str | None:
     """The path as the file system walks it: each component's symbolic link
     followed, `..` taken from what is already resolved. A component that does not
-    exist, or a link past the fortieth, stays as written. js/90-entry.js walks it
+    exist stays as written. A walk that meets a link past the fortieth has no end
+    this answers for: None. Left as written, a forty-first link inside the directory
+    passed the check and the OS then followed it out of it. js/90-entry.js walks it
     the same way, so both implementations judge ADR 0030 §4 on the same file."""
     if not os.path.isabs(path):
         path = os.getcwd() + os.sep + path
@@ -148,9 +150,11 @@ def real_path(path: str) -> str:
             is_link = stat.S_ISLNK(os.lstat(candidate).st_mode)
         except (OSError, ValueError):
             is_link = False
-        if not is_link or links >= MAX_LINKS:
+        if not is_link:
             resolved = candidate
             continue
+        if links >= MAX_LINKS:
+            return None
         links += 1
         try:
             target = os.readlink(candidate)
@@ -175,6 +179,8 @@ def image_reader(md_dir: str, allow_dirs: list[str]):
 
     def read(src: str) -> tuple[str, bytes]:
         path = real_path(src if os.path.isabs(src) else md_dir + os.sep + src)
+        if path is None:
+            raise BuildError("image '" + src + "': more than " + str(MAX_LINKS) + " symbolic links")
         if not any(_inside(path, root) for root in roots):
             raise BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0030 §4)")
         try:
@@ -210,7 +216,12 @@ def build(md_path, out_path, opts: dict, allow_dirs: list) -> dict:
         result["error"] = "cannot read " + md_path + ": not UTF-8 text"
         return result
     resolved = real_path(md_path)
-    reader = image_reader(_parent(resolved, _split_root(resolved)[0]), [real_path(str(d)) for d in allow_dirs])
+    if resolved is None:
+        result["error"] = "cannot read " + md_path + ": more than " + str(MAX_LINKS) + " symbolic links"
+        return result
+    # a directory past the fortieth link is no directory this answers for, so it allows nothing
+    allowed = [d for d in (real_path(str(d)) for d in allow_dirs) if d is not None]
+    reader = image_reader(_parent(resolved, _split_root(resolved)[0]), allowed)
     outcome, data = build_text(text, opts, reader)
     result.update(outcome)
     if data is None:

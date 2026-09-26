@@ -128,6 +128,12 @@ function declaresUtf8(text) {
 function parseParts(parts, report) {
   const trees = new Map();
   for (const [name, data] of parts) {
+    // Decided on the bytes: a NUL is valid UTF-8 and never valid XML, and it is what UTF-16 and
+    // UCS-4 are full of (check.py's _parse says why that matters there)
+    if (data.includes(0)) {
+      report.find("package", name, "XML part is not UTF-8");
+      continue;
+    }
     const text = data.length >= 2 && ((data[0] === 0xff && data[1] === 0xfe) || (data[0] === 0xfe && data[1] === 0xff)) ? null : fromUtf8(data);
     if (text === null || !declaresUtf8(text)) {
       report.find("package", name, "XML part is not UTF-8");
@@ -143,12 +149,27 @@ function parseParts(parts, report) {
   return trees;
 }
 
+// A run's formatting as a comparable value; rsid attributes are noise. Flat — each element
+// opens, its children follow, and it closes — and built with a stack of its own, because the
+// input sets the depth and neither implementation reads by recursion where it does (ADR 0017).
 function canonical(el) {
   if (el === null) return "";
-  const attrs = [];
-  for (const [k, v] of el.attrib) if (!local(k).startsWith("rsid")) attrs.push([local(k), v]);
-  attrs.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0));
-  return JSON.stringify([local(el.tag), attrs, el.children.map(canonical)]);
+  const out = [];
+  const pending = [el];
+  while (pending.length) {
+    const node = pending.pop();
+    if (node === null) {
+      out.push("/"); // the element before it closes here
+      continue;
+    }
+    const attrs = [];
+    for (const [k, v] of node.attrib) if (!local(k).startsWith("rsid")) attrs.push([local(k), v]);
+    attrs.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0));
+    out.push(JSON.stringify([local(node.tag), attrs]));
+    pending.push(null);
+    for (let i = node.children.length - 1; i >= 0; i--) pending.push(node.children[i]);
+  }
+  return out.join("\n");
 }
 
 function checkOrder(el, order, part, report, what) {

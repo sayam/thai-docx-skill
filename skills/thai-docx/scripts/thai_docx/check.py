@@ -133,7 +133,13 @@ def _read_parts(data: bytes, report: Report) -> dict[str, bytes] | None:
 def _parse(parts: dict[str, bytes], report: Report) -> dict[str, ET.Element]:
     trees = {}
     for name, data in parts.items():
-        # UTF-8 only — what Word writes, and what both implementations read (ADR 0015)
+        # UTF-8 only — what Word writes, and what both implementations read (ADR 0015). Decided
+        # on the bytes: a NUL is valid UTF-8 and never valid XML, and it is what UTF-16 and UCS-4
+        # are full of — a part in either, with no byte-order mark, decoded as UTF-8 and went to
+        # a parser that read it as UTF-16, past the DOCTYPE refusal, which reads bytes as ASCII
+        if b"\x00" in data:
+            report.find("package", name, "XML part is not UTF-8")
+            continue
         try:
             text = data.decode("utf-8")
             declared = DECLARED_ENCODING.match(text)
@@ -151,13 +157,23 @@ def _parse(parts: dict[str, bytes], report: Report) -> dict[str, ET.Element]:
 
 
 def _canonical(el: ET.Element | None) -> tuple:
-    """A run's formatting as a comparable value; rsid attributes are noise."""
+    """A run's formatting as a comparable value; rsid attributes are noise. Flat — each element
+    opens, its children follow, and it closes — and built with a stack of its own, because the
+    input sets the depth and neither implementation reads by recursion where it does (ADR 0017)."""
     if el is None:
         return ()
-    attrs = tuple(
-        sorted((local(k), v) for k, v in el.attrib.items() if not local(k).startswith("rsid"))
-    )
-    return (local(el.tag), attrs, tuple(_canonical(c) for c in el))
+    out: list = []
+    pending: list = [el]
+    while pending:
+        node = pending.pop()
+        if node is None:
+            out.append(None)  # the element before it closes here
+            continue
+        attrs = tuple(sorted((local(k), v) for k, v in node.attrib.items() if not local(k).startswith("rsid")))
+        out.append((local(node.tag), attrs))
+        pending.append(None)
+        pending.extend(reversed(list(node)))
+    return tuple(out)
 
 
 def _check_order(el: ET.Element, order: list[str], part: str, report: Report, what: str) -> None:
