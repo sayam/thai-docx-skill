@@ -26,6 +26,13 @@ quotation. What the five applications draw is read on these bytes before the tag
 
 ### Changed
 
+- The `thesis` profile centres a picture that stands alone on its line and boxes its caption to the
+  picture: the caption starts and ends where the picture does, aligns as the body does, and is
+  never narrower than 3 inches. `--caption-matches-object` does the same without the profile; a
+  small picture's caption, which took the text width, now takes 3 inches, and the build warns only
+  where `--caption-hanging-indent` leaves the box less than an inch. A table's caption keeps the
+  table's full width
+  (`tests/test_build_writes_what_it_was_given.py::test_the_thesis_profile_boxes_a_caption_with_its_picture`).
 - The goldens may change bytes on `main` between releases. The rule that a reading record names
   every golden's sha256 is held where it matters, at the tag: `tools/package_skill.py --tag`,
   which the release workflow runs, refuses a tag until the newest record does

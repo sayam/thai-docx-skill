@@ -12,6 +12,8 @@
   "source": "https://github.com/sayam/thai-docx-skill",
   "settings": {
     "align": "thai",
+    "caption_matches_object": true,
+    "center_images": true,
     "chapter_title_on_new_line": true,
     "heading_numbers": true,
     "indent": 0.5,

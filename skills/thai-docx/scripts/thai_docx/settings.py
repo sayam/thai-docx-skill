@@ -26,6 +26,8 @@ PAGE_NUMBERS = ("top-right", "top-center", "bottom-center")  # the first is --pa
 FRONT_NUMBERS = {"thai-letters": "thaiLetters", "lower-roman": "lowerRoman", "upper-roman": "upperRoman", "decimal": "decimal"}
 APPENDIX_NUMBERS = {"thai-letters": "thaiLetters", "upper-letters": "upperLetter", "decimal": "decimal", "upper-roman": "upperRoman"}
 MIN_TEXT_TWIPS = 1440
+# the narrowest box --caption-matches-object gives a caption: 3 inches, or the text width
+MIN_CAPTION_TWIPS = 4320
 # layers (ADR 0028): 1 page and type, 2 page furniture, 3 tables, 4 headings, 5 thesis structure
 LAYERS = {1: "page and type", 2: "page furniture", 3: "tables", 4: "headings", 5: "thesis structure"}
 # what a document may hold that a setting needs (ADR 0028): the name a registry entry says in
@@ -186,8 +188,9 @@ SETTINGS: tuple[dict, ...] = (
      "needs": "figure captions",
      "report": ("caption_matches_object", "value"),
      "doc": ("the width of a caption", "the width of the text",
-             "`--caption-matches-object` (as wide as the picture it belongs to; a picture too narrow to leave "
-             "an inch gives its caption the text width, and the build says so)")},
+             "`--caption-matches-object` (as wide as the picture it belongs to and never narrower than 3 in, "
+             "starting where the picture starts; a hang that leaves it less than an inch gives the caption the "
+             "text width, and the build says so)")},
     {"key": "front_page_numbers", "flag": "--front-page-numbers", "kind": "value", "default": "thai-letters", "layer": 5,
      "read": ("choice", tuple(FRONT_NUMBERS)), "takes": ", ".join(FRONT_NUMBERS),
      "needs": "front",

@@ -388,13 +388,24 @@ def test_a_caption_is_never_given_less_than_an_inch(tmp_path):
     (tmp_path / "in.md").write_text("![a](small.png)\n\nFigure: ขั้นตอน\n\n![b](wide.png)\n\nFigure: กว้าง\n", encoding="utf-8")
     code, result = both(["build", "in.md", "out.docx", "--margins", "1,3.6,1,3.6", "--caption-hanging-indent", "4"], tmp_path)
     assert code == 2 and result["error"] == "--caption-hanging-indent leaves less than one inch for text", result
-    code, result = both(["build", "in.md", "out.docx", "--caption-matches-object", "--caption-hanging-indent", "0.75"], tmp_path)
-    assert code == 0 and [w["message"] for w in result["warnings"]] == [
-        "line 3: the picture is too narrow for a caption of its width; the caption takes the width of the text"], result
+    import re
     import zipfile
-    with zipfile.ZipFile(tmp_path / "out.docx") as z:
-        document = z.read("word/document.xml").decode("utf-8")
-    assert '<w:ind w:left="1080" w:hanging="1080"/>' in document and 'w:right="' in document
+
+    def captions() -> list[str]:
+        with zipfile.ZipFile(tmp_path / "out.docx") as z:
+            return re.findall(r'<w:pStyle w:val="FigureCaption"/>(<w:ind [^>]*/>)', z.read("word/document.xml").decode("utf-8"))
+    # a picture narrower than 3 inches gives its caption a 3-inch box, which leaves the lines room
+    code, result = both(["build", "in.md", "out.docx", "--caption-matches-object", "--caption-hanging-indent", "0.75"], tmp_path)
+    assert code == 0 and not result["warnings"], result
+    assert captions() == ['<w:ind w:left="1080" w:right="3986" w:hanging="1080"/>',
+                          '<w:ind w:left="1080" w:right="2306" w:hanging="1080"/>'], captions()
+    # a hang that leaves the box less than an inch
+    code, result = both(["build", "in.md", "out.docx", "--caption-matches-object", "--caption-hanging-indent", "2.5"], tmp_path)
+    assert code == 0 and [w["message"] for w in result["warnings"]] == [
+        "line 3: --caption-hanging-indent leaves the caption of this picture less than an inch;"
+        " the caption takes the width of the text"], result
+    assert captions() == ['<w:ind w:left="3600" w:hanging="3600"/>',
+                          '<w:ind w:left="3600" w:right="2306" w:hanging="3600"/>'], captions()
 
 
 def test_a_footnote_label_matches_in_any_case(tmp_path):

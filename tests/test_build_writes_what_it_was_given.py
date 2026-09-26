@@ -187,6 +187,35 @@ def test_a_picture_fits_the_line_its_paragraph_leaves_it(tmp_path):
     assert "w:firstLine" not in alone, alone
 
 
+def test_the_thesis_profile_boxes_a_caption_with_its_picture(tmp_path):
+    """The thesis profile (read in Word 365 for Windows, 2026-09-27): a picture alone on its line
+    is centred with no indent, and its caption starts and ends where the picture does — never
+    narrower than 3 inches, a box centred with the picture — and aligns as the body does, so its
+    first character stands at the picture's left edge. A table fills the text width, and so does
+    its caption. A flag or `--default` takes either back."""
+    (tmp_path / "small.png").write_bytes(png(192, 40))  # 2 in at 96 dpi
+    (tmp_path / "wide.png").write_bytes(png(480, 40))   # 5 in
+    (tmp_path / "in.md").write_text("![a](small.png)\n\nFigure: ขั้นตอน\n\n![b](wide.png)\n\nFigure: กว้าง\n\n"
+                                    "Table: ตาราง\n\n| ก | ข |\n|---|---|\n| 1 | 2 |\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx", "--profile", "thesis"], tmp_path)
+    assert code == 0 and result["settings"]["center_images"] and result["settings"]["caption_matches_object"], result
+    document = part(tmp_path / "out.docx", "word/document.xml")
+    pictures = re.findall(r"<w:p><w:pPr>((?:(?!</w:pPr>).)*)</w:pPr>(?:(?!</w:p>).)*<w:drawing>", document)
+    assert pictures == ['<w:keepNext/><w:jc w:val="center"/>'] * 2, pictures
+    captions = re.findall(r'<w:pStyle w:val="(FigureCaption|TableCaption)"/>(.*?)</w:pPr>', document)
+    text = 11906 - 2160 - 1440  # A4 less the default margins, in twips
+    three, five = (text - 4320) // 2, (text - 7200) // 2
+    assert captions == [
+        ("FigureCaption", '<w:ind w:left="' + str(three) + '" w:right="' + str(text - 4320 - three) + '"/>'),
+        ("FigureCaption", '<w:ind w:left="' + str(five) + '" w:right="' + str(text - 7200 - five) + '"/>'),
+        ("TableCaption", "<w:keepNext/>"),
+    ], captions
+    assert '<w:tblW w:w="5000" w:type="pct"/>' in document
+    code, result = both(["build", "in.md", "out.docx", "--profile", "thesis", "--default", "center_images,caption_matches_object"], tmp_path)
+    document = part(tmp_path / "out.docx", "word/document.xml")
+    assert code == 0 and document.count('<w:pStyle w:val="FigureCaption"/><w:jc w:val="center"/>') == 2, document
+
+
 # --- grill ------------------------------------------------------------------------------------------
 
 

@@ -11,6 +11,8 @@ const PAGE_NUMBERS = ["top-right", "top-center", "bottom-center"]; // the first 
 const FRONT_NUMBERS = { "thai-letters": "thaiLetters", "lower-roman": "lowerRoman", "upper-roman": "upperRoman", decimal: "decimal" };
 const APPENDIX_NUMBERS = { "thai-letters": "thaiLetters", "upper-letters": "upperLetter", decimal: "decimal", "upper-roman": "upperRoman" };
 const MIN_TEXT_TWIPS = 1440;
+// the narrowest box --caption-matches-object gives a caption: 3 inches, or the text width
+const MIN_CAPTION_TWIPS = 4320;
 // what a document may hold that a setting needs (ADR 0028): the name an entry says in `needs`
 // or `clashes` → why the flag did nothing
 const STRUCTURES = {
