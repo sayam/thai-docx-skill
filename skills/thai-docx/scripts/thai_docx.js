@@ -6547,9 +6547,26 @@ function profileWithout(settings, keys) {
   return out;
 }
 
-// A save or import that took the place of a profile says so where the user will hear it.
+const PROFILE_HIDDEN = { home: "is in your home folder", skill: "the skill ships" };
+
+// A save or import that took the place of a profile says so where the user will hear it — and
+// so does one that now hides a profile of the same name further down the search, since a build
+// and grill will take this one where they took that one before, and nothing else says so.
 function profileReplacing(result) {
-  if (result.replaced) result.warnings = ["replaced the profile " + result.name + " that was there before"];
+  const path = require("path");
+  const warnings = [];
+  if (result.replaced) warnings.push("replaced the profile " + result.name + " that was there before");
+  const dirs = profileDirectories();
+  const at = dirs.findIndex(([where]) => where === result.where);
+  for (const [where, directory] of dirs.slice(at + 1)) {
+    if (profileIsFile(path.join(directory, result.name + ".json"))) {
+      result.shadows = where;
+      warnings.push("the profile " + result.name + " that " + PROFILE_HIDDEN[where] + " is now hidden by this one:" +
+        " --profile " + result.name + " and grill from " + result.name + " use this one");
+      break;
+    }
+  }
+  if (warnings.length) result.warnings = warnings;
   return result;
 }
 

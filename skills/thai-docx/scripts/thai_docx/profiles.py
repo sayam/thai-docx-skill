@@ -328,10 +328,25 @@ def main(argv: list[str]) -> int:
     return 0
 
 
+HIDDEN = {"home": "is in your home folder", "skill": "the skill ships"}
+
+
 def _replacing(result: dict) -> dict:
-    """A save or import that took the place of a profile says so where the user will hear it."""
+    """A save or import that took the place of a profile says so where the user will hear it —
+    and so does one that now hides a profile of the same name further down the search, since a
+    build and grill will take this one where they took that one before, and nothing else says so."""
+    warnings = []
     if result["replaced"]:
-        result["warnings"] = ["replaced the profile " + result["name"] + " that was there before"]
+        warnings.append("replaced the profile " + result["name"] + " that was there before")
+    places = [where for where, _directory in directories()]
+    for where, directory in directories()[places.index(result["where"]) + 1:]:
+        if (directory / (result["name"] + ".json")).is_file():
+            result["shadows"] = where
+            warnings.append("the profile " + result["name"] + " that " + HIDDEN[where] + " is now hidden by this one:"
+                            " --profile " + result["name"] + " and grill from " + result["name"] + " use this one")
+            break
+    if warnings:
+        result["warnings"] = warnings
     return result
 
 
