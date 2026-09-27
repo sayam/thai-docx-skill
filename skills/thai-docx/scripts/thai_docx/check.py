@@ -84,21 +84,55 @@ DOCTYPE = re.compile(rb"<!DOCTYPE", re.IGNORECASE)
 DECLARED_ENCODING = re.compile("\ufeff?<\\?xml[^>]*?[ \\t\\r\\n]encoding[ \\t\\r\\n]*=[ \\t\\r\\n]*[\"']([^\"']*)[\"']")
 
 
+# How much of one code the JSON lists: the rest are counted (the review of 0.3.0, D-11). A file
+# of 37 KB held 300,000 findings, and printed a line of 35 MB for an agent to read.
+LISTED = 20
+# What a name taken from the file may show: a font's or a part's name, and nothing that reads
+# as an instruction to whoever reads the JSON (the review of 0.3.0, D-10). Anything else is `?`.
+QUOTED_MAX = 64
+_PLAIN = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_./()[]+&,")
+
+
+def quoted(value: str) -> str:
+    """A name from the file as the JSON shows it: letters and digits (ASCII or Thai), spaces and
+    `-_./()[]+&,` — each other character `?` — and at most 64 characters."""
+    shown = "".join(c if c in _PLAIN or "\u0e00" <= c <= "\u0e7f" else "?" for c in value)
+    return shown if len(shown) <= QUOTED_MAX else shown[:QUOTED_MAX - 1] + "…"
+
+
+def listed(items: list[dict]) -> tuple[list[dict], list[dict]]:
+    """At most LISTED items of each code, in order, and how many of each code were left out."""
+    seen: dict[str, int] = {}
+    kept, omitted = [], []
+    for item in items:
+        n = seen[item["code"]] = seen.get(item["code"], 0) + 1
+        if n <= LISTED:
+            kept.append(item)
+        elif n == LISTED + 1:
+            omitted.append({"code": item["code"], "count": 1})
+        else:
+            next(o for o in omitted if o["code"] == item["code"])["count"] += 1
+    return kept, omitted
+
+
 class Report:
     def __init__(self, path: str):
         self.path = path
         self.error: str | None = None  # the path could not be read at all: not about the document
         self.findings: list[dict] = []
         self.warnings: list[dict] = []
+        self._warned: set = set()
         self.counts: dict[str, int] = {}
         self.numbering: dict | None = None  # which way the document's numbers are made (ADR 0037)
 
     def find(self, code: str, part: str, message: str, **where) -> None:
-        self.findings.append({"code": code, "part": part, "message": message, **where})
+        self.findings.append({"code": code, "part": quoted(part), "message": message, **where})
 
     def warn(self, code: str, part: str, message: str, **where) -> None:
-        entry = {"code": code, "part": part, "message": message, **where}
-        if entry not in self.warnings:  # one font named by three styles is one warning
+        entry = {"code": code, "part": quoted(part), "message": message, **where}
+        key = json.dumps(entry, sort_keys=True, ensure_ascii=False)
+        if key not in self._warned:  # one font named by three styles is one warning; kept in a set,
+            self._warned.add(key)    # as a search of every warning before it took 101 s (D-06)
             self.warnings.append(entry)
 
     @property
@@ -108,20 +142,31 @@ class Report:
     def as_dict(self) -> dict:
         if self.error is not None:
             return {"ok": False, "file": self.path, "error": self.error}
+        findings, findings_omitted = listed(self.findings)
+        warnings, warnings_omitted = listed(self.warnings)
         return {
             "ok": self.ok,
             "file": self.path,
             "counts": self.counts,
-            "findings": self.findings,
-            "warnings": self.warnings,
+            "findings": findings,
+            **({"findings_omitted": findings_omitted} if findings_omitted else {}),
+            "warnings": warnings,
+            **({"warnings_omitted": warnings_omitted} if warnings_omitted else {}),
             **({"numbering": self.numbering} if self.numbering is not None else {}),
         }
 
 
-def _read_parts(data: bytes, report: Report) -> dict[str, bytes] | None:
-    """The package's XML parts, or None with a finding — read by the rules of
-    ADR 0017, which js/10-zip.js follows too. Only stored and deflated entries are
-    read, and every read is bounded by the declared sizes."""
+def is_markup(name: str) -> bool:
+    """An entry read as XML: named `.xml` or `.rels`, in any case, as OPC matches part names."""
+    return _ascii_lower(name).endswith((".xml", ".rels"))
+
+
+def _read_parts(data: bytes, report: Report) -> tuple[dict[str, bytes], list[str]] | None:
+    """The package's XML parts and the names of all its entries, or None with a finding —
+    read by the rules of ADR 0017, which js/10-zip.js follows too. Only stored and deflated
+    entries are read, and every read is bounded by the declared sizes. Every entry is read, so
+    one that cannot be is found here and not by `repair` copying it (the review of 0.3.0, D-08);
+    only the XML is kept."""
     if len(data) > package.MAX_FILE:
         report.find("size", "", "package file is larger than " + str(package.MAX_FILE) + " bytes; refused")
         return None
@@ -148,18 +193,18 @@ def _read_parts(data: bytes, report: Report) -> dict[str, bytes] | None:
             return None
     parts = {}
     for info in infos:
-        if not info.name.endswith((".xml", ".rels")):
-            continue
         try:
             part = package.read(data, info)
         except package.PackageError:
             report.find("package", info.name, "entry cannot be read (corrupt data or checksum)")
             return None
+        if not is_markup(info.name):
+            continue
         if DOCTYPE.search(part):
             report.find("doctype", info.name, "XML part declares a DOCTYPE; refused")
             return None
         parts[info.name] = part
-    return parts
+    return parts, [i.name for i in infos]
 
 
 def _parse(parts: dict[str, bytes], report: Report) -> dict[str, ET.Element]:
@@ -310,7 +355,7 @@ def _check_rpr_twins(rpr: ET.Element, part: str, report: Report, what: str, thai
         if latin and not cs:
             report.find("5", part, f"in {what}, w:rFonts names a Latin font but no w:cs font")
         elif thai and cs and not fonts.get(w("cstheme")) and cs.lower() not in THAI_FONTS:
-            report.warn("font", part, "in " + what + ", complex-script font '" + cs + "' is not known to carry Thai glyphs")
+            report.warn("font", part, "in " + what + ", complex-script font '" + quoted(cs) + "' is not known to carry Thai glyphs")
     for latin, twin in (("sz", "szCs"), ("b", "bCs"), ("i", "iCs")):
         if rpr.find(w(latin)) is not None and rpr.find(w(twin)) is None:
             report.find("5", part, f"in {what}, <w:{latin}> has no <w:{twin}> beside it")
@@ -437,16 +482,23 @@ def check(path) -> Report:
     else:
         report = Report("<bytes>")
         data = path.read(package.MAX_FILE + 1)
-    parts = _read_parts(data, report)
-    if parts is None:
+    read = _read_parts(data, report)
+    if read is None:
         return report
+    parts, names = read
     trees = _parse(parts, report)
-    roles = part_roles(list(parts), trees.get)
+    roles = part_roles(names, trees.get)
     document = roles["document"]
     if document is None:
         report.find("package", "", "no main document (word/document.xml, or the part _rels/.rels names);"
                                    " not a WordprocessingML package")
         return report
+    # a part the document reads is XML by its name, or it is refused: one named otherwise was
+    # never read here — its DOCTYPE never refused — and `repair` gave it to the parser (D-01)
+    for name in [document, *roles["text"], roles["styles"], roles["numbering"], roles["settings"]]:
+        if name is not None and not is_markup(name):
+            report.find("package", name, "the document reads " + quoted(name) + " as one of its parts, and that name does not end in .xml; refused")
+            return report
     if document not in trees:
         return report  # not UTF-8 or not well-formed, and found so above
     if trees[document].tag != w("document"):

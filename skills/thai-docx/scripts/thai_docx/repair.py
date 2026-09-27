@@ -503,7 +503,7 @@ def complex_script_font(parts: dict[str, bytes], asked: str | None) -> tuple[byt
 
 
 def _is_xml(name: str) -> bool:
-    return name.startswith("word/") and name.endswith(".xml")
+    return name.startswith("word/") and check_mod._ascii_lower(name).endswith(".xml")
 
 
 def _holds_what_is_not_markup(xml: bytes) -> bool:
@@ -575,8 +575,9 @@ def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None
     # repair (ADR 0039). Asked to mark every run instead, this is the work it always was.
     if codes & {"2", "5"} or thai_language or not cs_all:
         cs_font, why = complex_script_font(parts, font)
+        text = set(roles["text"])  # a set: a search of a list per part took 44 s for 60,000 parts (D-13)
         for name, xml in parts.items():
-            if name not in roles["text"]:
+            if name not in text:
                 continue
             new, counts = fix_text_part(replace.get(name, xml), cs_font, thai_language, cs_all)
             if counts:
@@ -640,26 +641,31 @@ def repair(in_path: str, out_path: str, font: str | None = None, thai_language: 
         return result
 
     ents = package.entries(data)
-    parts = {e.name: package.read(data, e) for e in ents}
+    # the parts the checker read, and no other: an entry it did not read as XML is copied as it
+    # came, never parsed (the review of 0.3.0, D-01)
+    parts = {e.name: package.read(data, e) for e in ents if check_mod.is_markup(e.name)}
     foreign = foreign_prefix(parts)
     if foreign is not None:
-        result["error"] = (foreign + " writes WordprocessingML under a prefix other than w:; this version repairs"
+        result["error"] = (check_mod.quoted(foreign) + " writes WordprocessingML under a prefix other than w:; this version repairs"
                            " only the prefix Word writes, so nothing was written")
         return result
     replace, repaired, chosen, left_names = repair_parts(parts, before.findings, font, thai_language, cs_all)
-    left = [{"code": "left", "message": name + " holds a comment, a CDATA section or a processing instruction;"
+    left = [{"code": "left", "message": check_mod.quoted(name) + " holds a comment, a CDATA section or a processing instruction;"
              " it is left as it came, and its findings with it"} for name in left_names
-            if any(f.get("part") == name for f in before.findings)]
+            if any(f.get("part") == check_mod.quoted(name) for f in before.findings)]
     if not replace and not before.findings:
         # a clean file is an answer, not a fault: nothing to repair, so nothing is written
         del result["file"]
-        result.update(ok=True, repaired={}, remaining=[], warnings=[{
+        warnings, omitted = check_mod.listed([{
             "code": "clean", "message": "nothing here needs a repair; no file was written, and "
                                         + in_path + " can be used as it is"}] + before.warnings)
+        result.update(ok=True, repaired={}, remaining=[], warnings=warnings, **({"warnings_omitted": omitted} if omitted else {}))
         return result
     if not replace:
         result["repaired"] = {}
-        result["remaining"] = before.findings
+        result["remaining"], omitted = check_mod.listed(before.findings)
+        if omitted:
+            result["remaining_omitted"] = omitted
         result["error"] = "nothing here is a repair this version makes; the findings say what is wrong"
         return result
 
@@ -679,7 +685,7 @@ def repair(in_path: str, out_path: str, font: str | None = None, thai_language: 
         result["error"] = "the repair would have changed the document's text; nothing was written"
         return result
     # a finding in a part left as it came is still there by design, not a repair that failed
-    still = {f["code"] for f in after.findings if f.get("part") not in left_names}
+    still = {f["code"] for f in after.findings if f.get("part") not in {check_mod.quoted(n) for n in left_names}}
     marked = repaired.pop("thai-language", 0)
     for code in repaired:
         if code in still:
@@ -696,7 +702,11 @@ def repair(in_path: str, out_path: str, font: str | None = None, thai_language: 
         warnings = warnings + [{"code": "thai-language", "message":
                                 'the Thai complex-script language w:bidi="th-TH" was written into '
                                 + str(marked) + " run properties, as --thai-language asked"}]
-    result.update(ok=True, repaired=repaired, remaining=after.findings, warnings=warnings,
+    remaining, remaining_omitted = check_mod.listed(after.findings)
+    warnings, warnings_omitted = check_mod.listed(warnings)
+    result.update(ok=True, repaired=repaired, remaining=remaining,
+                  **({"remaining_omitted": remaining_omitted} if remaining_omitted else {}), warnings=warnings,
+                  **({"warnings_omitted": warnings_omitted} if warnings_omitted else {}),
                   sha256=hashlib.sha256(out).hexdigest(), bytes=len(out))
     return result
 

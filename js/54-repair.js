@@ -499,7 +499,7 @@ function complexScriptFont(parts, asked) {
 }
 
 function isXmlPart(name) {
-  return name.startsWith("word/") && name.endsWith(".xml");
+  return name.startsWith("word/") && asciiLower(name).endsWith(".xml");
 }
 
 // A comment, a CDATA section or a processing instruction past the declaration: text that reads
@@ -578,8 +578,9 @@ function repairParts(allParts, findings, font, thaiLanguage, csAll) {
   // repair (ADR 0039). Asked to mark every run instead, this is the work it always was.
   if (codes.has("2") || codes.has("5") || thaiLanguage || !csAll) {
     const [csFont, why] = complexScriptFont(parts, font);
+    const text = new Set(roles.text); // a set: a search of a list per part was quadratic (D-13)
     for (const [name, bytes] of parts) {
-      if (!roles.text.includes(name)) continue;
+      if (!text.has(name)) continue;
       const [put, counts] = fixTextPart(fromUtf8(replace.get(name) || bytes), csFont, thaiLanguage, csAll);
       if (Object.keys(counts).length) {
         replace.set(name, utf8(put));

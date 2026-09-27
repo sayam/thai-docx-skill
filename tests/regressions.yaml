@@ -931,3 +931,52 @@
   found_by: review
   test:
     - tests/test_what_a_command_takes.py::test_a_write_that_fails_halfway_leaves_the_old_file
+
+- id: V3-D-01
+  what: repair parsed a part the document names under a name other than .xml, which the checker never read, so its DOCTYPE and entities reached the parser
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_check_reads_the_whole_package.py::test_a_part_the_document_reads_is_named_as_xml_or_refused
+
+- id: V3-D-08
+  what: a picture whose checksum was wrong passed check and stopped repair with exit 1, a defect
+  class: C1
+  found_by: review
+  test:
+    - tests/test_check_reads_the_whole_package.py::test_a_picture_that_cannot_be_read_is_a_finding_not_a_defect
+
+- id: V3-D-09
+  what: a part named .XML was not read, so check answered ok on a header with noProof and unmarked Thai
+  class: C1
+  found_by: review
+  test:
+    - tests/test_check_reads_the_whole_package.py::test_a_part_named_in_upper_case_is_read
+
+- id: V3-D-10
+  what: a font name or a part name from the file went into the JSON word for word and at any length
+  class: C1
+  found_by: review
+  test:
+    - tests/test_check_reads_the_whole_package.py::test_a_name_from_the_file_is_quoted_short_and_plain
+
+- id: V3-D-11
+  what: every finding was listed, so a 37 KB file printed 35 MB of JSON
+  class: C1
+  found_by: review
+  test:
+    - tests/test_check_reads_the_whole_package.py::test_findings_past_twenty_of_a_code_are_counted_not_listed
+
+- id: V3-D-06
+  what: check kept each warning once by searching every warning before it, quadratic in the fonts a file names
+  class: C1
+  found_by: review
+  test:
+    - tests/test_check_reads_the_whole_package.py::test_forty_thousand_fonts_and_thirty_thousand_parts_are_read_in_seconds
+
+- id: V3-D-13
+  what: repair found a part's role in a list per part, quadratic in the parts
+  class: C1
+  found_by: review
+  test:
+    - tests/test_check_reads_the_whole_package.py::test_forty_thousand_fonts_and_thirty_thousand_parts_are_read_in_seconds

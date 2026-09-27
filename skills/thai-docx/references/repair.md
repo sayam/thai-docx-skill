@@ -65,6 +65,9 @@ make it smaller.
  "warnings": [], "sha256": "…", "bytes": 24680}
 ```
 
+`remaining` and `warnings` list at most 20 of each code, and count the rest in
+`remaining_omitted` and `warnings_omitted`, as `check` does (`references/check.md`).
+
 `repaired` counts by code, plus `unmarked`: complex-script marks taken off runs and styles whose
 text is not complex script; and `split`: runs cut where the script changes.
 

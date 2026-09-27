@@ -85,11 +85,31 @@ quotation. What the five applications draw is read on these bytes before the tag
   sha256 (`tests/test_what_a_command_takes.py::test_a_write_that_fails_halfway_leaves_the_old_file`).
   A file the skill creates is now readable by its owner alone (`0600`); a file it replaces keeps
   the permissions it had.
+- A part named `.XML` was not read, so a header with `<w:noProof/>` and unmarked Thai was answered
+  `ok`; names match in any case now (`tests/test_check_reads_the_whole_package.py::test_a_part_named_in_upper_case_is_read`).
+- A picture whose checksum was wrong passed `check` and stopped `repair` with exit 1, "a defect;
+  do not retry". Every entry is read, and one that cannot be is a `package` finding (exit 2)
+  (`tests/test_check_reads_the_whole_package.py::test_a_picture_that_cannot_be_read_is_a_finding_not_a_defect`).
+- `check` kept each warning once by searching every warning before it, and `repair` found a part's
+  role in a list per part: 40,000 fonts took 101 s, 60,000 parts 44 s. Both are sets now
+  (`tests/test_check_reads_the_whole_package.py::test_forty_thousand_fonts_and_thirty_thousand_parts_are_read_in_seconds`).
 - An output path that was a FIFO held `build` and `repair` forever; it is refused as not a
   regular file (`tests/test_what_a_command_takes.py::test_a_write_never_goes_through_a_link_or_into_a_pipe`).
 
 ### Security
 
+- `repair` read every entry and parsed any part the document names, so a header named
+  `header1.bin` with a DOCTYPE — which the checker never saw, reading `.xml` and `.rels` only —
+  went to the parser with its entities, and a 15 KB file grew to 73 million characters. A part the
+  document reads under a name that does not end `.xml` is refused, and `repair` parses only the
+  parts the checker read (`tests/test_check_reads_the_whole_package.py::test_a_part_the_document_reads_is_named_as_xml_or_refused`).
+- A font name or a part name from the file went into the JSON word for word, so a file could put
+  text addressed to the agent into what reads as the tool's verdict. Such a name is shown with
+  letters, digits, spaces and `-_./()[]+&,` only, at most 64 characters
+  (`tests/test_check_reads_the_whole_package.py::test_a_name_from_the_file_is_quoted_short_and_plain`).
+- A 37 KB file printed 35 MB of JSON: every finding was listed. At most 20 of each code are
+  listed now, and the rest counted in `findings_omitted`, `warnings_omitted` and
+  `remaining_omitted` (`tests/test_check_reads_the_whole_package.py::test_findings_past_twenty_of_a_code_are_counted_not_listed`).
 - A symbolic link planted as `NAME.json.partial` in a profile folder — the project's
   `.thai-docx/profiles/` is meant to be shared — made `profile save`, `import` and `export` write
   the profile into whatever file the link named, `~/.bashrc` as easily as any other, in both

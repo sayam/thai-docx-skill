@@ -1122,23 +1122,54 @@ function isComplex(ch) {
   return COMPLEX_SCRIPT.some(([a, b]) => a <= cp && cp <= b);
 }
 
+// How much of one code the JSON lists, and what a name taken from the file may show — check.py
+// says why (the review of 0.3.0, D-10, D-11).
+const LISTED = 20;
+const QUOTED_MAX = 64;
+const PLAIN = new Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_./()[]+&,");
+
+function quoted(value) {
+  let shown = "";
+  for (const c of value) shown += PLAIN.has(c) || (c >= "\u0e00" && c <= "\u0e7f") ? c : "?";
+  const chars = [...shown];
+  return chars.length <= QUOTED_MAX ? shown : chars.slice(0, QUOTED_MAX - 1).join("") + "…";
+}
+
+// At most LISTED items of each code, in order, and how many of each code were left out.
+function listed(items) {
+  const seen = new Map();
+  const kept = [], omitted = [];
+  for (const item of items) {
+    const n = (seen.get(item.code) || 0) + 1;
+    seen.set(item.code, n);
+    if (n <= LISTED) kept.push(item);
+    else if (n === LISTED + 1) omitted.push({ code: item.code, count: 1 });
+    else omitted.find((o) => o.code === item.code).count += 1;
+  }
+  return [kept, omitted];
+}
+
 class Report {
   constructor(label) {
     this.path = label;
     this.error = null;  // the path could not be read at all: not about the document
     this.findings = [];
     this.warnings = [];
+    this.warned = new Set();
     this.counts = {};
     this.numbering = null; // which way the document's numbers are made (ADR 0037)
   }
 
   find(code, part, message) {
-    this.findings.push({ code, part, message });
+    this.findings.push({ code, part: quoted(part), message });
   }
 
   warn(code, part, message) {
-    if (!this.warnings.some((x) => x.code === code && x.part === part && x.message === message)) {
-      this.warnings.push({ code, part, message });
+    const entry = { code, part: quoted(part), message };
+    const key = entry.code + "\u0000" + entry.part + "\u0000" + entry.message;
+    if (!this.warned.has(key)) { // a set: a search of every warning before it took 101 s (D-06)
+      this.warned.add(key);
+      this.warnings.push(entry);
     }
   }
 
@@ -1148,12 +1179,25 @@ class Report {
 
   asDict() {
     if (this.error !== null) return { ok: false, file: this.path, error: this.error };
-    const out = { ok: this.ok, file: this.path, counts: this.counts, findings: this.findings, warnings: this.warnings };
+    const [findings, findingsOmitted] = listed(this.findings);
+    const [warnings, warningsOmitted] = listed(this.warnings);
+    const out = { ok: this.ok, file: this.path, counts: this.counts, findings };
+    if (findingsOmitted.length) out.findings_omitted = findingsOmitted;
+    out.warnings = warnings;
+    if (warningsOmitted.length) out.warnings_omitted = warningsOmitted;
     if (this.numbering !== null) out.numbering = this.numbering;
     return out;
   }
 }
 
+// An entry read as XML: named .xml or .rels, in any case, as OPC matches part names.
+function isMarkup(name) {
+  const lower = asciiLower(name);
+  return lower.endsWith(".xml") || lower.endsWith(".rels");
+}
+
+// The package's XML parts and the names of all its entries, or null with a finding; every entry
+// is read, only the XML kept (check.py's _read_parts says why).
 function readParts(bytes, report) {
   if (bytes.length > MAX_FILE) {
     report.find("size", "", "package file is larger than " + MAX_FILE + " bytes; refused");
@@ -1190,7 +1234,6 @@ function readParts(bytes, report) {
   }
   const parts = new Map();
   for (const e of entries) {
-    if (!e.name.endsWith(".xml") && !e.name.endsWith(".rels")) continue;
     let data;
     try {
       data = readZipEntry(bytes, e);
@@ -1199,6 +1242,7 @@ function readParts(bytes, report) {
       report.find("package", e.name, "entry cannot be read (corrupt data or checksum)");
       return null;
     }
+    if (!isMarkup(e.name)) continue;
     let latin = "";
     for (let i = 0; i < data.length; i++) latin += String.fromCharCode(data[i]);
     if (/<!DOCTYPE/i.test(latin)) {
@@ -1207,7 +1251,7 @@ function readParts(bytes, report) {
     }
     parts.set(e.name, data);
   }
-  return parts;
+  return [parts, entries.map((e) => e.name)];
 }
 
 const RE_DECLARED_ENCODING = /^\uFEFF?<\?xml[^>]*?[ \t\r\n]encoding[ \t\r\n]*=[ \t\r\n]*["']([^"']*)["']/;
@@ -1363,7 +1407,7 @@ function checkRprTwins(rpr, part, report, what, thai) {
     const cs = fonts.get(w("cs")) || fonts.get(w("cstheme"));
     if (latin && !cs) report.find("5", part, "in " + what + ", w:rFonts names a Latin font but no w:cs font");
     else if (thai && cs && !fonts.get(w("cstheme")) && !THAI_FONTS.has(cs.toLowerCase())) {
-      report.warn("font", part, "in " + what + ", complex-script font '" + cs + "' is not known to carry Thai glyphs");
+      report.warn("font", part, "in " + what + ", complex-script font '" + quoted(cs) + "' is not known to carry Thai glyphs");
     }
   }
   for (const [latin, twin] of [["sz", "szCs"], ["b", "bCs"], ["i", "iCs"]]) {
@@ -1517,15 +1561,23 @@ function checkNumbering(name, root, report) {
 // Check a package's bytes; `label` is what the report names as its file.
 function checkBytes(bytes, label) {
   const report = new Report(label);
-  const parts = readParts(bytes, report);
-  if (parts === null) return report;
+  const read = readParts(bytes, report);
+  if (read === null) return report;
+  const [parts, names] = read;
   const trees = parseParts(parts, report);
-  const roles = partRoles([...parts.keys()], (name) => (trees.has(name) ? trees.get(name) : null));
+  const roles = partRoles(names, (name) => (trees.has(name) ? trees.get(name) : null));
   const document = roles.document;
   if (document === null) {
     report.find("package", "", "no main document (word/document.xml, or the part _rels/.rels names);" +
       " not a WordprocessingML package");
     return report;
+  }
+  // a part the document reads is XML by its name, or it is refused (check.py says why: D-01)
+  for (const name of [document, ...roles.text, roles.styles, roles.numbering, roles.settings]) {
+    if (name !== null && !isMarkup(name)) {
+      report.find("package", name, "the document reads " + quoted(name) + " as one of its parts, and that name does not end in .xml; refused");
+      return report;
+    }
   }
   if (!trees.has(document)) return report;  // not UTF-8 or not well-formed, and found so above
   const tag = trees.get(document).tag;
@@ -6375,7 +6427,7 @@ function complexScriptFont(parts, asked) {
 }
 
 function isXmlPart(name) {
-  return name.startsWith("word/") && name.endsWith(".xml");
+  return name.startsWith("word/") && asciiLower(name).endsWith(".xml");
 }
 
 // A comment, a CDATA section or a processing instruction past the declaration: text that reads
@@ -6454,8 +6506,9 @@ function repairParts(allParts, findings, font, thaiLanguage, csAll) {
   // repair (ADR 0039). Asked to mark every run instead, this is the work it always was.
   if (codes.has("2") || codes.has("5") || thaiLanguage || !csAll) {
     const [csFont, why] = complexScriptFont(parts, font);
+    const text = new Set(roles.text); // a set: a search of a list per part was quadratic (D-13)
     for (const [name, bytes] of parts) {
-      if (!roles.text.includes(name)) continue;
+      if (!text.has(name)) continue;
       const [put, counts] = fixTextPart(fromUtf8(replace.get(name) || bytes), csFont, thaiLanguage, csAll);
       if (Object.keys(counts).length) {
         replace.set(name, utf8(put));
@@ -7654,28 +7707,33 @@ function nodeRepair(argv) {
     return 2;
   }
   const ents = readZipDirectory(data);
-  const parts = new Map(ents.map((e) => [e.name, readZipEntry(data, e)]));
+  // the parts the checker read, and no other (repair.py says why: D-01)
+  const parts = new Map(ents.filter((e) => isMarkup(e.name)).map((e) => [e.name, readZipEntry(data, e)]));
   const foreign = foreignPrefix(parts);
   if (foreign !== null) {
-    result.error = foreign + " writes WordprocessingML under a prefix other than w:; this version repairs" +
+    result.error = quoted(foreign) + " writes WordprocessingML under a prefix other than w:; this version repairs" +
       " only the prefix Word writes, so nothing was written";
     process.stdout.write(pyDumps(result) + "\n");
     return 2;
   }
   const [replace, repaired, chosen, leftNames] = repairParts(parts, before.findings, font, thaiLanguage, csAll);
-  const left = leftNames.filter((name) => before.findings.some((f) => f.part === name)).map((name) => ({ code: "left",
-    message: name + " holds a comment, a CDATA section or a processing instruction; it is left as it came, and its findings with it" }));
+  const left = leftNames.filter((name) => before.findings.some((f) => f.part === quoted(name))).map((name) => ({ code: "left",
+    message: quoted(name) + " holds a comment, a CDATA section or a processing instruction; it is left as it came, and its findings with it" }));
   if (!replace.size && !before.findings.length) {
     // a clean file is an answer, not a fault: nothing to repair, so nothing is written
     delete result.file;
-    Object.assign(result, { ok: true, repaired: {}, remaining: [], warnings: [{ code: "clean", message:
-      "nothing here needs a repair; no file was written, and " + inPath + " can be used as it is" }].concat(before.warnings) });
+    const [warnings, omitted] = listed([{ code: "clean", message:
+      "nothing here needs a repair; no file was written, and " + inPath + " can be used as it is" }].concat(before.warnings));
+    Object.assign(result, { ok: true, repaired: {}, remaining: [], warnings });
+    if (omitted.length) result.warnings_omitted = omitted;
     process.stdout.write(pyDumps(result) + "\n");
     return 0;
   }
   if (!replace.size) {
     result.repaired = {};
-    result.remaining = before.findings;
+    const [remaining, omitted] = listed(before.findings);
+    result.remaining = remaining;
+    if (omitted.length) result.remaining_omitted = omitted;
     result.error = "nothing here is a repair this version makes; the findings say what is wrong";
     process.stdout.write(pyDumps(result) + "\n");
     return 2;
@@ -7704,7 +7762,8 @@ function nodeRepair(argv) {
   const marked = repaired["thai-language"] || 0;
   delete repaired["thai-language"];
   // a finding in a part left as it came is still there by design, not a repair that failed
-  const still = new Set(after.findings.filter((f) => !leftNames.includes(f.part)).map((f) => f.code));
+  const leftQuoted = new Set(leftNames.map(quoted));
+  const still = new Set(after.findings.filter((f) => !leftQuoted.has(f.part)).map((f) => f.code));
   for (const code of Object.keys(repaired)) {
     if (still.has(code)) {
       result.error = "finding " + code + " is still there after the repair; nothing was written";
@@ -7721,13 +7780,18 @@ function nodeRepair(argv) {
   }
   result.ok = true;
   result.repaired = repaired;
-  result.remaining = after.findings;
-  result.warnings = (chosen ? [chosen] : []).concat(left, after.warnings);
+  const [remaining, remainingOmitted] = listed(after.findings);
+  result.remaining = remaining;
+  if (remainingOmitted.length) result.remaining_omitted = remainingOmitted;
+  let warnings = (chosen ? [chosen] : []).concat(left, after.warnings);
   if (marked) {
-    result.warnings = result.warnings.concat([{ code: "thai-language", message:
+    warnings = warnings.concat([{ code: "thai-language", message:
       'the Thai complex-script language w:bidi="th-TH" was written into ' + marked +
       " run properties, as --thai-language asked" }]);
   }
+  const [shown, warningsOmitted] = listed(warnings);
+  result.warnings = shown;
+  if (warningsOmitted.length) result.warnings_omitted = warningsOmitted;
   result.sha256 = sha256Hex(out);
   result.bytes = out.length;
   process.stdout.write(pyDumps(result) + "\n");

@@ -68,6 +68,13 @@ findings; anything that breaks 8–10 is "entry cannot be read".
    > **Later (2026-09-26):** since 0.2.2 every entry is refused on encryption or method, not only
    > the ones read: `repair` copies the others as they are, and an encrypted picture was written
    > back under flags that said it was not (the review of 0.2.0, D-14).
+
+   > **Later (2026-09-27, the review of 0.3.0):** every entry is read, so one whose data or
+   > checksum is bad is a `package` finding — a picture `repair` would copy is no longer found
+   > only when it fails there (D-08). An entry is read as XML when its name ends `.xml` or `.rels`
+   > in any case, as OPC matches names (D-09); a part the document reads — its main part, a text
+   > part, its styles, numbering or settings — under any other name is refused, and `repair`
+   > parses only what the checker read, so no DOCTYPE reaches a parser by another name (D-01).
 8. The local header has its signature, lies inside the file, and repeats the
    central directory's name byte for byte; the data follows it inside the file.
 9. A stored entry's two sizes are equal. A deflated entry is decoded as RFC 1951
