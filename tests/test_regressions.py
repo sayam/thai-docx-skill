@@ -74,14 +74,16 @@ def faults(ledger: list[dict], root: pathlib.Path = ROOT) -> list[str]:
 
 
 def unproven_fixes(changelog: str, root: pathlib.Path = ROOT) -> list[str]:
-    """Lines under `### Fixed` in a section newer than 0.2.0 that name no test there is."""
+    """Lines under `### Fixed` or `### Security` in a section newer than 0.2.0 that name no test
+    there is: a hole closed is the fix that most needs a test that fails if it opens again
+    (the review of 0.3.0, F-18)."""
     out = []
     for section in re.split(r"(?m)^## ", changelog)[1:]:
         heading = section.split("\n", 1)[0]
         if heading.startswith("[" + BEFORE_THE_RULE + "]"):
             break  # this release and the ones before it were written before the rule
-        fixed = re.search(r"(?ms)^### Fixed\n(.*?)(?=^### |\Z)", section)
-        for entry in re.split(r"(?m)^- ", fixed.group(1))[1:] if fixed else []:
+        announced = "".join(m.group(1) for m in re.finditer(r"(?ms)^### (?:Fixed|Security)\n(.*?)(?=^### |\Z)", section))
+        for entry in re.split(r"(?m)^- ", announced)[1:]:
             nodes = NODE.findall(entry)
             if not nodes or any(not (root / f).is_file() or t not in functions_in(root / f) for f, t in nodes):
                 out.append(heading + ": " + entry.strip().split("\n", 1)[0][:80])
@@ -126,9 +128,11 @@ def test_a_fix_announced_without_its_test_is_named(tmp_path):
         "- Held (`tests/test_x.py::test_there`).\n"
         "- Said, and held by nothing.\n"
         "- Held by a test that is gone (`tests/test_x.py::test_gone`).\n\n"
+        "### Security\n\n- A hole closed, and held by nothing.\n- A hole held (`tests/test_x.py::test_there`).\n\n"
         "## [0.2.0] - 2026-09-24\n\n### Fixed\n\n- Written before the rule.\n"
     )
     assert unproven_fixes(changelog, tmp_path) == [
         "[Unreleased]: Said, and held by nothing.",
         "[Unreleased]: Held by a test that is gone (`tests/test_x.py::test_gone`).",
+        "[Unreleased]: A hole closed, and held by nothing.",
     ]

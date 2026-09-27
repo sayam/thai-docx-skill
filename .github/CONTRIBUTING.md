@@ -186,8 +186,8 @@ the page as drawn shows an item (`page`: a PDF the application exports shows it 
 application open does (`open`: typing, editing, updating fields, proofing marks, the status bar);
 `python3 tools/render_libreoffice.py OUT_DIR --match '*-libreoffice_writer.docx'` exports what
 LibreOffice draws, with complex text read as Thai. Word 365 for Windows is the
-reference. `python3 tools/package_skill.py --tag vX.Y.Z` must pass — it refuses the tag until the
-newest `docs/evidence/*-what-vX.Y.Z-was-read-in.md` names every golden's sha256, so a change of
+reference. `python3 tools/package_skill.py --tag vX.Y.Z` must pass — it refuses the tag until
+`docs/evidence/*-what-vX.Y.Z-was-read-in.md`, the record of that version, names every golden's sha256, so a change of
 bytes may reach `main` before the reading, never a release — and the suite fails until the
 archive name in the README and the guides (`thai-docx-X.Y.Z.zip`) carries the new version.
 

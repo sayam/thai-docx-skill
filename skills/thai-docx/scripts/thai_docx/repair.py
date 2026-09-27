@@ -760,6 +760,9 @@ def repair(in_path: str, out_path: str, font: str | None = None, thai_language: 
         warnings = warnings + [{"code": "thai-language", "message":
                                 'the Thai complex-script language w:bidi="th-TH" was written into '
                                 + str(marked) + " run properties, as --thai-language asked"}]
+    # the codes that are numbers first, in order, then the rest as they came: the order JavaScript
+    # gives an object's keys, so the two print one line (the review of 0.3.0, C-02)
+    repaired = {k: repaired[k] for k in sorted(repaired, key=lambda k: (0, int(k)) if k.isdigit() else (1, 0))}
     remaining, remaining_omitted = check_mod.listed(after.findings)
     warnings, warnings_omitted = check_mod.listed(warnings)
     result.update(ok=True, repaired=repaired, remaining=remaining,

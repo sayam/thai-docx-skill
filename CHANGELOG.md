@@ -41,7 +41,8 @@ quotation. What the five applications draw is read on these bytes before the tag
   0.3.0's bytes.
 - The goldens may change bytes on `main` between releases. The rule that a reading record names
   every golden's sha256 is held where it matters, at the tag: `tools/package_skill.py --tag`,
-  which the release workflow runs, refuses a tag until the newest record does
+  which the release workflow runs, refuses a tag until the record of that version does — the
+  record of the version tagged, not the newest file
   (`tests/test_rules.py::test_the_newest_release_record_names_the_bytes_it_read`).
 - The limits record what LibreOffice Writer, Google Docs and Word for the web draw their own way,
   read on 2026-09-26: page numbers and footnote numbers in Arabic digits where Thai ones were set,
