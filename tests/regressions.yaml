@@ -1156,6 +1156,7 @@
   class: C1, C2
   found_by: agent-run
   test:
+    - tests/test_what_a_command_takes.py::test_a_repair_that_sets_compatibility_mode_says_the_pages_may_move
     - tests/test_skill_md.py::test_skill_md_says_what_agents_missed_in_the_review_of_0_3_0
 
 - id: V3-E-04
