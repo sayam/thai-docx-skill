@@ -88,6 +88,64 @@ def test_the_input_is_never_the_output(tmp_path):
     assert sha(tmp_path / "in.md") == markdown and sha(tmp_path / "in.docx") == package
 
 
+@pytest.mark.skipif(not POSIX, reason="symbolic links and FIFOs as POSIX makes them")
+def test_a_write_never_goes_through_a_link_or_into_a_pipe(tmp_path):
+    """D-02, F-03, D-14 (the review of 0.3.0): every command writes its file whole beside the
+    target and puts it in place. A `.partial` link planted in a shared profile folder was written
+    through to the file it pointed at, and so was an output path that was a link; an output that
+    was a FIFO held the command forever."""
+    (tmp_path / "in.md").write_text("# หัวเรื่อง\n\nเนื้อความ\n", encoding="utf-8")
+    shutil.copy(FIXTURES / "legacy-python-docx-default.docx", tmp_path / "in.docx")
+    victim = tmp_path / "victim.txt"
+    profiles = tmp_path / ".thai-docx" / "profiles"
+
+    def plant(link: pathlib.Path):
+        def setup():
+            victim.write_text("keep me\n", encoding="utf-8")
+            for old in (link, link.parent / link.name.removesuffix(".partial")):
+                old.unlink(missing_ok=True)
+            link.parent.mkdir(parents=True, exist_ok=True)
+            link.symlink_to(victim)
+        return setup
+
+    for args, link, target in (
+        (["profile", "save", "mine", "--size", "15", "--project"], profiles / "mine.json.partial", profiles / "mine.json"),
+        (["profile", "export", "thesis", "shared.json"], tmp_path / "shared.json.partial", tmp_path / "shared.json"),
+        (["build", "in.md", "out.docx"], tmp_path / "out.docx", tmp_path / "out.docx"),
+        (["build", "in.md", "out2.docx"], tmp_path / "out2.docx.partial", tmp_path / "out2.docx"),
+        (["repair", "in.docx", "fixed.docx"], tmp_path / "fixed.docx", tmp_path / "fixed.docx"),
+    ):
+        code, result = both(args, tmp_path, setup=plant(link))
+        assert code == 0 and result["ok"], (args, result)
+        assert victim.read_text(encoding="utf-8") == "keep me\n", args
+        assert target.is_file() and not target.is_symlink(), args
+        assert not (target.parent / (target.name + ".partial")).exists(), args
+    os.mkfifo(tmp_path / "pipe.docx")
+    code, result = both(["build", "in.md", "pipe.docx"], tmp_path)
+    assert code == 2 and result["error"] == "cannot write pipe.docx: not a regular file", result
+
+
+@pytest.mark.skipif(not POSIX, reason="a file size limit as POSIX sets one")
+def test_a_write_that_fails_halfway_leaves_the_old_file(tmp_path):
+    """F-02 (the review of 0.3.0): a write cut short — a full disk, a quota — left a broken zip
+    where a good .docx had been, said the file "cannot be read", and still reported the sha256
+    of bytes that were never written."""
+    import resource
+
+    (tmp_path / "in.md").write_text("# หัวเรื่อง\n\n" + "เนื้อความ\n\n" * 3000, encoding="utf-8")  # well past 40 KiB
+    answers = []
+    for cli in (PY, JS):
+        (tmp_path / "out.docx").write_bytes(b"the good file\n")
+        done = subprocess.run(cli + ["build", "in.md", "out.docx"], cwd=tmp_path, capture_output=True, timeout=30,
+                              preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_FSIZE, (40960, 40960)))
+        answers.append((done.returncode, json.loads(done.stdout.decode("utf-8").splitlines()[0])))
+        assert (tmp_path / "out.docx").read_bytes() == b"the good file\n", cli[0]
+        assert not (tmp_path / "out.docx.partial").exists(), cli[0]
+    (py_code, py), (js_code, js) = answers
+    assert py == js and py_code == js_code == 2, (py, js)
+    assert py["error"] == "cannot write out.docx: File too large" and "sha256" not in py and "bytes" not in py, py
+
+
 # --- only regular files are read, each to a ceiling ------------------------------------------
 
 

@@ -23,7 +23,6 @@ import hashlib
 import io
 import json
 import os
-import pathlib
 import re
 import stat
 
@@ -233,9 +232,10 @@ def build(md_path, out_path, opts: dict, allow_dirs: list) -> dict:
     if data is None:
         return result
     try:
-        pathlib.Path(out_path).write_bytes(data)
+        package.write_whole(out_path, data)
     except OSError as exc:
-        result["error"] = "cannot write " + out_path + ": " + os_error(exc)
+        result["error"] = "cannot write " + out_path + ": " + os_error(exc, "cannot be written")
+        result.pop("sha256", None), result.pop("bytes", None)  # bytes that were never written
         return result
     result["ok"] = True
     return result

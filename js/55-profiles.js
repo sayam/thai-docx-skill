@@ -384,18 +384,11 @@ function profileWrite(profile, p, makeFolder = true) {
   const fs = require("fs");
   const path = require("path");
   const data = utf8(profileCanonical(profile));
-  const partial = p + ".partial";
   try {
     if (makeFolder) fs.mkdirSync(path.dirname(p), { recursive: true });
-    fs.writeFileSync(partial, data);
-    fs.renameSync(partial, p);
+    writeWhole(fs, p, data); // never through a link planted as NAME.json.partial
   } catch (e) {
-    try {
-      fs.unlinkSync(partial);
-    } catch {
-      // there was none
-    }
-    throw new ProfileError("cannot write " + p + ": " + osError(e));
+    throw new ProfileError("cannot write " + p + ": " + osError(e, "cannot be written"));
   }
 }
 

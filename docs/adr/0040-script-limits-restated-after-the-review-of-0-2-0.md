@@ -55,6 +55,14 @@ unchanged.
    > working directory, as its usage says; and every profile write, `export` included, first writes
    > `<path>.partial` beside the target and renames it into place, removing it if the write fails.
    > Since 0.2.2 `export` makes no folder: a path whose folder is missing is refused.
+
+   > **Later (2026-09-27, the review of 0.3.0):** every write — `build`, `repair` and each
+   > `profile` command — goes through one writer in each implementation: `<path>.partial` is
+   > removed if present and created anew (`O_EXCL`, `O_NOFOLLOW`), so a link planted under that
+   > name is never written through; the output path is then replaced by it, so a link at the output
+   > path is replaced rather than followed, and a write cut short leaves the old file whole. An
+   > output path that is a directory, a FIFO, a device or a socket is refused before anything is
+   > opened.
 4. **Reads** only regular files — judged on the file once opened, opened without waiting, so a FIFO
    cannot hang the open and nothing changes between the look and the read — each with a ceiling it
    checks by reading one byte past it rather than by asking the size first:

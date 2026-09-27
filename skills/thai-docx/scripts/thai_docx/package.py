@@ -21,14 +21,54 @@ _OS_ERRORS = {
     errno.EACCES: "Permission denied",
     errno.EISDIR: "Is a directory",
     errno.ENOTDIR: "Not a directory",
+    errno.EEXIST: "File exists",
+    errno.ENOSPC: "No space left on device",
+    errno.EFBIG: "File too large",
+    getattr(errno, "EDQUOT", -1): "Disk quota exceeded",
 }
 
 
-def os_error(exc: OSError) -> str:
-    """The reason a path could not be read, in the same words in both implementations."""
+def os_error(exc: OSError, otherwise: str = "cannot be read") -> str:
+    """The reason a path could not be read — or, told so, written — in the same words in both
+    implementations."""
     if isinstance(exc, NotRegularFile):
         return "not a regular file"
-    return _OS_ERRORS.get(exc.errno, "cannot be read")
+    return _OS_ERRORS.get(exc.errno, otherwise)
+
+
+def write_whole(path: str, data: bytes) -> None:
+    """The whole file or none of it, and only at `path`. The bytes go to `PATH.partial`, made
+    new — a `.partial` already there, or a link planted under that name, is removed first and
+    never written through — and then take the path's place, so a write cut short leaves the
+    file that was there as it was, and a link at the path is replaced, not followed. A path
+    that is a directory, a FIFO, a device or a socket is refused before anything is opened: a
+    FIFO would hold the command until something read it (the review of 0.3.0: D-02, F-02,
+    F-03, D-14)."""
+    try:
+        mode = os.lstat(path).st_mode
+    except FileNotFoundError:
+        mode = None
+    if mode is not None and stat.S_ISDIR(mode):
+        raise IsADirectoryError(errno.EISDIR, "Is a directory", path)
+    if mode is not None and not (stat.S_ISREG(mode) or stat.S_ISLNK(mode)):
+        raise NotRegularFile(path)
+    partial = path + ".partial"
+    try:
+        os.unlink(partial)
+    except OSError:
+        pass  # none there; or one that cannot be removed, which the exclusive open below refuses
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
+    fd = os.open(partial, flags, 0o666)
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+        os.replace(partial, path)
+    except BaseException:
+        try:
+            os.unlink(partial)
+        except OSError:
+            pass
+        raise
 
 
 class NotRegularFile(OSError):

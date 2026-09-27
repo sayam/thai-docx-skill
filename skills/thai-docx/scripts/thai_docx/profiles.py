@@ -25,6 +25,7 @@ import pathlib
 import unicodedata
 
 from . import build as b
+from . import package
 from . import settings as st
 
 SCHEMA = 1
@@ -235,18 +236,12 @@ def write(profile: dict, path: pathlib.Path, make_folder: bool = True) -> None:
     folders are made when missing (ADR 0040); `export` writes where it is told (`./NAME.json` when
     told nothing), or nowhere."""
     data = canonical(profile).encode("utf-8")
-    partial = path.with_name(path.name + ".partial")
     try:
         if make_folder:
             path.parent.mkdir(parents=True, exist_ok=True)
-        partial.write_bytes(data)
-        os.replace(partial, path)
+        package.write_whole(str(path), data)  # never through a link planted as NAME.json.partial
     except OSError as exc:
-        try:
-            partial.unlink()
-        except OSError:
-            pass  # there was none, or it is not ours to remove
-        raise ProfileError("cannot write " + str(path) + ": " + b.os_error(exc)) from None
+        raise ProfileError("cannot write " + str(path) + ": " + package.os_error(exc, "cannot be written")) from None
 
 
 def target(name: str, project: bool) -> pathlib.Path:
