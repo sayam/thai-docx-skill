@@ -84,10 +84,18 @@ def test_a_link_target_is_a_uri_and_its_text_is_unchanged(tmp_path):
 
 
 def test_two_thousand_open_links_are_read_in_a_moment(tmp_path):
-    (tmp_path / "in.md").write_text("[a](" * 8000 + "\n", encoding="utf-8")
-    began = time.monotonic()
-    code, result = both(["build", "in.md", "out.docx"], tmp_path)
-    assert code == 0 and time.monotonic() - began < 10, result
+    """Open link destinations were read in quadratic time. Held by how the time grows, not by a
+    fixed ceiling: under coverage, on a loaded machine, 8,000 of them came within 3 % of the 10 s
+    that ceiling allowed (the review of 0.3.0, F-04). Four times the input may take eight times
+    as long, with a second to spare; a quadratic reading takes sixteen."""
+    def timed(n: int) -> float:
+        (tmp_path / "in.md").write_text("[a](" * n + "\n", encoding="utf-8")
+        began = time.monotonic()
+        code, result = both(["build", "in.md", "out.docx"], tmp_path)
+        assert code == 0, result
+        return time.monotonic() - began
+    small, large = timed(4000), timed(16000)
+    assert large < 8 * small + 1, (small, large)
 
 
 # --- what the text holds ---------------------------------------------------------------------------

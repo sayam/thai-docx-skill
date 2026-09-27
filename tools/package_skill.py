@@ -75,15 +75,17 @@ def dates() -> dict[str, str]:
     return {k: (m.group(1) if m else "(missing)") for k, m in found.items()}
 
 
-def unread_goldens(root: pathlib.Path = ROOT) -> list[str]:
-    """The goldens whose bytes the newest release reading does not name. A release is tagged on
-    bytes read in the office applications (ADR 0012): the newest `what-vX.Y.Z-was-read-in` record
-    names each golden's sha256. Between releases the goldens may move on `main`; a tag may not."""
+def unread_goldens(version: str, root: pathlib.Path = ROOT) -> list[str]:
+    """The goldens whose bytes the reading record of `version` does not name. A release is tagged
+    on bytes read in the office applications (ADR 0012): its `what-vX.Y.Z-was-read-in` record names
+    each golden's sha256. Between releases the goldens may move on `main`; a tag may not. The record
+    is the one of the version tagged, not the newest file: a record of another version named the
+    bytes it read, not these (the review of 0.3.0, F-12)."""
     import hashlib
-    records = sorted((root / "docs" / "evidence").glob("*-what-v*-was-read-in.md"))
-    newest = records[-1].read_text(encoding="utf-8") if records else ""
+    records = sorted((root / "docs" / "evidence").glob("*-what-v" + version + "-was-read-in.md"))
+    named = "".join(r.read_text(encoding="utf-8") for r in records)
     return [g.name for g in sorted((root / "tests" / "golden").glob("*.docx"))
-            if hashlib.sha256(g.read_bytes()).hexdigest() not in newest]
+            if hashlib.sha256(g.read_bytes()).hexdigest() not in named]
 
 
 def main(argv: list[str]) -> int:
@@ -97,7 +99,7 @@ def main(argv: list[str]) -> int:
         wrong = {k: v for k, v in found.items() if v != wanted}
         if len(set(days.values())) != 1 or "(missing)" in days.values():
             wrong.update(days)
-        unread = unread_goldens()
+        unread = unread_goldens(wanted)
         if unread:
             wrong["goldens no reading record names"] = ", ".join(unread)
         print(json.dumps({"tag": argv[1], "versions": found, "dates": days, "unread_goldens": unread, "ok": not wrong},

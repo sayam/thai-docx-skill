@@ -171,12 +171,16 @@ def test_the_newest_release_record_names_the_bytes_it_read(tmp_path, monkeypatch
     moved.write_bytes(b"changed since")
     (tmp_path / "docs" / "evidence" / "2026-01-01-what-v9.9.9-was-read-in.md").write_text(
         "| a | " + hashlib.sha256(read.read_bytes()).hexdigest() + " |\n", encoding="utf-8")
-    assert ps.unread_goldens(tmp_path) == ["b.docx"]
+    assert ps.unread_goldens("9.9.9", tmp_path) == ["b.docx"]
     (tmp_path / "docs" / "evidence" / "2026-02-01-what-v9.9.10-was-read-in.md").write_text(
         "a " + hashlib.sha256(read.read_bytes()).hexdigest() + "\nb " + hashlib.sha256(moved.read_bytes()).hexdigest(),
         encoding="utf-8")
-    assert ps.unread_goldens(tmp_path) == []
-    monkeypatch.setattr(ps, "unread_goldens", lambda root=None: ["b.docx"])
+    assert ps.unread_goldens("9.9.10", tmp_path) == []
+    # the record of the version tagged, not the newest file (F-12, the review of 0.3.0): 9.9.9's
+    # names only a, whatever a later record says; a version with no record has read nothing
+    assert ps.unread_goldens("9.9.9", tmp_path) == ["b.docx"]
+    assert ps.unread_goldens("9.9.11", tmp_path) == ["a.docx", "b.docx"]
+    monkeypatch.setattr(ps, "unread_goldens", lambda version, root=None: ["b.docx"])
     version = ps.versions()["thai_docx.__version__"]
     assert ps.main(["--tag", "v" + version]) == 1
     assert '"unread_goldens": ["b.docx"]' in capsys.readouterr().out

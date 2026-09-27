@@ -721,3 +721,17 @@ def test_a_repair_that_sets_compatibility_mode_says_the_pages_may_move(tmp_path)
     code, result = both(["repair", "in.docx", "out.docx"], tmp_path)
     assert result["repaired"].get("1") and {"code": "layout", "message": (
         "compatibility mode 15 reflows the document: page breaks can move — say so before the file is sent to anyone")} in result["warnings"], result
+
+
+def test_repair_prints_the_same_line_in_both(tmp_path):
+    """C-02 (the review of 0.3.0): `repaired` holds codes that are numbers and codes that are
+    words; JavaScript puts the numbers first whatever the order they were added in, Python kept
+    that order, so the two printed different lines for one file. Compared here as printed, not
+    as parsed JSON, which does not see order."""
+    lines = []
+    for cli in (PY, JS):
+        shutil.copy(FIXTURES / "legacy-helper-2026-09-14.docx", tmp_path / "in.docx")
+        (tmp_path / "out.docx").unlink(missing_ok=True)
+        done = subprocess.run(cli + ["repair", "in.docx", "out.docx"], cwd=tmp_path, capture_output=True, timeout=30)
+        lines.append(done.stdout)
+    assert lines[0] == lines[1], lines
