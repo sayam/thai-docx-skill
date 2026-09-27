@@ -305,21 +305,30 @@ def cm_canon_many(texts: list[str]) -> list:
 CORE_PUNCT = [p for p in PUNCT if p not in ("~~", "[^1]", "[^n]", "|", "\\|")]
 
 
+# a GFM table's delimiter row that a setext underline is not: one with a colon or a pipe. After a
+# paragraph it makes a table, which commonmark.js does not know (the review of 0.3.0, C-01)
+DELIMITER_ROW = re.compile(r"(?m)^[ >]*(?=[^\n]*[:|])\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$")
+
+
 def generate_core(seed: int) -> str:
     """Markdown with nothing but CommonMark in it: no tables, strikethrough,
-    footnotes or task items, so the reference implementation can judge it."""
+    footnotes or task items, so the reference implementation can judge it. A text that would hold
+    a table's delimiter row is drawn again, from the same generator."""
     rng = random.Random(seed)
     saved = PUNCT[:]
     PUNCT[:] = CORE_PUNCT
     try:
-        lines: list[str] = []
-        for _ in range(rng.randint(1, 6)):
-            lines.extend(_block(rng, 0, CORE_KINDS))
-            if rng.random() < 0.7:
-                lines.append("")
-        if rng.random() < 0.4:
-            lines += ["", "[ref]: /url \"title\""]
-        return "\n".join(lines) + rng.choice(["", "\n"])
+        while True:
+            lines: list[str] = []
+            for _ in range(rng.randint(1, 6)):
+                lines.extend(_block(rng, 0, CORE_KINDS))
+                if rng.random() < 0.7:
+                    lines.append("")
+            if rng.random() < 0.4:
+                lines += ["", "[ref]: /url \"title\""]
+            text = "\n".join(lines) + rng.choice(["", "\n"])
+            if not DELIMITER_ROW.search(text):
+                return text
     finally:
         PUNCT[:] = saved
 

@@ -73,3 +73,15 @@ def test_task_checked_state(text, checked):
     # cmark-gfm marks "- [ ] a [x]" checked; the oracle compares presence only, so
     # the checked state is held here
     assert md.parse(text).blocks[0]["items"][0][0]["inlines"][0] == {"t": "task", "checked": checked}
+
+
+def test_the_core_corpus_holds_no_table():
+    """C-01 (the review of 0.3.0): the core corpus is CommonMark only, yet a line like `  -:` after
+    a paragraph is a GFM table's delimiter row — which this parser reads, as cmark-gfm does, and
+    commonmark.js does not; a campaign of 150,000 seeds stopped on four such. The corpus draws again
+    where it would make one."""
+    _need_node()
+    for seed in (49361,) + tuple(range(200)):
+        assert not oracle.DELIMITER_ROW.search(oracle.generate_core(seed)), seed
+    text = oracle.generate_core(49361)
+    assert oracle.ours_canon(md.parse(text), core=True) == oracle.cm_canon_many([text])[0], text

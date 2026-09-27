@@ -161,6 +161,31 @@ quotation. What the five applications draw is read on these bytes before the tag
 - An output path that was a FIFO held `build` and `repair` forever; it is refused as not a
   regular file (`tests/test_what_a_command_takes.py::test_a_write_never_goes_through_a_link_or_into_a_pipe`).
 
+- `tools/package_skill.py --tag` read the newest reading record by file name, whatever version it
+  was about; it reads the record of the version it tags
+  (`tests/test_rules.py::test_the_newest_release_record_names_the_bytes_it_read`).
+- `release.yml` was held by a test that looked for substrings, and eight mutations — the archive no
+  longer waiting for the gates, the version check gone, write permission for the whole workflow, a
+  tampered archive let through, the suite commented out — passed it. The workflow is read as YAML
+  and held to the gates a pull request runs, and a run dispatched from a branch rather than the tag
+  it builds is refused (`tests/test_release_is_bound_to_its_tag.py::test_the_tag_passes_the_gates_a_pull_request_passes`,
+  `tests/test_release_is_bound_to_its_tag.py::test_a_release_that_skips_its_gates_is_named`).
+- A clone that converts line endings on checkout — Git for Windows' default — packed an archive
+  whose sha256 was not the attached one; the skill's files are never converted
+  (`tests/test_package_skill.py::test_the_skill_is_packed_as_it_is_committed_on_any_checkout`).
+- The script limits were read name by name, so `import os as _os`, `getattr(os, "system")`,
+  `os.__dict__`, `__builtins__`, `new Function (…)`, `process["env"]` and `globalThis[…]` got past
+  them (`tests/test_script_limits.py::test_the_limits_catch_what_they_name`,
+  `tests/test_js_parity.py::test_the_javascript_limits_catch_what_they_name`).
+- `repair` printed its `repaired` codes in another order in Python than in JavaScript; the two
+  print one line (`tests/test_what_a_command_takes.py::test_repair_prints_the_same_line_in_both`).
+- A Security entry of the changelog did not have to name its test, as a Fixed one does
+  (`tests/test_regressions.py::test_a_fix_announced_without_its_test_is_named`).
+- The core CommonMark corpus could hold a GFM table, which stopped the reference comparison on a
+  fault of the corpus (`tests/test_oracle.py::test_the_core_corpus_holds_no_table`).
+- A timing test was held to a fixed 10 s it came within 3 % of under coverage; it holds how the
+  time grows (`tests/test_build_writes_what_it_was_given.py::test_two_thousand_open_links_are_read_in_a_moment`).
+
 ### Security
 
 - A picture's path was looked up component by component before it was judged, so

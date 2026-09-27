@@ -182,3 +182,14 @@ def test_only_what_git_tracks_is_packed(tmp_path, monkeypatch):
     monkeypatch.setattr(package_skill, "SKILL", skill)
     assert [p.relative_to(skill).as_posix() for p in package_skill.files()] == ["SKILL.md", "scripts/run.py"]
 
+
+
+def test_the_skill_is_packed_as_it_is_committed_on_any_checkout():
+    """F-10 (the review of 0.3.0): the archive is packed from the working tree, and Git for Windows
+    converts line endings on checkout by default, so a clone there packed other bytes than the ones
+    attached. The skill's files are never converted, whatever the clone's setting."""
+    import subprocess
+    for path in ("skills/thai-docx/SKILL.md", "skills/thai-docx/scripts/thai_docx/build.py",
+                 "skills/thai-docx/references/limits.md", "skills/thai-docx/assets/ooxml.json"):
+        done = subprocess.run(["git", "check-attr", "text", "eol", "--", path], cwd=ROOT, capture_output=True, text=True)
+        assert f"{path}: text: unset" in done.stdout, done.stdout
