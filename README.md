@@ -91,8 +91,8 @@ Each one, step by step, with the words to type:
 Version 0.3.0, which moves the bytes of most Thai documents: punctuation between Thai stays in the
 Thai run, scripts besides Thai are marked complex script, a captioned table is named, and a picture
 fits the line it is on. The five applications are Word 365 for Windows (the reference), Word for
-macOS, Google Docs, LibreOffice Writer and WPS Writer; they are read on 0.3.0's bytes before its
-tag, and the record of that reading names the files read. What each application draws its own way
+macOS, Google Docs, LibreOffice Writer and WPS Writer; every file passes in each on 0.3.0's bytes
+([read 2026-09-27](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-27-what-v0.3.0-was-read-in.md)). What each application draws its own way
 is in [the limits](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/limits.md). Changes are listed in
 [CHANGELOG.md](https://github.com/sayam/thai-docx-skill/blob/main/CHANGELOG.md).
 
