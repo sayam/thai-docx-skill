@@ -20,11 +20,16 @@ const RE_S = /[ \t\n]*/y;
 // eslint-disable-next-line no-control-regex -- these are the characters XML 1.0 does not allow
 const RE_INVALID_CHAR = /[\x00-\x08\x0B\x0C\x0E-\x1F￾￿]/;
 
+// An element with no attributes or no children shares these, and gets its own on its first:
+// a Map and an array for each of millions of empty elements ran Node out of memory (D-04).
+const NO_ATTRIBUTES = new Map();
+const NO_CHILDREN = Object.freeze([]);
+
 class XElement {
   constructor(tag) {
     this.tag = tag;
-    this.attrib = new Map();
-    this.children = [];
+    this.attrib = NO_ATTRIBUTES;
+    this.children = NO_CHILDREN;
     this.text = null;
   }
 
@@ -160,10 +165,16 @@ function parseXml(source) {
   misc();
   if (s[pos] !== "<") fail("no root element");
 
-  const scopes = [new Map([["xml", XML_NS]])];
+  // each prefix's bindings, innermost last: looked up in one step, and pushed only by an element
+  // that declares one — a scope searched through every open element took the JavaScript reader
+  // minutes at 200,000 levels, where expat takes under a second (the review of 0.3.0, D-03)
+  const bound = new Map([["xml", [XML_NS]]]);
   const lookup = (prefix) => {
-    for (let i = scopes.length - 1; i >= 0; i--) if (scopes[i].has(prefix)) return scopes[i].get(prefix);
-    return undefined;
+    const stack = bound.get(prefix);
+    return stack && stack.length ? stack[stack.length - 1] : undefined;
+  };
+  const unbind = (declared) => {
+    for (const prefix of declared) bound.get(prefix).pop();
   };
   const expand = (qname, isAttr) => {
     const colon = qname.indexOf(":");
@@ -227,7 +238,11 @@ function parseXml(source) {
         scope.set(prefix, value);
       }
     }
-    scopes.push(scope);
+    const declared = [...scope.keys()];
+    for (const [prefix, uri] of scope) {
+      if (!bound.has(prefix)) bound.set(prefix, []);
+      bound.get(prefix).push(uri);
+    }
     const el = new XElement(expand(qname, false));
     const expandedSeen = new Set();
     for (const [an, value] of raw) {
@@ -235,23 +250,24 @@ function parseXml(source) {
       const key = expand(an, true);
       if (expandedSeen.has(key)) fail("duplicate expanded attribute");
       expandedSeen.add(key);
+      if (el.attrib === NO_ATTRIBUTES) el.attrib = new Map();
       el.attrib.set(key, value);
     }
     if (s.startsWith("/>", pos)) {
       pos += 2;
-      scopes.pop();
-      return [el, qname, true];
+      unbind(declared);
+      return [el, qname, true, declared];
     }
     pos += 1; // ">"
-    return [el, qname, false];
+    return [el, qname, false, declared];
   };
 
   // An element and everything inside it. Open elements are kept on a stack, not in
   // recursion, so any depth expat reads is read here too.
   const element = () => {
-    const [root, rootName, rootClosed] = startTag();
+    const [root, rootName, rootClosed, rootDeclared] = startTag();
     if (rootClosed) return root;
-    const open = [{ el: root, qname: rootName, text: "", textDone: false }];
+    const open = [{ el: root, qname: rootName, text: "", textDone: false, declared: rootDeclared }];
     let ampAt = -2; // where the next "&" is; -1 when there is none left
     while (open.length) {
       const top = open[open.length - 1];
@@ -269,7 +285,7 @@ function parseXml(source) {
           if (s[pos] !== ">") fail("> expected");
           pos++;
           if (!top.textDone) top.el.text = top.text === "" ? null : top.text;
-          scopes.pop();
+          unbind(top.declared);
           open.pop();
           continue;
         }
@@ -287,9 +303,10 @@ function parseXml(source) {
           top.el.text = top.text === "" ? null : top.text;
           top.textDone = true;
         }
-        const [child, childName, childClosed] = startTag();
+        const [child, childName, childClosed, childDeclared] = startTag();
+        if (top.el.children === NO_CHILDREN) top.el.children = [];
         top.el.children.push(child);
-        if (!childClosed) open.push({ el: child, qname: childName, text: "", textDone: false });
+        if (!childClosed) open.push({ el: child, qname: childName, text: "", textDone: false, declared: childDeclared });
         continue;
       }
       if (c === "&") { addText(reference()); continue; }

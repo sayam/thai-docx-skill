@@ -980,3 +980,24 @@
   found_by: review
   test:
     - tests/test_check_reads_the_whole_package.py::test_forty_thousand_fonts_and_thirty_thousand_parts_are_read_in_seconds
+
+- id: V3-D-03
+  what: the JavaScript XML reader looked a prefix up through every open element, so 200,000 levels took check minutes in Node
+  class: C1
+  found_by: review
+  test:
+    - tests/test_check_holds_its_limits.py::test_a_hundred_thousand_nested_elements_are_read_in_seconds
+
+- id: V3-D-04
+  what: 13 million empty elements under every byte cap ran Node out of memory with no JSON
+  class: C1
+  found_by: review
+  test:
+    - tests/test_check_holds_its_limits.py::test_millions_of_elements_are_refused_not_a_crash
+
+- id: V3-D-07
+  what: repair recursed as deep as runs nested, ending in exit 1 in Python and ok in Node at 1,200 levels
+  class: C1
+  found_by: review
+  test:
+    - tests/test_check_holds_its_limits.py::test_a_run_nested_past_what_repair_edits_is_refused_alike

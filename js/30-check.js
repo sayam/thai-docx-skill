@@ -52,6 +52,16 @@ const THAI_FONTS = new Set(OOXML.thai_fonts);
 
 const MAX_PART = 32 * 1024 * 1024;
 const MAX_TOTAL = 64 * 1024 * 1024;
+const MAX_ELEMENTS = 3000000; // check.py says why (D-04)
+
+// Elements counted on the bytes, as check.py counts them: a "<" not followed by "/", "!" or "?".
+function countElements(data) {
+  let n = 0;
+  for (let i = 0; i + 1 < data.length; i++) {
+    if (data[i] === 60 && data[i + 1] !== 47 && data[i + 1] !== 33 && data[i + 1] !== 63) n++;
+  }
+  return n;
+}
 const MAX_FILE = 64 * 1024 * 1024;
 const COMPAT_URI = "http://schemas.microsoft.com/office/word";
 const TEXT_PARTS = /^word\/(document|comments|footnotes|endnotes|header[0-9]*|footer[0-9]*)\.xml$/;
@@ -213,6 +223,12 @@ function readParts(bytes, report) {
       return null;
     }
     parts.set(e.name, data);
+  }
+  let elements = 0;
+  for (const data of parts.values()) elements += countElements(data);
+  if (elements > MAX_ELEMENTS) {
+    report.find("size", "", "the XML holds " + elements + " elements, more than " + MAX_ELEMENTS + "; refused");
+    return null;
   }
   return [parts, entries.map((e) => e.name)];
 }

@@ -53,6 +53,8 @@ make it smaller.
   bytes, still compressed, with its dates.
 - It does not merge runs (code `4`) or remove invisible characters. Beyond the table above it
   does not touch fonts, styles, layout, tracked changes or document properties.
+- A part where an element stands more than 100 deep in elements of its own name — which Word
+  never writes — is refused (exit 2): the repair edits it level by level.
 - A file it cannot read — damaged, not a Word file, past the size caps — is refused, as `check`
   refuses it.
 

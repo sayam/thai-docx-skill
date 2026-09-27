@@ -67,6 +67,11 @@ from .ooxml import (
 
 MAX_PART = 32 * 1024 * 1024
 MAX_TOTAL = 64 * 1024 * 1024
+# elements in all the XML read, counted on the bytes (a "<" not followed by "/", "!" or "?"), the
+# same count in both implementations: the byte caps held 13 million empty elements in 100 KB of
+# zip, which Node ran out of memory building (the review of 0.3.0, D-04)
+MAX_ELEMENTS = 3_000_000
+ELEMENT = re.compile(rb"<(?=[^/!?])")
 COMPAT_URI = "http://schemas.microsoft.com/office/word"
 # the names Word gives the parts that hold text: read by name as well as by relationship, so a
 # part no relationship reaches is not skipped for that
@@ -204,6 +209,10 @@ def _read_parts(data: bytes, report: Report) -> tuple[dict[str, bytes], list[str
             report.find("doctype", info.name, "XML part declares a DOCTYPE; refused")
             return None
         parts[info.name] = part
+    elements = sum(len(ELEMENT.findall(part)) for part in parts.values())
+    if elements > MAX_ELEMENTS:
+        report.find("size", "", "the XML holds " + str(elements) + " elements, more than " + str(MAX_ELEMENTS) + "; refused")
+        return None
     return parts, [i.name for i in infos]
 
 

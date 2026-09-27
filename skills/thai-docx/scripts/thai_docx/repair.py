@@ -502,6 +502,34 @@ def complex_script_font(parts: dict[str, bytes], asked: str | None) -> tuple[byt
     return st.DEFAULTS["font"].encode("utf-8"), "this skill's default, as the document names none"
 
 
+# How deep an element may stand in elements of its own name for `repair` to edit it: its passes
+# recurse, one level per level, and Word nests nothing near this (the review of 0.3.0, D-07)
+MAX_NESTING = 100
+NESTED_TAG = re.compile(rb"""<(/?)([A-Za-z_][\w.:-]*)(?:\s+[^\s=/>]+\s*=\s*(?:"[^"]*"|'[^']*'))*\s*(/?)>""")
+
+
+def deepest_nesting(xml: bytes) -> tuple[str, int]:
+    """The element that stands deepest in elements of its own name, and how deep (itself
+    counted): ("", 0) for a part with none. Read with a stack, never by recursion."""
+    open_: list[bytes] = []
+    depth: dict[bytes, int] = {}
+    best, most = b"", 0
+    for m in NESTED_TAG.finditer(xml):
+        closing, name, empty = m.group(1), m.group(2), m.group(3)
+        if closing:
+            if open_:
+                depth[open_[-1]] -= 1
+                open_.pop()
+            continue
+        n = depth.get(name, 0) + 1
+        if n > most:
+            best, most = name, n
+        if not empty:
+            depth[name] = n
+            open_.append(name)
+    return best.decode("utf-8", "replace"), most
+
+
 def _is_xml(name: str) -> bool:
     return name.startswith("word/") and check_mod._ascii_lower(name).endswith(".xml")
 
@@ -649,6 +677,15 @@ def repair(in_path: str, out_path: str, font: str | None = None, thai_language: 
         result["error"] = (check_mod.quoted(foreign) + " writes WordprocessingML under a prefix other than w:; this version repairs"
                            " only the prefix Word writes, so nothing was written")
         return result
+    for name in sorted(parts):
+        if _holds_what_is_not_markup(parts[name]):
+            continue  # left as it came, never edited
+        tag, depth = deepest_nesting(parts[name])
+        if depth > MAX_NESTING:
+            result["error"] = (check_mod.quoted(name) + " nests <" + tag + "> " + str(depth)
+                               + " deep in itself; this version repairs to a depth of " + str(MAX_NESTING)
+                               + ", so nothing was written")
+            return result
     replace, repaired, chosen, left_names = repair_parts(parts, before.findings, font, thai_language, cs_all)
     left = [{"code": "left", "message": check_mod.quoted(name) + " holds a comment, a CDATA section or a processing instruction;"
              " it is left as it came, and its findings with it"} for name in left_names

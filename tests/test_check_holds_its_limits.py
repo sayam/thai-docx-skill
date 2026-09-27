@@ -23,7 +23,7 @@ import pytest
 import parity
 from docx_fixture import good, pack, replaced
 from test_what_a_command_takes import JS, _node, both  # noqa: F401  the fixture runs here too
-from thai_docx import build, check, package, profiles
+from thai_docx import build, check, package, profiles, repair
 from thai_docx import markdown as md
 
 MiB = 1024 * 1024
@@ -33,9 +33,11 @@ BUNDLE = JS[1]
 def test_each_limit_is_the_value_both_implementations_state():
     python = {"MAX_PART": check.MAX_PART, "MAX_TOTAL": check.MAX_TOTAL, "MAX_FILE": package.MAX_FILE,
               "MAX_LINKS": build.MAX_LINKS, "MAX_MARKDOWN": build.MAX_MARKDOWN, "MAX_IMAGE": build.MAX_IMAGE,
-              "MAX_DEPTH": md.MAX_DEPTH, "PROFILE_MAX_BYTES": profiles.MAX_BYTES}
+              "MAX_DEPTH": md.MAX_DEPTH, "PROFILE_MAX_BYTES": profiles.MAX_BYTES,
+              "MAX_ELEMENTS": check.MAX_ELEMENTS, "MAX_NESTING": repair.MAX_NESTING}
     assert python == {"MAX_PART": 32 * MiB, "MAX_TOTAL": 64 * MiB, "MAX_FILE": 64 * MiB, "MAX_LINKS": 40,
-                      "MAX_MARKDOWN": 16 * MiB, "MAX_IMAGE": 32 * MiB, "MAX_DEPTH": 100, "PROFILE_MAX_BYTES": 64 * 1024}
+                      "MAX_MARKDOWN": 16 * MiB, "MAX_IMAGE": 32 * MiB, "MAX_DEPTH": 100, "PROFILE_MAX_BYTES": 64 * 1024,
+                      "MAX_ELEMENTS": 3_000_000, "MAX_NESTING": 100}
     source = open(BUNDLE, encoding="utf-8").read()
     for name, value in python.items():
         m = re.search(r"\bconst " + name + r" = ([0-9 *]+);", source)
@@ -104,3 +106,42 @@ def test_a_run_nested_past_any_stack_is_read_not_a_trace(tmp_path):
     (tmp_path / "deep.docx").write_bytes(pack(parts))
     code, result = both(["check", "deep.docx"], tmp_path)
     assert code == 0 and result["ok"] and result["counts"]["runs"] > 0, result
+
+
+def test_a_hundred_thousand_nested_elements_are_read_in_seconds(tmp_path):
+    """D-03 (the review of 0.3.0): the JavaScript reader looked up a prefix through every open
+    element's scope, and kept a scope for each even when it declared nothing, so a 7 KB file of
+    elements nested 200,000 deep took more than 300 s where Python took 0.6 s."""
+    deep = "<w:x>" * 100_000 + "</w:x>" * 100_000
+    parts = replaced(good(), "word/document.xml", "<w:body>", "<w:body>" + deep)
+    (tmp_path / "deep.docx").write_bytes(pack(parts))
+    code, result = both(["check", "deep.docx"], tmp_path)  # each within the helper's 30 s
+    assert code == 0, result
+
+
+def test_millions_of_elements_are_refused_not_a_crash(tmp_path):
+    """D-04 (the review of 0.3.0): the caps counted bytes only, so 100 KB of `<w:x/>` — 67 MB
+    inflated, under every cap — held 13 million elements: Node ran out of memory and printed no
+    JSON at all, Python took 1.1 GB. More than 3,000,000 elements in the XML is refused."""
+    parts = replaced(good(), "word/document.xml", "<w:body>", "<w:body>" + "<w:x/>" * 3_000_001)
+    (tmp_path / "wide.docx").write_bytes(pack(parts))
+    code, result = both(["check", "wide.docx"], tmp_path)
+    assert code == 2 and [f["code"] for f in result["findings"]] == ["size"], result
+    assert "elements" in result["findings"][0]["message"], result
+
+
+def test_a_run_nested_past_what_repair_edits_is_refused_alike(tmp_path):
+    """D-07 (the review of 0.3.0): `repair` edits by recursion as deep as an element nests in one
+    of its own name, so runs nested 1,200 deep ended Python in exit 1, a defect, while Node
+    answered ok; at 2,000 both did. Past 100 of one name in another, `repair` refuses (exit 2)."""
+    for depth in (101, 1_200, 5_000):
+        nested = "<w:r>" * depth + "<w:t>ไทย</w:t>" + "</w:r>" * depth
+        parts = replaced(good(), "word/document.xml", "<w:body>", "<w:body><w:p>" + nested + "</w:p>")
+        (tmp_path / "nested.docx").write_bytes(pack(parts))
+        code, result = both(["repair", "nested.docx", "out.docx"], tmp_path)
+        assert code == 2 and "nests <w:r> " + str(depth) in result["error"], (depth, result)
+        assert not (tmp_path / "out.docx").exists()
+    nested = "<w:r>" * 100 + "<w:t>ไทย</w:t>" + "</w:r>" * 100
+    (tmp_path / "nested.docx").write_bytes(pack(replaced(good(), "word/document.xml", "<w:body>", "<w:body><w:p>" + nested + "</w:p>")))
+    code, result = both(["repair", "nested.docx", "out.docx"], tmp_path)
+    assert code in (0, 1) and "error" not in result, result

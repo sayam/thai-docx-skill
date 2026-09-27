@@ -93,6 +93,16 @@ quotation. What the five applications draw is read on these bytes before the tag
 - `check` kept each warning once by searching every warning before it, and `repair` found a part's
   role in a list per part: 40,000 fonts took 101 s, 60,000 parts 44 s. Both are sets now
   (`tests/test_check_reads_the_whole_package.py::test_forty_thousand_fonts_and_thirty_thousand_parts_are_read_in_seconds`).
+- The JavaScript reader looked a namespace prefix up through every open element, so a 7 KB file
+  nested 200,000 deep took `check` more than 300 s in Node and 0.6 s in Python; each prefix keeps
+  its own stack now (`tests/test_check_holds_its_limits.py::test_a_hundred_thousand_nested_elements_are_read_in_seconds`).
+- 100 KB of zip holding 13 million empty elements — under every byte cap — ran Node out of memory
+  with no JSON at all, and took Python 1.1 GB. More than 3,000,000 elements is refused as `size`,
+  and an element with no attributes or children allocates none in JavaScript
+  (`tests/test_check_holds_its_limits.py::test_millions_of_elements_are_refused_not_a_crash`).
+- Runs nested 1,200 deep ended `repair` in exit 1 in Python — "a defect; do not retry" — and ok in
+  Node. An element more than 100 deep in its own name is refused alike, exit 2
+  (`tests/test_check_holds_its_limits.py::test_a_run_nested_past_what_repair_edits_is_refused_alike`).
 - An output path that was a FIFO held `build` and `repair` forever; it is refused as not a
   regular file (`tests/test_what_a_command_takes.py::test_a_write_never_goes_through_a_link_or_into_a_pipe`).
 
