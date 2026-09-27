@@ -85,7 +85,7 @@ Common flags:
 | `--paper letter`, `--paper f14`, `--landscape` | paper |
 | `--margins 1,1,1,1` | margins in inches: top, right, bottom, left |
 | `--indent 0.5`, `--line-spacing 1.5` | first-line indent, line spacing |
-| `--align thai` | Thai distributed alignment |
+| `--align thai` | Thai distributed alignment, for body paragraphs only; table cells are justified at the spaces between words |
 | `--toc`, `--heading-numbers` | table of contents, numbered headings |
 | `--page-numbers`, `--page-numbers bottom-center`, `--no-page-number-first` | page numbers |
 | `--header "ลับ"`, `--footer "ร่าง"` | text at the top or bottom of each page |

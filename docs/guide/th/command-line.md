@@ -83,7 +83,7 @@ python3 thai-docx/scripts/thai_docx build report.md report.docx --font "Sarabun"
 | `--paper letter`, `--paper f14`, `--landscape` | กระดาษ |
 | `--margins 1,1,1,1` | ขอบกระดาษเป็นนิ้ว: บน ขวา ล่าง ซ้าย |
 | `--indent 0.5`, `--line-spacing 1.5` | ย่อหน้าบรรทัดแรก ระยะบรรทัด |
-| `--align thai` | จัดกระจายแบบไทย |
+| `--align thai` | จัดกระจายแบบไทย เฉพาะย่อหน้าในเนื้อความ ข้อความในตารางจัดเต็มบรรทัดที่ช่องว่างระหว่างคำแทน |
 | `--toc`, `--heading-numbers` | สารบัญ เลขหัวข้อ |
 | `--page-numbers`, `--page-numbers bottom-center`, `--no-page-number-first` | เลขหน้า |
 | `--header "ลับ"`, `--footer "ร่าง"` | ข้อความหัวกระดาษและท้ายกระดาษ |

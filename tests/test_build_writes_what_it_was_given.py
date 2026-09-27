@@ -198,9 +198,11 @@ def test_a_picture_fits_the_line_its_paragraph_leaves_it(tmp_path):
 def test_the_thesis_profile_boxes_a_caption_with_its_picture(tmp_path):
     """The thesis profile (read in Word 365 for Windows, 2026-09-27): a picture alone on its line
     is centred with no indent, and its caption starts and ends where the picture does — never
-    narrower than 3 inches, a box centred with the picture — and aligns as the body does, so its
-    first character stands at the picture's left edge. A table fills the text width, and so does
-    its caption. A flag or `--default` takes either back."""
+    narrower than 3 inches, a box centred with the picture — and its first character stands at the
+    picture's left edge. Under the profile's `--align thai` the boxed caption is justified at the
+    spaces between words, not distributed: Thai distributed alignment is for the body alone (the
+    maintainer's decision, 2026-09-27). A table fills the text width, and so does its caption. A
+    flag or `--default` takes either back."""
     (tmp_path / "small.png").write_bytes(png(192, 40))  # 2 in at 96 dpi
     (tmp_path / "wide.png").write_bytes(png(480, 40))   # 5 in
     (tmp_path / "in.md").write_text("![a](small.png)\n\nFigure: ขั้นตอน\n\n![b](wide.png)\n\nFigure: กว้าง\n\n"
@@ -214,8 +216,8 @@ def test_the_thesis_profile_boxes_a_caption_with_its_picture(tmp_path):
     text = 11906 - 2160 - 1440  # A4 less the default margins, in twips
     three, five = (text - 4320) // 2, (text - 7200) // 2
     assert captions == [
-        ("FigureCaption", '<w:ind w:left="' + str(three) + '" w:right="' + str(text - 4320 - three) + '"/>'),
-        ("FigureCaption", '<w:ind w:left="' + str(five) + '" w:right="' + str(text - 7200 - five) + '"/>'),
+        ("FigureCaption", '<w:ind w:left="' + str(three) + '" w:right="' + str(text - 4320 - three) + '"/><w:jc w:val="both"/>'),
+        ("FigureCaption", '<w:ind w:left="' + str(five) + '" w:right="' + str(text - 7200 - five) + '"/><w:jc w:val="both"/>'),
         ("TableCaption", "<w:keepNext/>"),
     ], captions
     assert '<w:tblW w:w="5000" w:type="pct"/>' in document

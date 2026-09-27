@@ -1092,7 +1092,7 @@ def test_thai_distributed_leaves_a_paragraph_without_thai_alone(tmp_path):
     # a Thai label makes every caption Thai; a Latin one leaves a caption, and the entry a
     # list writes for it, with no Thai at all
     latin = "# Introduction\n\n<!-- list-of-tables -->\n\n"
-    for flags, source, latin_lines in ((["--align", "thai"], text, 4), (["--align", "thai", "--table-label", "Table", "--toc"], latin + text, 7)):
+    for flags, source, latin_lines in ((["--align", "thai"], text, 2), (["--align", "thai", "--table-label", "Table", "--toc"], latin + text, 5)):
         opts, _, _ = b.parse_args(flags + ["in.md", "out.docx"])
         result, out = build(tmp_path, source, **opts)
         with zipfile.ZipFile(out) as zf:
@@ -1110,13 +1110,42 @@ def test_thai_distributed_leaves_a_paragraph_without_thai_alone(tmp_path):
             has_thai = lo.has_thai(said_text)
             assert (jc == []) is has_thai, (jc, said_text[:40])
             assert len(jc) <= 1, "a paragraph that sets its own alignment keeps it: " + said_text[:40]
-        # the reference, a list item, two left table cells (the right column keeps its own) — and with Latin labels
-        # the caption and an entry for each; the heading takes its style's alignment, not one of its own
+        # the reference and a list item — and with Latin labels the caption and an entry for each; the
+        # heading takes its style's alignment, not one of its own. A table cell is in a box: justified
+        # whatever its script, and the right column keeps its own
         assert sum(1 for jc, t, _ in said if t and jc == ["left"]) == latin_lines, flags
+        assert sorted(jc[0] for jc, t, _ in said if t in ("a", "b", "1", "2")) == ["both", "both", "right", "right"], flags
     # left alignment is untouched by the rule
     plain, out2 = build(tmp_path, text)
     with zipfile.ZipFile(out2) as zf:
         assert 'w:jc w:val="left"' not in zf.read("word/document.xml").decode()
+
+
+def test_thai_distributed_is_for_the_body_and_never_inside_a_box(tmp_path):
+    """--align thai spreads a line's letters apart where the line holds less text than its width:
+    in a narrow table cell Word 365 for Windows drew "ส ั ญ ล ั ก ษ ณ์" across the cell (thesis
+    profile, 2026-09-27). The maintainer's decision: Thai distributed alignment is for the
+    paragraphs of the body alone; a paragraph inside a box — a table cell, a caption boxed to its
+    picture — is justified at the spaces between words, and a column marked left or centred keeps
+    its mark. Without --align thai nothing inside a box is written."""
+    shutil.copy(FIXTURES / "pixel.png", tmp_path / "pixel.png")
+    text = ("ย่อหน้าภาษาไทยในเนื้อความ\n\n| ก | ข | ค | ง |\n|---|:--|:-:|--:|\n"
+            "| สัญลักษณ์รายการแสดงเป็นจุด | ซ้าย | กลาง | ขวา |\n\n![แผนภาพ](pixel.png)\n\nFigure: คำบรรยายรูปภาพ\n")
+    for flags, cell, box in ((["--align", "thai", "--caption-matches-object"], ["both", "left", "center", "right"], ["both"]),
+                             (["--caption-matches-object"], [None, None, "center", "right"], [])):
+        opts, _, _ = b.parse_args(flags + ["in.md", "out.docx"])
+        result, out = build(tmp_path, text, **opts)
+        assert result["ok"] and result["findings"] == [], result
+        with zipfile.ZipFile(out) as zf:
+            doc = zf.read("word/document.xml").decode()
+        cells = [re.findall(r'<w:jc w:val="(\w+)"/>', c) for c in re.findall(r"<w:tc>.*?</w:tc>", doc, re.S)]
+        assert [jc[0] if jc else None for jc in cells[4:]] == cell, flags
+        assert [jc[0] if jc else None for jc in cells[:4]] == cell, "the header row too"
+        caption = re.search(r'<w:p><w:pPr><w:pStyle w:val="FigureCaption"/>.*?</w:pPr>', doc).group(0)
+        assert "<w:ind " in caption and re.findall(r'<w:jc w:val="(\w+)"/>', caption) == box, flags
+        body = re.search(r"<w:p>(?:(?!</w:p>).)*ย่อหน้าภาษาไทยในเนื้อความ", doc).group(0)
+        assert "<w:jc " not in body, "the body keeps the document's own alignment"
+        assert "thaiDistribute" not in doc
 
 
 def test_thai_distributed_leaves_a_line_ending_in_a_manual_break_unspread(tmp_path):

@@ -132,6 +132,15 @@ anything Word added came out in Word's default face, and the font box showed no 
 The theme names one font for Latin, complex-script and East Asian text: whatever `--font` said.
 A document built with a font that carries no Thai still warns, as it always did.
 
+**Thai distributed alignment spreads letters, not only words.** Where a line holds less text than
+its width, `--align thai` fills it by opening the space between letters — "ส ั ญ ล ั ก ษ ณ์" — and a
+narrow table cell does that on nearly every line (Word 365 for Windows, 2026-09-27). The build
+therefore writes it on the paragraphs of the body alone: a table cell and a caption boxed to its
+picture are justified at the spaces between words instead, and a column the Markdown marks left,
+centred or right keeps that mark. It is never to be used inside a table. The document's default
+still says Thai distributed, so a table or a text box the reader inserts in Word takes it: set its
+text to Justify or Align Left.
+
 ## 6. What never renumbers or updates itself, in either kind of document
 
 - **Page numbers, footnote marks, and the page numbers inside the three lists** are always the

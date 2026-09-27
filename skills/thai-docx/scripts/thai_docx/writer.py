@@ -564,7 +564,8 @@ class Writer:
         attrs = ([' w:left="' + str(left + hang) + '"'] if left + hang else []) + ([' w:right="' + str(right) + '"'] if right else [])
         ind = ("<w:ind" + "".join(attrs) + (' w:hanging="' + str(hang) + '"' if hang else "") + "/>") if attrs or hang else ""
         ppr = ('<w:pStyle w:val="' + CAPTION_STYLE[c["kind"]] + '"/>' + ("<w:keepNext/>" if keep_next else "")
-               + ind + ('<w:jc w:val="center"/>' if c["kind"] == "figure" and not boxed else ""))
+               + ind + ('<w:jc w:val="center"/>' if c["kind"] == "figure" and not boxed else "")
+               + ('<w:jc w:val="' + self.box_jc(None) + '"/>' if boxed and self.box_jc(None) else ""))
         ppr += self.latin_jc(ppr, caption_text(c))
         rest = c["inlines"]
         if not self.numbers_are_text():
@@ -596,6 +597,19 @@ class Writer:
             out += run(" ", "") + self.inlines(rest)
         return out + "</w:p>"
 
+    def box_jc(self, jc: str | None) -> str | None:
+        """The alignment of a paragraph inside a box — a table cell, a caption boxed to its
+        picture: the column's own centre or right, and otherwise, under `--align thai`, justified
+        at the spaces between words. Thai distributed alignment is for the paragraphs of the body
+        alone (the maintainer's decision, 2026-09-27): it spreads a line's letters apart where the
+        line holds less text than its width, which a narrow box does on nearly every line. A
+        column marked left stays left; without `--align thai` nothing is written."""
+        if jc in ("center", "right"):
+            return jc
+        if self.opts["align"] != "thai":
+            return None
+        return "left" if jc == "left" else "both"
+
     def caption_box(self, c: dict, hang: int, line: int) -> tuple[int, int, bool]:
         """The indents that make a caption as wide as the picture it belongs to, in twips
         (`--caption-matches-object`), and whether it is boxed; (0, 0, False) for a caption that fills
@@ -610,7 +624,8 @@ class Writer:
         it; otherwise it starts at the margin, where the picture does. The width is the last
         picture written, which is this caption's: a `Figure:` caption is made only where the
         paragraph just before it holds a picture and nothing else (layout.py). A caption in a box
-        aligns as the body does, not centred: its first line starts where the picture does.
+        is not centred: its first line starts where the picture does, and under `--align thai` it
+        is justified at the spaces between words, never distributed (`box_jc`).
 
         A box that `hang` leaves less than an inch for the caption's lines gives its caption the
         text width instead, and says so: a box narrower than that stands one character to a
@@ -739,10 +754,10 @@ class Writer:
             self.counts["table_rows"] += 1
             cells = []
             for ci, cell in enumerate(row):
-                jc = b["aligns"][ci]
+                jc = self.box_jc(b["aligns"][ci])
                 # no space after: the body's 6 pt would leave every row taller than its text
                 ppr = (('<w:pStyle w:val="TableText"/>' if self.opts["table_size"] is not None else "") + '<w:spacing w:after="0"/>'
-                       + ('<w:jc w:val="' + jc + '"/>' if jc in ("center", "right") else ""))
+                       + ('<w:jc w:val="' + jc + '"/>' if jc else ""))
                 # a picture in a cell is drawn no wider than the cell, less its margins (B-06)
                 self.indent_twips = self.text_width_twips - widths[ci] + 216
                 cell_xml = self.paragraph(cell, None, ppr, ri == 0)

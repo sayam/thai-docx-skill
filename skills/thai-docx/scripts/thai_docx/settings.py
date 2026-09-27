@@ -100,7 +100,8 @@ SETTINGS: tuple[dict, ...] = (
     {"key": "align", "flag": "--align", "kind": "value", "default": "left", "layer": 1,
      "read": ("choice", ("left", "thai")), "takes": "left or thai",
      "report": ("align", "value"),
-     "doc": ("alignment", "left", "`--align thai` (Thai distributed; a paragraph with no Thai stays left)")},
+     "doc": ("alignment", "left", "`--align thai` (Thai distributed, body paragraphs only; a table cell or a boxed caption "
+            "is justified at the spaces between words; a paragraph with no Thai stays left)")},
     {"key": "toc", "flag": "--toc", "kind": "switch", "default": False, "layer": 4,
      "clashes": "toc comment",
      "report": ("toc", "value"),
