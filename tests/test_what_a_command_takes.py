@@ -120,6 +120,12 @@ def test_a_write_never_goes_through_a_link_or_into_a_pipe(tmp_path):
         assert victim.read_text(encoding="utf-8") == "keep me\n", args
         assert target.is_file() and not target.is_symlink(), args
         assert not (target.parent / (target.name + ".partial")).exists(), args
+    (tmp_path / "out.docx").unlink()
+    both(["build", "in.md", "out.docx"], tmp_path)
+    assert (tmp_path / "out.docx").stat().st_mode & 0o777 == 0o600  # a new file is its owner's alone
+    (tmp_path / "out.docx").chmod(0o644)
+    both(["build", "in.md", "out.docx"], tmp_path)
+    assert (tmp_path / "out.docx").stat().st_mode & 0o777 == 0o644  # a file replaced keeps what it had
     os.mkfifo(tmp_path / "pipe.docx")
     code, result = both(["build", "in.md", "pipe.docx"], tmp_path)
     assert code == 2 and result["error"] == "cannot write pipe.docx: not a regular file", result

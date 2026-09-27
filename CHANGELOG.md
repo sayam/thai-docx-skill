@@ -83,6 +83,8 @@ quotation. What the five applications draw is read on these bytes before the tag
   beside the target and put it in place, so the old file stays as it was; the error names the
   reason (`File too large`, `No space left on device`, `Disk quota exceeded`) and carries no
   sha256 (`tests/test_what_a_command_takes.py::test_a_write_that_fails_halfway_leaves_the_old_file`).
+  A file the skill creates is now readable by its owner alone (`0600`); a file it replaces keeps
+  the permissions it had.
 - An output path that was a FIFO held `build` and `repair` forever; it is refused as not a
   regular file (`tests/test_what_a_command_takes.py::test_a_write_never_goes_through_a_link_or_into_a_pipe`).
 

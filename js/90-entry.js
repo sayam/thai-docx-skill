@@ -14,7 +14,8 @@ function osError(e, otherwise = "cannot be read") {
 // The whole file or none of it, and only at `p` — write_whole() in thai_docx/package.py, which
 // says why: a new PATH.partial (never written through a link planted under that name), then put
 // in place, so a write cut short leaves the old file and a link at `p` is replaced, not followed;
-// a directory, a FIFO, a device or a socket at `p` is refused before anything is opened.
+// a directory, a FIFO, a device or a socket at `p` is refused before anything is opened; a new
+// file is its owner's alone, a file replaced keeps its permissions.
 function writeWhole(fs, p, data) {
   let st = null;
   try {
@@ -31,9 +32,10 @@ function writeWhole(fs, p, data) {
     // none there; or one that cannot be removed, which the exclusive open below refuses
   }
   const c = fs.constants;
-  const fd = fs.openSync(partial, c.O_WRONLY | c.O_CREAT | c.O_EXCL | (c.O_NOFOLLOW || 0), 0o644);
+  const fd = fs.openSync(partial, c.O_WRONLY | c.O_CREAT | c.O_EXCL | (c.O_NOFOLLOW || 0), 0o600);
   try {
     try {
+      if (st && st.isFile() && process.platform !== "win32") fs.fchmodSync(fd, st.mode & 0o7777); // keeps its permissions
       let n = 0;
       while (n < data.length) n += fs.writeSync(fd, data, n, data.length - n);
     } finally {
