@@ -711,3 +711,13 @@ def test_markdown_at_the_root_allows_no_picture_by_where_it_is(tmp_path, monkeyp
     reader = b.image_reader(os.sep, [], at_root=True)
     with pytest.raises(b.BuildError, match="the Markdown file is at the filesystem's root"):
         reader(str(tmp_path / "p.png"))
+
+
+def test_a_repair_that_sets_compatibility_mode_says_the_pages_may_move(tmp_path):
+    """E-03 (the review of 0.3.0): repair.md told the agent to say that setting compatibility mode
+    15 reflows the document; Haiku did not, three runs of three. It is a warning in the JSON now,
+    which the agent passes on as it passes on every warning."""
+    shutil.copy(FIXTURES / "legacy-python-docx-default.docx", tmp_path / "in.docx")
+    code, result = both(["repair", "in.docx", "out.docx"], tmp_path)
+    assert result["repaired"].get("1") and {"code": "layout", "message": (
+        "compatibility mode 15 reflows the document: page breaks can move — say so before the file is sent to anyone")} in result["warnings"], result

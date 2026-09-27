@@ -751,7 +751,11 @@ def repair(in_path: str, out_path: str, font: str | None = None, thai_language: 
     except OSError as exc:
         result["error"] = "cannot write " + out_path + ": " + package.os_error(exc, "cannot be written")
         return result
-    warnings = ([chosen] if chosen else []) + left + after.warnings
+    # what the user must hear before sending the file on, as a warning the agent passes on: said
+    # in repair.md only, Haiku left it out three runs of three (the review of 0.3.0, E-03)
+    reflow = [{"code": "layout", "message": "compatibility mode 15 reflows the document: page breaks can move"
+               " — say so before the file is sent to anyone"}] if repaired.get("1") else []
+    warnings = reflow + ([chosen] if chosen else []) + left + after.warnings
     if marked:
         warnings = warnings + [{"code": "thai-language", "message":
                                 'the Thai complex-script language w:bidi="th-TH" was written into '

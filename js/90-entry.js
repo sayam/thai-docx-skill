@@ -428,7 +428,10 @@ function nodeRepair(argv) {
   const [remaining, remainingOmitted] = listed(after.findings);
   result.remaining = remaining;
   if (remainingOmitted.length) result.remaining_omitted = remainingOmitted;
-  let warnings = (chosen ? [chosen] : []).concat(left, after.warnings);
+  // what the user must hear before sending the file on (repair.py says why: E-03)
+  const reflow = repaired["1"] ? [{ code: "layout", message: "compatibility mode 15 reflows the document: page breaks can move" +
+    " — say so before the file is sent to anyone" }] : [];
+  let warnings = reflow.concat(chosen ? [chosen] : [], left, after.warnings);
   if (marked) {
     warnings = warnings.concat([{ code: "thai-language", message:
       'the Thai complex-script language w:bidi="th-TH" was written into ' + marked +

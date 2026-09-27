@@ -67,6 +67,9 @@ make it smaller.
  "warnings": [], "sha256": "…", "bytes": 24680}
 ```
 
+When it sets compatibility mode 15 (`repaired` holds `1`), `warnings` opens with `layout`: the
+document reflows and page breaks can move — say so before the file is sent to anyone.
+
 `remaining` and `warnings` list at most 20 of each code, and count the rest in
 `remaining_omitted` and `warnings_omitted`, as `check` does (`references/check.md`).
 
