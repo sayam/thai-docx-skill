@@ -621,7 +621,7 @@ def test_check_reads_which_way_the_numbers_are_made(tmp_path):
     numbering it has — the application counting (automatic), the numbers written as text (the
     build's kind), both, or none — so the assistant can ask the right question."""
     shutil.copy(FIXTURES / "thesis" / "thesis.md", tmp_path / "thesis.md")
-    for name in ("chart.png", "flow.png"):
+    for name in ("chart.png", "flow.png", "chart-narrow.png", "flow-medium.png"):
         shutil.copy(FIXTURES / "thesis" / name, tmp_path / name)
     kinds = {}
     for flags, out in (([], "written.docx"), (["--heading-numbers", "--auto-numbering"], "counted.docx")):
