@@ -27,7 +27,6 @@ from __future__ import annotations
 import hashlib
 import io
 import json
-import pathlib
 import re
 import unicodedata
 from xml.etree import ElementTree as ET
@@ -688,9 +687,9 @@ def repair(in_path: str, out_path: str, font: str | None = None, thai_language: 
             return result
 
     try:
-        pathlib.Path(out_path).write_bytes(out)
+        package.write_whole(out_path, out)
     except OSError as exc:
-        result["error"] = "cannot write " + out_path + ": " + package.os_error(exc)
+        result["error"] = "cannot write " + out_path + ": " + package.os_error(exc, "cannot be written")
         return result
     warnings = ([chosen] if chosen else []) + left + after.warnings
     if marked:

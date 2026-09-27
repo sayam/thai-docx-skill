@@ -77,6 +77,23 @@ quotation. What the five applications draw is read on these bytes before the tag
   first-line indent now, and one that opens a paragraph or sits in a list or a quotation is drawn
   no wider than its line — which moves the bytes of a document with `--indent` and a picture
   (`tests/test_build_writes_what_it_was_given.py::test_a_picture_fits_the_line_its_paragraph_leaves_it`).
+- A write cut short — a full disk, a quota, a size limit — left a broken zip where a good
+  `.docx` or profile had been, said the file "cannot be read", and reported the sha256 of bytes
+  that were never written. `build`, `repair` and every `profile` command write the whole file
+  beside the target and put it in place, so the old file stays as it was; the error names the
+  reason (`File too large`, `No space left on device`, `Disk quota exceeded`) and carries no
+  sha256 (`tests/test_what_a_command_takes.py::test_a_write_that_fails_halfway_leaves_the_old_file`).
+- An output path that was a FIFO held `build` and `repair` forever; it is refused as not a
+  regular file (`tests/test_what_a_command_takes.py::test_a_write_never_goes_through_a_link_or_into_a_pipe`).
+
+### Security
+
+- A symbolic link planted as `NAME.json.partial` in a profile folder — the project's
+  `.thai-docx/profiles/` is meant to be shared — made `profile save`, `import` and `export` write
+  the profile into whatever file the link named, `~/.bashrc` as easily as any other, in both
+  implementations. The `.partial` file is now removed and made new, never opened through a link;
+  and an output path of `build` or `repair` that is itself a link is replaced, not written
+  through (`tests/test_what_a_command_takes.py::test_a_write_never_goes_through_a_link_or_into_a_pipe`).
 
 ## [0.2.2] - 2026-09-26
 

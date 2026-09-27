@@ -4,10 +4,50 @@
 // sandbox that runs JavaScript with no file system (ADR 0007, 0008, 0040).
 
 const OS_ERRORS = { ENOENT: "No such file or directory", EACCES: "Permission denied", EISDIR: "Is a directory", ENOTDIR: "Not a directory",
+  EEXIST: "File exists", ENOSPC: "No space left on device", EFBIG: "File too large", EDQUOT: "Disk quota exceeded",
   ENOTREG: "not a regular file" };
 
-function osError(e) {
-  return OS_ERRORS[e && e.code] || "cannot be read";
+function osError(e, otherwise = "cannot be read") {
+  return OS_ERRORS[e && e.code] || otherwise;
+}
+
+// The whole file or none of it, and only at `p` — write_whole() in thai_docx/package.py, which
+// says why: a new PATH.partial (never written through a link planted under that name), then put
+// in place, so a write cut short leaves the old file and a link at `p` is replaced, not followed;
+// a directory, a FIFO, a device or a socket at `p` is refused before anything is opened.
+function writeWhole(fs, p, data) {
+  let st = null;
+  try {
+    st = fs.lstatSync(p);
+  } catch (e) {
+    if (e.code !== "ENOENT") throw e;
+  }
+  if (st && st.isDirectory()) throw codedError("EISDIR");
+  if (st && !st.isFile() && !st.isSymbolicLink()) throw codedError("ENOTREG");
+  const partial = p + ".partial";
+  try {
+    fs.unlinkSync(partial);
+  } catch {
+    // none there; or one that cannot be removed, which the exclusive open below refuses
+  }
+  const c = fs.constants;
+  const fd = fs.openSync(partial, c.O_WRONLY | c.O_CREAT | c.O_EXCL | (c.O_NOFOLLOW || 0), 0o666);
+  try {
+    try {
+      let n = 0;
+      while (n < data.length) n += fs.writeSync(fd, data, n, data.length - n);
+    } finally {
+      fs.closeSync(fd);
+    }
+    fs.renameSync(partial, p);
+  } catch (e) {
+    try {
+      fs.unlinkSync(partial);
+    } catch {
+      // already gone
+    }
+    throw e;
+  }
 }
 
 function codedError(code) {
@@ -177,9 +217,11 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
   Object.assign(result, outcome);
   if (data === null) return result;
   try {
-    fs.writeFileSync(outPath, data);
+    writeWhole(fs, outPath, data);
   } catch (e) {
-    result.error = "cannot write " + outPath + ": " + osError(e);
+    result.error = "cannot write " + outPath + ": " + osError(e, "cannot be written");
+    delete result.sha256; // bytes that were never written
+    delete result.bytes;
     return result;
   }
   result.ok = true;
@@ -321,9 +363,9 @@ function nodeRepair(argv) {
     }
   }
   try {
-    fs.writeFileSync(outPath, out);
+    writeWhole(fs, outPath, out);
   } catch (e) {
-    result.error = "cannot write " + outPath + ": " + osError(e);
+    result.error = "cannot write " + outPath + ": " + osError(e, "cannot be written");
     process.stdout.write(pyDumps(result) + "\n");
     return 2;
   }

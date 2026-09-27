@@ -2,7 +2,8 @@
 # change: each row names the test that fails if the fault comes back (tests/test_regressions.py
 # holds every row to it).
 #
-# id        the finding's name in the review that found it
+# id        the finding's name in the review that found it; V3- marks the review of 0.3.0,
+#           whose names repeat those of the review of 0.2.0
 # what      the fault, as a user or an agent met it
 # class     how it is held (comma-separated): C0 the wrong path no longer exists (one reader, one escape point);
 #           C1 a test that fails when it returns; C2 a rule a person or a model reads — only
@@ -902,3 +903,31 @@
   found_by: office-app
   test:
     - tests/test_build_writes_what_it_was_given.py::test_a_picture_fits_the_line_its_paragraph_leaves_it
+
+- id: V3-D-02
+  what: a symbolic link planted as NAME.json.partial in a shared profile folder made profile save, import and export write through it into any file the user could write
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_write_never_goes_through_a_link_or_into_a_pipe
+
+- id: V3-F-03
+  what: an output path that was a symbolic link had build and repair write through it into the file it named
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_write_never_goes_through_a_link_or_into_a_pipe
+
+- id: V3-D-14
+  what: an output path that was a FIFO held build and repair forever
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_write_never_goes_through_a_link_or_into_a_pipe
+
+- id: V3-F-02
+  what: a write cut short left a broken zip where the good file had been, said "cannot be read" and reported the sha256 of bytes never written
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_write_that_fails_halfway_leaves_the_old_file
