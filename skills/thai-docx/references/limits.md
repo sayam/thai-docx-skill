@@ -167,9 +167,19 @@ application. None can be reached by anything the file could say differently.
 |---|---|
 | **WPS Writer** | **with `--thai-language`, SARA AM (ำ) placed over the wrong letter** — it is that flag's `w:bidi="th-TH"` that WPS trips over, measured attribute by attribute on 2026-09-20 and again on 2026-09-23, and a ำ under a tone mark (น้ำ) is drawn correctly; the three lists show no page numbers until References → Update (§3). A chapter label drawn as Latin letters (`ÓõõõyA 1`) and the value 1 drawn as ๕, recorded on 2026-09-19, did not reproduce on 2026-09-23 — on a build from before ADR 0039 as well as the current one — and what changed is not established |
 | **LibreOffice Writer** | **page numbers set to Thai digits, and footnote numbers, drawn as 1, 2, 3** — front pages counted ก ข ค or i ii iii are drawn as set; **Thai distributed alignment drawn as left-aligned**: it does not know `thaiDistribute`, whether the paragraph or the document defaults say it (measured 2026-09-26); with `--auto-numbering`: Thai-digit numbering drawn as 1, 2, 3, and a chapter-numbered caption as `ตารางที่ บทนำ-ก` — it answers the chapter-number field with the chapter's *title*, ignores the restart at each chapter and draws the Thai-digit counter as Thai letters (ก, ข, ค). A chapter-numbered caption LibreOffice makes itself loses its chapter number the same way once saved as .docx, opened again and updated (measured 2026-09-24) |
-| **Google Docs** | converts a table of contents into an object of its own, with its own font and page numbers; **has no list of tables and no list of figures**, so asking it to update rewrites all three as heading lists and the two lose their entries (§3 — do not ask it to update); **draws every page number in Arabic digits** — the front pages' ก ข ค or i ii iii and the chapters' Thai digits are not kept — and footnote numbers in Arabic too; a table that ends at the foot of the last page of a chapter is followed by a page blank but for its number (measured 2026-09-26) |
+| **Google Docs** | converts a table of contents into an object of its own, with its own font and page numbers; **has no list of tables and no list of figures**, so asking it to update rewrites all three as heading lists and the two lose their entries (§3 — do not ask it to update); **draws every page number in Arabic digits** — the front pages' ก ข ค or i ii iii and the chapters' Thai digits are not kept — and footnote numbers in Arabic too; a table that ends at the foot of the last page of a chapter is followed by a page blank but for its number (measured 2026-09-26); the three lists keep the entries the file carries but show no page numbers, since it updates no field and must not be asked to (§3; read 2026-09-27) |
 | **Word on the web** | **has no TH Sarabun New in its font list** (TH SarabunPSK is there), and the font it substitutes floats the tone marks above the letter (§3 — build with `--font "TH SarabunPSK"` for that destination); cannot insert a section break (Layout → Breaks offers Page and Column only); Format Painter does not carry a heading's number — apply the Heading style instead; **its table-of-contents update numbers each entry by the page's place counted from the cover, in Arabic digits** (บทที่ 1 listed at 7 where its page shows 1), not by the page number each region prints — a second update gives the same, and the list of tables and list of figures are numbered right (measured 2026-09-26); proofs Thai as Arabic (§3); its Download as PDF is made on a server with no TH Sarabun New either (Cordia New stands in), so that PDF shows the layout, not the font |
-| **Word for macOS** | correct in what was measured, on the bytes before 0.2.0 (not yet read on 0.2.0's); a heading's number takes its heading's size |
+| **Word for macOS** | correct in what was read on 0.3.0's bytes (2026-09-27); a heading's number takes its heading's size |
+
+Two that belong to the applications' proofing, read on 0.3.0's bytes (2026-09-27):
+
+- **A correctly spelled word the dictionary lacks is underlined**: ฟอนต์, อัปเดต, วิทยาศาสตรมหาบัณฑิต,
+  Ecma, CommonMark, and the words of code, in Word 365 for Windows, Word for macOS and LibreOffice
+  Writer. The file names the language rightly; the dictionary does not hold the word.
+- **`--hide-spelling-errors` is not honoured everywhere.** Word 365 for Windows reads it — File →
+  Options → Proofing shows *Hide spelling errors in this document only* ticked — and still draws
+  the squiggles; LibreOffice Writer draws them too. Word for macOS, WPS Writer and Google Docs
+  show none.
 
 Two more that are not any application's fault:
 
@@ -190,7 +200,7 @@ font the run names is the one used. Measured in Word 365 for Windows and in Goog
 
 **An application draws its own red underline under code**, because `w:ascii` and `w:szCs` are not
 words in any language. Word does; Google Docs does not. The underline does not print, and
-`--hide-spelling-errors` hides it on screen.
+`--hide-spelling-errors` hides it on screen where the application honours that setting (§7).
 
 **`--force-cs-whole-doc` gives one font throughout in Word, and all but the code blocks in Google
 Docs.** The flag marks every run complex script, so an application takes the font from the

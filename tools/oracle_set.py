@@ -116,8 +116,8 @@ SHOWS = {
         "No spelling squiggles at all",
     ),
     "sample-auto": (
-        "As the file opens, before anything is updated: headings read บทที่ ๑, ๑.๑, ๑.๓.๒; appendices ภาคผนวก ก; "
-        "captions ตารางที่ ๑-๑, รูปที่ ๒-๑, ตารางที่ ก-๑; numbered lists ๑. ๒. ๓.",
+        "As the file opens, before anything is updated: headings read บทที่ ๑, ๑.๑, ๑.๓.๒; appendices Appendix A; "
+        "captions ตารางที่ ๑-๑, รูปที่ ๒-๑, ตารางที่ A-๑; numbered lists ๑. ๒. ๓.",
         "After updating every field (Word: Ctrl+A then F9) the captions and the three lists read as they did before",
         "(edit) A new paragraph in the Heading 2 style typed after ๑.๑ takes ๑.๒, and the headings after it move on by one",
         "(edit) A new Heading 1 typed before บทที่ ๒ takes บทที่ ๒; after updating fields the captions below it read ตารางที่ ๓-๑, รูปที่ ๓-๑",

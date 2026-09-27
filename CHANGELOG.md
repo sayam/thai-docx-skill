@@ -33,6 +33,12 @@ quotation. What the five applications draw is read on these bytes before the tag
   where `--caption-hanging-indent` leaves the box less than an inch. A table's caption keeps the
   table's full width
   (`tests/test_build_writes_what_it_was_given.py::test_the_thesis_profile_boxes_a_caption_with_its_picture`).
+- Read in the five applications on these bytes, every file passing in each
+  ([record](docs/evidence/2026-09-27-what-v0.3.0-was-read-in.md)). The limits add what the
+  applications' proofing does: a correctly spelled word their dictionary lacks is underlined in
+  Word and LibreOffice, and `--hide-spelling-errors` is not honoured by Word 365 for Windows or
+  LibreOffice; Google Docs' three lists show no page numbers, and Word for macOS is read on
+  0.3.0's bytes.
 - The goldens may change bytes on `main` between releases. The rule that a reading record names
   every golden's sha256 is held where it matters, at the tag: `tools/package_skill.py --tag`,
   which the release workflow runs, refuses a tag until the newest record does
