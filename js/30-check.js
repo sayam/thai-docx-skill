@@ -301,6 +301,24 @@ function related(names, treeOf, source) {
 }
 
 // Which part is which, as Word finds them (check.py's part_roles says how).
+const R_NS = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}";
+
+// The first relationship id a part refers to that its own relationships do not hold (check.py's
+// _dangling says why: B-02).
+function dangling(name, root, names, treeOf) {
+  const lowered = new Map(names.map((n) => [asciiLower(n), n]));
+  const slash = name.lastIndexOf("/");
+  const folder = slash < 0 ? "" : name.slice(0, slash + 1);
+  const rels = treeOf(lowered.get(asciiLower(folder + "_rels/" + name.slice(slash + 1) + ".rels")) || "");
+  const held = new Set(rels === null ? [] : rels.children.map((r) => r.get("Id")));
+  for (const el of root.iter()) {
+    for (const [key, value] of el.attrib) {
+      if (key.startsWith(R_NS) && ["id", "embed", "link"].includes(key.slice(R_NS.length)) && !held.has(value)) return value;
+    }
+  }
+  return null;
+}
+
 function partRoles(names, treeOf) {
   const lowered = new Map();
   for (let i = names.length - 1; i >= 0; i--) lowered.set(asciiLower(names[i]), names[i]);
@@ -577,6 +595,14 @@ function checkBytes(bytes, label) {
   const settings = roles.settings || "word/settings.xml";
   if (!trees.has(settings)) report.find("1", settings, "no settings part; compatibilityMode is not declared");
   else checkSettings(settings, trees.get(settings), report);
+  for (const name of roles.text) {
+    if (!trees.has(name)) continue;
+    const missing = dangling(name, trees.get(name), names, (n) => (trees.has(n) ? trees.get(n) : null));
+    if (missing !== null) {
+      report.find("package", name, "refers to relationship " + quoted(missing) + ", which its own relationships do not hold");
+      return report;
+    }
+  }
   for (const name of roles.text) if (trees.has(name)) checkTextPart(name, trees.get(name), report, roles);
   if (roles.styles !== null && trees.has(roles.styles)) checkStyles(roles.styles, trees.get(roles.styles), report);
   if (roles.numbering !== null && trees.has(roles.numbering)) checkNumbering(roles.numbering, trees.get(roles.numbering), report);

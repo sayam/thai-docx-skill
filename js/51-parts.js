@@ -33,6 +33,16 @@ function endSection(xml, sect) {
 // the built-in look of Heading 1 … 6: [points above the body size, bold, italic]
 const HEADING_LOOK = [[4, true, false], [2, true, false], [0, true, false], [0, true, true], [0, true, false], [0, false, true]];
 
+// what a picture is written in, declared by every part that can hold one
+const DRAWING_NAMESPACES = 'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" ' +
+  'xmlns:a="' + DRAWING + '" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
+
+function relationshipsXml(rels) {
+  return XML_DECL + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    rels.map(([rid, kind, target, ext]) => '<Relationship Id="' + rid + '" Type="' + kind + '" Target=' + attr(target) +
+      (ext ? ' TargetMode="External"/>' : "/>")).join("") + "</Relationships>";
+}
+
 class Package extends Writer {
   // Heading n's font as the front matter names it (null: the document's), and the rest of its
   // run properties in schema order — the built-in look, with what heading-n changes (ADR 0020).
@@ -99,10 +109,7 @@ class Package extends Writer {
       body = pieces.join("");
     }
     return (
-      XML_DECL + '<w:document xmlns:w="' + W + '" xmlns:r="' + NS_R + '" ' +
-      'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" ' +
-      'xmlns:a="' + DRAWING + '" ' +
-      'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
+      XML_DECL + '<w:document xmlns:w="' + W + '" xmlns:r="' + NS_R + '" ' + DRAWING_NAMESPACES + ">" +
       "<w:body>" + toc + body + "</w:body></w:document>"
     );
   }
@@ -114,6 +121,7 @@ class Package extends Writer {
     ];
     const mark = "<w:r>" + this.rpr('<w:rStyle w:val="FootnoteReference"/>' + this.marker(false)) + "<w:footnoteRef/></w:r>" +
       "<w:r>" + this.rpr(this.marker(false)) + "<w:tab/></w:r>";
+    this.partRels = this.footnoteRels; // a link or a picture here is this part's (B-02, B-03)
     this.doc.footnoteOrder.forEach((label, k) => {
       const fid = k + 1;
       this.counts.footnotes += 1;
@@ -130,7 +138,10 @@ class Package extends Writer {
       const body = '<w:p><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr>' + mark + this.inlines(first) + "</w:p>" + this.blocks(rest);
       parts.push('<w:footnote w:id="' + fid + '">' + body + "</w:footnote>");
     });
-    return XML_DECL + '<w:footnotes xmlns:w="' + W + '" xmlns:r="' + NS_R + '">' + parts.join("") + "</w:footnotes>";
+    this.partRels = this.rels;
+    const body = parts.join("");
+    const drawing = body.includes("<w:drawing>") ? " " + DRAWING_NAMESPACES : ""; // only where a picture is
+    return XML_DECL + '<w:footnotes xmlns:w="' + W + '" xmlns:r="' + NS_R + '"' + drawing + ">" + body + "</w:footnotes>";
   }
 
   stylesXml() {
@@ -488,9 +499,8 @@ class Package extends Writer {
     ];
     if (footnotes !== null) parts.push(["word/footnotes.xml", footnotes]);
     parts.push(...pageParts);
-    parts.push(["word/_rels/document.xml.rels", XML_DECL + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-      this.rels.map(([rid, kind, target, ext]) => '<Relationship Id="' + rid + '" Type="' + kind + '" Target=' + attr(target) + (ext ? ' TargetMode="External"/>' : "/>")).join("") +
-      "</Relationships>"]);
+    parts.push(["word/_rels/document.xml.rels", relationshipsXml(this.rels)]);
+    if (this.footnoteRels.length) parts.push(["word/_rels/footnotes.xml.rels", relationshipsXml(this.footnoteRels)]);
     for (const m of this.media) parts.push(m);
     return parts.map(([name, data]) => [name, typeof data === "string" ? utf8(data) : data]);
   }

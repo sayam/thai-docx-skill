@@ -146,6 +146,9 @@ that leaves the box less than an inch gives the caption the text width, and the 
 `--center-images` centres a picture that stands alone on its line, and the caption's box is
 centred with it; without it the picture keeps the left margin and all the indent goes on the right.
 Each flag works on its own; both are off by default, and the `thesis` profile turns both on.
+Under two or more pictures side by side a caption takes the width of the text, centred; and
+`--center-images` centres a picture at the top level only — one in a list or a quotation keeps
+its place there.
 
 A table is written at the full width of the text, so its caption is already as wide as it is and
 neither flag moves it. A picture wider than the text is drawn at the text width, so there is

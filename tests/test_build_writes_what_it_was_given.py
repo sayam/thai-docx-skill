@@ -234,3 +234,89 @@ def test_grill_says_what_it_did_not_read(tmp_path):
 def test_grill_asks_in_the_language_most_of_the_words_are_in(tmp_path):
     assert both(["grill", "--said", "thai-docx grill for a doc titled รายงาน"], tmp_path)[1]["language"] == "en"
     assert both(["grill", "--said", "ขอ thai-docx grill หน่อย"], tmp_path)[1]["language"] == "th"
+
+
+# --- the review of 0.3.0: what the writer put where -------------------------------------------
+
+
+def test_only_a_chapter_title_starts_its_own_line(tmp_path):
+    """B-01: `--chapter-title-on-new-line` broke the line after the number of every numbered
+    heading, so under the thesis profile "๑.๑" stood on a line of its own above its title. Only a
+    level-one heading in the chapters or the appendices is broken."""
+    (tmp_path / "in.md").write_text("<!-- chapters -->\n\n# บทนำ\n\n## ความเป็นมา\n\nข้อความ\n\n"
+                                    "<!-- appendices -->\n\n# แบบสอบถาม\n\n## ส่วนที่ 1\n", encoding="utf-8")
+    for flags in ([], ["--auto-numbering"]):
+        code, result = both(["build", "in.md", "out.docx", "--profile", "thesis", *flags], tmp_path)
+        assert code == 0, result
+        document = part(tmp_path / "out.docx", "word/document.xml")
+        headings = re.findall(r'<w:pStyle w:val="(Heading\d)"/>((?:(?!</w:p>).)*)</w:p>', document)
+        assert [(style, "<w:br/>" in body) for style, body in headings] == [
+            ("Heading1", True), ("Heading2", False), ("Heading1", True), ("Heading2", False)], (flags, headings)
+    (tmp_path / "plain.md").write_text("# บทนำ\n\n## ความเป็นมา\n", encoding="utf-8")
+    code, result = both(["build", "plain.md", "out.docx", "--heading-numbers", "--chapter-title-on-new-line"], tmp_path)
+    assert "<w:br/>" not in part(tmp_path / "out.docx", "word/document.xml")
+    assert any("--chapter-title-on-new-line changed nothing" in w["message"] for w in result["warnings"]), result
+
+
+def test_a_footnote_holds_its_own_links_and_pictures(tmp_path):
+    """B-02, B-03: a link in a footnote named a relationship of the document part, which OPC
+    scopes to its own part; a picture in one made footnotes.xml not well-formed, and the build
+    answered exit 1, a defect. The footnotes part has relationships of its own, and declares the
+    picture's namespaces."""
+    (tmp_path / "p.png").write_bytes(png(96, 40))
+    (tmp_path / "in.md").write_text("ข้อความ[^1] และ[ลิงก์](https://example.com/b)\n\n"
+                                    "[^1]: ดู [เว็บ](https://example.com/a) และรูป ![รูป](p.png)\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    assert code == 0 and result["ok"], result
+    notes = part(tmp_path / "out.docx", "word/footnotes.xml")
+    rels = part(tmp_path / "out.docx", "word/_rels/footnotes.xml.rels")
+    for rid in re.findall(r'r:(?:id|embed)="(rId\d+)"', notes):
+        assert f'Id="{rid}"' in rels, (rid, rels)
+    assert 'Target="https://example.com/a"' in rels and "media/image1.png" in rels, rels
+    assert 'Target="https://example.com/a"' not in part(tmp_path / "out.docx", "word/_rels/document.xml.rels")
+    assert both(["check", "out.docx"], tmp_path)[0] == 0
+    import zipfile
+    with zipfile.ZipFile(tmp_path / "out.docx") as z, zipfile.ZipFile(tmp_path / "cut.docx", "w") as cut:
+        for info in z.infolist():
+            if info.filename != "word/_rels/footnotes.xml.rels":
+                cut.writestr(info, z.read(info))
+    code, result = both(["check", "cut.docx"], tmp_path)
+    assert code == 2 and result["findings"][0]["code"] == "package" and "rId" in result["findings"][0]["message"], result
+
+
+def test_a_picture_in_a_list_or_a_quotation_keeps_its_place_under_center_images(tmp_path):
+    """B-05: `--center-images` wrote a picture in a list or a quotation as a centred paragraph of
+    its own, out of the list or the quotation, and still said it changed nothing. It centres a
+    picture on a line of its own at the top level, as its warning reads it."""
+    (tmp_path / "p.png").write_bytes(png(96, 40))
+    (tmp_path / "in.md").write_text("- รายการ\n\n  ![ก](p.png)\n\n> ![ข](p.png)\n>\n> ข้อความ\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx", "--center-images"], tmp_path)
+    document = part(tmp_path / "out.docx", "word/document.xml")
+    pictures = re.findall(r"<w:p><w:pPr>((?:(?!</w:pPr>).)*)</w:pPr>(?:(?!</w:p>).)*<w:drawing>", document)
+    assert pictures == ['<w:pStyle w:val="ListParagraph"/><w:ind w:left="720"/>', '<w:pStyle w:val="Quote"/>'], pictures
+    assert any("--center-images changed nothing" in w["message"] for w in result["warnings"]), result
+
+
+def test_a_picture_in_a_table_fits_its_cell(tmp_path):
+    """B-06: a picture in a table cell was fitted to the text width, so a picture 5.77 in wide
+    stood in a column of 1.92 in."""
+    (tmp_path / "wide.png").write_bytes(png(3000, 100))
+    (tmp_path / "in.md").write_text("| ภาพ | ข | ค |\n|---|---|---|\n| ![ก](wide.png) | ข | ค |\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    document = part(tmp_path / "out.docx", "word/document.xml")
+    column = int(re.search(r'<w:gridCol w:w="(\d+)"/>', document).group(1))
+    cx = int(re.search(r'<wp:extent cx="(\d+)"', document).group(1))
+    assert cx <= (column - 216) * 635, (cx // 635, column)
+
+
+def test_pictures_side_by_side_give_their_caption_the_text_width(tmp_path):
+    """B-07: a caption's box was measured from the last picture written, so under two pictures
+    side by side it was as wide as the second alone. Under more than one picture a caption takes
+    the width of the text, centred."""
+    (tmp_path / "wide.png").write_bytes(png(3000, 100))
+    (tmp_path / "small.png").write_bytes(png(96, 40))
+    (tmp_path / "in.md").write_text("![ก](wide.png) ![ข](small.png)\n\nFigure: สองภาพ\n\n![ค](small.png)\n\nFigure: ภาพเดียว\n",
+                                    encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx", "--profile", "thesis"], tmp_path)
+    captions = re.findall(r'<w:pStyle w:val="FigureCaption"/>((?:(?!</w:pPr>).)*)</w:pPr>', part(tmp_path / "out.docx", "word/document.xml"))
+    assert captions[0] == '<w:jc w:val="center"/>' and captions[1].startswith("<w:ind "), captions

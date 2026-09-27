@@ -277,6 +277,24 @@ def _related(names: dict[str, str], tree_of, source: str) -> list[tuple[str, str
     return out
 
 
+R_NS = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+
+
+def _dangling(name: str, root: ET.Element, names: list[str], tree_of) -> str | None:
+    """The first relationship id a part refers to that its own relationships do not hold: an id
+    belongs to the part that holds it (OPC), and this skill once wrote a footnote's link with the
+    document's (the review of 0.3.0, B-02)."""
+    lowered = {_ascii_lower(n): n for n in names}
+    folder, _, file = name.rpartition("/")
+    rels = tree_of(lowered.get(_ascii_lower((folder + "/" if folder else "") + "_rels/" + file + ".rels"), ""))
+    held = set() if rels is None else {r.get("Id") for r in rels}
+    for el in root.iter():
+        for key, value in el.attrib.items():
+            if key.startswith(R_NS) and key[len(R_NS):] in ("id", "embed", "link") and value not in held:
+                return value
+    return None
+
+
 def part_roles(names: list[str], tree_of) -> dict:
     """Which part is which, as Word finds them: the main document by the package's relationship
     (else `word/document.xml`), then its text parts, styles, numbering and settings by the
@@ -526,6 +544,12 @@ def check(path) -> Report:
         report.find("1", settings, "no settings part; compatibilityMode is not declared")
     else:
         _check_settings(settings, trees[settings], report)
+    for name in roles["text"]:
+        if name in trees:
+            missing = _dangling(name, trees[name], names, trees.get)
+            if missing is not None:
+                report.find("package", name, "refers to relationship " + quoted(missing) + ", which its own relationships do not hold")
+                return report
     for name in roles["text"]:
         if name in trees:
             _check_text_part(name, trees[name], report, roles)

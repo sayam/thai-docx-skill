@@ -12,6 +12,18 @@ from .settings import APPENDIX_NUMBERS, FRONT_NUMBERS, half_up
 from .writer import CODE_FONT, DRAWING, NS_R, REL, SECTION_MARK, XML, Writer, attr, esc
 
 
+# what a picture is written in, declared by every part that can hold one
+DRAWING_NAMESPACES = ('xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
+                      'xmlns:a="' + DRAWING + '" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"')
+
+
+def relationships_xml(rels: list[tuple[str, str, str, bool]]) -> str:
+    return (XML + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            + "".join('<Relationship Id="' + rid + '" Type="' + kind + '" Target=' + attr(target)
+                      + (' TargetMode="External"/>' if ext else "/>") for rid, kind, target, ext in rels)
+            + "</Relationships>")
+
+
 def _holds_a_field(xml: str, at: int) -> bool:
     """The paragraph at `at` belongs to a field: it carries part of one, or a field opened in
     an earlier paragraph and has not closed by the time this one starts."""
@@ -109,10 +121,7 @@ class Package(Writer):
                 pieces[k] = pieces[k] + xml if k == len(self.regions) - 1 else _end_section(pieces[k], xml)
             body = "".join(pieces)
         return (
-            XML + '<w:document xmlns:w="' + W + '" xmlns:r="' + NS_R + '" '
-            'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
-            'xmlns:a="' + DRAWING + '" '
-            'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+            XML + '<w:document xmlns:w="' + W + '" xmlns:r="' + NS_R + '" ' + DRAWING_NAMESPACES + '>'
             "<w:body>" + toc + body + "</w:body></w:document>"
         )
 
@@ -125,6 +134,7 @@ class Package(Writer):
         ]
         mark = ("<w:r>" + self.rpr('<w:rStyle w:val="FootnoteReference"/>' + self.marker(False)) + "<w:footnoteRef/></w:r>"
                 "<w:r>" + self.rpr(self.marker(False)) + "<w:tab/></w:r>")
+        self.part_rels = self.footnote_rels  # a link or a picture here is this part's (B-02, B-03)
         for fid, label in enumerate(self.doc.footnote_order, 1):
             self.counts["footnotes"] += 1
             blocks = self.doc.footnotes[label]
@@ -135,7 +145,10 @@ class Package(Writer):
             self.counts["paragraphs"] += 1
             body = '<w:p><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr>' + mark + self.inlines(first) + "</w:p>" + self.blocks(rest)
             parts.append('<w:footnote w:id="' + str(fid) + '">' + body + "</w:footnote>")
-        return XML + '<w:footnotes xmlns:w="' + W + '" xmlns:r="' + NS_R + '">' + "".join(parts) + "</w:footnotes>"
+        self.part_rels = self.rels
+        body = "".join(parts)
+        drawing = " " + DRAWING_NAMESPACES if "<w:drawing>" in body else ""  # only where a picture is
+        return XML + '<w:footnotes xmlns:w="' + W + '" xmlns:r="' + NS_R + '"' + drawing + ">" + body + "</w:footnotes>"
 
     def styles_xml(self) -> str:
         font = attr(self.opts["font"])
@@ -513,10 +526,8 @@ class Package(Writer):
         if footnotes is not None:
             parts.append(("word/footnotes.xml", footnotes))
         parts.extend(page_parts)
-        parts.append(("word/_rels/document.xml.rels", XML + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-                      + "".join('<Relationship Id="' + rid + '" Type="' + kind + '" Target=' + attr(target)
-                                + (' TargetMode="External"/>' if ext else "/>")
-                                for rid, kind, target, ext in self.rels)
-                      + "</Relationships>"))
+        parts.append(("word/_rels/document.xml.rels", relationships_xml(self.rels)))
+        if self.footnote_rels:
+            parts.append(("word/_rels/footnotes.xml.rels", relationships_xml(self.footnote_rels)))
         parts.extend(self.media)
         return [(name, data.encode("utf-8") if isinstance(data, str) else data) for name, data in parts]

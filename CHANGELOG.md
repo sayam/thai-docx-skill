@@ -85,6 +85,21 @@ quotation. What the five applications draw is read on these bytes before the tag
   sha256 (`tests/test_what_a_command_takes.py::test_a_write_that_fails_halfway_leaves_the_old_file`).
   A file the skill creates is now readable by its owner alone (`0600`); a file it replaces keeps
   the permissions it had.
+- `--chapter-title-on-new-line` broke the line after the number of every numbered heading, so
+  under the `thesis` profile "๑.๑" stood on a line of its own above its title. Only a chapter's or
+  an appendix's own title starts a line of its own
+  (`tests/test_build_writes_what_it_was_given.py::test_only_a_chapter_title_starts_its_own_line`).
+- A link in a footnote named a relationship of the document part — an id belongs to its own part
+  — and a picture in one made the footnotes part not well-formed, which the build answered as a
+  defect. The footnotes part has relationships of its own, and `check` finds an id a part's own
+  relationships do not hold (`tests/test_build_writes_what_it_was_given.py::test_a_footnote_holds_its_own_links_and_pictures`).
+- `--center-images` took a picture in a list or a quotation out of it to centre it, and still said
+  it changed nothing; it centres a picture at the top level only
+  (`tests/test_build_writes_what_it_was_given.py::test_a_picture_in_a_list_or_a_quotation_keeps_its_place_under_center_images`).
+- A picture in a table cell was fitted to the text width, so 5.77 in stood in a column of 1.92 in;
+  it fits its cell (`tests/test_build_writes_what_it_was_given.py::test_a_picture_in_a_table_fits_its_cell`).
+- A caption's box under two pictures side by side was as wide as the second alone; it takes the
+  text width, centred (`tests/test_build_writes_what_it_was_given.py::test_pictures_side_by_side_give_their_caption_the_text_width`).
 - A part named `.XML` was not read, so a header with `<w:noProof/>` and unmarked Thai was answered
   `ok`; names match in any case now (`tests/test_check_reads_the_whole_package.py::test_a_part_named_in_upper_case_is_read`).
 - A picture whose checksum was wrong passed `check` and stopped `repair` with exit 1, "a defect;
