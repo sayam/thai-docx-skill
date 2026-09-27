@@ -58,7 +58,7 @@ def write_whole(path: str, data: bytes) -> None:
     except OSError:
         pass  # none there; or one that cannot be removed, which the exclusive open below refuses
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
-    fd = os.open(partial, flags, 0o666)
+    fd = os.open(partial, flags, 0o644)  # what a umask of 022 would leave; never writable by others
     try:
         with os.fdopen(fd, "wb") as f:
             f.write(data)
