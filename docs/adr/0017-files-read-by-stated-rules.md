@@ -95,7 +95,11 @@ red test rather than as two verdicts.
 (**Later, 2026-09-26:** what holds for the Markdown is a limit, not the absence of recursion — the
 parser finalises blocks recursively, and the 100-deep cap is what keeps it within the stack; the
 checker's comparison of run properties, which did recurse as deep as the input went, reads with a
-stack of its own since ADR 0040.)
+stack of its own since ADR 0040. **Later, 2026-09-27, the review of 0.3.0:** the JavaScript reader
+also looked a prefix up through every open element's scope, which made depth quadratic — 200,000
+levels took minutes — and now keeps each prefix's bindings on a stack of their own (D-03);
+`repair`'s passes do recurse, one level per level of an element in its own name, so `repair`
+refuses a part where one stands more than 100 deep in its own name, as Word never writes (D-07).)
 The JavaScript XML reader keeps open elements on a stack, so it reads any depth expat
 reads. Markdown blocks nested more than 100 deep, or inline formatting nested more than
 100 deep within a block, stop the build at the line where the limit is crossed: every

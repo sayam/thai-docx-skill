@@ -498,6 +498,37 @@ function complexScriptFont(parts, asked) {
   return [DEFAULTS.font, "this skill's default, as the document names none"];
 }
 
+// How deep an element may stand in elements of its own name for repair to edit it (repair.py
+// says why: D-07), and the element that stands deepest, read with a stack as repair.py reads it.
+const MAX_NESTING = 100;
+const RE_NESTED_TAG = /<(\/?)([A-Za-z_][\w.:-]*)(?:\s+[^\s=/>]+\s*=\s*(?:"[^"]*"|'[^']*'))*\s*(\/?)>/g;
+
+function deepestNesting(xml) {
+  const open = [];
+  const depth = new Map();
+  let best = "", most = 0;
+  for (const m of xml.matchAll(RE_NESTED_TAG)) {
+    const [, closing, name, empty] = m;
+    if (closing) {
+      if (open.length) {
+        depth.set(open[open.length - 1], depth.get(open[open.length - 1]) - 1);
+        open.pop();
+      }
+      continue;
+    }
+    const n = (depth.get(name) || 0) + 1;
+    if (n > most) {
+      best = name;
+      most = n;
+    }
+    if (!empty) {
+      depth.set(name, n);
+      open.push(name);
+    }
+  }
+  return [best, most];
+}
+
 function isXmlPart(name) {
   return name.startsWith("word/") && asciiLower(name).endsWith(".xml");
 }

@@ -315,6 +315,17 @@ function nodeRepair(argv) {
     process.stdout.write(pyDumps(result) + "\n");
     return 2;
   }
+  for (const name of [...parts.keys()].sort()) {
+    const xml = fromUtf8(parts.get(name));
+    if (holdsWhatIsNotMarkup(xml)) continue; // left as it came, never edited
+    const [tag, depth] = deepestNesting(xml);
+    if (depth > MAX_NESTING) {
+      result.error = quoted(name) + " nests <" + tag + "> " + depth + " deep in itself; this version repairs to a depth of " +
+        MAX_NESTING + ", so nothing was written";
+      process.stdout.write(pyDumps(result) + "\n");
+      return 2;
+    }
+  }
   const [replace, repaired, chosen, leftNames] = repairParts(parts, before.findings, font, thaiLanguage, csAll);
   const left = leftNames.filter((name) => before.findings.some((f) => f.part === quoted(name))).map((name) => ({ code: "left",
     message: quoted(name) + " holds a comment, a CDATA section or a processing instruction; it is left as it came, and its findings with it" }));

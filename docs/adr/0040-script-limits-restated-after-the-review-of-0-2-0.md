@@ -99,6 +99,11 @@ unchanged.
    decompressed size. `repair` never writes a file its checker finds a fault in that the input did
    not have; a part whose finding lies inside a comment or CDATA is left as it came, and the finding
    stays under `remaining` with a warning saying why.
+
+   > **Later (2026-09-27, the review of 0.3.0):** the caps counted bytes only, and 100 KB of zip
+   > held 13 million empty elements under all of them, which ran Node out of memory with no JSON.
+   > More than 3,000,000 elements in the XML read — counted on the bytes, the same count in both
+   > implementations — is refused as `size` (D-04).
 10. Fixtures, evidence and any profile shipped in this public repository use synthetic content only.
 11. **Writes a value into markup only escaped, at the point it is written.** A value that reaches a
     field instruction — a table or figure label — refuses `"` and `\`, which the field syntax would

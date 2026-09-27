@@ -743,11 +743,16 @@ const RE_S = /[ \t\n]*/y;
 // eslint-disable-next-line no-control-regex -- these are the characters XML 1.0 does not allow
 const RE_INVALID_CHAR = /[\x00-\x08\x0B\x0C\x0E-\x1F￾￿]/;
 
+// An element with no attributes or no children shares these, and gets its own on its first:
+// a Map and an array for each of millions of empty elements ran Node out of memory (D-04).
+const NO_ATTRIBUTES = new Map();
+const NO_CHILDREN = Object.freeze([]);
+
 class XElement {
   constructor(tag) {
     this.tag = tag;
-    this.attrib = new Map();
-    this.children = [];
+    this.attrib = NO_ATTRIBUTES;
+    this.children = NO_CHILDREN;
     this.text = null;
   }
 
@@ -883,10 +888,16 @@ function parseXml(source) {
   misc();
   if (s[pos] !== "<") fail("no root element");
 
-  const scopes = [new Map([["xml", XML_NS]])];
+  // each prefix's bindings, innermost last: looked up in one step, and pushed only by an element
+  // that declares one — a scope searched through every open element took the JavaScript reader
+  // minutes at 200,000 levels, where expat takes under a second (the review of 0.3.0, D-03)
+  const bound = new Map([["xml", [XML_NS]]]);
   const lookup = (prefix) => {
-    for (let i = scopes.length - 1; i >= 0; i--) if (scopes[i].has(prefix)) return scopes[i].get(prefix);
-    return undefined;
+    const stack = bound.get(prefix);
+    return stack && stack.length ? stack[stack.length - 1] : undefined;
+  };
+  const unbind = (declared) => {
+    for (const prefix of declared) bound.get(prefix).pop();
   };
   const expand = (qname, isAttr) => {
     const colon = qname.indexOf(":");
@@ -950,7 +961,11 @@ function parseXml(source) {
         scope.set(prefix, value);
       }
     }
-    scopes.push(scope);
+    const declared = [...scope.keys()];
+    for (const [prefix, uri] of scope) {
+      if (!bound.has(prefix)) bound.set(prefix, []);
+      bound.get(prefix).push(uri);
+    }
     const el = new XElement(expand(qname, false));
     const expandedSeen = new Set();
     for (const [an, value] of raw) {
@@ -958,23 +973,24 @@ function parseXml(source) {
       const key = expand(an, true);
       if (expandedSeen.has(key)) fail("duplicate expanded attribute");
       expandedSeen.add(key);
+      if (el.attrib === NO_ATTRIBUTES) el.attrib = new Map();
       el.attrib.set(key, value);
     }
     if (s.startsWith("/>", pos)) {
       pos += 2;
-      scopes.pop();
-      return [el, qname, true];
+      unbind(declared);
+      return [el, qname, true, declared];
     }
     pos += 1; // ">"
-    return [el, qname, false];
+    return [el, qname, false, declared];
   };
 
   // An element and everything inside it. Open elements are kept on a stack, not in
   // recursion, so any depth expat reads is read here too.
   const element = () => {
-    const [root, rootName, rootClosed] = startTag();
+    const [root, rootName, rootClosed, rootDeclared] = startTag();
     if (rootClosed) return root;
-    const open = [{ el: root, qname: rootName, text: "", textDone: false }];
+    const open = [{ el: root, qname: rootName, text: "", textDone: false, declared: rootDeclared }];
     let ampAt = -2; // where the next "&" is; -1 when there is none left
     while (open.length) {
       const top = open[open.length - 1];
@@ -992,7 +1008,7 @@ function parseXml(source) {
           if (s[pos] !== ">") fail("> expected");
           pos++;
           if (!top.textDone) top.el.text = top.text === "" ? null : top.text;
-          scopes.pop();
+          unbind(top.declared);
           open.pop();
           continue;
         }
@@ -1010,9 +1026,10 @@ function parseXml(source) {
           top.el.text = top.text === "" ? null : top.text;
           top.textDone = true;
         }
-        const [child, childName, childClosed] = startTag();
+        const [child, childName, childClosed, childDeclared] = startTag();
+        if (top.el.children === NO_CHILDREN) top.el.children = [];
         top.el.children.push(child);
-        if (!childClosed) open.push({ el: child, qname: childName, text: "", textDone: false });
+        if (!childClosed) open.push({ el: child, qname: childName, text: "", textDone: false, declared: childDeclared });
         continue;
       }
       if (c === "&") { addText(reference()); continue; }
@@ -1089,6 +1106,16 @@ const THAI_FONTS = new Set(OOXML.thai_fonts);
 
 const MAX_PART = 32 * 1024 * 1024;
 const MAX_TOTAL = 64 * 1024 * 1024;
+const MAX_ELEMENTS = 3000000; // check.py says why (D-04)
+
+// Elements counted on the bytes, as check.py counts them: a "<" not followed by "/", "!" or "?".
+function countElements(data) {
+  let n = 0;
+  for (let i = 0; i + 1 < data.length; i++) {
+    if (data[i] === 60 && data[i + 1] !== 47 && data[i + 1] !== 33 && data[i + 1] !== 63) n++;
+  }
+  return n;
+}
 const MAX_FILE = 64 * 1024 * 1024;
 const COMPAT_URI = "http://schemas.microsoft.com/office/word";
 const TEXT_PARTS = /^word\/(document|comments|footnotes|endnotes|header[0-9]*|footer[0-9]*)\.xml$/;
@@ -1250,6 +1277,12 @@ function readParts(bytes, report) {
       return null;
     }
     parts.set(e.name, data);
+  }
+  let elements = 0;
+  for (const data of parts.values()) elements += countElements(data);
+  if (elements > MAX_ELEMENTS) {
+    report.find("size", "", "the XML holds " + elements + " elements, more than " + MAX_ELEMENTS + "; refused");
+    return null;
   }
   return [parts, entries.map((e) => e.name)];
 }
@@ -6426,6 +6459,37 @@ function complexScriptFont(parts, asked) {
   return [DEFAULTS.font, "this skill's default, as the document names none"];
 }
 
+// How deep an element may stand in elements of its own name for repair to edit it (repair.py
+// says why: D-07), and the element that stands deepest, read with a stack as repair.py reads it.
+const MAX_NESTING = 100;
+const RE_NESTED_TAG = /<(\/?)([A-Za-z_][\w.:-]*)(?:\s+[^\s=/>]+\s*=\s*(?:"[^"]*"|'[^']*'))*\s*(\/?)>/g;
+
+function deepestNesting(xml) {
+  const open = [];
+  const depth = new Map();
+  let best = "", most = 0;
+  for (const m of xml.matchAll(RE_NESTED_TAG)) {
+    const [, closing, name, empty] = m;
+    if (closing) {
+      if (open.length) {
+        depth.set(open[open.length - 1], depth.get(open[open.length - 1]) - 1);
+        open.pop();
+      }
+      continue;
+    }
+    const n = (depth.get(name) || 0) + 1;
+    if (n > most) {
+      best = name;
+      most = n;
+    }
+    if (!empty) {
+      depth.set(name, n);
+      open.push(name);
+    }
+  }
+  return [best, most];
+}
+
 function isXmlPart(name) {
   return name.startsWith("word/") && asciiLower(name).endsWith(".xml");
 }
@@ -7715,6 +7779,17 @@ function nodeRepair(argv) {
       " only the prefix Word writes, so nothing was written";
     process.stdout.write(pyDumps(result) + "\n");
     return 2;
+  }
+  for (const name of [...parts.keys()].sort()) {
+    const xml = fromUtf8(parts.get(name));
+    if (holdsWhatIsNotMarkup(xml)) continue; // left as it came, never edited
+    const [tag, depth] = deepestNesting(xml);
+    if (depth > MAX_NESTING) {
+      result.error = quoted(name) + " nests <" + tag + "> " + depth + " deep in itself; this version repairs to a depth of " +
+        MAX_NESTING + ", so nothing was written";
+      process.stdout.write(pyDumps(result) + "\n");
+      return 2;
+    }
   }
   const [replace, repaired, chosen, leftNames] = repairParts(parts, before.findings, font, thaiLanguage, csAll);
   const left = leftNames.filter((name) => before.findings.some((f) => f.part === quoted(name))).map((name) => ({ code: "left",
