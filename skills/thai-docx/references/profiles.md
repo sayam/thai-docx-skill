@@ -25,6 +25,9 @@ runtimes — and `"replaced"`, with a `"warnings"` line, when the file took the 
 search (`"skill"` or `"home"`).
 `list` gives `"profiles"`; `export` gives the `"path"` written and `"share"`.
 
+A build with `--profile` says nothing of a setting the profile gave that the document had no use
+for — "changed nothing" is said of a flag typed after the profile only, as the user asked for it.
+
 ## What to tell the user
 
 - **Saving:** say the name, where it was written, and that `--profile NAME` uses it. When

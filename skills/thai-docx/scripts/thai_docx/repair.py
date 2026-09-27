@@ -35,7 +35,7 @@ from . import check as check_mod
 from . import ooxml
 from . import package
 from . import settings as st
-from .ooxml import is_complex
+from .ooxml import is_complex, is_thai
 from .fidelity import paragraphs
 from .writer import script_runs
 
@@ -68,6 +68,16 @@ XMLNS = re.compile(rb"""xmlns(?::([\w.-]+))?\s*=\s*(?:"([^"]*)"|'([^']*)')""")
 
 def _attrs(tag: bytes) -> dict[bytes, bytes]:
     return {name: a or b for name, a, b in ATTR.findall(tag)}
+
+
+RTL = re.compile(rb"<w:rtl(?:\s[^>]*)?/?>")
+
+
+def _right_to_left(rpr_inner: bytes) -> bool:
+    """A run Word writes right to left (`<w:rtl/>` on), which uses its complex-script properties
+    already: it is neither marked again nor cut (the review of 0.3.0, B-08)."""
+    m = RTL.search(rpr_inner)
+    return m is not None and not _off(m.group(0))
 
 
 def _off(tag: bytes) -> bool:
@@ -332,13 +342,17 @@ def _split_run(start: bytes, inner: bytes, font: bytes, counts: dict[str, int],
             return None  # space an application drops at the ends; cut, it would be kept
         # a space at a cut is inside the text, and only xml:space keeps it there
         topen = topen[:-1].rstrip() + b' xml:space="preserve">'
-    pieces = _with_invisibles_joined(script_runs(text))
+    pieces = _with_invisibles_joined(script_runs(text, thai=thai_language))
     if len(pieces) < 2:
         return None
     rpr_inner = b"" if rpr_raw is None else rpr_raw[rpr_raw.index(b">") + 1:-len(b"</w:rPr>")]
+    if _right_to_left(rpr_inner):
+        return None
     out = bytearray()
     for complex_script, piece in pieces:
-        new_body, two, five, marked, unmarked = fix_rpr(rpr_inner, font, complex_script, thai_language)
+        # the Thai language on Thai alone (B-09)
+        new_body, two, five, marked, unmarked = fix_rpr(rpr_inner, font, complex_script,
+                                                        thai_language and any(is_thai(c) for c in piece))
         for key, n in (("2", two), ("5", five), ("thai-language", marked), ("unmarked", unmarked)):
             counts[key] = counts.get(key, 0) + n
         head = b"<w:rPr>" + new_body + b"</w:rPr>" if new_body else b""
@@ -383,7 +397,10 @@ def _fix_run(inner: bytes, font: bytes, counts: dict[str, int], thai_language: b
         body, rest_from = b"", 0                    # a run that needs the marker and has no rPr gets one
     else:
         return _fix_runs(inner, font, counts, thai_language, cs_all)  # nothing of ours here; look deeper
-    new_body, two, five, marked, unmarked = fix_rpr(body, font, mark if has_text else None, thai_language)
+    if _right_to_left(body):
+        mark = None  # its complex-script properties are in use already (B-08)
+    thai = thai_language and any(is_thai(c) for c in _run_text(inner))  # the Thai language on Thai alone (B-09)
+    new_body, two, five, marked, unmarked = fix_rpr(body, font, mark if has_text else None, thai)
     counts["2"] = counts.get("2", 0) + two
     counts["5"] = counts.get("5", 0) + five
     counts["thai-language"] = counts.get("thai-language", 0) + marked

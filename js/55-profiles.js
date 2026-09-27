@@ -593,9 +593,12 @@ function profileExpand(argv) {
   const path = require("path");
   const [withoutDefaults, reset] = profileTakeDefaults(argv.slice());
   const [rest, name] = profileTakeFlag(withoutDefaults, "--profile");
-  if (name === null) return [rest, null];
+  if (name === null) return [rest, null, new Set()];
   const [where, p] = profileFind(name);
   const data = profileRead(p);
   const used = { name: path.basename(p, ".json"), where, path: p, sha256: profileDigest(data.settings) };
-  return [profileAsFlags(profileWithout(data.settings, reset)).concat(rest), used];
+  const given = profileWithout(data.settings, reset);
+  // the profile's settings no flag typed after it names (profiles.py's expand says why: B-15)
+  const typed = new Set(SETTINGS.filter((s) => rest.some((a) => a === s.flag || a.startsWith(s.flag + "="))).map((s) => s.key));
+  return [profileAsFlags(given).concat(rest), used, new Set(Object.keys(given).filter((k) => !typed.has(k)))];
 }

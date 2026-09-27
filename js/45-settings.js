@@ -258,7 +258,7 @@ function joinFlags(flags) {
 function settingsWarnings(opts, present) {
   const missing = new Map();
   for (const s of SETTINGS) {
-    if (s.needs && has(STRUCTURES, s.needs) && !present.has(s.needs) && opts[s.key] !== s.default) {
+    if (s.needs && has(STRUCTURES, s.needs) && !present.has(s.needs) && opts[s.key] !== s.default && !(opts._quiet && opts._quiet.has(s.key))) {
       if (!missing.has(s.needs)) missing.set(s.needs, []);
       missing.get(s.needs).push(s.flag);
     }

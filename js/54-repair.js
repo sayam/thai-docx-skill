@@ -299,6 +299,12 @@ function withInvisiblesJoined(pieces) {
   return out.length ? out : [[false, pending]];
 }
 
+// A run Word writes right to left (repair.py's _right_to_left says why: B-08).
+function rightToLeft(rprInner) {
+  const m = /<w:rtl(?:\s[^>]*)?\/?>/.exec(rprInner);
+  return m !== null && !saysOff(m[0]);
+}
+
 function splitRun(start, inner, font, counts, thaiLanguage) {
   const m = RE_SIMPLE_INNER.exec(inner);
   if (m === null || m[3].indexOf("&#") !== -1) return null;
@@ -310,12 +316,14 @@ function splitRun(start, inner, font, counts, thaiLanguage) {
     // a space at a cut is inside the text, and only xml:space keeps it there
     topen = topen.slice(0, -1).replace(/\s+$/, "") + ' xml:space="preserve">';
   }
-  const pieces = withInvisiblesJoined(scriptRuns(text));
+  const pieces = withInvisiblesJoined(scriptRuns(text, "", "", thaiLanguage));
   if (pieces.length < 2) return null;
   const rprInner = rprRaw === undefined ? "" : rprRaw.slice(rprRaw.indexOf(">") + 1, -"</w:rPr>".length);
+  if (rightToLeft(rprInner)) return null;
   let out = "";
   for (const [complexScript, piece] of pieces) {
-    const [newBody, two, five, marked, unmarked] = fixRpr(rprInner, font, complexScript, thaiLanguage);
+    // the Thai language on Thai alone (B-09)
+    const [newBody, two, five, marked, unmarked] = fixRpr(rprInner, font, complexScript, thaiLanguage && Array.from(piece).some(isThai));
     counts["2"] = (counts["2"] || 0) + two;
     counts["5"] = (counts["5"] || 0) + five;
     counts["thai-language"] = (counts["thai-language"] || 0) + marked;
@@ -366,7 +374,9 @@ function fixRun(inner, font, counts, thaiLanguage, csAll) {
   } else {
     return fixRuns(inner, font, counts, thaiLanguage, csAll); // nothing of ours here; look deeper
   }
-  const [newBody, two, five, marked, unmarked] = fixRpr(body, font, hasText ? mark : null, thaiLanguage);
+  const markHere = rightToLeft(body) ? null : mark; // its complex-script properties are in use already (B-08)
+  const thai = thaiLanguage && Array.from(runText(inner)).some(isThai); // the Thai language on Thai alone (B-09)
+  const [newBody, two, five, marked, unmarked] = fixRpr(body, font, hasText ? markHere : null, thai);
   counts["2"] = (counts["2"] || 0) + two;
   counts["5"] = (counts["5"] || 0) + five;
   counts["thai-language"] = (counts["thai-language"] || 0) + marked;

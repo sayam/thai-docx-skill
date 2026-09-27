@@ -1057,7 +1057,7 @@ function parseXml(source) {
 // thai-docx — check: the JavaScript port of scripts/thai_docx/check.py. Findings,
 // messages, counts and their order match it exactly (ADR 0004, 0023, 0008, 0040).
 
-const OOXML = {"complex_script":[[1424,2303],[2304,3583],[3584,4095],[4096,4255],[6016,6143],[6624,6655],[43232,43263],[43488,43519],[43616,43647],[64285,65023],[65136,65279]],"format":[[173,173],[1536,1541],[1564,1564],[1757,1757],[1807,1807],[2192,2193],[2274,2274],[6158,6158],[8203,8207],[8234,8238],[8288,8292],[8294,8303],[65279,65279],[65529,65531],[69821,69821],[69837,69837],[78896,78911],[113824,113827],[119155,119162],[917505,917505],[917536,917631]],"format_unicode":"15.1.0","invisible":{"\u200b":"U+200B ZERO WIDTH SPACE","\u200c":"U+200C ZERO WIDTH NON-JOINER","\u200d":"U+200D ZERO WIDTH JOINER","\u2060":"U+2060 WORD JOINER","\ufeff":"U+FEFF ZERO WIDTH NO-BREAK SPACE"},"lvl_order":["start","numFmt","lvlRestart","pStyle","isLgl","suff","lvlText","lvlPicBulletId","legacy","lvlJc","pPr","rPr"],"ppr_order":["pStyle","keepNext","keepLines","pageBreakBefore","framePr","widowControl","numPr","suppressLineNumbers","pBdr","shd","tabs","suppressAutoHyphens","kinsoku","wordWrap","overflowPunct","topLinePunct","autoSpaceDE","autoSpaceDN","bidi","adjustRightInd","snapToGrid","spacing","ind","contextualSpacing","mirrorIndents","suppressOverlap","jc","textDirection","textAlignment","textboxTightWrap","outlineLvl","divId","cnfStyle","rPr","sectPr","pPrChange"],"punctuation":"!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~\u00ab\u00bb\u2010\u2011\u2012\u2013\u2014\u2015\u2018\u2019\u201a\u201c\u201d\u201e\u2022\u2026","rpr_order":["rStyle","rFonts","b","bCs","i","iCs","caps","smallCaps","strike","dstrike","outline","shadow","emboss","imprint","noProof","snapToGrid","vanish","webHidden","color","spacing","w","kern","position","sz","szCs","highlight","u","effect","bdr","shd","fitText","vertAlign","rtl","cs","em","lang","eastAsianLayout","specVanish","oMath","rPrChange"],"sectpr_order":[["headerReference","footerReference"],"footnotePr","endnotePr","type","pgSz","pgMar","paperSrc","pgBorders","lnNumType","pgNumType","cols","formProt","vAlign","noEndnote","titlePg","textDirection","bidi","rtlGutter","docGrid","printerSettings","sectPrChange"],"settings_order":["writeProtection","view","zoom","removePersonalInformation","removeDateAndTime","doNotDisplayPageBoundaries","displayBackgroundShape","printPostScriptOverText","printFractionalCharacterWidth","printFormsData","embedTrueTypeFonts","embedSystemFonts","saveSubsetFonts","saveFormsData","mirrorMargins","alignBordersAndEdges","bordersDoNotSurroundHeader","bordersDoNotSurroundFooter","gutterAtTop","hideSpellingErrors","hideGrammaticalErrors","activeWritingStyle","proofState","formsDesign","attachedTemplate","linkStyles","stylePaneFormatFilter","stylePaneSortMethod","documentType","mailMerge","revisionView","trackRevisions","doNotTrackMoves","doNotTrackFormatting","documentProtection","autoFormatOverride","styleLockTheme","styleLockQFSet","defaultTabStop","autoHyphenation","consecutiveHyphenLimit","hyphenationZone","doNotHyphenateCaps","showEnvelope","summaryLength","clickAndTypeStyle","defaultTableStyle","evenAndOddHeaders","bookFoldRevPrinting","bookFoldPrinting","bookFoldPrintingSheets","drawingGridHorizontalSpacing","drawingGridVerticalSpacing","displayHorizontalDrawingGridEvery","displayVerticalDrawingGridEvery","doNotUseMarginsForDrawingGridOrigin","drawingGridHorizontalOrigin","drawingGridVerticalOrigin","doNotShadeFormData","noPunctuationKerning","characterSpacingControl","printTwoOnOne","strictFirstAndLastChars","noLineBreaksAfter","noLineBreaksBefore","savePreviewPicture","doNotValidateAgainstSchema","saveInvalidXml","ignoreMixedContent","alwaysShowPlaceholderText","doNotDemarcateInvalidXml","saveXmlDataOnly","useXSLTWhenSaving","saveThroughXslt","showXMLTags","alwaysMergeEmptyNamespace","updateFields","hdrShapeDefaults","footnotePr","endnotePr","compat","docVars","rsids","mathPr","attachedSchema","themeFontLang","clrSchemeMapping","doNotIncludeSubdocsInStats","doNotAutoCompressPictures","forceUpgrade","captions","readModeInkLockDown","smartTagType","schemaLibrary","shapeDefaults","doNotEmbedSmartTags","decimalSymbol","listSeparator"],"style_order":["name","aliases","basedOn","next","link","autoRedefine","hidden","uiPriority","semiHidden","unhideWhenUsed","qFormat","locked","personal","personalCompose","personalReply","rsid","pPr","rPr","tblPr","trPr","tcPr","tblStylePr"],"tblpr_order":["tblStyle","tblpPr","tblOverlap","bidiVisual","tblStyleRowBandSize","tblStyleColBandSize","tblW","jc","tblCellSpacing","tblInd","tblBorders","shd","tblLayout","tblCellMar","tblLook","tblCaption","tblDescription","tblPrChange"],"tcpr_order":["cnfStyle","tcW","gridSpan","hMerge","vMerge","tcBorders","shd","noWrap","tcMar","textDirection","tcFitText","vAlign","hideMark","headers",["cellIns","cellDel","cellMerge"],"tcPrChange"],"thai_fonts":["angsana new","angsanaupc","anuphan","arial unicode ms","athiti","ayuthaya","bai jamjuree","browallia new","browalliaupc","chakra petch","charm","charmonman","chonburi","cordia new","cordiaupc","dilleniaupc","eucrosiaupc","fahkwang","freesiaupc","garuda","ibm plex sans thai","ibm plex sans thai looped","irisupc","itim","jasmineupc","k2d","kanit","kinnari","kodchasan","kodchiangupc","koho","krub","krungthep","laksaman","leelawadee","leelawadee ui","libre sarabun","lilyupc","loma","maitree","mali","microsoft sans serif","mitr","niramit","norasi","noto sans thai","noto sans thai looped","noto sans thai ui","noto serif thai","pattaya","pridi","prompt","purisa","sarabun","sathu","sawasdee","segoe ui","silom","sriracha","srisakdi","tahoma","taviraj","th baijam","th chakra petch","th charm of au","th charmonman","th fah kwang","th k2d july8","th kodchasal","th koho","th krub","th mali grade6","th niramit as","th sarabun new","th sarabun psk","th sarabunpsk","th srisakdi","thasadith","thonburi","tlwg typist","tlwg typo","tlwgmono","trirong","umpush","waree"],"trpr_order":[["cnfStyle","divId","gridBefore","gridAfter","wBefore","wAfter","cantSplit","trHeight","tblHeader","tblCellSpacing","jc","hidden"],"ins","del","trPrChange"]};
+const OOXML = {"complex_script":[[1424,2303],[2304,3583],[3584,4095],[4096,4255],[6016,6143],[6624,6655],[43232,43263],[43488,43519],[43616,43647],[64285,65023],[65136,65279]],"format":[[173,173],[1536,1541],[1564,1564],[1757,1757],[1807,1807],[2192,2193],[2274,2274],[6158,6158],[8203,8207],[8234,8238],[8288,8292],[8294,8303],[65279,65279],[65529,65531],[69821,69821],[69837,69837],[78896,78911],[113824,113827],[119155,119162],[917505,917505],[917536,917631]],"format_unicode":"15.1.0","invisible":{"\u200b":"U+200B ZERO WIDTH SPACE","\u200c":"U+200C ZERO WIDTH NON-JOINER","\u200d":"U+200D ZERO WIDTH JOINER","\u2060":"U+2060 WORD JOINER","\ufeff":"U+FEFF ZERO WIDTH NO-BREAK SPACE"},"lvl_order":["start","numFmt","lvlRestart","pStyle","isLgl","suff","lvlText","lvlPicBulletId","legacy","lvlJc","pPr","rPr"],"ppr_order":["pStyle","keepNext","keepLines","pageBreakBefore","framePr","widowControl","numPr","suppressLineNumbers","pBdr","shd","tabs","suppressAutoHyphens","kinsoku","wordWrap","overflowPunct","topLinePunct","autoSpaceDE","autoSpaceDN","bidi","adjustRightInd","snapToGrid","spacing","ind","contextualSpacing","mirrorIndents","suppressOverlap","jc","textDirection","textAlignment","textboxTightWrap","outlineLvl","divId","cnfStyle","rPr","sectPr","pPrChange"],"punctuation":"!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~\u00ab\u00bb\u2010\u2011\u2012\u2013\u2014\u2015\u2018\u2019\u201a\u201c\u201d\u201e\u2022\u2026\u00b0\u00d7\u00f7\u00b1\u00a7\u00b6\u00b7\u2122\u00ae\u00a9\u00b9\u00b2\u00b3\u2264\u2265\u2260\u3002\u3001\u300a\u300b\u300c\u300d","rpr_order":["rStyle","rFonts","b","bCs","i","iCs","caps","smallCaps","strike","dstrike","outline","shadow","emboss","imprint","noProof","snapToGrid","vanish","webHidden","color","spacing","w","kern","position","sz","szCs","highlight","u","effect","bdr","shd","fitText","vertAlign","rtl","cs","em","lang","eastAsianLayout","specVanish","oMath","rPrChange"],"sectpr_order":[["headerReference","footerReference"],"footnotePr","endnotePr","type","pgSz","pgMar","paperSrc","pgBorders","lnNumType","pgNumType","cols","formProt","vAlign","noEndnote","titlePg","textDirection","bidi","rtlGutter","docGrid","printerSettings","sectPrChange"],"settings_order":["writeProtection","view","zoom","removePersonalInformation","removeDateAndTime","doNotDisplayPageBoundaries","displayBackgroundShape","printPostScriptOverText","printFractionalCharacterWidth","printFormsData","embedTrueTypeFonts","embedSystemFonts","saveSubsetFonts","saveFormsData","mirrorMargins","alignBordersAndEdges","bordersDoNotSurroundHeader","bordersDoNotSurroundFooter","gutterAtTop","hideSpellingErrors","hideGrammaticalErrors","activeWritingStyle","proofState","formsDesign","attachedTemplate","linkStyles","stylePaneFormatFilter","stylePaneSortMethod","documentType","mailMerge","revisionView","trackRevisions","doNotTrackMoves","doNotTrackFormatting","documentProtection","autoFormatOverride","styleLockTheme","styleLockQFSet","defaultTabStop","autoHyphenation","consecutiveHyphenLimit","hyphenationZone","doNotHyphenateCaps","showEnvelope","summaryLength","clickAndTypeStyle","defaultTableStyle","evenAndOddHeaders","bookFoldRevPrinting","bookFoldPrinting","bookFoldPrintingSheets","drawingGridHorizontalSpacing","drawingGridVerticalSpacing","displayHorizontalDrawingGridEvery","displayVerticalDrawingGridEvery","doNotUseMarginsForDrawingGridOrigin","drawingGridHorizontalOrigin","drawingGridVerticalOrigin","doNotShadeFormData","noPunctuationKerning","characterSpacingControl","printTwoOnOne","strictFirstAndLastChars","noLineBreaksAfter","noLineBreaksBefore","savePreviewPicture","doNotValidateAgainstSchema","saveInvalidXml","ignoreMixedContent","alwaysShowPlaceholderText","doNotDemarcateInvalidXml","saveXmlDataOnly","useXSLTWhenSaving","saveThroughXslt","showXMLTags","alwaysMergeEmptyNamespace","updateFields","hdrShapeDefaults","footnotePr","endnotePr","compat","docVars","rsids","mathPr","attachedSchema","themeFontLang","clrSchemeMapping","doNotIncludeSubdocsInStats","doNotAutoCompressPictures","forceUpgrade","captions","readModeInkLockDown","smartTagType","schemaLibrary","shapeDefaults","doNotEmbedSmartTags","decimalSymbol","listSeparator"],"style_order":["name","aliases","basedOn","next","link","autoRedefine","hidden","uiPriority","semiHidden","unhideWhenUsed","qFormat","locked","personal","personalCompose","personalReply","rsid","pPr","rPr","tblPr","trPr","tcPr","tblStylePr"],"tblpr_order":["tblStyle","tblpPr","tblOverlap","bidiVisual","tblStyleRowBandSize","tblStyleColBandSize","tblW","jc","tblCellSpacing","tblInd","tblBorders","shd","tblLayout","tblCellMar","tblLook","tblCaption","tblDescription","tblPrChange"],"tcpr_order":["cnfStyle","tcW","gridSpan","hMerge","vMerge","tcBorders","shd","noWrap","tcMar","textDirection","tcFitText","vAlign","hideMark","headers",["cellIns","cellDel","cellMerge"],"tcPrChange"],"thai_fonts":["angsana new","angsanaupc","anuphan","arial unicode ms","athiti","ayuthaya","bai jamjuree","browallia new","browalliaupc","chakra petch","charm","charmonman","chonburi","cordia new","cordiaupc","dilleniaupc","eucrosiaupc","fahkwang","freesiaupc","garuda","ibm plex sans thai","ibm plex sans thai looped","irisupc","itim","jasmineupc","k2d","kanit","kinnari","kodchasan","kodchiangupc","koho","krub","krungthep","laksaman","leelawadee","leelawadee ui","libre sarabun","lilyupc","loma","maitree","mali","microsoft sans serif","mitr","niramit","norasi","noto sans thai","noto sans thai looped","noto sans thai ui","noto serif thai","pattaya","pridi","prompt","purisa","sarabun","sathu","sawasdee","segoe ui","silom","sriracha","srisakdi","tahoma","taviraj","th baijam","th chakra petch","th charm of au","th charmonman","th fah kwang","th k2d july8","th kodchasal","th koho","th krub","th mali grade6","th niramit as","th sarabun new","th sarabun psk","th sarabunpsk","th srisakdi","thasadith","thonburi","tlwg typist","tlwg typo","tlwgmono","trirong","umpush","waree"],"trpr_order":[["cnfStyle","divId","gridBefore","gridAfter","wBefore","wAfter","cantSplit","trHeight","tblHeader","tblCellSpacing","jc","hidden"],"ins","del","trPrChange"]};
 
 const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const RPR_ORDER = OOXML.rpr_order;
@@ -1511,9 +1511,12 @@ function checkTextPart(name, root, report, roles) {
         report.counts.runs = (report.counts.runs || 0) + 1;
         const cs = rpr === null ? null : rpr.find(w("cs"));
         const marked = cs !== null && isOn(cs);
+        // <w:rtl/> makes a run use its complex-script properties too (check.py says why: B-08)
+        const rtl = rpr === null ? null : rpr.find(w("rtl"));
+        const rightToLeft = rtl !== null && isOn(rtl);
         // one direction only: a run that holds no complex script may carry the marker, because
         // --force-cs-whole-doc writes it on every run and that file is ours too
-        if (complexText && !marked) {
+        if (complexText && !marked && !rightToLeft) {
           report.find("2", name, "a run whose text is complex script has no <w:cs/> element");
         }
         if (marked) {
@@ -1761,20 +1764,36 @@ const RE_PS = /^[\p{P}\p{S}]$/u;
 // ำ has a compatibility decomposition into these two, and no composition back (ADR 0034)
 const NIKHAHIT = "\u0e4d", SARA_AA = "\u0e32", SARA_AM = "\u0e33";
 // What is wrong with how a line's Thai marks sit, once each (markdown.py's thai_marks_out_of_place).
+// the marks B-13 of the review of 0.3.0 names: above the letter, below it, and the thanthakhat
+const THAI_ABOVE = new Set("\u0e31\u0e34\u0e35\u0e36\u0e37\u0e47\u0e4d");
+const THAI_BELOW = new Set("\u0e38\u0e39\u0e3a");
+
+// markdown.py's nfc_thai says why: Thai put in NFC, and nothing else changed (B-10).
+function nfcThai(text) {
+  return text.replace(/[\u0e00-\u0e7f]+/g, (m) => m.normalize("NFC"));
+}
+
 function thaiMarksOutOfPlace(line) {
-  let lone = "", two = false, tones = 0, before = "";
+  let lone = "", two = false, stacked = false, before = "";
+  let tones = 0, above = 0, below = 0, thanthakhat = 0, am = 0;
   for (const ch of line) {
     // THAI_MARKS is 50-writer.js's, read here only once every part is loaded
-    if (THAI_MARKS.has(ch.codePointAt(0))) {
-      if (!lone && !((before >= "\u0e01" && before <= "\u0e2e") || (before && THAI_MARKS.has(before.codePointAt(0))))) lone = ch;
+    if (THAI_MARKS.has(ch.codePointAt(0)) || ch === "\u0e33") {
+      if (ch !== "\u0e33" && !lone && !((before >= "\u0e01" && before <= "\u0e2e") || (before && THAI_MARKS.has(before.codePointAt(0))))) lone = ch;
       if (ch >= "\u0e48" && ch <= "\u0e4b") tones += 1;
+      if (THAI_ABOVE.has(ch)) above += 1;
+      if (THAI_BELOW.has(ch)) below += 1;
+      if (ch === "\u0e4c") thanthakhat += 1;
+      if (ch === "\u0e33") am += 1;
       two = two || tones === 2;
-    } else tones = 0;
+      stacked = stacked || above === 2 || below === 2 || (tones > 0 && thanthakhat > 0) || am === 2;
+    } else tones = above = below = thanthakhat = am = 0;
     before = ch;
   }
   const out = [];
   if (lone) out.push("a Thai mark (U+" + lone.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + ") with no letter before it; it is written as it stands");
   if (two) out.push("a letter with two tone marks; it is written as it stands");
+  else if (stacked) out.push("a letter with two marks that stand in one place; it is written as it stands");
   return out;
 }
 
@@ -3534,7 +3553,7 @@ function parseMarkdown(text) {
   const doc = new MdDocument();
   text = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   if (text.startsWith("﻿")) text = text.slice(1);
-  text = text.normalize("NFC");
+  text = nfcThai(text);
   const rawLines = text.split("\n");
   const longSaraAm = [];
   const marks = [];
@@ -3646,6 +3665,7 @@ function resolveInlines(bp, node) {
 function toInlines(bp, block, doc) {
   const out = [];
   const tags = { sup: 0, sub: 0, u: 0, kbd: 0 };
+  const titles = new Map(); // a link's title, written as its tooltip (B-11)
   const walk = (node, flags, link, extended) => {
     for (const n of node.children()) {
       const t = n.type;
@@ -3661,9 +3681,10 @@ function toInlines(bp, block, doc) {
         const key = t === "emph" ? "i" : t === "strong" ? "b" : "strike";
         walk(n, { ...flags, [key]: true }, link, false);
       } else if (t === "link") {
+        titles.set(n.destination, n.title || titles.get(n.destination) || "");
         walk(n, flags, n.destination, n.extended);
       } else if (t === "image") {
-        out.push(["image", n.destination, plainOf(n)]);
+        out.push(["image", n.destination, plainOf(n), n.title || ""]);
       } else if (t === "footnote_ref") {
         if (!doc.footnotes.has(n.label)) {
           doc.footnoteOrder.push(n.label);
@@ -3693,14 +3714,16 @@ function toInlines(bp, block, doc) {
       const flags = item[2];
       const link = item[3];
       const tagsNow = item[4];
-      result.push({
+      const node = {
         t: "text", s, b: !!flags.b, i: !!flags.i, strike: !!flags.strike, code: !!(flags.code || tagsNow.kbd),
         u: !!tagsNow.u, sup: !!tagsNow.sup, sub: !!tagsNow.sub && !tagsNow.sup, link, autolink: !!(item[5] && link),
-      });
+      };
+      if (link && titles.get(link)) node.title = titles.get(link);
+      result.push(node);
     } else if (kind === "hard") {
       result.push({ t: "hardbreak" });
     } else if (kind === "image") {
-      result.push({ t: "image", src: item[1], alt: item[2] });
+      result.push(item[3] ? { t: "image", src: item[1], alt: item[2], title: item[3] } : { t: "image", src: item[1], alt: item[2] });
     } else if (kind === "fn") {
       result.push({ t: "footnote_ref", label: item[1], id: item[2] });
     }
@@ -4134,7 +4157,7 @@ function joinFlags(flags) {
 function settingsWarnings(opts, present) {
   const missing = new Map();
   for (const s of SETTINGS) {
-    if (s.needs && has(STRUCTURES, s.needs) && !present.has(s.needs) && opts[s.key] !== s.default) {
+    if (s.needs && has(STRUCTURES, s.needs) && !present.has(s.needs) && opts[s.key] !== s.default && !(opts._quiet && opts._quiet.has(s.key))) {
       if (!missing.has(s.needs)) missing.set(s.needs, []);
       missing.get(s.needs).push(s.flag);
     }
@@ -4716,25 +4739,28 @@ function script(ch) {
 // script — neither case was measured in Word, and neither is visible while a run's Latin and
 // complex-script fonts and sizes are the same. An empty string is one piece, so an empty
 // paragraph still carries a run for fidelity to read.
-function scriptRuns(text) {
+// `before` and `after` are the scripts of the nearest letters outside `text` in its paragraph
+// (B-04); with `thai`, Thai and every other complex script are cut apart (B-09) — writer.py's
+// script_runs says why.
+function scriptRuns(text, before = "", after = "", thai = false) {
   const chars = Array.from(text);
   if (!chars.length) return [[false, ""]];
   let marks = chars.map(script);
   // punctuation takes Thai where the nearest letter on each side that has one is Thai
-  const before = new Array(marks.length).fill(""), after = new Array(marks.length).fill("");
-  let last = "";
+  const left = new Array(marks.length).fill(""), right = new Array(marks.length).fill("");
+  let last = before;
   for (let i = 0; i < marks.length; i++) {
-    before[i] = last;
+    left[i] = last;
     if (marks[i] === "C" || marks[i] === "L") last = marks[i];
   }
-  last = "";
+  last = after;
   for (let i = marks.length - 1; i >= 0; i--) {
-    after[i] = last;
+    right[i] = last;
     if (marks[i] === "C" || marks[i] === "L") last = marks[i];
   }
   marks = marks.map((m, i) => {
     if (m !== "P") return m;
-    const sides = [before[i], after[i]].filter((x) => x);
+    const sides = [left[i], right[i]].filter((x) => x);
     return sides.length && sides.every((x) => x === "C") ? "C" : "L";
   });
   const first = marks.find((m) => m !== "N") || "L";
@@ -4744,15 +4770,43 @@ function scriptRuns(text) {
     if (m === "N") out.push(prev || first);
     else { out.push(m); prev = m; }
   }
+  if (thai) {
+    const kinds = chars.map((ch) => (isThai(ch) ? "T" : isComplex(ch) ? "O" : ""));
+    let firstKind = "T";
+    for (let i = 0; i < chars.length; i++) if (kinds[i] && out[i] === "C") { firstKind = kinds[i]; break; }
+    let prevKind = "";
+    for (let i = 0; i < chars.length; i++) {
+      if (out[i] !== "C") { prevKind = ""; continue; }
+      if (kinds[i]) prevKind = kinds[i];
+      let kind = prevKind;
+      if (!kind) {
+        kind = firstKind;
+        for (let j = i; j < chars.length; j++) if (kinds[j] && out[j] === "C") { kind = kinds[j]; break; }
+      }
+      out[i] = "C" + kind;
+    }
+  }
   const pieces = [];
   let start = 0;
   for (let i = 1; i <= chars.length; i += 1) {
     if (i === chars.length || out[i] !== out[start]) {
-      pieces.push([out[start] === "C", chars.slice(start, i).join("")]);
+      pieces.push([out[start].startsWith("C"), chars.slice(start, i).join("")]);
       start = i;
     }
   }
   return pieces;
+}
+
+// The script ("C" or "L") of the first — or, with `last`, the last — letter in `text` that has
+// one, or "".
+function letterScript(text, last) {
+  const chars = Array.from(text);
+  if (last) chars.reverse();
+  for (const ch of chars) {
+    const m = script(ch);
+    if (m === "C" || m === "L") return m;
+  }
+  return "";
 }
 // Thai marks above and below a consonant take no width of their own when a column is measured
 const THAI_MARKS = new Set([0x0e31, 0x0e34, 0x0e35, 0x0e36, 0x0e37, 0x0e38, 0x0e39, 0x0e3a, 0x0e47, 0x0e48, 0x0e49, 0x0e4a, 0x0e4b, 0x0e4c, 0x0e4d, 0x0e4e]);
@@ -4869,9 +4923,10 @@ class Writer {
   }
 
   // What says a run is complex script, or nothing when its text is not.
-  marker(complexScript) {
+  marker(complexScript, thai = true) {
     this.scripts.add(complexScript);
-    return complexScript || this.csAll ? this.cs : "";
+    if (!(complexScript || this.csAll)) return "";
+    return thai ? this.cs : CS; // the Thai language on Thai alone (B-09)
   }
 
   // A run's properties, or nothing at all rather than an empty element.
@@ -4884,10 +4939,10 @@ class Writer {
   // same formatting is one run, and the checker holds the build to it. Under
   // --force-cs-whole-doc every stretch carries the same marker, so this puts the whole text back
   // into the one run releases before 0.2.0 wrote.
-  runs(text, props) {
+  runs(text, props, before = "", after = "") {
     const grouped = [];
-    for (const [complexScript, piece] of scriptRuns(text)) {
-      const rpr = this.rpr((props || "") + this.marker(complexScript));
+    for (const [complexScript, piece] of scriptRuns(text, before, after, this.opts.thai_language)) {
+      const rpr = this.rpr((props || "") + this.marker(complexScript, !complexScript || Array.from(piece).some(isThai)));
       if (grouped.length && grouped[grouped.length - 1][0] === rpr) grouped[grouped.length - 1][1] += piece;
       else grouped.push([rpr, piece]);
     }
@@ -4909,11 +4964,26 @@ class Writer {
     return p.join("");
   }
 
-  textRun(node, bold) {
-    return this.runs(node.s, this.runProps(node, bold));
+  textRun(node, bold, context = ["", ""]) {
+    return this.runs(node.s, this.runProps(node, bold), context[0], context[1]);
   }
 
   inlines(nodes, bold) {
+    // each text node's nearest letters outside it in the paragraph (writer.py says why: B-04)
+    const context = nodes.map(() => ["", ""]);
+    let last = "";
+    nodes.forEach((n, k) => {
+      if (n.t !== "text") { last = ""; return; }
+      context[k] = [last, ""];
+      last = letterScript(n.s, true) || last;
+    });
+    last = "";
+    for (let k = nodes.length - 1; k >= 0; k--) {
+      const n = nodes[k];
+      if (n.t !== "text") { last = ""; continue; }
+      context[k] = [context[k][0], last];
+      last = letterScript(n.s, false) || last;
+    }
     const out = [];
     let i = 0;
     while (i < nodes.length) {
@@ -4923,13 +4993,15 @@ class Writer {
         while (j < nodes.length && nodes[j].t === "text" && nodes[j].link === n.link) j++;
         const rid = this.rel(REL + "hyperlink", uri(n.link), true);
         this.counts.links += 1;
-        const runs = nodes.slice(i, j).map((x) => this.textRun(x, bold)).join("");
-        out.push('<w:hyperlink r:id="' + rid + '" w:history="1">' + runs + "</w:hyperlink>");
+        let runs = "";
+        for (let k = i; k < j; k++) runs += this.textRun(nodes[k], bold, context[k]);
+        const title = n.title; // the link's title, shown as it is pointed at (B-11)
+        out.push('<w:hyperlink r:id="' + rid + '"' + (title ? " w:tooltip=" + attr(title) : "") + ' w:history="1">' + runs + "</w:hyperlink>");
         i = j;
         continue;
       }
       const t = n.t;
-      if (t === "text") out.push(this.textRun(n, bold));
+      if (t === "text") out.push(this.textRun(n, bold, context[i]));
       else if (t === "hardbreak") out.push("<w:r>" + this.rpr(this.marker(false)) + "<w:br/></w:r>");
       else if (t === "task") {
         const mark = n.checked ? BOX_CHECKED : BOX;
@@ -4992,7 +5064,7 @@ class Writer {
     return (
       "<w:r>" + this.rpr(this.marker(false)) + "<w:drawing>" +
       '<wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + cx + '" cy="' + cy + '"/>' +
-      '<wp:docPr id="' + k + '" name="Picture ' + k + '" descr=' + attr(node.alt) + "/>" +
+      '<wp:docPr id="' + k + '" name="Picture ' + k + '" descr=' + attr(node.alt) + (node.title ? " title=" + attr(node.title) : "") + "/>" +
       '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
       '<pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="Picture ' + k + '"/><pic:cNvPicPr/></pic:nvPicPr>' +
       '<pic:blipFill><a:blip r:embed="' + rid + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>' +
@@ -5940,7 +6012,7 @@ function expectedText(doc, opts) {
     if (!blocks.length || blocks[0].t !== "paragraph") out.push("");
     out.push(...plainText(blocks, numbersAreText, opts.thai_digits));
   }
-  return out.map((s) => s.normalize("NFC"));
+  return out.map(nfcThai);
 }
 
 // ---- 53-build.js -----------------------------------------------------------
@@ -6324,6 +6396,12 @@ function withInvisiblesJoined(pieces) {
   return out.length ? out : [[false, pending]];
 }
 
+// A run Word writes right to left (repair.py's _right_to_left says why: B-08).
+function rightToLeft(rprInner) {
+  const m = /<w:rtl(?:\s[^>]*)?\/?>/.exec(rprInner);
+  return m !== null && !saysOff(m[0]);
+}
+
 function splitRun(start, inner, font, counts, thaiLanguage) {
   const m = RE_SIMPLE_INNER.exec(inner);
   if (m === null || m[3].indexOf("&#") !== -1) return null;
@@ -6335,12 +6413,14 @@ function splitRun(start, inner, font, counts, thaiLanguage) {
     // a space at a cut is inside the text, and only xml:space keeps it there
     topen = topen.slice(0, -1).replace(/\s+$/, "") + ' xml:space="preserve">';
   }
-  const pieces = withInvisiblesJoined(scriptRuns(text));
+  const pieces = withInvisiblesJoined(scriptRuns(text, "", "", thaiLanguage));
   if (pieces.length < 2) return null;
   const rprInner = rprRaw === undefined ? "" : rprRaw.slice(rprRaw.indexOf(">") + 1, -"</w:rPr>".length);
+  if (rightToLeft(rprInner)) return null;
   let out = "";
   for (const [complexScript, piece] of pieces) {
-    const [newBody, two, five, marked, unmarked] = fixRpr(rprInner, font, complexScript, thaiLanguage);
+    // the Thai language on Thai alone (B-09)
+    const [newBody, two, five, marked, unmarked] = fixRpr(rprInner, font, complexScript, thaiLanguage && Array.from(piece).some(isThai));
     counts["2"] = (counts["2"] || 0) + two;
     counts["5"] = (counts["5"] || 0) + five;
     counts["thai-language"] = (counts["thai-language"] || 0) + marked;
@@ -6391,7 +6471,9 @@ function fixRun(inner, font, counts, thaiLanguage, csAll) {
   } else {
     return fixRuns(inner, font, counts, thaiLanguage, csAll); // nothing of ours here; look deeper
   }
-  const [newBody, two, five, marked, unmarked] = fixRpr(body, font, hasText ? mark : null, thaiLanguage);
+  const markHere = rightToLeft(body) ? null : mark; // its complex-script properties are in use already (B-08)
+  const thai = thaiLanguage && Array.from(runText(inner)).some(isThai); // the Thai language on Thai alone (B-09)
+  const [newBody, two, five, marked, unmarked] = fixRpr(body, font, hasText ? markHere : null, thai);
   counts["2"] = (counts["2"] || 0) + two;
   counts["5"] = (counts["5"] || 0) + five;
   counts["thai-language"] = (counts["thai-language"] || 0) + marked;
@@ -7267,11 +7349,14 @@ function profileExpand(argv) {
   const path = require("path");
   const [withoutDefaults, reset] = profileTakeDefaults(argv.slice());
   const [rest, name] = profileTakeFlag(withoutDefaults, "--profile");
-  if (name === null) return [rest, null];
+  if (name === null) return [rest, null, new Set()];
   const [where, p] = profileFind(name);
   const data = profileRead(p);
   const used = { name: path.basename(p, ".json"), where, path: p, sha256: profileDigest(data.settings) };
-  return [profileAsFlags(profileWithout(data.settings, reset)).concat(rest), used];
+  const given = profileWithout(data.settings, reset);
+  // the profile's settings no flag typed after it names (profiles.py's expand says why: B-15)
+  const typed = new Set(SETTINGS.filter((s) => rest.some((a) => a === s.flag || a.startsWith(s.flag + "="))).map((s) => s.key));
+  return [profileAsFlags(given).concat(rest), used, new Set(Object.keys(given).filter((k) => !typed.has(k)))];
 }
 
 // ---- 56-grill.js -----------------------------------------------------------
@@ -8030,9 +8115,10 @@ function cliCommand(argv) {
   if (argv.length && argv[0] === "build") {
     let opts, positional, allow, used;
     try {
-      let rest;
-      [rest, used] = profileExpand(argv.slice(1));
+      let rest, quiet;
+      [rest, used, quiet] = profileExpand(argv.slice(1));
       [opts, positional, allow] = parseArgs(rest);
+      opts._quiet = quiet; // the profile's settings no flag named: no "changed nothing" (B-15)
     } catch (e) {
       if (!(e instanceof BuildError) && !(e instanceof ProfileError)) throw e;
       process.stdout.write(pyDumps({ ok: false, error: e.what }) + "\n");

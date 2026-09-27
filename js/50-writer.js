@@ -69,25 +69,28 @@ function script(ch) {
 // script — neither case was measured in Word, and neither is visible while a run's Latin and
 // complex-script fonts and sizes are the same. An empty string is one piece, so an empty
 // paragraph still carries a run for fidelity to read.
-function scriptRuns(text) {
+// `before` and `after` are the scripts of the nearest letters outside `text` in its paragraph
+// (B-04); with `thai`, Thai and every other complex script are cut apart (B-09) — writer.py's
+// script_runs says why.
+function scriptRuns(text, before = "", after = "", thai = false) {
   const chars = Array.from(text);
   if (!chars.length) return [[false, ""]];
   let marks = chars.map(script);
   // punctuation takes Thai where the nearest letter on each side that has one is Thai
-  const before = new Array(marks.length).fill(""), after = new Array(marks.length).fill("");
-  let last = "";
+  const left = new Array(marks.length).fill(""), right = new Array(marks.length).fill("");
+  let last = before;
   for (let i = 0; i < marks.length; i++) {
-    before[i] = last;
+    left[i] = last;
     if (marks[i] === "C" || marks[i] === "L") last = marks[i];
   }
-  last = "";
+  last = after;
   for (let i = marks.length - 1; i >= 0; i--) {
-    after[i] = last;
+    right[i] = last;
     if (marks[i] === "C" || marks[i] === "L") last = marks[i];
   }
   marks = marks.map((m, i) => {
     if (m !== "P") return m;
-    const sides = [before[i], after[i]].filter((x) => x);
+    const sides = [left[i], right[i]].filter((x) => x);
     return sides.length && sides.every((x) => x === "C") ? "C" : "L";
   });
   const first = marks.find((m) => m !== "N") || "L";
@@ -97,15 +100,43 @@ function scriptRuns(text) {
     if (m === "N") out.push(prev || first);
     else { out.push(m); prev = m; }
   }
+  if (thai) {
+    const kinds = chars.map((ch) => (isThai(ch) ? "T" : isComplex(ch) ? "O" : ""));
+    let firstKind = "T";
+    for (let i = 0; i < chars.length; i++) if (kinds[i] && out[i] === "C") { firstKind = kinds[i]; break; }
+    let prevKind = "";
+    for (let i = 0; i < chars.length; i++) {
+      if (out[i] !== "C") { prevKind = ""; continue; }
+      if (kinds[i]) prevKind = kinds[i];
+      let kind = prevKind;
+      if (!kind) {
+        kind = firstKind;
+        for (let j = i; j < chars.length; j++) if (kinds[j] && out[j] === "C") { kind = kinds[j]; break; }
+      }
+      out[i] = "C" + kind;
+    }
+  }
   const pieces = [];
   let start = 0;
   for (let i = 1; i <= chars.length; i += 1) {
     if (i === chars.length || out[i] !== out[start]) {
-      pieces.push([out[start] === "C", chars.slice(start, i).join("")]);
+      pieces.push([out[start].startsWith("C"), chars.slice(start, i).join("")]);
       start = i;
     }
   }
   return pieces;
+}
+
+// The script ("C" or "L") of the first — or, with `last`, the last — letter in `text` that has
+// one, or "".
+function letterScript(text, last) {
+  const chars = Array.from(text);
+  if (last) chars.reverse();
+  for (const ch of chars) {
+    const m = script(ch);
+    if (m === "C" || m === "L") return m;
+  }
+  return "";
 }
 // Thai marks above and below a consonant take no width of their own when a column is measured
 const THAI_MARKS = new Set([0x0e31, 0x0e34, 0x0e35, 0x0e36, 0x0e37, 0x0e38, 0x0e39, 0x0e3a, 0x0e47, 0x0e48, 0x0e49, 0x0e4a, 0x0e4b, 0x0e4c, 0x0e4d, 0x0e4e]);
@@ -222,9 +253,10 @@ class Writer {
   }
 
   // What says a run is complex script, or nothing when its text is not.
-  marker(complexScript) {
+  marker(complexScript, thai = true) {
     this.scripts.add(complexScript);
-    return complexScript || this.csAll ? this.cs : "";
+    if (!(complexScript || this.csAll)) return "";
+    return thai ? this.cs : CS; // the Thai language on Thai alone (B-09)
   }
 
   // A run's properties, or nothing at all rather than an empty element.
@@ -237,10 +269,10 @@ class Writer {
   // same formatting is one run, and the checker holds the build to it. Under
   // --force-cs-whole-doc every stretch carries the same marker, so this puts the whole text back
   // into the one run releases before 0.2.0 wrote.
-  runs(text, props) {
+  runs(text, props, before = "", after = "") {
     const grouped = [];
-    for (const [complexScript, piece] of scriptRuns(text)) {
-      const rpr = this.rpr((props || "") + this.marker(complexScript));
+    for (const [complexScript, piece] of scriptRuns(text, before, after, this.opts.thai_language)) {
+      const rpr = this.rpr((props || "") + this.marker(complexScript, !complexScript || Array.from(piece).some(isThai)));
       if (grouped.length && grouped[grouped.length - 1][0] === rpr) grouped[grouped.length - 1][1] += piece;
       else grouped.push([rpr, piece]);
     }
@@ -262,11 +294,26 @@ class Writer {
     return p.join("");
   }
 
-  textRun(node, bold) {
-    return this.runs(node.s, this.runProps(node, bold));
+  textRun(node, bold, context = ["", ""]) {
+    return this.runs(node.s, this.runProps(node, bold), context[0], context[1]);
   }
 
   inlines(nodes, bold) {
+    // each text node's nearest letters outside it in the paragraph (writer.py says why: B-04)
+    const context = nodes.map(() => ["", ""]);
+    let last = "";
+    nodes.forEach((n, k) => {
+      if (n.t !== "text") { last = ""; return; }
+      context[k] = [last, ""];
+      last = letterScript(n.s, true) || last;
+    });
+    last = "";
+    for (let k = nodes.length - 1; k >= 0; k--) {
+      const n = nodes[k];
+      if (n.t !== "text") { last = ""; continue; }
+      context[k] = [context[k][0], last];
+      last = letterScript(n.s, false) || last;
+    }
     const out = [];
     let i = 0;
     while (i < nodes.length) {
@@ -276,13 +323,15 @@ class Writer {
         while (j < nodes.length && nodes[j].t === "text" && nodes[j].link === n.link) j++;
         const rid = this.rel(REL + "hyperlink", uri(n.link), true);
         this.counts.links += 1;
-        const runs = nodes.slice(i, j).map((x) => this.textRun(x, bold)).join("");
-        out.push('<w:hyperlink r:id="' + rid + '" w:history="1">' + runs + "</w:hyperlink>");
+        let runs = "";
+        for (let k = i; k < j; k++) runs += this.textRun(nodes[k], bold, context[k]);
+        const title = n.title; // the link's title, shown as it is pointed at (B-11)
+        out.push('<w:hyperlink r:id="' + rid + '"' + (title ? " w:tooltip=" + attr(title) : "") + ' w:history="1">' + runs + "</w:hyperlink>");
         i = j;
         continue;
       }
       const t = n.t;
-      if (t === "text") out.push(this.textRun(n, bold));
+      if (t === "text") out.push(this.textRun(n, bold, context[i]));
       else if (t === "hardbreak") out.push("<w:r>" + this.rpr(this.marker(false)) + "<w:br/></w:r>");
       else if (t === "task") {
         const mark = n.checked ? BOX_CHECKED : BOX;
@@ -345,7 +394,7 @@ class Writer {
     return (
       "<w:r>" + this.rpr(this.marker(false)) + "<w:drawing>" +
       '<wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + cx + '" cy="' + cy + '"/>' +
-      '<wp:docPr id="' + k + '" name="Picture ' + k + '" descr=' + attr(node.alt) + "/>" +
+      '<wp:docPr id="' + k + '" name="Picture ' + k + '" descr=' + attr(node.alt) + (node.title ? " title=" + attr(node.title) : "") + "/>" +
       '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
       '<pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="Picture ' + k + '"/><pic:cNvPicPr/></pic:nvPicPr>' +
       '<pic:blipFill><a:blip r:embed="' + rid + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>' +

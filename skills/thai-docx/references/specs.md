@@ -145,7 +145,7 @@ English, in every language; a `Table:` or `Figure:` line where no caption can go
 inside a list, quotation or footnote; a font not known to carry Thai; `--toc` beside `<!-- toc -->`;
 `--toc` with no heading to list; `$…$` math, kept as literal LaTeX; a picture too narrow for a caption of its width; a flag whose
 structure the document has not got; `--thai-language` with no Thai text to reach; and a Thai mark
-with no letter before it, or a letter with two tone marks.
+with no letter before it, a letter with two tone marks, or two marks that stand in one place.
 
 ## Writing Thai
 

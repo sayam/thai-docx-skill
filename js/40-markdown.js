@@ -31,20 +31,36 @@ const RE_PS = /^[\p{P}\p{S}]$/u;
 // ำ has a compatibility decomposition into these two, and no composition back (ADR 0034)
 const NIKHAHIT = "\u0e4d", SARA_AA = "\u0e32", SARA_AM = "\u0e33";
 // What is wrong with how a line's Thai marks sit, once each (markdown.py's thai_marks_out_of_place).
+// the marks B-13 of the review of 0.3.0 names: above the letter, below it, and the thanthakhat
+const THAI_ABOVE = new Set("\u0e31\u0e34\u0e35\u0e36\u0e37\u0e47\u0e4d");
+const THAI_BELOW = new Set("\u0e38\u0e39\u0e3a");
+
+// markdown.py's nfc_thai says why: Thai put in NFC, and nothing else changed (B-10).
+function nfcThai(text) {
+  return text.replace(/[\u0e00-\u0e7f]+/g, (m) => m.normalize("NFC"));
+}
+
 function thaiMarksOutOfPlace(line) {
-  let lone = "", two = false, tones = 0, before = "";
+  let lone = "", two = false, stacked = false, before = "";
+  let tones = 0, above = 0, below = 0, thanthakhat = 0, am = 0;
   for (const ch of line) {
     // THAI_MARKS is 50-writer.js's, read here only once every part is loaded
-    if (THAI_MARKS.has(ch.codePointAt(0))) {
-      if (!lone && !((before >= "\u0e01" && before <= "\u0e2e") || (before && THAI_MARKS.has(before.codePointAt(0))))) lone = ch;
+    if (THAI_MARKS.has(ch.codePointAt(0)) || ch === "\u0e33") {
+      if (ch !== "\u0e33" && !lone && !((before >= "\u0e01" && before <= "\u0e2e") || (before && THAI_MARKS.has(before.codePointAt(0))))) lone = ch;
       if (ch >= "\u0e48" && ch <= "\u0e4b") tones += 1;
+      if (THAI_ABOVE.has(ch)) above += 1;
+      if (THAI_BELOW.has(ch)) below += 1;
+      if (ch === "\u0e4c") thanthakhat += 1;
+      if (ch === "\u0e33") am += 1;
       two = two || tones === 2;
-    } else tones = 0;
+      stacked = stacked || above === 2 || below === 2 || (tones > 0 && thanthakhat > 0) || am === 2;
+    } else tones = above = below = thanthakhat = am = 0;
     before = ch;
   }
   const out = [];
   if (lone) out.push("a Thai mark (U+" + lone.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + ") with no letter before it; it is written as it stands");
   if (two) out.push("a letter with two tone marks; it is written as it stands");
+  else if (stacked) out.push("a letter with two marks that stand in one place; it is written as it stands");
   return out;
 }
 
@@ -1804,7 +1820,7 @@ function parseMarkdown(text) {
   const doc = new MdDocument();
   text = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   if (text.startsWith("﻿")) text = text.slice(1);
-  text = text.normalize("NFC");
+  text = nfcThai(text);
   const rawLines = text.split("\n");
   const longSaraAm = [];
   const marks = [];
@@ -1916,6 +1932,7 @@ function resolveInlines(bp, node) {
 function toInlines(bp, block, doc) {
   const out = [];
   const tags = { sup: 0, sub: 0, u: 0, kbd: 0 };
+  const titles = new Map(); // a link's title, written as its tooltip (B-11)
   const walk = (node, flags, link, extended) => {
     for (const n of node.children()) {
       const t = n.type;
@@ -1931,9 +1948,10 @@ function toInlines(bp, block, doc) {
         const key = t === "emph" ? "i" : t === "strong" ? "b" : "strike";
         walk(n, { ...flags, [key]: true }, link, false);
       } else if (t === "link") {
+        titles.set(n.destination, n.title || titles.get(n.destination) || "");
         walk(n, flags, n.destination, n.extended);
       } else if (t === "image") {
-        out.push(["image", n.destination, plainOf(n)]);
+        out.push(["image", n.destination, plainOf(n), n.title || ""]);
       } else if (t === "footnote_ref") {
         if (!doc.footnotes.has(n.label)) {
           doc.footnoteOrder.push(n.label);
@@ -1963,14 +1981,16 @@ function toInlines(bp, block, doc) {
       const flags = item[2];
       const link = item[3];
       const tagsNow = item[4];
-      result.push({
+      const node = {
         t: "text", s, b: !!flags.b, i: !!flags.i, strike: !!flags.strike, code: !!(flags.code || tagsNow.kbd),
         u: !!tagsNow.u, sup: !!tagsNow.sup, sub: !!tagsNow.sub && !tagsNow.sup, link, autolink: !!(item[5] && link),
-      });
+      };
+      if (link && titles.get(link)) node.title = titles.get(link);
+      result.push(node);
     } else if (kind === "hard") {
       result.push({ t: "hardbreak" });
     } else if (kind === "image") {
-      result.push({ t: "image", src: item[1], alt: item[2] });
+      result.push(item[3] ? { t: "image", src: item[1], alt: item[2], title: item[3] } : { t: "image", src: item[1], alt: item[2] });
     } else if (kind === "fn") {
       result.push({ t: "footnote_ref", label: item[1], id: item[2] });
     }

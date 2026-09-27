@@ -85,6 +85,28 @@ quotation. What the five applications draw is read on these bytes before the tag
   sha256 (`tests/test_what_a_command_takes.py::test_a_write_that_fails_halfway_leaves_the_old_file`).
   A file the skill creates is now readable by its owner alone (`0600`); a file it replaces keeps
   the permissions it had.
+- A mark in a text node of its own — `.` `)` `”` after a bold word or a link — had no letter
+  beside it to read, so it was Latin between Thai; it reads the letters of the text around it
+  (`tests/test_build_writes_what_it_was_given.py::test_punctuation_after_formatted_thai_is_thai`).
+- `° × ÷ ± § ¶ · ™ ® © ¹ ² ³ ≤ ≥ ≠ 。 、 《 》 「 」` between Thai were Latin runs cut into the word;
+  they are punctuation, Thai between Thai (`tests/test_build_writes_what_it_was_given.py::test_signs_between_thai_are_thai`).
+- `check` found a run Word writes right to left (`<w:rtl/>`, Arabic, Hebrew) unmarked, and `repair`
+  marked it again; `<w:rtl/>` uses the complex-script properties already
+  (`tests/test_build_writes_what_it_was_given.py::test_a_run_word_writes_right_to_left_is_marked`).
+- `--thai-language` wrote the Thai language on every complex-script run, so Lao, Arabic, Hindi and
+  Khmer were told to Word as Thai; it is written on Thai alone, in `build` and in `repair`
+  (`tests/test_build_writes_what_it_was_given.py::test_the_thai_language_is_written_on_thai_only`).
+- The whole text was put in NFC, which changed letters that are not Thai — a compatibility
+  ideograph, `Å` as U+212B — in silence; only the Thai is
+  (`tests/test_build_writes_what_it_was_given.py::test_only_thai_is_put_in_its_normal_form`).
+- A link's or a picture's title was read and dropped; it is written as the link's tip and the
+  picture's title — which moves the bytes of `sample.md`, whose link has one
+  (`tests/test_build_writes_what_it_was_given.py::test_a_link_or_picture_title_is_written`).
+- Two vowels above one letter, two below, a tone mark with `์`, or `ำ` twice went through in
+  silence; each is named, and written as it stands (`tests/test_build_writes_what_it_was_given.py::test_marks_stacked_on_one_letter_are_named`).
+- The `thesis` profile made every build say "changed nothing" of settings the user never typed;
+  that is said of a flag typed after the profile only
+  (`tests/test_build_writes_what_it_was_given.py::test_a_profile_setting_that_changed_nothing_is_not_said`).
 - `--chapter-title-on-new-line` broke the line after the number of every numbered heading, so
   under the `thesis` profile "๑.๑" stood on a line of its own above its title. Only a chapter's or
   an appendix's own title starts a line of its own
