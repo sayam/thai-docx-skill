@@ -31,7 +31,7 @@ function writeWhole(fs, p, data) {
     // none there; or one that cannot be removed, which the exclusive open below refuses
   }
   const c = fs.constants;
-  const fd = fs.openSync(partial, c.O_WRONLY | c.O_CREAT | c.O_EXCL | (c.O_NOFOLLOW || 0), 0o666);
+  const fd = fs.openSync(partial, c.O_WRONLY | c.O_CREAT | c.O_EXCL | (c.O_NOFOLLOW || 0), 0o644);
   try {
     try {
       let n = 0;
