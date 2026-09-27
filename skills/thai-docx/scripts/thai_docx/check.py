@@ -45,7 +45,6 @@ from xml.etree import ElementTree as ET
 
 from . import package
 from .ooxml import (
-    INVISIBLE,
     LVL_ORDER,
     PPR_ORDER,
     RPR_ORDER,
@@ -61,7 +60,7 @@ from .ooxml import (
     is_thai,
     local,
     rank,
-    unseen,
+    unseen_in,
     w,
 )
 
@@ -437,11 +436,7 @@ def _check_text_part(name: str, root: ET.Element, report: Report, roles: dict) -
                     if lang is not None and lang.get(w("bidi")) == "th-TH":
                         report.counts["thai_language_runs"] = report.counts.get("thai_language_runs", 0) + 1
                 for t in texts:
-                    text = t.text or ""
-                    # the five by name first, as they always were; then any other in text order
-                    label = next((label for ch, label in INVISIBLE.items() if ch in text), None)
-                    if label is None:
-                        label = next((named for named in map(unseen, text) if named is not None), None)
+                    label = unseen_in(t.text or "")
                     if label is not None:
                         report.find("invisible", name, f"text contains {label}")
             shape = _canonical(rpr)
@@ -500,6 +495,21 @@ def _check_numbering(name: str, root: ET.Element, report: Report) -> None:
             _check_rpr_twins(rpr, name, report, "a numbering level", False)
 
 
+def _proofless_code(root: ET.Element) -> set[ET.Element]:
+    """The `<w:noProof/>` of every run whose text holds no complex script: code, which the build
+    writes as no language, and which switches off no Thai line breaking (the review of 0.3.0,
+    B-D2). One in a style, a paragraph mark or a run of Thai text is still finding 3."""
+    out: set[ET.Element] = set()
+    for run in root.iter(w("r")):
+        rpr = run.find(w("rPr"))
+        if rpr is None:
+            continue
+        text = "".join(t.text or "" for t in run.iter() if t.tag in (w("t"), w("delText")))
+        if not any(is_complex(ch) for ch in text):
+            out.update(rpr.findall(w("noProof")))
+    return out
+
+
 def check(path) -> Report:
     """`path` is a file path, or a file-like object with the package's bytes."""
     if isinstance(path, (str, pathlib.Path)):
@@ -541,7 +551,10 @@ def check(path) -> Report:
         return report
     named = {n for n in (roles["styles"], roles["numbering"], roles["settings"]) if n} | set(roles["text"])
     for name, root in trees.items():
-        if (name.startswith("word/") or name in named) and any(is_on(e) for e in root.iter(w("noProof"))):
+        if not (name.startswith("word/") or name in named):
+            continue
+        code = _proofless_code(root)
+        if any(is_on(e) for e in root.iter(w("noProof")) if e not in code):
             report.find("3", name, "<w:noProof/> switches Thai proofing — and Thai line breaking — off")
     settings = roles["settings"] or "word/settings.xml"
     if settings not in trees:

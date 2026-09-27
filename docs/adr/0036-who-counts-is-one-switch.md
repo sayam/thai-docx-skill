@@ -168,6 +168,13 @@ one place to read it.) Its checklist asks what no other variant can:
 that a heading, a list item and a caption inserted in the application renumber what follows. The
 reference application must pass it; the other four are recorded.
 
+> **Later (2026-09-27):** what this record did not weigh is a screen reader. In the ready-to-use
+> document a list's numbers and bullets are text, so a screen reader is given paragraphs, not list
+> items; with `--auto-numbering` it is given Word's own list. `references/limits.md` §2 says that
+> a document which must meet an accessibility standard is built with `--auto-numbering`. A task
+> box is a character in both kinds (ADR 0033), named as one, not as checked. Neither was measured
+> with NVDA or JAWS (the review of 0.3.0, B-D3).
+
 **The guides and `references/chapters.md`** said a thesis never renumbers. They now say it does
 not unless asked, and send the reader to `references/numbering.md`.
 

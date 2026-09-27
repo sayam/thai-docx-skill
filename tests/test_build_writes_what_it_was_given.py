@@ -415,3 +415,45 @@ def test_a_profile_setting_that_changed_nothing_is_not_said(tmp_path):
     assert code == 0 and result["warnings"] == [], result
     code, result = both(["build", "in.md", "out.docx", "--profile", "thesis", "--center-images"], tmp_path)
     assert any("--center-images changed nothing" in w["message"] for w in result["warnings"]), result
+
+
+# --- the maintainer's decisions on the review of 0.3.0 (DESIGN) ---------------------------------
+
+
+def test_a_joiner_between_letters_of_another_complex_script_is_kept(tmp_path):
+    """B-D1: Persian spells with U+200C and Devanagari shapes a half letter with U+200D, and the
+    build refused both. Between two letters of a complex script other than Thai, each is text; in
+    Thai, or beside anything else, it is still refused (ADR 0023)."""
+    (tmp_path / "in.md").write_text("ภาษาฮินดี नमस्‍ते และเปอร์เซีย من‌می\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    document = part(tmp_path / "out.docx", "word/document.xml")
+    assert code == 0 and "नमस्‍ते" in document and "من‌می" in document, result
+    assert both(["check", "out.docx"], tmp_path)[0] == 0
+    for refused in ("ไทย‍ไทย", "ab‌cd", "मन‍"):
+        (tmp_path / "in.md").write_text(refused + "\n", encoding="utf-8")
+        assert both(["build", "in.md", "out.docx"], tmp_path)[0] == 2, refused
+
+
+def test_code_with_no_complex_script_is_not_proofed(tmp_path):
+    """B-D2: a code span or a code block of Latin text was proofed as English and underlined in
+    every application. Its runs carry `<w:noProof/>` — only where the text holds no complex
+    script, as ADR 0004's cause 3 is about Thai line breaking — and `check` takes no finding
+    from it."""
+    (tmp_path / "in.md").write_text("ใช้ `w:ascii` และ `ภาษาไทย`\n\n```\nw:rFonts ไทย\n```\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    run = r"<w:r>(<w:rPr>(?:(?!</w:rPr>).)*</w:rPr>)?<w:t[^>]*>([^<]*)</w:t>"
+
+    def proofless(name):
+        return {text: "<w:noProof/>" in rpr for rpr, text in re.findall(run, part(tmp_path / name, "word/document.xml"))}
+    assert proofless("out.docx") == {"ใช้ ": False, "w:ascii": True, " และ ": False, "ภาษาไทย": False,
+                                     "w:rFonts ": True, "ไทย": False}, proofless("out.docx")
+    assert both(["check", "out.docx"], tmp_path)[1]["findings"] == []
+    # repair takes the switch off Thai text and leaves it on the code it belongs to
+    with zipfile.ZipFile(tmp_path / "out.docx") as z:
+        parts = {n: z.read(n).decode("utf-8") for n in z.namelist() if n.endswith((".xml", ".rels"))}
+    thai = re.search(r"<w:cs/>(?:(?!<w:r>).)*>ภาษาไทย<", parts["word/document.xml"]).group(0)
+    (tmp_path / "noproof.docx").write_bytes(pack(replaced(parts, "word/document.xml", thai, "<w:noProof/>" + thai)))
+    assert [f["code"] for f in both(["check", "noproof.docx"], tmp_path)[1]["findings"]] == ["3"]
+    code, result = both(["repair", "noproof.docx", "again.docx"], tmp_path)
+    assert code == 0 and result["repaired"] == {"3": 1}, result
+    assert proofless("again.docx") == proofless("out.docx")

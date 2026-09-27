@@ -95,6 +95,28 @@ function isComplex(ch) {
   return COMPLEX_SCRIPT.some(([a, b]) => a <= cp && cp <= b);
 }
 
+// U+200C and U+200D between two letters of a complex script other than Thai: how Persian and
+// Devanagari spell, so text, not an invisible character (ooxml.py's joins; B-D1). `chars` is the
+// text as code points.
+const JOINERS = "\u200c\u200d";
+function joins(chars, i) {
+  return JOINERS.includes(chars[i]) && i > 0 && i < chars.length - 1 &&
+    [chars[i - 1], chars[i + 1]].every((c) => isComplex(c) && !isThai(c));
+}
+
+// How the first invisible character in `text` is named — the five by name first, then any other
+// in text order — or null. A joiner that joins is not one (ooxml.py's unseen_in).
+function unseenIn(text) {
+  const chars = Array.from(text);
+  const kept = chars.filter((ch, i) => !joins(chars, i)).join("");
+  for (const ch of Object.keys(INVISIBLE)) if (kept.indexOf(ch) !== -1) return INVISIBLE[ch];
+  for (const ch of kept) {
+    const label = unseen(ch);
+    if (label !== null) return label;
+  }
+  return null;
+}
+
 // How much of one code the JSON lists, and what a name taken from the file may show — check.py
 // says why (the review of 0.3.0, D-10, D-11).
 const LISTED = 20;
@@ -472,21 +494,7 @@ function checkTextPart(name, root, report, roles) {
           }
         }
         for (const t of texts) {
-          const text = t.text || "";
-          // the five by name first, as they always were; then any other in text order
-          let label = null;
-          for (const ch of Object.keys(INVISIBLE)) {
-            if (text.indexOf(ch) !== -1) {
-              label = INVISIBLE[ch];
-              break;
-            }
-          }
-          if (label === null) {
-            for (const ch of text) {
-              label = unseen(ch);
-              if (label !== null) break;
-            }
-          }
+          const label = unseenIn(t.text || "");
           if (label !== null) report.find("invisible", name, "text contains " + label);
         }
       }
@@ -559,6 +567,20 @@ function checkNumbering(name, root, report) {
 }
 
 // Check a package's bytes; `label` is what the report names as its file.
+// The <w:noProof/> of every run whose text holds no complex script: code, which the build writes
+// as no language (check.py's _proofless_code; B-D2).
+function prooflessCode(root) {
+  const out = new Set();
+  for (const run of root.iter(w("r"))) {
+    const rpr = run.find(w("rPr"));
+    if (rpr === null) continue;
+    let text = "";
+    for (const t of run.iter()) if (t.tag === w("t") || t.tag === w("delText")) text += t.text || "";
+    if (!Array.from(text).some(isComplex)) for (const el of rpr.findall(w("noProof"))) out.add(el);
+  }
+  return out;
+}
+
 function checkBytes(bytes, label) {
   const report = new Report(label);
   const read = readParts(bytes, report);
@@ -591,8 +613,9 @@ function checkBytes(bytes, label) {
   const named = new Set([roles.styles, roles.numbering, roles.settings, ...roles.text].filter((n) => n !== null));
   for (const [name, root] of trees) {
     if (!name.startsWith("word/") && !named.has(name)) continue;
+    const code = prooflessCode(root);
     let off = true;
-    for (const el of root.iter(w("noProof"))) if (isOn(el)) off = false;
+    for (const el of root.iter(w("noProof"))) if (isOn(el) && !code.has(el)) off = false;
     if (!off) report.find("3", name, "<w:noProof/> switches Thai proofing — and Thai line breaking — off");
   }
   const settings = roles.settings || "word/settings.xml";

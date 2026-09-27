@@ -26,6 +26,13 @@ checker reports each by its number:
 3. **Proofing is never switched off.** No `<w:noProof/>` anywhere. The tool that
    squiggles Thai is the tool that breaks Thai lines. Hiding squiggles, when
    wanted, is the document setting `hideSpellingErrors` (0009).
+
+   > **Later (2026-09-27):** a run whose text holds no complex script breaks no
+   > Thai line, so the reason does not reach it. The build writes `<w:noProof/>`
+   > on code with no complex script in it — every identifier in it was underlined
+   > in every application — and `check` and `repair` leave the element on any run
+   > whose text holds none. In a style, a paragraph mark or a run of Thai it is
+   > still finding 3 (the review of 0.3.0, B-D2).
 4. **Contiguous text with the same formatting is one run.** Word does not break
    a Thai word across runs, so a run boundary inside a word shows up as spacing
    and wrapping errors exactly where inline formatting was.

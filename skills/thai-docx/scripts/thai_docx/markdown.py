@@ -36,7 +36,7 @@ import pathlib
 import re
 import unicodedata
 
-from .ooxml import THAI_MARKS, THAI_TONES, is_thai, unseen
+from .ooxml import THAI_MARKS, THAI_TONES, is_thai, joins, unseen
 
 ENTITIES: dict[str, str] = json.loads(
     (pathlib.Path(__file__).resolve().parent.parent.parent / "assets" / "entities.json").read_text(encoding="utf-8")
@@ -1928,8 +1928,8 @@ def parse(text: str) -> Document:
     long_sara_am: list[int] = []
     marks: list[tuple[int, str]] = []
     for no, ln in enumerate(text.split("\n"), 1):
-        for ch in ln:
-            label = forbidden_char(ch)
+        for i, ch in enumerate(ln):
+            label = None if joins(ln, i) else forbidden_char(ch)
             if label is not None:
                 raise Unsupported(no, f"text contains {label}; the build refuses it (ADR 0023, 0015)")
         # ำ written the long way. No normalisation joins these: NFC leaves them apart and NFKC

@@ -75,7 +75,8 @@ function script(ch) {
 function scriptRuns(text, before = "", after = "", thai = false) {
   const chars = Array.from(text);
   if (!chars.length) return [[false, ""]];
-  let marks = chars.map(script);
+  // a joiner between two letters of Persian or Devanagari is part of the word it joins (B-D1)
+  let marks = chars.map((ch, i) => (joins(chars, i) ? "C" : script(ch)));
   // punctuation takes Thai where the nearest letter on each side that has one is Thai
   const left = new Array(marks.length).fill(""), right = new Array(marks.length).fill("");
   let last = before;
@@ -269,10 +270,13 @@ class Writer {
   // same formatting is one run, and the checker holds the build to it. Under
   // --force-cs-whole-doc every stretch carries the same marker, so this puts the whole text back
   // into the one run releases before 0.2.0 wrote.
-  runs(text, props, before = "", after = "") {
+  // `proofless`, when given, is the properties of a stretch that holds no complex script: code,
+  // which no language proofs (B-D2).
+  runs(text, props, before = "", after = "", proofless = null) {
     const grouped = [];
     for (const [complexScript, piece] of scriptRuns(text, before, after, this.opts.thai_language)) {
-      const rpr = this.rpr((props || "") + this.marker(complexScript, !complexScript || Array.from(piece).some(isThai)));
+      const own = proofless === null || complexScript ? props || "" : proofless;
+      const rpr = this.rpr(own + this.marker(complexScript, !complexScript || Array.from(piece).some(isThai)));
       if (grouped.length && grouped[grouped.length - 1][0] === rpr) grouped[grouped.length - 1][1] += piece;
       else grouped.push([rpr, piece]);
     }
@@ -281,13 +285,14 @@ class Writer {
     ).join("");
   }
 
-  runProps(node, bold) {
+  runProps(node, bold, noProof = false) {
     const p = [];
     if (node.link) p.push('<w:rStyle w:val="Hyperlink"/>');
     if (node.code) p.push('<w:rFonts w:ascii="' + CODE_FONT + '" w:hAnsi="' + CODE_FONT + '" w:cs=' + attr(this.opts.font) + "/>");
     if (node.b || bold) p.push("<w:b/><w:bCs/>");
     if (node.i) p.push("<w:i/><w:iCs/>");
     if (node.strike) p.push("<w:strike/>");
+    if (noProof) p.push("<w:noProof/>");
     if (node.u) p.push('<w:u w:val="single"/>');
     if (node.sup) p.push('<w:vertAlign w:val="superscript"/>');
     else if (node.sub) p.push('<w:vertAlign w:val="subscript"/>');
@@ -295,7 +300,10 @@ class Writer {
   }
 
   textRun(node, bold, context = ["", ""]) {
-    return this.runs(node.s, this.runProps(node, bold), context[0], context[1]);
+    // code is proofed as no language, only where the text holds no complex script (writer.py's
+    // text_run says why; B-D2)
+    const proofless = node.code || node.no_proof ? this.runProps(node, bold, true) : null;
+    return this.runs(node.s, this.runProps(node, bold), context[0], context[1], proofless);
   }
 
   inlines(nodes, bold) {
@@ -615,7 +623,7 @@ class Writer {
       } else if (t === "code") {
         this.counts.code_blocks += 1;
         for (const line of b.lines.length ? b.lines : [""]) {
-          out.push(this.paragraph([{ t: "text", s: line }], "CodeBlock", ind));
+          out.push(this.paragraph([{ t: "text", s: line, no_proof: true }], "CodeBlock", ind));
         }
       } else if (t === "quote") {
         out.push(this.blocks(b.blocks, level, true));

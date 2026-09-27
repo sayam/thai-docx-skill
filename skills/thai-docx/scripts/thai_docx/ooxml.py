@@ -104,3 +104,23 @@ def is_complex(ch: str) -> bool:
 
 def is_thai(ch: str) -> bool:
     return "฀" <= ch <= "๿"
+
+
+# U+200C and U+200D are how Persian, Devanagari and the other complex scripts spell: a word
+# written with one needs it. Thai spells with neither (the review of 0.3.0, B-D1).
+JOINERS = "\u200c\u200d"
+
+
+def joins(text: str, i: int) -> bool:
+    """`text[i]` is a joiner between two letters of a complex script other than Thai, so it is
+    text, not an invisible character to refuse or report (ADR 0023, Later)."""
+    return (text[i] in JOINERS and 0 < i < len(text) - 1
+            and all(is_complex(c) and not is_thai(c) for c in (text[i - 1], text[i + 1])))
+
+
+def unseen_in(text: str) -> str | None:
+    """How the first invisible character in `text` is named — the five by name first, then any
+    other in text order — or None. A joiner that joins (`joins`) is not one."""
+    text = "".join(ch for i, ch in enumerate(text) if not joins(text, i))
+    named = next((label for ch, label in INVISIBLE.items() if ch in text), None)
+    return named if named is not None else next((n for n in map(unseen, text) if n is not None), None)

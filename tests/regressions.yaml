@@ -1228,3 +1228,24 @@
   found_by: review
   test:
     - tests/test_what_a_command_takes.py::test_repair_prints_the_same_line_in_both
+
+- id: V3-B-D1
+  what: Persian and Devanagari text that spells with U+200C or U+200D was refused, though 0.3.0 marks those scripts
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_joiner_between_letters_of_another_complex_script_is_kept
+
+- id: V3-B-D2
+  what: every identifier in a code span or block was underlined as a misspelling, in every application
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_code_with_no_complex_script_is_not_proofed
+
+- id: V3-B-D3
+  what: a screen reader is given paragraphs where a ready-to-use document writes a list, and nothing said which kind an accessible document needs
+  class: C1, C2
+  found_by: review
+  test:
+    - tests/test_rules.py::test_a_document_that_must_be_accessible_is_sent_to_auto_numbering

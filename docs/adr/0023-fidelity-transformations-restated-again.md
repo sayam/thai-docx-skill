@@ -42,6 +42,12 @@ flags, not the Markdown, and is outside this comparison; the checker still reads
 No invisible character is ever added: no U+200B, U+200C, U+200D, U+2060 or U+FEFF. The
 build checks all of this on every run and fails if it does not hold.
 
+> **Later (2026-09-27):** U+200C and U+200D between two letters of a complex script other than
+> Thai are text the user wrote, not a character added: Persian spells with the first, and
+> Devanagari shapes a half letter with the second. The build takes them there, writes them in the
+> run of the word they join, and `check` does not report them. In Thai, or beside anything else,
+> each is still refused and reported (the review of 0.3.0, B-D1).
+
 Left out on purpose, as in 0005 and 0016: zero-width spaces, or any other character, to
 steer Thai line breaking. Breaking Thai lines is left to the application's dictionary,
 reached through 0004.
