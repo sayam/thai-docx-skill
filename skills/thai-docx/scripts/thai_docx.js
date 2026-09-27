@@ -1149,6 +1149,28 @@ function isComplex(ch) {
   return COMPLEX_SCRIPT.some(([a, b]) => a <= cp && cp <= b);
 }
 
+// U+200C and U+200D between two letters of a complex script other than Thai: how Persian and
+// Devanagari spell, so text, not an invisible character (ooxml.py's joins; B-D1). `chars` is the
+// text as code points.
+const JOINERS = "\u200c\u200d";
+function joins(chars, i) {
+  return JOINERS.includes(chars[i]) && i > 0 && i < chars.length - 1 &&
+    [chars[i - 1], chars[i + 1]].every((c) => isComplex(c) && !isThai(c));
+}
+
+// How the first invisible character in `text` is named — the five by name first, then any other
+// in text order — or null. A joiner that joins is not one (ooxml.py's unseen_in).
+function unseenIn(text) {
+  const chars = Array.from(text);
+  const kept = chars.filter((ch, i) => !joins(chars, i)).join("");
+  for (const ch of Object.keys(INVISIBLE)) if (kept.indexOf(ch) !== -1) return INVISIBLE[ch];
+  for (const ch of kept) {
+    const label = unseen(ch);
+    if (label !== null) return label;
+  }
+  return null;
+}
+
 // How much of one code the JSON lists, and what a name taken from the file may show — check.py
 // says why (the review of 0.3.0, D-10, D-11).
 const LISTED = 20;
@@ -1526,21 +1548,7 @@ function checkTextPart(name, root, report, roles) {
           }
         }
         for (const t of texts) {
-          const text = t.text || "";
-          // the five by name first, as they always were; then any other in text order
-          let label = null;
-          for (const ch of Object.keys(INVISIBLE)) {
-            if (text.indexOf(ch) !== -1) {
-              label = INVISIBLE[ch];
-              break;
-            }
-          }
-          if (label === null) {
-            for (const ch of text) {
-              label = unseen(ch);
-              if (label !== null) break;
-            }
-          }
+          const label = unseenIn(t.text || "");
           if (label !== null) report.find("invisible", name, "text contains " + label);
         }
       }
@@ -1613,6 +1621,20 @@ function checkNumbering(name, root, report) {
 }
 
 // Check a package's bytes; `label` is what the report names as its file.
+// The <w:noProof/> of every run whose text holds no complex script: code, which the build writes
+// as no language (check.py's _proofless_code; B-D2).
+function prooflessCode(root) {
+  const out = new Set();
+  for (const run of root.iter(w("r"))) {
+    const rpr = run.find(w("rPr"));
+    if (rpr === null) continue;
+    let text = "";
+    for (const t of run.iter()) if (t.tag === w("t") || t.tag === w("delText")) text += t.text || "";
+    if (!Array.from(text).some(isComplex)) for (const el of rpr.findall(w("noProof"))) out.add(el);
+  }
+  return out;
+}
+
 function checkBytes(bytes, label) {
   const report = new Report(label);
   const read = readParts(bytes, report);
@@ -1645,8 +1667,9 @@ function checkBytes(bytes, label) {
   const named = new Set([roles.styles, roles.numbering, roles.settings, ...roles.text].filter((n) => n !== null));
   for (const [name, root] of trees) {
     if (!name.startsWith("word/") && !named.has(name)) continue;
+    const code = prooflessCode(root);
     let off = true;
-    for (const el of root.iter(w("noProof"))) if (isOn(el)) off = false;
+    for (const el of root.iter(w("noProof"))) if (isOn(el) && !code.has(el)) off = false;
     if (!off) report.find("3", name, "<w:noProof/> switches Thai proofing — and Thai line breaking — off");
   }
   const settings = roles.settings || "word/settings.xml";
@@ -3558,8 +3581,9 @@ function parseMarkdown(text) {
   const longSaraAm = [];
   const marks = [];
   for (let no = 1; no <= rawLines.length; no++) {
-    for (const ch of rawLines[no - 1]) {
-      const label = forbiddenChar(ch);
+    const chars = Array.from(rawLines[no - 1]);
+    for (let i = 0; i < chars.length; i++) {
+      const label = joins(chars, i) ? null : forbiddenChar(chars[i]);
       if (label !== null) throw new Unsupported(no, "text contains " + label + "; the build refuses it (ADR 0023, 0015)");
     }
     // ำ written the long way. No normalisation joins these: NFC leaves them apart and NFKC
@@ -4745,7 +4769,8 @@ function script(ch) {
 function scriptRuns(text, before = "", after = "", thai = false) {
   const chars = Array.from(text);
   if (!chars.length) return [[false, ""]];
-  let marks = chars.map(script);
+  // a joiner between two letters of Persian or Devanagari is part of the word it joins (B-D1)
+  let marks = chars.map((ch, i) => (joins(chars, i) ? "C" : script(ch)));
   // punctuation takes Thai where the nearest letter on each side that has one is Thai
   const left = new Array(marks.length).fill(""), right = new Array(marks.length).fill("");
   let last = before;
@@ -4939,10 +4964,13 @@ class Writer {
   // same formatting is one run, and the checker holds the build to it. Under
   // --force-cs-whole-doc every stretch carries the same marker, so this puts the whole text back
   // into the one run releases before 0.2.0 wrote.
-  runs(text, props, before = "", after = "") {
+  // `proofless`, when given, is the properties of a stretch that holds no complex script: code,
+  // which no language proofs (B-D2).
+  runs(text, props, before = "", after = "", proofless = null) {
     const grouped = [];
     for (const [complexScript, piece] of scriptRuns(text, before, after, this.opts.thai_language)) {
-      const rpr = this.rpr((props || "") + this.marker(complexScript, !complexScript || Array.from(piece).some(isThai)));
+      const own = proofless === null || complexScript ? props || "" : proofless;
+      const rpr = this.rpr(own + this.marker(complexScript, !complexScript || Array.from(piece).some(isThai)));
       if (grouped.length && grouped[grouped.length - 1][0] === rpr) grouped[grouped.length - 1][1] += piece;
       else grouped.push([rpr, piece]);
     }
@@ -4951,13 +4979,14 @@ class Writer {
     ).join("");
   }
 
-  runProps(node, bold) {
+  runProps(node, bold, noProof = false) {
     const p = [];
     if (node.link) p.push('<w:rStyle w:val="Hyperlink"/>');
     if (node.code) p.push('<w:rFonts w:ascii="' + CODE_FONT + '" w:hAnsi="' + CODE_FONT + '" w:cs=' + attr(this.opts.font) + "/>");
     if (node.b || bold) p.push("<w:b/><w:bCs/>");
     if (node.i) p.push("<w:i/><w:iCs/>");
     if (node.strike) p.push("<w:strike/>");
+    if (noProof) p.push("<w:noProof/>");
     if (node.u) p.push('<w:u w:val="single"/>');
     if (node.sup) p.push('<w:vertAlign w:val="superscript"/>');
     else if (node.sub) p.push('<w:vertAlign w:val="subscript"/>');
@@ -4965,7 +4994,10 @@ class Writer {
   }
 
   textRun(node, bold, context = ["", ""]) {
-    return this.runs(node.s, this.runProps(node, bold), context[0], context[1]);
+    // code is proofed as no language, only where the text holds no complex script (writer.py's
+    // text_run says why; B-D2)
+    const proofless = node.code || node.no_proof ? this.runProps(node, bold, true) : null;
+    return this.runs(node.s, this.runProps(node, bold), context[0], context[1], proofless);
   }
 
   inlines(nodes, bold) {
@@ -5285,7 +5317,7 @@ class Writer {
       } else if (t === "code") {
         this.counts.code_blocks += 1;
         for (const line of b.lines.length ? b.lines : [""]) {
-          out.push(this.paragraph([{ t: "text", s: line }], "CodeBlock", ind));
+          out.push(this.paragraph([{ t: "text", s: line, no_proof: true }], "CodeBlock", ind));
         }
       } else if (t === "quote") {
         out.push(this.blocks(b.blocks, level, true));
@@ -6143,12 +6175,30 @@ function saysOff(tag) {
   return value !== undefined && OFF.has(value);
 }
 
+// Where the run properties of every run whose text holds no complex script are: code, whose
+// <w:noProof/> the checker does not report (repair.py's _proofless_code; B-D2).
+function prooflessSpans(xml) {
+  const spans = [];
+  const re = new RegExp(RE_RUN_START.source, "g");
+  for (let m = re.exec(xml); m !== null; m = re.exec(xml)) {
+    if (m[1]) continue;
+    const startEnd = m.index + m[0].length;
+    const inner = xml.slice(startEnd, endOf(xml, startEnd, "w:r")[0]);
+    const rpr = new RegExp("^<w:rPr" + ATTRS + "(\\/?)>").exec(inner);
+    if (rpr === null || rpr[1] || Array.from(runText(inner)).some(isComplex)) continue;
+    spans.push([startEnd + rpr[0].length, startEnd + endOf(inner, rpr[0].length, "w:rPr")[0]]);
+  }
+  return spans;
+}
+
 // Every <w:noProof/> that switches proofing off gone. Removing it leaves the default, which is
-// proofing on; one that says w:val="0" says that already, and stays.
+// proofing on; one that says w:val="0" says that already, and stays, and so does one on code.
 function removeNoProof(xml) {
   let count = 0;
-  const out = xml.replace(RE_NO_PROOF, (found) => {
-    if (saysOff(found)) return found;
+  const code = prooflessSpans(xml);
+  const out = xml.replace(RE_NO_PROOF, (found, ...rest) => {
+    const at = rest[rest.length - 2];
+    if (saysOff(found) || code.some(([a, b]) => a <= at && at < b)) return found;
     count += 1;
     return "";
   });

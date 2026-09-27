@@ -153,7 +153,7 @@ def test_a_part_holding_a_comment_or_cdata_is_left_as_it_came(tmp_path):
     parts = good()
     parts["word/header1.xml"] = (
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:hdr xmlns:w="' + W_URI + '">'
-        "<w:p><w:r><w:rPr><w:noProof/></w:rPr><w:t><![CDATA[a<b ]]></w:t></w:r></w:p><!-- <w:r> --></w:hdr>")
+        "<w:p><w:r><w:rPr><w:noProof/><w:cs/></w:rPr><w:t><![CDATA[ก<ข ]]></w:t></w:r></w:p><!-- <w:r> --></w:hdr>")
     parts["word/document.xml"] = parts["word/document.xml"].replace("<w:rPr>", "<w:rPr><w:noProof/>", 1)
     (tmp_path / "in.docx").write_bytes(pack(parts))
     header = part(tmp_path / "in.docx", "word/header1.xml")

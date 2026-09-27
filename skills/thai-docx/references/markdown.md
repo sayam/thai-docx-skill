@@ -25,7 +25,9 @@ footnotes.
   One of those five alone on its own line is an HTML block, and stops it too: write it on the
   line with the words around it.
 - **Characters a reader cannot see** stop the build with their line: the zero-width five, a soft
-  hyphen, a direction mark, any other format character, and noncharacters.
+  hyphen, a direction mark, any other format character, and noncharacters. U+200C and U+200D
+  typed between two letters of a complex script other than Thai are text: Persian and Devanagari
+  spell with them.
 - **Math:** `$…$` and `$$…$$` stay literal LaTeX in code formatting, with a warning.
 - **Front matter:** only flat `key: value` lines between `---` lines at the very top;
   `title` and `author` become the document properties, `heading-1` … `heading-6` style

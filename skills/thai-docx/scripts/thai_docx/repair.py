@@ -86,14 +86,33 @@ def _off(tag: bytes) -> bool:
     return value is not None and value.decode("utf-8", "replace") in ooxml.OFF
 
 
+def _proofless_code(xml: bytes) -> list[tuple[int, int]]:
+    """Where the run properties of every run whose text holds no complex script are: code, whose
+    <w:noProof/> the checker does not report (check._proofless_code says why, B-D2)."""
+    spans = []
+    for m in RUN_START.finditer(xml):
+        if m.group(1):
+            continue
+        inner_end, _ = _end_of(xml, m.end(), b"w:r")
+        inner = xml[m.end():inner_end]
+        rpr = RPR_START.match(inner)
+        if rpr is None or rpr.group(1) or any(is_complex(ch) for ch in _run_text(inner)):
+            continue
+        body_end, _ = _end_of(inner, rpr.end(), b"w:rPr")
+        spans.append((m.end() + rpr.end(), m.end() + body_end))
+    return spans
+
+
 def remove_no_proof(xml: bytes) -> tuple[bytes, int]:
     """Every <w:noProof/> that switches proofing off gone. Removing it leaves the default, which
-    is proofing on; one that says `w:val="0"` says that already, and stays."""
+    is proofing on; one that says `w:val="0"` says that already, and stays, and so does one on
+    code (`_proofless_code`)."""
     count = 0
+    code = _proofless_code(xml)
 
     def drop(m: re.Match) -> bytes:
         nonlocal count
-        if _off(m.group(0)):
+        if _off(m.group(0)) or any(a <= m.start() < b for a, b in code):
             return m.group(0)
         count += 1
         return b""

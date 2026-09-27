@@ -46,12 +46,30 @@ function saysOff(tag) {
   return value !== undefined && OFF.has(value);
 }
 
+// Where the run properties of every run whose text holds no complex script are: code, whose
+// <w:noProof/> the checker does not report (repair.py's _proofless_code; B-D2).
+function prooflessSpans(xml) {
+  const spans = [];
+  const re = new RegExp(RE_RUN_START.source, "g");
+  for (let m = re.exec(xml); m !== null; m = re.exec(xml)) {
+    if (m[1]) continue;
+    const startEnd = m.index + m[0].length;
+    const inner = xml.slice(startEnd, endOf(xml, startEnd, "w:r")[0]);
+    const rpr = new RegExp("^<w:rPr" + ATTRS + "(\\/?)>").exec(inner);
+    if (rpr === null || rpr[1] || Array.from(runText(inner)).some(isComplex)) continue;
+    spans.push([startEnd + rpr[0].length, startEnd + endOf(inner, rpr[0].length, "w:rPr")[0]]);
+  }
+  return spans;
+}
+
 // Every <w:noProof/> that switches proofing off gone. Removing it leaves the default, which is
-// proofing on; one that says w:val="0" says that already, and stays.
+// proofing on; one that says w:val="0" says that already, and stays, and so does one on code.
 function removeNoProof(xml) {
   let count = 0;
-  const out = xml.replace(RE_NO_PROOF, (found) => {
-    if (saysOff(found)) return found;
+  const code = prooflessSpans(xml);
+  const out = xml.replace(RE_NO_PROOF, (found, ...rest) => {
+    const at = rest[rest.length - 2];
+    if (saysOff(found) || code.some(([a, b]) => a <= at && at < b)) return found;
     count += 1;
     return "";
   });

@@ -12,7 +12,7 @@ import re
 import struct
 
 from . import markdown as md
-from .ooxml import PUNCTUATION, THAI_MARKS, is_complex, is_thai
+from .ooxml import PUNCTUATION, THAI_MARKS, is_complex, is_thai, joins
 from .layout import (CAPTION_STYLE, SECTION_MARK, caption_text, chapter_title, has_thai, heading_styles, image_only, layout,
                      list_entries, list_field, number_text)
 from .settings import MIN_CAPTION_TWIPS, MIN_TEXT_TWIPS, BuildError, half_up, page_size
@@ -96,7 +96,8 @@ def script_runs(text: str, before: str = "", after: str = "", thai: bool = False
     """
     if not text:
         return [(False, "")]
-    marks = [_script(ch) for ch in text]
+    # a joiner between two letters of Persian or Devanagari is part of the word it joins (B-D1)
+    marks = ["C" if joins(text, i) else _script(ch) for i, ch in enumerate(text)]
     # punctuation takes Thai where the nearest letter on each side that has one is Thai
     left, right, last = [""] * len(marks), [""] * len(marks), before
     for i, m in enumerate(marks):
@@ -270,17 +271,21 @@ class Writer:
         """A run's properties, or nothing at all rather than an empty element."""
         return "<w:rPr>" + props + "</w:rPr>" if props else ""
 
-    def runs(self, text: str, props: str = "", before: str = "", after: str = "") -> str:
+    def runs(self, text: str, props: str = "", before: str = "", after: str = "", proofless: str | None = None) -> str:
         """`text` as runs, one per stretch of a single script (ADR 0039).
 
         Two stretches that end up with the same run properties are one run again: cause 4 of
         ADR 0004 says contiguous text with the same formatting is one run, and the checker holds
         the build to it. Under --force-cs-whole-doc every stretch carries the same marker, so
         this puts the whole text back into the one run releases before 0.2.0 wrote.
+
+        `proofless`, when given, is the properties of a stretch that holds no complex script:
+        code, which no language proofs (B-D2).
         """
         grouped: list[list] = []
         for complex_script, piece in script_runs(text, before, after, self.opts["thai_language"]):
-            rpr = self.rpr(props + self.marker(complex_script, not complex_script or any(is_thai(c) for c in piece)))
+            own = props if proofless is None or complex_script else proofless
+            rpr = self.rpr(own + self.marker(complex_script, not complex_script or any(is_thai(c) for c in piece)))
             if grouped and grouped[-1][0] == rpr:
                 grouped[-1][1] += piece
             else:
@@ -291,7 +296,7 @@ class Writer:
             out.append("<w:r>" + rpr + body + "</w:r>")
         return "".join(out)
 
-    def run_props(self, node: dict, bold: bool = False) -> str:
+    def run_props(self, node: dict, bold: bool = False, no_proof: bool = False) -> str:
         p = []
         if node.get("link"):
             p.append('<w:rStyle w:val="Hyperlink"/>')
@@ -303,6 +308,8 @@ class Writer:
             p.append("<w:i/><w:iCs/>")
         if node.get("strike"):
             p.append("<w:strike/>")
+        if no_proof:
+            p.append("<w:noProof/>")
         if node.get("u"):
             p.append('<w:u w:val="single"/>')
         if node.get("sup"):
@@ -312,7 +319,11 @@ class Writer:
         return "".join(p)
 
     def text_run(self, node: dict, bold: bool = False, context: tuple[str, str] = ("", "")) -> str:
-        return self.runs(node["s"], self.run_props(node, bold), *context)
+        # code is proofed as no language: a spelling checker underlines every identifier in it,
+        # in every application. Only where the text holds no complex script, because proofing
+        # off is Thai line breaking off too (ADR 0004, cause 3; the review of 0.3.0, B-D2)
+        proofless = self.run_props(node, bold, True) if node.get("code") or node.get("no_proof") else None
+        return self.runs(node["s"], self.run_props(node, bold), *context, proofless=proofless)
 
     def inlines(self, nodes: list[dict], bold: bool = False) -> str:
         # each text node's nearest letters outside it in the paragraph, through the text nodes
@@ -651,7 +662,7 @@ class Writer:
             elif t == "code":
                 self.counts["code_blocks"] += 1
                 for line in b["lines"] or [""]:
-                    out.append(self.paragraph([{"t": "text", "s": line}], "CodeBlock", ind))
+                    out.append(self.paragraph([{"t": "text", "s": line, "no_proof": True}], "CodeBlock", ind))
             elif t == "quote":
                 out.append(self.blocks(b["blocks"], level, quote=True))
             elif t == "break":

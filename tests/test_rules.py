@@ -237,3 +237,14 @@ def test_what_the_review_found_the_pages_left_out_they_now_say():
     assert "NFC" in flat("skills/thai-docx/references/limits.md").split("## 11.", 1)[1]
     assert "อย่าใช้ thai-docx grill" in flat("docs/guide/th/troubleshooting.md")
     assert "don't use thai-docx grill" in flat("docs/guide/en/troubleshooting.md")
+
+
+def test_a_document_that_must_be_accessible_is_sent_to_auto_numbering():
+    """B-D3: ADR 0036 weighed five applications and not a screen reader, which is given paragraphs
+    where the ready-to-use document writes a list's numbers as text. The limits say which kind a
+    document held to an accessibility standard is built as, and ADR 0036 records the tradeoff."""
+    flat = lambda path: " ".join((ROOT / path).read_text(encoding="utf-8").split())  # noqa: E731
+    section = flat("skills/thai-docx/references/limits.md").split("## 2.", 1)[1].split("## 3.", 1)[0]
+    assert "must meet an accessibility standard is built with `--auto-numbering`" in section
+    adr = flat("docs/adr/0036-who-counts-is-one-switch.md")
+    assert "screen reader" in adr and "NVDA" in adr

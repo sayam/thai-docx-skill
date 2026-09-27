@@ -51,6 +51,12 @@ numbering on top, so that a Word user can go on with Word's own tools: heading n
 follows what they type, References → Insert Caption offering this document's labels, the three
 lists updating from what is there. Every setting works in both kinds; only the numbering differs.
 
+**What a screen reader is given.** In a ready-to-use document a list's numbers and bullets are
+text, so the file gives a screen reader a paragraph, not a list item; with `--auto-numbering` it
+is a list in Word's own numbering. A task item's box is the character □ or ■ in both kinds, which
+a screen reader names as a character, not as checked or unchecked. **A document that must meet an
+accessibility standard is built with `--auto-numbering`.** Neither was measured with NVDA or JAWS.
+
 ## 3. What the reader must do after opening the file
 
 - **Update the fields to get page numbers in the three lists.** The table of contents, list of
@@ -175,7 +181,10 @@ Two that belong to the applications' proofing, read on 0.3.0's bytes (2026-09-27
 
 - **A correctly spelled word the dictionary lacks is underlined**: ฟอนต์, อัปเดต, วิทยาศาสตรมหาบัณฑิต,
   Ecma, CommonMark, and the words of code, in Word 365 for Windows, Word for macOS and LibreOffice
-  Writer. The file names the language rightly; the dictionary does not hold the word.
+  Writer. The file names the language rightly; the dictionary does not hold the word. Since that
+  reading, code whose text holds no Thai or other complex script is written with proofing off
+  (`<w:noProof/>`), so its words are not checked at all; code with Thai in it is proofed still,
+  because proofing off is Thai line breaking off too.
 - **`--hide-spelling-errors` is not honoured everywhere.** Word 365 for Windows reads it — File →
   Options → Proofing shows *Hide spelling errors in this document only* ticked — and still draws
   the squiggles; LibreOffice Writer draws them too. Word for macOS, WPS Writer and Google Docs
@@ -224,7 +233,8 @@ was published here in error.
 **Refused — no file is written, and the line is named (for a picture, its path):** any HTML but `<br> <sup> <sub> <u>
 <kbd>` — and one of those alone on its own line, which is an HTML block; a character a reader
 cannot see — a zero-width character, a soft hyphen, a direction mark or any other format
-character, or a noncharacter; a link to anything but `http`, `https` or `mailto` (a link with no
+character, or a noncharacter — but for U+200C and U+200D between two letters of a complex script
+other than Thai, which is how Persian and Devanagari spell, and which Thai never needs; a link to anything but `http`, `https` or `mailto` (a link with no
 scheme, `#top` or `other.docx`, is written as before); nesting past 100 deep; a footnote defined and never
 referenced, or defined twice; an image that is not PNG or JPEG by its bytes, is truncated, is
 remote (a URL; a drive path such as `C:\…` is a path, and read as one), is wider or taller than
@@ -272,7 +282,8 @@ was written, do not retry, quote the codes.
 script, and take the marker off where it is not** — off the document defaults and the styles too,
 without which a run that leaves it off only inherits it again; **cut a run that holds both scripts
 where the script changes**, so the English inside a Thai sentence stops being proofed with a
-complex-script dictionary; remove `noProof`; write the missing twin of a size, bold or italic;
+complex-script dictionary; remove `noProof` — but from a run whose text holds no complex script,
+which is how the build writes code; write the missing twin of a size, bold or italic;
 give a run that names only a Latin font a complex-script one; give a Symbol bullet a font with Thai
 in it; put properties back into schema order. `--force-cs-whole-doc` marks every run instead and cuts nothing — in a file it repairs for another finding — which is the shape
 releases before 0.2.0 wrote.

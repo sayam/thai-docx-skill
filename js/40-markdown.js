@@ -1825,8 +1825,9 @@ function parseMarkdown(text) {
   const longSaraAm = [];
   const marks = [];
   for (let no = 1; no <= rawLines.length; no++) {
-    for (const ch of rawLines[no - 1]) {
-      const label = forbiddenChar(ch);
+    const chars = Array.from(rawLines[no - 1]);
+    for (let i = 0; i < chars.length; i++) {
+      const label = joins(chars, i) ? null : forbiddenChar(chars[i]);
       if (label !== null) throw new Unsupported(no, "text contains " + label + "; the build refuses it (ADR 0023, 0015)");
     }
     // ำ written the long way. No normalisation joins these: NFC leaves them apart and NFKC

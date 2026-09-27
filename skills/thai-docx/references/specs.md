@@ -128,7 +128,8 @@ It stops rather than writes a file it is unsure of, and names the line — for a
   comment on its line;
 - a link to anything but `http`, `https` or `mailto` (a link with no scheme is written as it is);
 - a character a reader cannot see: a zero-width character, a soft hyphen, a direction mark, any
-  other format character, a noncharacter;
+  other format character, a noncharacter — but for U+200C and U+200D between two letters of a
+  complex script other than Thai;
 - blocks or inline formatting nested more than 100 deep;
 - a footnote defined but never referenced, or defined twice; a table row with more cells than its
   header; region comments out of order or twice;

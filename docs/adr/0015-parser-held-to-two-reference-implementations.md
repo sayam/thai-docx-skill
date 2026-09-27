@@ -76,6 +76,9 @@ cmark-gfm decides:
 - A numeric reference to 0, a surrogate, or anything past U+10FFFF becomes
   U+FFFD. One to a control character, a noncharacter or a line feed stops the
   build, as the same characters typed directly do. A tab is kept.
+  > **Later (2026-09-27):** a joiner typed between two letters of a complex script other than
+  > Thai is taken (ADR 0023, Later); one written as a numeric reference is still refused, since
+  > the reference is read before the letters around it.
 - Front matter is recognised only as `key: value` lines between `---` fences.
 - Rounding is half-up, escaping is spelled out, and every message and flag
   error is fixed text. No `argparse`, whose errors go to stderr.

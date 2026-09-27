@@ -63,6 +63,22 @@ quotation. What the five applications draw is read on these bytes before the tag
   recorded, not closed
   ([record](docs/evidence/2026-09-26-model-equivalence-on-the-0.3.0-skill-md.md)).
 
+- Code with no complex script in it — a code span, a line of a code block — is written with
+  proofing off (`<w:noProof/>`): every identifier in it was underlined in every application. Code
+  with Thai in it is proofed still, since proofing off is Thai line breaking off too; `check` and
+  `repair` leave the element on a run whose text holds no complex script, and report and remove it
+  anywhere else. **This moves the bytes of every golden**, each holding code
+  (`tests/test_build_writes_what_it_was_given.py::test_code_with_no_complex_script_is_not_proofed`).
+- U+200C and U+200D between two letters of a complex script other than Thai are text — Persian
+  spells with the first, Devanagari shapes a half letter with the second — and were refused. The
+  build takes them there and writes them in the run of the word they join, and `check` does not
+  report them; in Thai, or beside anything else, each is refused as before
+  (`tests/test_build_writes_what_it_was_given.py::test_a_joiner_between_letters_of_another_complex_script_is_kept`).
+- The limits and ADR 0036 say what a screen reader is given: in a ready-to-use document a list's
+  numbers are text, so it hears paragraphs, not list items, and a task box is named as a character
+  in both kinds. A document that must meet an accessibility standard is built with
+  `--auto-numbering` (`tests/test_rules.py::test_a_document_that_must_be_accessible_is_sent_to_auto_numbering`).
+
 ### Fixed
 
 - A Thai mark with no letter before it (`นำ้`) and a letter with two tone marks went through in
