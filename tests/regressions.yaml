@@ -1249,3 +1249,10 @@
   found_by: review
   test:
     - tests/test_rules.py::test_a_document_that_must_be_accessible_is_sent_to_auto_numbering
+
+- id: RD-02
+  what: under --align thai a narrow table cell spread its letters across the cell ("ส ั ญ ล ั ก ษ ณ์"), the thesis profile's tables in Word 365 for Windows
+  class: C1, C2
+  found_by: office-app
+  test:
+    - tests/test_build.py::test_thai_distributed_is_for_the_body_and_never_inside_a_box

@@ -5232,7 +5232,8 @@ class Writer {
     const attrs = (boxLeft + hang ? ' w:left="' + (boxLeft + hang) + '"' : "") + (boxRight ? ' w:right="' + boxRight + '"' : "");
     const ind = attrs || hang ? "<w:ind" + attrs + (hang ? ' w:hanging="' + hang + '"' : "") + "/>" : "";
     let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + ind +
-      (c.kind === "figure" && !boxed ? '<w:jc w:val="center"/>' : "");
+      (c.kind === "figure" && !boxed ? '<w:jc w:val="center"/>' : "") +
+      (boxed && this.boxJc(null) ? '<w:jc w:val="' + this.boxJc(null) + '"/>' : "");
     ppr += this.latinJc(ppr, captionText(c));
     const rest = c.inlines;
     if (!this.numbersAreText()) {
@@ -5268,9 +5269,19 @@ class Writer {
   // picture: a table is written at the full width of the text, so its caption already ends
   // where it does. The width is the one the image was drawn at, and never less than 3 inches
   // (or the text width where that is less); where --center-images centres the picture the slack
-  // is split, so the box is centred with it. A caption in a box aligns as the body does.
+  // is split, so the box is centred with it. A caption in a box starts where the picture does,
+  // not centred, and is justified at the spaces between words under --align thai (boxJc).
   // A box that hang leaves less than an inch gives its caption the text width instead, and says
   // so (writer.py's caption_box says why).
+  // A paragraph inside a box — a table cell, a caption boxed to its picture: the column's own
+  // centre or right, and otherwise, under --align thai, justified at the spaces between words;
+  // Thai distributed alignment is for the body's paragraphs alone (writer.py's box_jc says why).
+  boxJc(jc) {
+    if (jc === "center" || jc === "right") return jc;
+    if (this.opts.align !== "thai") return null;
+    return jc === "left" ? "left" : "both";
+  }
+
   captionBox(c, hang, line) {
     // under more than one picture the caption fills the text width (writer.py says why: B-07)
     if (!(this.opts.caption_matches_object && c.kind === "figure" && this.imageTwips) || this.captionPictures > 1) return [0, 0, false];
@@ -5412,9 +5423,9 @@ class Writer {
     b.rows.forEach((row, ri) => {
       this.counts.table_rows += 1;
       const cells = row.map((cell, ci) => {
-        const jc = b.aligns[ci];
+        const jc = this.boxJc(b.aligns[ci]);
         // no space after: the body's 6 pt would leave every row taller than its text
-        const ppr = (this.opts.table_size !== null ? '<w:pStyle w:val="TableText"/>' : "") + '<w:spacing w:after="0"/>' + (jc === "center" || jc === "right" ? '<w:jc w:val="' + jc + '"/>' : "");
+        const ppr = (this.opts.table_size !== null ? '<w:pStyle w:val="TableText"/>' : "") + '<w:spacing w:after="0"/>' + (jc ? '<w:jc w:val="' + jc + '"/>' : "");
         // a picture in a cell is drawn no wider than the cell, less its margins (B-06)
         this.indentTwips = this.textWidthTwips - widths[ci] + 216;
         const cellXml = this.paragraph(cell, null, ppr, ri === 0);

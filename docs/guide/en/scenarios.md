@@ -124,7 +124,7 @@ What you can ask for:
 | other margins | "1 inch margins all round" |
 | a first-line indent | "indent the first line 0.5 inch" (body paragraphs only) |
 | more space between lines | "line spacing 1.5" (code and footnotes stay single) |
-| Thai text spread to fill each line | "Thai distributed alignment" (a paragraph with no Thai stays left) |
+| Thai text spread to fill each line | "Thai distributed alignment" (body paragraphs only: a paragraph with no Thai stays left, and table cells are justified at the spaces between words) |
 | a table of contents | "add a table of contents" |
 | numbered headings (1., 1.1, 1.1.1) | "number the headings" |
 | page numbers | "add page numbers" (top right), "page numbers at the top center" or "at the bottom center" |

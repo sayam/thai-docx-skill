@@ -57,6 +57,13 @@ for body paragraphs, list items, quotations, footnotes, table cells, captions an
 written into a list; a paragraph that already sets its own alignment keeps it. Alignment
 only: not one character changes (0023).
 
+> **Later (2026-09-27):** Thai distributed alignment is for the paragraphs of the body alone — the
+> maintainer's decision, after Word 365 for Windows spread the letters of a narrow table cell apart
+> ("ส ั ญ ล ั ก ษ ณ์"). Inside a box — a table cell, a caption boxed to its picture, and any text box
+> or other two-dimensional box the build comes to write — a paragraph is justified at the spaces
+> between words (`both`), never distributed; a column marked left, centred or right keeps its mark.
+> The sentence above no longer holds for table cells and boxed captions.
+
 **A chapter title may start its own line.** `--chapter-title-on-new-line` puts a line break
 before the heading's own text in the chapters and the appendices, so the number Word writes
 ("บทที่ 1", "ภาคผนวก ก") keeps the first line and the title starts the next, as a Thai thesis

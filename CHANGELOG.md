@@ -27,12 +27,23 @@ quotation. What the five applications draw is read on these bytes before the tag
 ### Changed
 
 - The `thesis` profile centres a picture that stands alone on its line and boxes its caption to the
-  picture: the caption starts and ends where the picture does, aligns as the body does, and is
-  never narrower than 3 inches. `--caption-matches-object` does the same without the profile; a
+  picture: the caption starts and ends where the picture does, starts at the picture's left edge,
+  and is never narrower than 3 inches. `--caption-matches-object` does the same without the profile; a
   small picture's caption, which took the text width, now takes 3 inches, and the build warns only
   where `--caption-hanging-indent` leaves the box less than an inch. A table's caption keeps the
   table's full width
   (`tests/test_build_writes_what_it_was_given.py::test_the_thesis_profile_boxes_a_caption_with_its_picture`).
+- `--align thai` is for the paragraphs of the body alone. Thai distributed alignment spreads the
+  letters of a line that holds less text than its width, and Word 365 for Windows drew a narrow
+  table cell as "ส ั ญ ล ั ก ษ ณ์"; a table cell and a caption boxed to its picture are now justified
+  at the spaces between words, and a column marked left, centred or right keeps its mark. **This
+  moves the bytes of every golden built with `--align thai`** (`sample-all-flags`, `thesis-options`,
+  `thesis-auto`, `thesis-profile`): a `<w:jc>` on those paragraphs, nothing else
+  (`tests/test_build.py::test_thai_distributed_is_for_the_body_and_never_inside_a_box`).
+- The release oracle opens the `thesis` profile (`sample-thesis`, golden `thesis-profile`) on two
+  pictures narrower than the text, 2.5 and 4.17 inches wide, in place of the second use of
+  `chart.png` and `flow.png`, which moves the four thesis goldens
+  ([record](docs/evidence/2026-09-27-the-thesis-profile-in-the-oracle-set.md)).
 - Read in the five applications on these bytes, every file passing in each
   ([record](docs/evidence/2026-09-27-what-v0.3.0-was-read-in.md)). The limits add what the
   applications' proofing does: a correctly spelled word their dictionary lacks is underlined in
