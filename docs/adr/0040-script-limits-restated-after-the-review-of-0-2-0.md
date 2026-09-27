@@ -62,7 +62,8 @@ unchanged.
    > name is never written through; the output path is then replaced by it, so a link at the output
    > path is replaced rather than followed, and a write cut short leaves the old file whole. An
    > output path that is a directory, a FIFO, a device or a socket is refused before anything is
-   > opened.
+   > opened. A new file is created readable by its owner alone (`0600`); a file replaced keeps its
+   > permissions.
 4. **Reads** only regular files — judged on the file once opened, opened without waiting, so a FIFO
    cannot hang the open and nothing changes between the look and the read — each with a ceiling it
    checks by reading one byte past it rather than by asking the size first:

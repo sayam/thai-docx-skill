@@ -43,7 +43,8 @@ def write_whole(path: str, data: bytes) -> None:
     file that was there as it was, and a link at the path is replaced, not followed. A path
     that is a directory, a FIFO, a device or a socket is refused before anything is opened: a
     FIFO would hold the command until something read it (the review of 0.3.0: D-02, F-02,
-    F-03, D-14)."""
+    F-03, D-14). A new file is readable by its owner alone; a file replaced keeps the
+    permissions it had."""
     try:
         mode = os.lstat(path).st_mode
     except FileNotFoundError:
@@ -58,8 +59,10 @@ def write_whole(path: str, data: bytes) -> None:
     except OSError:
         pass  # none there; or one that cannot be removed, which the exclusive open below refuses
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
-    fd = os.open(partial, flags, 0o644)  # what a umask of 022 would leave; never writable by others
+    fd = os.open(partial, flags, 0o600)  # the user's alone, until it takes a file's place
     try:
+        if mode is not None and stat.S_ISREG(mode) and hasattr(os, "fchmod"):
+            os.fchmod(fd, stat.S_IMODE(mode))  # a file replaced keeps the permissions it had
         with os.fdopen(fd, "wb") as f:
             f.write(data)
         os.replace(partial, path)
