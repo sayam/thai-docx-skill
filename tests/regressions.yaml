@@ -1135,3 +1135,32 @@
   found_by: review
   test:
     - tests/test_build_writes_what_it_was_given.py::test_a_profile_setting_that_changed_nothing_is_not_said
+
+- id: V3-E-01
+  what: a grill phrase between the first and last 20,000 characters of a long message was read by neither of the agent's two calls, in silence
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_phrase_past_the_first_20000_characters_is_found_in_the_last
+    - tests/test_grill.py::test_a_message_read_only_in_part_says_so
+
+- id: V3-E-02
+  what: asked to change the font without saying which, an agent chose one and reported it as asked for
+  class: C1, C2
+  found_by: agent-run
+  test:
+    - tests/test_skill_md.py::test_skill_md_says_what_agents_missed_in_the_review_of_0_3_0
+
+- id: V3-E-03
+  what: after repair an agent did not tell the user that page breaks may move or which font repair chose
+  class: C1, C2
+  found_by: agent-run
+  test:
+    - tests/test_skill_md.py::test_skill_md_says_what_agents_missed_in_the_review_of_0_3_0
+
+- id: V3-E-04
+  what: SKILL.md taught the POSIX quote for grill --said only, which PowerShell reads differently
+  class: C1, C2
+  found_by: review
+  test:
+    - tests/test_skill_md.py::test_skill_md_says_what_agents_missed_in_the_review_of_0_3_0

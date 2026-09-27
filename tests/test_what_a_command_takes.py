@@ -512,13 +512,12 @@ def test_an_extended_autolink_is_found_as_cmark_gfm_finds_it(tmp_path):
 
 def test_a_phrase_past_the_first_20000_characters_is_found_in_the_last(tmp_path):
     """E-23: the phrase at the end of a long message was never read, and the agent built at once.
-    SKILL.md now has it run the command again on the message's last 20,000 characters; this
-    holds that the second run finds the phrase and the first says why to make it."""
-    message = "ก" * 20001 + " thai-docx grill"
-    code, first = both(["grill", "--said", message], tmp_path)
-    assert first["mode"] == "build" and any("may be among them" in w for w in first["warnings"]), first
-    code, again = both(["grill", "--said", message[-20000:]], tmp_path)
-    assert code == 0 and again["mode"] == "grill", again
+    The command reads the first and the last 20,000 characters itself (E-01, the review of 0.3.0):
+    the agent's second call on the last part left a phrase between the two unread, in silence."""
+    code, found = both(["grill", "--said", "ก" * 20001 + " thai-docx grill"], tmp_path)
+    assert code == 0 and found["mode"] == "grill", found
+    code, middle = both(["grill", "--said", "x" * 20500 + " thai-docx grill " + "y" * 20500], tmp_path)
+    assert middle["mode"] == "build" and "1017 between them were not read" in middle["warnings"][0], middle
 
 
 def test_repair_says_it_wrote_a_font_only_where_it_did(tmp_path):
