@@ -1037,3 +1037,45 @@
   test:
     - tests/test_what_a_command_takes.py::test_markdown_at_the_root_allows_no_picture_by_where_it_is
     - tests/test_what_a_command_takes.py::test_a_file_whose_size_reads_zero_is_read_to_its_end
+
+- id: V3-B-01
+  what: --chapter-title-on-new-line broke the line after every numbered heading, so a sub-heading's number stood alone under the thesis profile
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_only_a_chapter_title_starts_its_own_line
+
+- id: V3-B-02
+  what: a link in a footnote named a relationship of the document part
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_footnote_holds_its_own_links_and_pictures
+
+- id: V3-B-03
+  what: a picture in a footnote made the footnotes part not well-formed, answered as a defect
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_footnote_holds_its_own_links_and_pictures
+
+- id: V3-B-05
+  what: --center-images took a picture out of its list or quotation, and said it changed nothing
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_picture_in_a_list_or_a_quotation_keeps_its_place_under_center_images
+
+- id: V3-B-06
+  what: a picture in a table cell was fitted to the text width, not the cell
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_picture_in_a_table_fits_its_cell
+
+- id: V3-B-07
+  what: a caption's box under several pictures took the last picture's width
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_pictures_side_by_side_give_their_caption_the_text_width

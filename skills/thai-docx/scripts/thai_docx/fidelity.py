@@ -10,7 +10,7 @@ import unicodedata
 from xml.etree import ElementTree as ET
 
 from . import markdown as md
-from .layout import LIST_FIELDS, caption_text, layout, list_entries
+from .layout import LIST_FIELDS, caption_text, chapter_title, layout, list_entries
 from .ooxml import w
 from .settings import DEFAULTS
 
@@ -76,9 +76,9 @@ def expected_text(doc: md.Document, opts: dict | None = None) -> list[str]:
             out.extend(text for _, text in list_entries(items, item["block"]["name"]))
         elif item["block"]["t"] == "heading" and "number" in item and numbers_are_text:
             # the number is text in the heading's own paragraph, not one an application draws (ADR 0036)
-            join = "\n" if opts["chapter_title_on_new_line"] else " "
+            join = "\n" if opts["chapter_title_on_new_line"] and chapter_title(item) else " "
             out.extend(item["number"] + join + line for line in md.plain_text([item["block"]], True, opts["thai_digits"]))
-        elif (item["block"]["t"] == "heading" and "number" in item and opts["chapter_title_on_new_line"]):
+        elif opts["chapter_title_on_new_line"] and chapter_title(item):
             # the application draws the number; the break after it is still the build's
             out.extend("\n" + line for line in md.plain_text([item["block"]]))
         else:

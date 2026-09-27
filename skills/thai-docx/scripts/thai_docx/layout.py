@@ -276,6 +276,15 @@ def _thai_caption_kind(b: dict) -> str | None:
     return None
 
 
+def chapter_title(item: dict) -> bool:
+    """A numbered level-one heading in the chapters or the appendices: the one heading
+    `--chapter-title-on-new-line` breaks after its number. It broke every numbered heading, so a
+    sub-heading's "๑.๑" stood on a line of its own (the review of 0.3.0, B-01)."""
+    b = item["block"]
+    return (b["t"] == "heading" and b["level"] == 1 and "number" in item
+            and item.get("region") in ("chapters", "appendices"))
+
+
 def image_only(b: dict) -> bool:
     """A paragraph that holds an image and nothing but whitespace beside it: what a `Figure:`
     caption belongs to, and what `--center-images` centres."""

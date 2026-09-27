@@ -250,6 +250,13 @@ function thaiCaptionKind(b) {
   return null;
 }
 
+// A numbered level-one heading in the chapters or the appendices: the one heading
+// --chapter-title-on-new-line breaks after its number (layout.py says why: B-01).
+function chapterTitle(item) {
+  const b = item.block;
+  return b.t === "heading" && b.level === 1 && item.number !== undefined && (item.region === "chapters" || item.region === "appendices");
+}
+
 function imageOnly(b) {
   return b.t === "paragraph" && b.inlines.some((n) => n.t === "image") &&
     b.inlines.every((n) => n.t === "image" || (n.t === "text" && !stripChars(n.s, " \t")));

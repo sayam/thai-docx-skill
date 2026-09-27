@@ -13,7 +13,7 @@ import struct
 
 from . import markdown as md
 from .ooxml import PUNCTUATION, THAI_MARKS, is_complex
-from .layout import (CAPTION_STYLE, SECTION_MARK, caption_text, has_thai, heading_styles, image_only, layout,
+from .layout import (CAPTION_STYLE, SECTION_MARK, caption_text, chapter_title, has_thai, heading_styles, image_only, layout,
                      list_entries, list_field, number_text)
 from .settings import MIN_CAPTION_TWIPS, MIN_TEXT_TWIPS, BuildError, half_up, page_size
 
@@ -190,9 +190,15 @@ class Writer:
         """`read_image(src)` returns (resolved path, bytes), or raises BuildError."""
         self.doc, self.opts = doc, opts
         self.read_image = read_image
-        self.rels: list[tuple[str, str, str, bool]] = []  # id, type, target, external
+        self.rels: list[tuple[str, str, str, bool]] = []  # id, type, target, external: the document's
+        # a relationship id belongs to the part that holds it (OPC): a link or a picture in a
+        # footnote named one of the document's, and a picture there broke the part (B-02, B-03)
+        self.footnote_rels: list[tuple[str, str, str, bool]] = []
+        self.part_rels = self.rels  # the relationships of the part being written
         self.media: list[tuple[str, bytes]] = []  # part name, bytes
-        self.image_rel: dict[str, tuple[str, int, int]] = {}
+        self.image_media: dict[str, tuple[str, int, int]] = {}  # path: media target, pixels wide, high
+        self.image_rid: dict[tuple[bool, str], str] = {}  # (in a footnote, path): its id in that part
+        self.caption_pictures = 0  # how many pictures the paragraph before a caption holds
         self.doc_pr = 0
         self.has_ordered_list = False  # whether --auto-numbering has anything to count (ADR 0028)
         self.image_twips = 0  # the width the last image was drawn at, for --caption-matches-object
@@ -216,8 +222,8 @@ class Writer:
         self.text_width_twips = pw - left - right
 
     def rel(self, kind: str, target: str, external: bool = False) -> str:
-        rid = "rId" + str(len(self.rels) + 1)
-        self.rels.append((rid, kind, target, external))
+        rid = "rId" + str(len(self.part_rels) + 1)
+        self.part_rels.append((rid, kind, target, external))
         return rid
 
     # -- inlines --
@@ -317,17 +323,20 @@ class Writer:
         if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", src) and not re.match(r"^[A-Za-z]:[\\/]", src):
             raise BuildError("image '" + src + "': remote images are not supported; only local PNG or JPEG files")
         path, data = self.read_image(src)
-        if path not in self.image_rel:
+        if path not in self.image_media:
             try:
                 kind, wpx, hpx = _image_size(data)
             except BuildError as exc:  # which picture, when a document holds several
                 raise BuildError("image '" + src + "'" + exc.what[len("image"):]) from None
             n = len(self.media) + 1
             self.media.append(("word/media/image" + str(n) + "." + kind, data))
-            rid = self.rel(REL + "image", "media/image" + str(n) + "." + kind)
-            self.image_rel[path] = (rid, wpx, hpx)
+            self.image_media[path] = ("media/image" + str(n) + "." + kind, wpx, hpx)
             self.counts["images"] += 1
-        rid, wpx, hpx = self.image_rel[path]
+        target, wpx, hpx = self.image_media[path]
+        key = (self.part_rels is self.footnote_rels, path)
+        if key not in self.image_rid:
+            self.image_rid[key] = self.rel(REL + "image", target)
+        rid = self.image_rid[key]
         cx, cy = wpx * EMU_PER_PX, hpx * EMU_PER_PX
         max_cx = (self.text_width_twips - self.indent_twips) * EMU_PER_TWIP
         if cx > max_cx:
@@ -381,7 +390,7 @@ class Writer:
     def title_break(self, item: dict) -> str:
         """--chapter-title-on-new-line: the number keeps the first line and the heading's own
         text starts the next one."""
-        if not self.opts["chapter_title_on_new_line"] or "number" not in item:
+        if not self.opts["chapter_title_on_new_line"] or not chapter_title(item):
             return ""
         return "<w:r>" + self.rpr(self.marker(False)) + "<w:br/></w:r>"
 
@@ -487,11 +496,11 @@ class Writer:
         # --caption-hanging-indent: the label and number keep the margin and every line after
         # the first is indented, so a caption that runs on reads as one block beside its number
         hang = half_up(self.opts["caption_hanging_indent"] * 1440)
-        left, right = self.caption_box(c, hang, line)
+        left, right, boxed = self.caption_box(c, hang, line)
         attrs = ([' w:left="' + str(left + hang) + '"'] if left + hang else []) + ([' w:right="' + str(right) + '"'] if right else [])
         ind = ("<w:ind" + "".join(attrs) + (' w:hanging="' + str(hang) + '"' if hang else "") + "/>") if attrs or hang else ""
         ppr = ('<w:pStyle w:val="' + CAPTION_STYLE[c["kind"]] + '"/>' + ("<w:keepNext/>" if keep_next else "")
-               + ind + ('<w:jc w:val="center"/>' if c["kind"] == "figure" and not self.opts["caption_matches_object"] else ""))
+               + ind + ('<w:jc w:val="center"/>' if c["kind"] == "figure" and not boxed else ""))
         ppr += self.latin_jc(ppr, caption_text(c))
         rest = c["inlines"]
         if not self.numbers_are_text():
@@ -523,9 +532,11 @@ class Writer:
             out += run(" ", "") + self.inlines(rest)
         return out + "</w:p>"
 
-    def caption_box(self, c: dict, hang: int, line: int) -> tuple[int, int]:
+    def caption_box(self, c: dict, hang: int, line: int) -> tuple[int, int, bool]:
         """The indents that make a caption as wide as the picture it belongs to, in twips
-        (`--caption-matches-object`), or (0, 0) for a caption that fills the text width.
+        (`--caption-matches-object`), and whether it is boxed; (0, 0, False) for a caption that fills
+        the text width, centred as a figure's caption is. Under more than one picture it fills the
+        text width: the box once took the last picture's width (the review of 0.3.0, B-07).
 
         Only a picture: a table is written at the full width of the text, so its caption already
         ends where it does. The width is the one the image was drawn at — its own, or the text
@@ -540,16 +551,16 @@ class Writer:
         A box that `hang` leaves less than an inch for the caption's lines gives its caption the
         text width instead, and says so: a box narrower than that stands one character to a
         line, or less than none."""
-        if not (self.opts["caption_matches_object"] and c["kind"] == "figure" and self.image_twips):
-            return 0, 0
+        if not (self.opts["caption_matches_object"] and c["kind"] == "figure" and self.image_twips) or self.caption_pictures > 1:
+            return 0, 0, False
         box = max(min(self.image_twips, self.text_width_twips), min(MIN_CAPTION_TWIPS, self.text_width_twips))
         if box - hang < MIN_TEXT_TWIPS:
             self.layout_warnings.append("line " + str(line) + ": --caption-hanging-indent leaves the caption of this picture"
                                         " less than an inch; the caption takes the width of the text")
-            return 0, 0
+            return 0, 0, False
         slack = self.text_width_twips - box
         left = slack // 2 if self.opts["center_images"] else 0
-        return left, slack - left
+        return left, slack - left, True
 
     def blocks(self, blocks: list[dict], level: int = 0, quote: bool = False, body: bool = False, keep_next: bool = False) -> str:
         """`body` marks the document's own top level: only its paragraphs take the
@@ -563,7 +574,11 @@ class Writer:
                 self.counts["headings"] += 1
                 out.append(self.paragraph(b["inlines"], "Heading" + str(b["level"])))
             elif t == "paragraph":
-                if self.opts["center_images"] and image_only(b):
+                if image_only(b):
+                    self.caption_pictures = sum(1 for n in b["inlines"] if n["t"] == "image")
+                if self.opts["center_images"] and image_only(b) and body:
+                    # at the top level only: a picture in a list or a quotation keeps its place there,
+                    # as the warning that says the flag changed nothing reads it (B-05)
                     # a picture on a line of its own is centred, and takes no first-line indent:
                     # an indent would move it off the centre its caption is measured against
                     ppr = ("<w:keepNext/>" if keep_next else "") + '<w:jc w:val="center"/>'
@@ -664,7 +679,11 @@ class Writer:
                 # no space after: the body's 6 pt would leave every row taller than its text
                 ppr = (('<w:pStyle w:val="TableText"/>' if self.opts["table_size"] is not None else "") + '<w:spacing w:after="0"/>'
                        + ('<w:jc w:val="' + jc + '"/>' if jc in ("center", "right") else ""))
-                cells.append('<w:tc><w:tcPr><w:tcW w:w="' + str(widths[ci]) + '" w:type="dxa"/></w:tcPr>' + self.paragraph(cell, None, ppr, ri == 0)
+                # a picture in a cell is drawn no wider than the cell, less its margins (B-06)
+                self.indent_twips = self.text_width_twips - widths[ci] + 216
+                cell_xml = self.paragraph(cell, None, ppr, ri == 0)
+                self.indent_twips = 0
+                cells.append('<w:tc><w:tcPr><w:tcW w:w="' + str(widths[ci]) + '" w:type="dxa"/></w:tcPr>' + cell_xml
                              + "</w:tc>")
             trpr = "<w:trPr><w:tblHeader/></w:trPr>" if ri == 0 and self.opts["repeat_table_header"] else ""
             rows.append("<w:tr>" + trpr + "".join(cells) + "</w:tr>")

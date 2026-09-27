@@ -30,7 +30,7 @@ from . import check as check_mod
 from . import markdown as md
 from . import package
 from .fidelity import docx_text, expected_text
-from .layout import image_only
+from .layout import chapter_title, image_only
 from .parts import Package
 from .settings import (  # noqa: F401  the names callers know the build's settings by
     DEFAULTS, PAPER, USAGE, BuildError, parse_args, settings_json, settings_warnings,
@@ -81,7 +81,7 @@ def build_text(text: str, opts: dict, read_image) -> tuple[dict, bytes | None]:
         ("captions", any("caption" in item for item in items)),
         ("images", any(image_only(item["block"]) for item in items)),
         ("chapters or appendices", writer.has_chapters),
-        ("numbered headings", any("number" in item for item in items)),
+        ("numbered headings", any(chapter_title(item) for item in items)),
         ("appendices", "appendices" in writer.regions),
         ("appendix headings", any("number" in item and item["region"] == "appendices" for item in items)),
         ("chapter headings", any("number" in item and item["region"] == "chapters" for item in items)),

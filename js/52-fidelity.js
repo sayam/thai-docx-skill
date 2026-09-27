@@ -70,9 +70,9 @@ function expectedText(doc, opts) {
       out.push(...listEntries(items, item.block.name).map(([, text]) => text));
     } else if (item.block.t === "heading" && item.number !== undefined && numbersAreText) {
       // the number is text in the heading's own paragraph, not one an application draws (ADR 0036)
-      const join = opts.chapter_title_on_new_line ? "\n" : " ";
+      const join = opts.chapter_title_on_new_line && chapterTitle(item) ? "\n" : " ";
       out.push(...plainText([item.block], true, opts.thai_digits).map((line) => item.number + join + line));
-    } else if (item.block.t === "heading" && item.number !== undefined && opts.chapter_title_on_new_line) {
+    } else if (opts.chapter_title_on_new_line && chapterTitle(item)) {
       // the application draws the number; the break after it is still the build's
       out.push(...plainText([item.block]).map((line) => "\n" + line));
     } else out.push(...plainText([item.block], numbersAreText, opts.thai_digits));

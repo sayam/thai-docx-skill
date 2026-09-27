@@ -1355,6 +1355,24 @@ function related(names, treeOf, source) {
 }
 
 // Which part is which, as Word finds them (check.py's part_roles says how).
+const R_NS = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}";
+
+// The first relationship id a part refers to that its own relationships do not hold (check.py's
+// _dangling says why: B-02).
+function dangling(name, root, names, treeOf) {
+  const lowered = new Map(names.map((n) => [asciiLower(n), n]));
+  const slash = name.lastIndexOf("/");
+  const folder = slash < 0 ? "" : name.slice(0, slash + 1);
+  const rels = treeOf(lowered.get(asciiLower(folder + "_rels/" + name.slice(slash + 1) + ".rels")) || "");
+  const held = new Set(rels === null ? [] : rels.children.map((r) => r.get("Id")));
+  for (const el of root.iter()) {
+    for (const [key, value] of el.attrib) {
+      if (key.startsWith(R_NS) && ["id", "embed", "link"].includes(key.slice(R_NS.length)) && !held.has(value)) return value;
+    }
+  }
+  return null;
+}
+
 function partRoles(names, treeOf) {
   const lowered = new Map();
   for (let i = names.length - 1; i >= 0; i--) lowered.set(asciiLower(names[i]), names[i]);
@@ -1631,6 +1649,14 @@ function checkBytes(bytes, label) {
   const settings = roles.settings || "word/settings.xml";
   if (!trees.has(settings)) report.find("1", settings, "no settings part; compatibilityMode is not declared");
   else checkSettings(settings, trees.get(settings), report);
+  for (const name of roles.text) {
+    if (!trees.has(name)) continue;
+    const missing = dangling(name, trees.get(name), names, (n) => (trees.has(n) ? trees.get(n) : null));
+    if (missing !== null) {
+      report.find("package", name, "refers to relationship " + quoted(missing) + ", which its own relationships do not hold");
+      return report;
+    }
+  }
   for (const name of roles.text) if (trees.has(name)) checkTextPart(name, trees.get(name), report, roles);
   if (roles.styles !== null && trees.has(roles.styles)) checkStyles(roles.styles, trees.get(roles.styles), report);
   if (roles.numbering !== null && trees.has(roles.numbering)) checkNumbering(roles.numbering, trees.get(roles.numbering), report);
@@ -4430,6 +4456,13 @@ function thaiCaptionKind(b) {
   return null;
 }
 
+// A numbered level-one heading in the chapters or the appendices: the one heading
+// --chapter-title-on-new-line breaks after its number (layout.py says why: B-01).
+function chapterTitle(item) {
+  const b = item.block;
+  return b.t === "heading" && b.level === 1 && item.number !== undefined && (item.region === "chapters" || item.region === "appendices");
+}
+
 function imageOnly(b) {
   return b.t === "paragraph" && b.inlines.some((n) => n.t === "image") &&
     b.inlines.every((n) => n.t === "image" || (n.t === "text" && !stripChars(n.s, " \t")));
@@ -4800,9 +4833,13 @@ class Writer {
     this.doc = doc;
     this.opts = opts;
     this.readImage = readImage;
-    this.rels = [];
+    this.rels = []; // the document's; a footnote's link or picture is the footnotes part's (B-02, B-03)
+    this.footnoteRels = [];
+    this.partRels = this.rels;
     this.media = [];
-    this.imageRel = new Map();
+    this.imageMedia = new Map(); // path: [media target, pixels wide, high]
+    this.imageRid = new Map(); // "in a footnote\0path": its id in that part
+    this.captionPictures = 0; // how many pictures the paragraph before a caption holds
     this.docPr = 0;
     this.hasOrderedList = false; // whether --auto-numbering has anything to count (ADR 0028)
     this.imageTwips = 0; // the width the last image was drawn at, for --caption-matches-object
@@ -4826,8 +4863,8 @@ class Writer {
   }
 
   rel(kind, target, external) {
-    const rid = "rId" + (this.rels.length + 1);
-    this.rels.push([rid, kind, target, !!external]);
+    const rid = "rId" + (this.partRels.length + 1);
+    this.partRels.push([rid, kind, target, !!external]);
     return rid;
   }
 
@@ -4915,7 +4952,7 @@ class Writer {
       throw new BuildError("image '" + src + "': remote images are not supported; only local PNG or JPEG files");
     }
     const [path, data] = this.readImage(src);
-    if (!this.imageRel.has(path)) {
+    if (!this.imageMedia.has(path)) {
       let size;
       try {
         size = imageSize(data);
@@ -4926,11 +4963,13 @@ class Writer {
       const [kind, wpx, hpx] = size;
       const n = this.media.length + 1;
       this.media.push(["word/media/image" + n + "." + kind, data]);
-      const rid = this.rel(REL + "image", "media/image" + n + "." + kind);
-      this.imageRel.set(path, [rid, wpx, hpx]);
+      this.imageMedia.set(path, ["media/image" + n + "." + kind, wpx, hpx]);
       this.counts.images += 1;
     }
-    const [rid, wpx, hpx] = this.imageRel.get(path);
+    const [target, wpx, hpx] = this.imageMedia.get(path);
+    const key = (this.partRels === this.footnoteRels) + "\u0000" + path;
+    if (!this.imageRid.has(key)) this.imageRid.set(key, this.rel(REL + "image", target));
+    const rid = this.imageRid.get(key);
     let cx = BigInt(wpx) * BigInt(EMU_PER_PX);
     let cy = BigInt(hpx) * BigInt(EMU_PER_PX);
     const maxCx = BigInt(this.textWidthTwips - this.indentTwips) * BigInt(EMU_PER_TWIP);
@@ -4982,7 +5021,7 @@ class Writer {
   // --chapter-title-on-new-line: the number keeps the first line and the heading's own text
   // starts the next one.
   titleBreak(item) {
-    if (!this.opts.chapter_title_on_new_line || item.number === undefined) return "";
+    if (!this.opts.chapter_title_on_new_line || !chapterTitle(item)) return ""; // writer.py says why (B-01)
     return "<w:r>" + this.rpr(this.marker(false)) + "<w:br/></w:r>";
   }
 
@@ -5085,11 +5124,11 @@ class Writer {
     // --caption-hanging-indent: the label and number keep the margin and every line after the
     // first is indented, so a caption that runs on reads as one block beside its number
     const hang = halfUp(this.opts.caption_hanging_indent * 1440);
-    const [boxLeft, boxRight] = this.captionBox(c, hang, line);
+    const [boxLeft, boxRight, boxed] = this.captionBox(c, hang, line);
     const attrs = (boxLeft + hang ? ' w:left="' + (boxLeft + hang) + '"' : "") + (boxRight ? ' w:right="' + boxRight + '"' : "");
     const ind = attrs || hang ? "<w:ind" + attrs + (hang ? ' w:hanging="' + hang + '"' : "") + "/>" : "";
     let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + ind +
-      (c.kind === "figure" && !this.opts.caption_matches_object ? '<w:jc w:val="center"/>' : "");
+      (c.kind === "figure" && !boxed ? '<w:jc w:val="center"/>' : "");
     ppr += this.latinJc(ppr, captionText(c));
     const rest = c.inlines;
     if (!this.numbersAreText()) {
@@ -5129,16 +5168,17 @@ class Writer {
   // A box that hang leaves less than an inch gives its caption the text width instead, and says
   // so (writer.py's caption_box says why).
   captionBox(c, hang, line) {
-    if (!(this.opts.caption_matches_object && c.kind === "figure" && this.imageTwips)) return [0, 0];
+    // under more than one picture the caption fills the text width (writer.py says why: B-07)
+    if (!(this.opts.caption_matches_object && c.kind === "figure" && this.imageTwips) || this.captionPictures > 1) return [0, 0, false];
     const box = Math.max(Math.min(this.imageTwips, this.textWidthTwips), Math.min(MIN_CAPTION_TWIPS, this.textWidthTwips));
     if (box - hang < MIN_TEXT_TWIPS) {
       this.layoutWarnings.push("line " + line + ": --caption-hanging-indent leaves the caption of this picture" +
         " less than an inch; the caption takes the width of the text");
-      return [0, 0];
+      return [0, 0, false];
     }
     const slack = this.textWidthTwips - box;
     const left = this.opts.center_images ? Math.floor(slack / 2) : 0;
-    return [left, slack - left];
+    return [left, slack - left, true];
   }
 
   blocks(blocks, level, quote, body, keepNext) {
@@ -5152,7 +5192,9 @@ class Writer {
         this.counts.headings += 1;
         out.push(this.paragraph(b.inlines, "Heading" + b.level));
       } else if (t === "paragraph") {
-        if (this.opts.center_images && imageOnly(b)) {
+        if (imageOnly(b)) this.captionPictures = b.inlines.filter((n) => n.t === "image").length;
+        if (this.opts.center_images && imageOnly(b) && body) {
+          // at the top level only: a picture in a list or a quotation keeps its place there (B-05)
           // a picture on a line of its own is centred, and takes no first-line indent: an
           // indent would move it off the centre its caption is measured against
           out.push(this.paragraph(b.inlines, null, (keepNext ? "<w:keepNext/>" : "") + '<w:jc w:val="center"/>'));
@@ -5269,7 +5311,11 @@ class Writer {
         const jc = b.aligns[ci];
         // no space after: the body's 6 pt would leave every row taller than its text
         const ppr = (this.opts.table_size !== null ? '<w:pStyle w:val="TableText"/>' : "") + '<w:spacing w:after="0"/>' + (jc === "center" || jc === "right" ? '<w:jc w:val="' + jc + '"/>' : "");
-        return '<w:tc><w:tcPr><w:tcW w:w="' + widths[ci] + '" w:type="dxa"/></w:tcPr>' + this.paragraph(cell, null, ppr, ri === 0) + "</w:tc>";
+        // a picture in a cell is drawn no wider than the cell, less its margins (B-06)
+        this.indentTwips = this.textWidthTwips - widths[ci] + 216;
+        const cellXml = this.paragraph(cell, null, ppr, ri === 0);
+        this.indentTwips = 0;
+        return '<w:tc><w:tcPr><w:tcW w:w="' + widths[ci] + '" w:type="dxa"/></w:tcPr>' + cellXml + "</w:tc>";
       });
       rows.push("<w:tr>" + (ri === 0 && this.opts.repeat_table_header ? "<w:trPr><w:tblHeader/></w:trPr>" : "") + cells.join("") + "</w:tr>");
     });
@@ -5338,6 +5384,16 @@ function endSection(xml, sect) {
 // the built-in look of Heading 1 … 6: [points above the body size, bold, italic]
 const HEADING_LOOK = [[4, true, false], [2, true, false], [0, true, false], [0, true, true], [0, true, false], [0, false, true]];
 
+// what a picture is written in, declared by every part that can hold one
+const DRAWING_NAMESPACES = 'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" ' +
+  'xmlns:a="' + DRAWING + '" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
+
+function relationshipsXml(rels) {
+  return XML_DECL + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    rels.map(([rid, kind, target, ext]) => '<Relationship Id="' + rid + '" Type="' + kind + '" Target=' + attr(target) +
+      (ext ? ' TargetMode="External"/>' : "/>")).join("") + "</Relationships>";
+}
+
 class Package extends Writer {
   // Heading n's font as the front matter names it (null: the document's), and the rest of its
   // run properties in schema order — the built-in look, with what heading-n changes (ADR 0020).
@@ -5404,10 +5460,7 @@ class Package extends Writer {
       body = pieces.join("");
     }
     return (
-      XML_DECL + '<w:document xmlns:w="' + W + '" xmlns:r="' + NS_R + '" ' +
-      'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" ' +
-      'xmlns:a="' + DRAWING + '" ' +
-      'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">' +
+      XML_DECL + '<w:document xmlns:w="' + W + '" xmlns:r="' + NS_R + '" ' + DRAWING_NAMESPACES + ">" +
       "<w:body>" + toc + body + "</w:body></w:document>"
     );
   }
@@ -5419,6 +5472,7 @@ class Package extends Writer {
     ];
     const mark = "<w:r>" + this.rpr('<w:rStyle w:val="FootnoteReference"/>' + this.marker(false)) + "<w:footnoteRef/></w:r>" +
       "<w:r>" + this.rpr(this.marker(false)) + "<w:tab/></w:r>";
+    this.partRels = this.footnoteRels; // a link or a picture here is this part's (B-02, B-03)
     this.doc.footnoteOrder.forEach((label, k) => {
       const fid = k + 1;
       this.counts.footnotes += 1;
@@ -5435,7 +5489,10 @@ class Package extends Writer {
       const body = '<w:p><w:pPr><w:pStyle w:val="FootnoteText"/></w:pPr>' + mark + this.inlines(first) + "</w:p>" + this.blocks(rest);
       parts.push('<w:footnote w:id="' + fid + '">' + body + "</w:footnote>");
     });
-    return XML_DECL + '<w:footnotes xmlns:w="' + W + '" xmlns:r="' + NS_R + '">' + parts.join("") + "</w:footnotes>";
+    this.partRels = this.rels;
+    const body = parts.join("");
+    const drawing = body.includes("<w:drawing>") ? " " + DRAWING_NAMESPACES : ""; // only where a picture is
+    return XML_DECL + '<w:footnotes xmlns:w="' + W + '" xmlns:r="' + NS_R + '"' + drawing + ">" + body + "</w:footnotes>";
   }
 
   stylesXml() {
@@ -5793,9 +5850,8 @@ class Package extends Writer {
     ];
     if (footnotes !== null) parts.push(["word/footnotes.xml", footnotes]);
     parts.push(...pageParts);
-    parts.push(["word/_rels/document.xml.rels", XML_DECL + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-      this.rels.map(([rid, kind, target, ext]) => '<Relationship Id="' + rid + '" Type="' + kind + '" Target=' + attr(target) + (ext ? ' TargetMode="External"/>' : "/>")).join("") +
-      "</Relationships>"]);
+    parts.push(["word/_rels/document.xml.rels", relationshipsXml(this.rels)]);
+    if (this.footnoteRels.length) parts.push(["word/_rels/footnotes.xml.rels", relationshipsXml(this.footnoteRels)]);
     for (const m of this.media) parts.push(m);
     return parts.map(([name, data]) => [name, typeof data === "string" ? utf8(data) : data]);
   }
@@ -5872,9 +5928,9 @@ function expectedText(doc, opts) {
       out.push(...listEntries(items, item.block.name).map(([, text]) => text));
     } else if (item.block.t === "heading" && item.number !== undefined && numbersAreText) {
       // the number is text in the heading's own paragraph, not one an application draws (ADR 0036)
-      const join = opts.chapter_title_on_new_line ? "\n" : " ";
+      const join = opts.chapter_title_on_new_line && chapterTitle(item) ? "\n" : " ";
       out.push(...plainText([item.block], true, opts.thai_digits).map((line) => item.number + join + line));
-    } else if (item.block.t === "heading" && item.number !== undefined && opts.chapter_title_on_new_line) {
+    } else if (opts.chapter_title_on_new_line && chapterTitle(item)) {
       // the application draws the number; the break after it is still the build's
       out.push(...plainText([item.block]).map((line) => "\n" + line));
     } else out.push(...plainText([item.block], numbersAreText, opts.thai_digits));
@@ -5935,7 +5991,7 @@ function buildText(text, opts, readImage) {
     ["captions", items.some((item) => item.caption !== undefined)],
     ["images", items.some((item) => imageOnly(item.block))],
     ["chapters or appendices", writer.hasChapters],
-    ["numbered headings", items.some((item) => item.number !== undefined)],
+    ["numbered headings", items.some((item) => chapterTitle(item))],
     ["appendices", writer.regions.includes("appendices")],
     ["appendix headings", items.some((item) => item.number !== undefined && item.region === "appendices")],
     ["chapter headings", items.some((item) => item.number !== undefined && item.region === "chapters")],

@@ -186,9 +186,13 @@ class Writer {
     this.doc = doc;
     this.opts = opts;
     this.readImage = readImage;
-    this.rels = [];
+    this.rels = []; // the document's; a footnote's link or picture is the footnotes part's (B-02, B-03)
+    this.footnoteRels = [];
+    this.partRels = this.rels;
     this.media = [];
-    this.imageRel = new Map();
+    this.imageMedia = new Map(); // path: [media target, pixels wide, high]
+    this.imageRid = new Map(); // "in a footnote\0path": its id in that part
+    this.captionPictures = 0; // how many pictures the paragraph before a caption holds
     this.docPr = 0;
     this.hasOrderedList = false; // whether --auto-numbering has anything to count (ADR 0028)
     this.imageTwips = 0; // the width the last image was drawn at, for --caption-matches-object
@@ -212,8 +216,8 @@ class Writer {
   }
 
   rel(kind, target, external) {
-    const rid = "rId" + (this.rels.length + 1);
-    this.rels.push([rid, kind, target, !!external]);
+    const rid = "rId" + (this.partRels.length + 1);
+    this.partRels.push([rid, kind, target, !!external]);
     return rid;
   }
 
@@ -301,7 +305,7 @@ class Writer {
       throw new BuildError("image '" + src + "': remote images are not supported; only local PNG or JPEG files");
     }
     const [path, data] = this.readImage(src);
-    if (!this.imageRel.has(path)) {
+    if (!this.imageMedia.has(path)) {
       let size;
       try {
         size = imageSize(data);
@@ -312,11 +316,13 @@ class Writer {
       const [kind, wpx, hpx] = size;
       const n = this.media.length + 1;
       this.media.push(["word/media/image" + n + "." + kind, data]);
-      const rid = this.rel(REL + "image", "media/image" + n + "." + kind);
-      this.imageRel.set(path, [rid, wpx, hpx]);
+      this.imageMedia.set(path, ["media/image" + n + "." + kind, wpx, hpx]);
       this.counts.images += 1;
     }
-    const [rid, wpx, hpx] = this.imageRel.get(path);
+    const [target, wpx, hpx] = this.imageMedia.get(path);
+    const key = (this.partRels === this.footnoteRels) + "\u0000" + path;
+    if (!this.imageRid.has(key)) this.imageRid.set(key, this.rel(REL + "image", target));
+    const rid = this.imageRid.get(key);
     let cx = BigInt(wpx) * BigInt(EMU_PER_PX);
     let cy = BigInt(hpx) * BigInt(EMU_PER_PX);
     const maxCx = BigInt(this.textWidthTwips - this.indentTwips) * BigInt(EMU_PER_TWIP);
@@ -368,7 +374,7 @@ class Writer {
   // --chapter-title-on-new-line: the number keeps the first line and the heading's own text
   // starts the next one.
   titleBreak(item) {
-    if (!this.opts.chapter_title_on_new_line || item.number === undefined) return "";
+    if (!this.opts.chapter_title_on_new_line || !chapterTitle(item)) return ""; // writer.py says why (B-01)
     return "<w:r>" + this.rpr(this.marker(false)) + "<w:br/></w:r>";
   }
 
@@ -471,11 +477,11 @@ class Writer {
     // --caption-hanging-indent: the label and number keep the margin and every line after the
     // first is indented, so a caption that runs on reads as one block beside its number
     const hang = halfUp(this.opts.caption_hanging_indent * 1440);
-    const [boxLeft, boxRight] = this.captionBox(c, hang, line);
+    const [boxLeft, boxRight, boxed] = this.captionBox(c, hang, line);
     const attrs = (boxLeft + hang ? ' w:left="' + (boxLeft + hang) + '"' : "") + (boxRight ? ' w:right="' + boxRight + '"' : "");
     const ind = attrs || hang ? "<w:ind" + attrs + (hang ? ' w:hanging="' + hang + '"' : "") + "/>" : "";
     let ppr = '<w:pStyle w:val="' + CAPTION_STYLE[c.kind] + '"/>' + (keepNext ? "<w:keepNext/>" : "") + ind +
-      (c.kind === "figure" && !this.opts.caption_matches_object ? '<w:jc w:val="center"/>' : "");
+      (c.kind === "figure" && !boxed ? '<w:jc w:val="center"/>' : "");
     ppr += this.latinJc(ppr, captionText(c));
     const rest = c.inlines;
     if (!this.numbersAreText()) {
@@ -515,16 +521,17 @@ class Writer {
   // A box that hang leaves less than an inch gives its caption the text width instead, and says
   // so (writer.py's caption_box says why).
   captionBox(c, hang, line) {
-    if (!(this.opts.caption_matches_object && c.kind === "figure" && this.imageTwips)) return [0, 0];
+    // under more than one picture the caption fills the text width (writer.py says why: B-07)
+    if (!(this.opts.caption_matches_object && c.kind === "figure" && this.imageTwips) || this.captionPictures > 1) return [0, 0, false];
     const box = Math.max(Math.min(this.imageTwips, this.textWidthTwips), Math.min(MIN_CAPTION_TWIPS, this.textWidthTwips));
     if (box - hang < MIN_TEXT_TWIPS) {
       this.layoutWarnings.push("line " + line + ": --caption-hanging-indent leaves the caption of this picture" +
         " less than an inch; the caption takes the width of the text");
-      return [0, 0];
+      return [0, 0, false];
     }
     const slack = this.textWidthTwips - box;
     const left = this.opts.center_images ? Math.floor(slack / 2) : 0;
-    return [left, slack - left];
+    return [left, slack - left, true];
   }
 
   blocks(blocks, level, quote, body, keepNext) {
@@ -538,7 +545,9 @@ class Writer {
         this.counts.headings += 1;
         out.push(this.paragraph(b.inlines, "Heading" + b.level));
       } else if (t === "paragraph") {
-        if (this.opts.center_images && imageOnly(b)) {
+        if (imageOnly(b)) this.captionPictures = b.inlines.filter((n) => n.t === "image").length;
+        if (this.opts.center_images && imageOnly(b) && body) {
+          // at the top level only: a picture in a list or a quotation keeps its place there (B-05)
           // a picture on a line of its own is centred, and takes no first-line indent: an
           // indent would move it off the centre its caption is measured against
           out.push(this.paragraph(b.inlines, null, (keepNext ? "<w:keepNext/>" : "") + '<w:jc w:val="center"/>'));
@@ -655,7 +664,11 @@ class Writer {
         const jc = b.aligns[ci];
         // no space after: the body's 6 pt would leave every row taller than its text
         const ppr = (this.opts.table_size !== null ? '<w:pStyle w:val="TableText"/>' : "") + '<w:spacing w:after="0"/>' + (jc === "center" || jc === "right" ? '<w:jc w:val="' + jc + '"/>' : "");
-        return '<w:tc><w:tcPr><w:tcW w:w="' + widths[ci] + '" w:type="dxa"/></w:tcPr>' + this.paragraph(cell, null, ppr, ri === 0) + "</w:tc>";
+        // a picture in a cell is drawn no wider than the cell, less its margins (B-06)
+        this.indentTwips = this.textWidthTwips - widths[ci] + 216;
+        const cellXml = this.paragraph(cell, null, ppr, ri === 0);
+        this.indentTwips = 0;
+        return '<w:tc><w:tcPr><w:tcW w:w="' + widths[ci] + '" w:type="dxa"/></w:tcPr>' + cellXml + "</w:tc>";
       });
       rows.push("<w:tr>" + (ri === 0 && this.opts.repeat_table_header ? "<w:trPr><w:tblHeader/></w:trPr>" : "") + cells.join("") + "</w:tr>");
     });

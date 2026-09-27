@@ -47,7 +47,7 @@ function buildText(text, opts, readImage) {
     ["captions", items.some((item) => item.caption !== undefined)],
     ["images", items.some((item) => imageOnly(item.block))],
     ["chapters or appendices", writer.hasChapters],
-    ["numbered headings", items.some((item) => item.number !== undefined)],
+    ["numbered headings", items.some((item) => chapterTitle(item))],
     ["appendices", writer.regions.includes("appendices")],
     ["appendix headings", items.some((item) => item.number !== undefined && item.region === "appendices")],
     ["chapter headings", items.some((item) => item.number !== undefined && item.region === "chapters")],
