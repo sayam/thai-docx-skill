@@ -61,8 +61,8 @@ gh attestation verify thai-docx-<version>.zip --bundle thai-docx-<version>.intot
 The release workflow verifies both ways itself, against the very file it is about to attach, and
 attaches nothing if either check passes for a tampered archive.
 
-You can also rebuild the archive and compare. From a clone at the tag, on a checkout without
-line-ending conversion:
+You can also rebuild the archive and compare. From a clone at the tag — the skill's files are
+never converted to other line endings, whatever the clone's `core.autocrlf`:
 
 ```sh
 git checkout v<version>

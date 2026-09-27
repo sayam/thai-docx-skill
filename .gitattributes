@@ -23,3 +23,7 @@
 
 # The generated bundle is diffed as text but not counted as hand-written code.
 /skills/thai-docx/scripts/thai_docx.js linguist-generated=true
+
+# The skill is packed from the working tree, byte for byte: a checkout that converts line endings
+# (Git for Windows' default) would pack other bytes than the release attaches (review of 0.3.0, F-10).
+/skills/** -text

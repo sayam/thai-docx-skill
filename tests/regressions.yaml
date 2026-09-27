@@ -1165,3 +1165,66 @@
   found_by: review
   test:
     - tests/test_skill_md.py::test_skill_md_says_what_agents_missed_in_the_review_of_0_3_0
+
+- id: V3-F-01
+  what: release.yml was held by substring checks that eight mutations passed
+  class: C1
+  found_by: review
+  test:
+    - tests/test_release_is_bound_to_its_tag.py::test_a_release_that_skips_its_gates_is_named
+
+- id: V3-F-04
+  what: a timing test was held to a fixed ceiling it came within 3 % of under coverage
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_two_thousand_open_links_are_read_in_a_moment
+
+- id: V3-F-07
+  what: the script limits were read name by name, and aliases, getattr, __dict__ and indexed properties got past them
+  class: C1
+  found_by: review
+  test:
+    - tests/test_script_limits.py::test_the_limits_catch_what_they_name
+
+- id: V3-F-08
+  what: a release run dispatched from a branch would attach nothing, the attestation naming the branch
+  class: C1
+  found_by: review
+  test:
+    - tests/test_release_is_bound_to_its_tag.py::test_the_tag_passes_the_gates_a_pull_request_passes
+
+- id: V3-F-10
+  what: a clone that converts line endings packed an archive whose sha256 was not the attached one
+  class: C1
+  found_by: review
+  test:
+    - tests/test_package_skill.py::test_the_skill_is_packed_as_it_is_committed_on_any_checkout
+
+- id: V3-F-12
+  what: package_skill --tag read the newest record by name, not the record of the version tagged
+  class: C1
+  found_by: review
+  test:
+    - tests/test_rules.py::test_the_newest_release_record_names_the_bytes_it_read
+
+- id: V3-F-18
+  what: a Security entry of the changelog did not have to name its test
+  class: C1
+  found_by: review
+  test:
+    - tests/test_regressions.py::test_a_fix_announced_without_its_test_is_named
+
+- id: V3-C-01
+  what: the core CommonMark corpus could hold a GFM table
+  class: C1
+  found_by: review
+  test:
+    - tests/test_oracle.py::test_the_core_corpus_holds_no_table
+
+- id: V3-C-02
+  what: repair printed its repaired codes in another order in Python than in JavaScript
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_repair_prints_the_same_line_in_both

@@ -44,6 +44,11 @@ jobs:
       - name: the tag is a release tag
         run: |
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "not a release tag: $TAG"; exit 1; }
+      # the attestation names the ref the run was started on, and the verify below asks for the
+      # tag: a run dispatched from a branch could attach nothing (the review of 0.3.0, F-08)
+      - name: the run is on the tag it builds
+        run: |
+          [ "$GITHUB_REF" = "refs/tags/$TAG" ] || { echo "dispatch on the tag: gh workflow run release.yml --ref $TAG -f tag=$TAG"; exit 1; }
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: refs/tags/${{ github.event.inputs.tag || github.event.release.tag_name }}

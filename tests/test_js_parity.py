@@ -54,16 +54,38 @@ def test_bundle_is_built_from_the_committed_sources():
         assert done.returncode == 0, done.stdout + done.stderr
 
 
-def test_bundle_stays_within_the_script_limits():
-    """ADR 0040 §1–2 for the JavaScript file: only fs, os and path, no network, no
-    child processes, no code built from strings."""
-    source = BUNDLE.read_text(encoding="utf-8")
-    assert sorted(set(re.findall(r"require\(\s*\"([^\"]+)\"\s*\)", source))) == ["fs", "os", "path"]
-    assert "require(" not in re.sub(r"require\(\s*\"(fs|os|path)\"\s*\)", "", source).replace('typeof require !== "undefined"', "")
-    for forbidden in (r"child_process", r"\beval\(", r"\bFunction\(", r"\bfetch\(", r"XMLHttpRequest", r"WebSocket", r"\bimport\(", r"process\.env",
-                      r"\bDate\b", r"Math\.random"):
+# what the JavaScript file may not hold; beside each name, the ways round a name-by-name reading
+# the review of 0.3.0 planted (F-07): a space before a call, a property read by index
+FORBIDDEN_JS = (r"child_process", r"\beval\s*\(", r"\bFunction\s*\(", r"\bfetch\s*\(", r"XMLHttpRequest", r"WebSocket",
+                r"\bimport\s*\(", r"process\s*\.\s*env", r"process\s*\[", r"globalThis\s*\[", r"\bglobal\s*\[",
+                r"module\s*\.\s*constructor", r"\.constructor\s*\(", r"\bDate\b", r"Math\.random")
+
+
+def js_findings(source: str) -> list[str]:
+    """ADR 0040 §1–2 for JavaScript: only fs, os and path; no network, no child process, no code
+    built from strings."""
+    out = []
+    if sorted(set(re.findall(r"require\(\s*\"([^\"]+)\"\s*\)", source))) != ["fs", "os", "path"]:
+        out.append("requires something other than fs, os and path")
+    if "require(" in re.sub(r"require\(\s*\"(fs|os|path)\"\s*\)", "", source).replace('typeof require !== "undefined"', ""):
+        out.append("requires by a name it builds")
+    for forbidden in FORBIDDEN_JS:
         hits = [line[:120] for line in source.splitlines() if re.search(forbidden, line) and not line.lstrip().startswith("//")]
-        assert not hits, f"{forbidden!r} in the bundle: {hits[:2]}"
+        if hits:
+            out.append(f"{forbidden!r}: {hits[:2]}")
+    return out
+
+
+def test_bundle_stays_within_the_script_limits():
+    assert js_findings(BUNDLE.read_text(encoding="utf-8")) == []
+
+
+def test_the_javascript_limits_catch_what_they_name():
+    base = 'const fs = require("fs"); const os = require("os"); const path = require("path");\n'
+    for planted in ("new Function (\"return 1\")();", 'const e = process["env"];', 'globalThis["ev" + "al"]("1");',
+                    "module.constructor._load(\"child\" + \"_process\");", 'const x = eval ("1");', 'const e = process.env;'):
+        assert js_findings(base + planted + "\n") != [], planted
+    assert js_findings(base + "const n = path.join(\"a\", \"b\");\n") == []
 
 
 # --- Markdown, build, check --------------------------------------------------------

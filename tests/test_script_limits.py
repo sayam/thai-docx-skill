@@ -34,8 +34,13 @@ def _sources() -> list[pathlib.Path]:
 
 
 def _findings(path: pathlib.Path, root: pathlib.Path = ROOT) -> list[str]:
+    """Each breach in one file. `os` under any name it is imported as, and reached by name only:
+    `getattr` with a name that is not written out, `vars()`, `__dict__` and `__builtins__` are each
+    a way round a reading by name (the review of 0.3.0, F-07)."""
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     found = []
+    names_os = {"os"} | {a.asname for n in ast.walk(tree) if isinstance(n, ast.Import)
+                         for a in n.names if a.name == "os" and a.asname}
     for node in ast.walk(tree):
         where = f"{path.relative_to(root)}:{getattr(node, 'lineno', 0)}"
         if isinstance(node, ast.Import):
@@ -45,11 +50,21 @@ def _findings(path: pathlib.Path, root: pathlib.Path = ROOT) -> list[str]:
                 found.append(f"{where} imports from {node.module}")
             if node.module == "os":
                 found += [f"{where} imports os.{a.name}" for a in node.names if _forbidden_os(a.name)]
-        elif isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "os":
-            if _forbidden_os(node.attr):
+        elif isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in names_os:
+            if _forbidden_os(node.attr) or node.attr == "__dict__":
                 found.append(f"{where} uses os.{node.attr}")
-        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in FORBIDDEN_CALLS:
-            found.append(f"{where} calls {node.func.id}")
+        elif isinstance(node, ast.Name) and node.id == "__builtins__":
+            found.append(f"{where} reaches __builtins__")
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            if node.func.id in FORBIDDEN_CALLS:
+                found.append(f"{where} calls {node.func.id}")
+            elif node.func.id == "vars":
+                found.append(f"{where} calls vars")
+            elif node.func.id in ("getattr", "setattr") and node.args and isinstance(node.args[0], ast.Name) \
+                    and node.args[0].id in names_os:
+                name = node.args[1] if len(node.args) > 1 else None
+                if not (isinstance(name, ast.Constant) and isinstance(name.value, str)) or _forbidden_os(name.value):
+                    found.append(f"{where} reaches os by getattr")
     return found
 
 
@@ -80,13 +95,22 @@ def test_the_limits_catch_what_they_name(tmp_path):
         "exec.py": "import os\nos.execv('/bin/true', ['true'])\n",
         "code.py": "eval('1')\n",
         "dynamic.py": "__import__('socket')\n",
+        # past a name-by-name reading (the review of 0.3.0, F-07)
+        "alias.py": "import os as _os\n_os.system('true')\n",
+        "alias_env.py": "import os as o\nh = o.environ\n",
+        "getattr.py": "import os\ngetattr(os, 'system')('true')\n",
+        "getattr_dynamic.py": "import os\nname = 'sys' + 'tem'\ngetattr(os, name)('true')\n",
+        "dict.py": "import os\nos.__dict__['system']('true')\n",
+        "builtins.py": "getattr(__builtins__, 'eval')('1')\n",
+        "vars.py": "import os\nvars(os)['system']('true')\n",
     }
     for name, text in planted.items():
         path = tmp_path / name
         path.write_text(text, encoding="utf-8")
         assert _findings(path, tmp_path), name
     clean = tmp_path / "clean.py"
-    clean.write_text("import os\nimport json\nfrom xml.etree import ElementTree\nprint(os.path.join('a', 'b'))\n", encoding="utf-8")
+    clean.write_text("import os\nimport json\nfrom xml.etree import ElementTree\nprint(os.path.join('a', 'b'))\n"
+                     "flags = getattr(os, 'O_NOFOLLOW', 0)\n", encoding="utf-8")
     assert _findings(clean, tmp_path) == []
 
 

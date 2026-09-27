@@ -56,12 +56,70 @@ def test_the_release_checks_out_the_tag_as_a_tag_and_proves_it():
     assert '[[ "$TAG" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+$ ]]' in RELEASE  # a dispatch names a release tag or nothing
 
 
+def release_faults(text: str) -> list[str]:
+    """What would let a release go out that its gates never held, read from the workflow as YAML
+    — a step commented out, or run only on a condition, is not a step (the review of 0.3.0, F-01:
+    eight mutations of release.yml passed a test that looked for substrings)."""
+    import yaml
+    flow = yaml.safe_load(text)
+    out = []
+    if flow.get("permissions") != {"contents": "read"}:
+        out.append("the workflow's own permissions are more than contents: read")
+    jobs = flow.get("jobs", {})
+    if jobs.get("release-archive", {}).get("needs") != "release-check":
+        out.append("the archive does not wait for release-check")
+
+    def steps(job: str) -> list[dict]:
+        return [s for s in jobs.get(job, {}).get("steps", []) if "if" not in s]
+
+    def said(step: dict) -> str:
+        return str(step.get("run", "")) + " " + str(step.get("uses", ""))
+
+    check = " ".join(said(s) for s in steps("release-check"))
+    # every command a pull request's gates run, but the commit lint (a pull request's range of
+    # commits, which a tag has not) and the newest runtimes (run on every push to main)
+    gates = yaml.safe_load(GATES)["jobs"]
+    for name, job in gates.items():
+        if name in ("commits", "tests-newest"):
+            continue
+        for step in job.get("steps", []):
+            command = said(step).strip()
+            if command and not str(step.get("uses", "")).startswith(("actions/", "docker://")) and command not in check:
+                out.append("release-check does not run: " + command)
+    if "osv-scanner" not in check:
+        out.append("release-check does not run the OSV scanner")
+    if '[ "$GITHUB_REF" = "refs/tags/$TAG" ]' not in check:
+        out.append("release-check does not hold the run to the tag it builds")
+    archive = [said(s) for s in steps("release-archive")]
+    at = {key: next((i for i, s in enumerate(archive) if key in s), None)
+          for key in ("package_skill.py --tag", 'package_skill.py "dist/', "gh attestation verify tampered.zip", "gh release upload")}
+    if None in at.values():
+        out.append("release-archive is missing: " + ", ".join(k for k, v in at.items() if v is None))
+    elif not at["package_skill.py --tag"] < at['package_skill.py "dist/'] < at["gh release upload"]:
+        out.append("release-archive packs before it checks the versions, or attaches before it packs")
+    tamper = archive[at["gh attestation verify tampered.zip"]] if at["gh attestation verify tampered.zip"] is not None else ""
+    if len(re.findall(r"if gh attestation verify tampered\.zip[^\n]*; then\n[^\n]*; exit 1\n", tamper + "\n")) < 2:
+        out.append("a tampered archive that verifies does not stop the release")
+    return out
+
+
 def test_the_tag_passes_the_gates_a_pull_request_passes():
-    check = RELEASE[RELEASE.index("  release-check:"):RELEASE.index("  release-archive:")]
-    for step in ("python3 tools/gates_doctor.py", "ruff check --no-cache skills/thai-docx/scripts tools tests",
-                 "eslint --config tests/js/eslint.config.cjs js", "python3 -m coverage run -m pytest -q tests",
-                 "python3 -m coverage report", "osv-scanner"):
-        assert step in check, step
+    assert release_faults(RELEASE) == []
+
+
+def test_a_release_that_skips_its_gates_is_named():
+    """The mutations of F-01, each one caught."""
+    mutations = {
+        "    needs: release-check\n": "",
+        '        run: python3 tools/package_skill.py --tag "$TAG"\n': '        run: "true"\n',
+        "permissions:\n  contents: read\n": "permissions:\n  contents: write\n",
+        '            echo "a tampered archive verified — the verifier reads nothing"; exit 1': '            echo "x"; exit 0',
+        "      - run: python3 -m coverage run -m pytest -q tests\n": "      # - run: python3 -m coverage run -m pytest -q tests\n",
+        '      - name: the run is on the tag it builds\n': '      - name: the run is on the tag it builds\n        if: false\n',
+    }
+    for old, new in mutations.items():
+        assert old in RELEASE, old
+        assert release_faults(RELEASE.replace(old, new, 1)) != [], old
 
 
 def test_the_suite_runs_on_the_oldest_and_the_newest_runtimes_promised():

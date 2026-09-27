@@ -190,6 +190,9 @@ reference. `python3 tools/package_skill.py --tag vX.Y.Z` must pass — it refuse
 `docs/evidence/*-what-vX.Y.Z-was-read-in.md`, the record of that version, names every golden's sha256, so a change of
 bytes may reach `main` before the reading, never a release — and the suite fails until the
 archive name in the README and the guides (`thai-docx-X.Y.Z.zip`) carries the new version.
+Publishing the release runs `release.yml` on the tag. To run it again for a tag that exists, run
+it on the tag itself — `gh workflow run release.yml --ref vX.Y.Z -f tag=vX.Y.Z` — since the
+attestation names the ref the run started on and a run from a branch is refused.
 
 ## Commits
 
