@@ -17,6 +17,7 @@ Role: generator (the documents and the checklist).
 
 from __future__ import annotations
 
+import json
 import pathlib
 import sys
 
@@ -25,6 +26,7 @@ FIXTURES = ROOT / "tests" / "fixtures"
 sys.path.insert(0, str(ROOT / "skills" / "thai-docx" / "scripts"))
 
 from thai_docx import build as b  # noqa: E402
+from thai_docx import profiles  # noqa: E402
 
 APPLICATIONS = ("word365_windows", "word_mac", "libreoffice_writer", "google_docs", "wps_writer")
 # The five-application contract covers the document the skill hands over ready to use. A variant
@@ -42,6 +44,11 @@ VARIANTS_OPTIONS_FLAGS = [
     "--appendix-label", "Appendix", "--table-widths", "auto", "--table-size", "14",
 ]
 
+# the thesis profile the skill ships, as the flags it stands for: the file opened is the file a
+# user gets from `--profile thesis`, and a change to the profile moves this golden
+THESIS_PROFILE = ROOT / "skills" / "thai-docx" / "profiles" / "thesis.json"
+THESIS_PROFILE_FLAGS = profiles.as_flags(json.loads(THESIS_PROFILE.read_text(encoding="utf-8"))["settings"])
+
 # name → (fixture, flags, golden in tests/golden, what this variant is there to show)
 VARIANTS = {
     "sample-basic": (FIXTURES / "sample.md", [], "sample-default",
@@ -54,6 +61,9 @@ VARIANTS = {
         "--paper", "f14", "--landscape", "--size", "15", "--margins", "1,1,1,1", "--toc",
         "--no-repeat-table-header", "--hide-spelling-errors", "--table-widths", "auto",
     ], "thesis-layout", "The same thesis on F14 landscape, with the settings flags.", APPLICATIONS),
+    "sample-thesis": (FIXTURES / "thesis" / "thesis.md", THESIS_PROFILE_FLAGS, "thesis-profile",
+                      "The same thesis with the thesis profile (--profile thesis): pictures centred, each caption as wide "
+                      "as its picture, chapter titles on their own line.", APPLICATIONS),
     # the same thesis as sample-options, with the same flags, and the application counting: the
     # two files differ in the numbering and in nothing else, which is what this mode promises
     "sample-auto": (FIXTURES / "thesis" / "thesis.md", [*VARIANTS_OPTIONS_FLAGS, "--auto-numbering"], "thesis-auto",
@@ -114,6 +124,16 @@ SHOWS = {
         "A table of contents on the cover as well as the one in the front pages (on purpose: the build warns that --toc adds a second)",
         "The long table does not repeat its header row",
         "No spelling squiggles at all",
+    ),
+    "sample-thesis": (
+        "Every picture on a line of its own is centred, and takes no first-line indent",
+        "Chapter 1's and chapter 2's pictures, as wide as the text: their captions fill the text width",
+        "รูปที่ ๔-๑ (a bar chart 2.5 in wide): its caption is a box 3 in wide, centred under the picture, wider than it",
+        "รูปที่ ข-๑ (three boxes 4.17 in wide): its caption is a box as wide as the picture, centred under it; "
+        "a caption that runs to a second line stays inside the box",
+        "A caption in a box starts where its box does, as the body is aligned, not centred",
+        "Chapter headings read บทที่ ๑ on one line and the chapter's title on the next",
+        "Page numbers top right in Thai digits; the first page of every section has no number",
     ),
     "sample-auto": (
         "As the file opens, before anything is updated: headings read บทที่ ๑, ๑.๑, ๑.๓.๒; appendices Appendix A; "

@@ -18,7 +18,7 @@ def test_every_variant_for_every_application_is_its_golden(tmp_path):
     results = oracle_set.write(tmp_path)
     # the five applications open the documents the skill hands over ready to use; the variant
     # built with --auto-numbering is made for Word and is opened there alone (ADR 0036)
-    assert sum(len(v[-1]) for v in oracle_set.VARIANTS.values()) == len(results) == 4 * 5 + 1
+    assert sum(len(v[-1]) for v in oracle_set.VARIANTS.values()) == len(results) == 5 * 5 + 1
     assert oracle_set.VARIANTS["sample-auto"][-1] == oracle_set.WORD == ("word365_windows",)
     names = sorted(p.name for p in tmp_path.glob("*.docx"))
     assert names == sorted(f"{v}-{a}.docx" for v, spec in oracle_set.VARIANTS.items() for a in spec[-1])
