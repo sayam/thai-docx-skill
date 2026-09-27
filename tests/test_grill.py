@@ -154,22 +154,24 @@ def test_the_cap_counts_characters_not_units_of_storage():
     """ADR 0029 says 20,000 characters. A character outside the BMP is one character, so a
     message of 10,000 of them and the phrase is under the cap in both implementations."""
     assert run("grill", "--said", "\U0001F600" * 10000 + " thai-docx grill")["mode"] == "grill"
-    assert run("grill", "--said", "\U0001F600" * g.MAX_CHARS + " thai-docx grill")["mode"] == "build"
+    # in process: one argument this long is past what the OS passes to a command
+    assert g.run(["--said", "\U0001F600" * g.MAX_CHARS + " thai-docx grill " + "\U0001F600" * g.MAX_CHARS])["mode"] == "build"
 
 
 def test_a_message_read_only_in_part_says_so():
-    """A cap that says nothing is a trap: the phrase may be in the part that was dropped."""
-    long = run("grill", "--said", "ก" * (g.MAX_CHARS + 5) + " thai-docx grill")
-    assert long["mode"] == "build"
-    assert "20000 characters" in long["warnings"][0] and "21" in long["warnings"][0]
+    """A cap that says nothing is a trap: the phrase may be in the part that was not read — the
+    middle, once the first and the last 20,000 characters are read (E-01, the review of 0.3.0)."""
+    middle = "ก" * (g.MAX_CHARS + 500) + " thai-docx grill " + "ข" * (g.MAX_CHARS + 500)
+    long = run("grill", "--said", middle)
+    assert long["mode"] == "build" and "between them were not read" in long["warnings"][0], long
+    assert run("grill", "--said", "ก" * (g.MAX_CHARS + 5) + " thai-docx grill")["mode"] == "grill"
     assert "warnings" not in run("grill", "--said", "ทำไฟล์ให้หน่อย")
 
 
 def test_a_very_long_message_is_read_to_its_cap():
-    """A message is read to 20,000 characters, as any other input has its bound."""
-    assert run("grill", "--said", "ก" * g.MAX_CHARS + " thai-docx grill")["mode"] == "build"
+    """A message is read to its first and last 20,000 characters, as any other input has its bound."""
     assert run("grill", "--said", "ก" * 10 + " thai-docx grill")["mode"] == "grill"
     cut = g.run(["--said", "x" * 300000])
     assert cut["mode"] == "build" and cut["next"] == g.run(["--said", "x"])["next"]
-    assert cut["warnings"] == ["the message was read to its first 20000 characters; "
-                               "280000 were not read, and the phrase may be among them"]
+    assert cut["warnings"] == ["the message was read to its first 20000 and its last 20000 characters; "
+                               "260000 between them were not read, and the phrase may be among them"]

@@ -20,6 +20,11 @@ profile changes must be computed, not written.
 --said "<the user's own message>"` stands: the phrase `thai-docx grill`, in any case, with
 `-`, `_` or a space, the first 20,000 characters, and nothing else turning the interview on.
 
+> **Later (2026-09-27, the review of 0.3.0):** the first and the last 20,000 characters, read in
+> the one call. SKILL.md had the agent call again on the last 20,000 itself, and a phrase between
+> the two was read by neither, in silence; what lies between them is now counted in `warnings`
+> (E-01).
+
 **Three optional parts follow the phrase**, read from the words directly after it, in any
 order, each once; the first word that is none of them ends the reading:
 

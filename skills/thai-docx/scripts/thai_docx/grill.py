@@ -208,18 +208,20 @@ def questions(now: dict, lang: str, only: list[str] | None, save_to: str | None)
 def run(argv: list[str]) -> dict:
     if len(argv) != 2 or argv[0] != "--said":
         return {"ok": False, "error": USAGE}
-    message = argv[1]
-    cut = len(message) - MAX_CHARS
-    if cut > 0:
-        # the cap is a decision (ADR 0029), but a cap that says nothing is a trap: the phrase
-        # may be in the part that was dropped, and the agent would read "build" as the answer
-        message = message[:MAX_CHARS]
-    if mode(message) != "grill":
+    said = argv[1]
+    # the first 20,000 characters and the last 20,000, in this one call: the agent once ran it
+    # again on the last part itself, and a phrase between the two was read by neither, with no
+    # word of it (the review of 0.3.0, E-01). A cap that says nothing is a trap, so what lies
+    # between is counted (ADR 0029).
+    head, tail = said[:MAX_CHARS], said[-MAX_CHARS:] if len(said) > MAX_CHARS else ""
+    between = max(0, len(said) - 2 * MAX_CHARS)
+    message = head if mode(head) == "grill" else tail if tail and mode(tail) == "grill" else None
+    if message is None:
         answer = {"ok": True, "mode": "build",
                   "next": "build at once with the announced defaults; ask nothing first"}
-        if cut > 0:
-            answer["warnings"] = ["the message was read to its first " + str(MAX_CHARS) + " characters; "
-                                  + str(cut) + " were not read, and the phrase may be among them"]
+        if between:
+            answer["warnings"] = ["the message was read to its first " + str(MAX_CHARS) + " and its last " + str(MAX_CHARS)
+                                  + " characters; " + str(between) + " between them were not read, and the phrase may be among them"]
         return answer
     try:
         found = parts(message)
