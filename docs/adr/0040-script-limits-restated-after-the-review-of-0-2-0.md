@@ -90,6 +90,11 @@ unchanged.
 7. Document properties hold only what front matter supplies — no OS user name, no host name, no
    clock. A profile adds nothing to them.
 8. Output and logs carry counts, verdicts and settings, never document text.
+
+   > **Later (2026-09-27, the review of 0.3.0):** a name the file supplies — a part's, a font's —
+   > is document text an agent reads; it is shown with letters, digits, spaces and `-_./()[]+&,`
+   > only, others as `?`, at most 64 characters (D-10). And at most 20 findings and 20 warnings
+   > of a code are listed, the rest counted, so a file cannot make its answer megabytes long (D-11).
 9. Before parsing a .docx it did not write, the checker refuses XML carrying a DOCTYPE and caps the
    decompressed size. `repair` never writes a file its checker finds a fault in that the input did
    not have; a part whose finding lies inside a comment or CDATA is left as it came, and the finding

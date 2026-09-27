@@ -306,28 +306,33 @@ function nodeRepair(argv) {
     return 2;
   }
   const ents = readZipDirectory(data);
-  const parts = new Map(ents.map((e) => [e.name, readZipEntry(data, e)]));
+  // the parts the checker read, and no other (repair.py says why: D-01)
+  const parts = new Map(ents.filter((e) => isMarkup(e.name)).map((e) => [e.name, readZipEntry(data, e)]));
   const foreign = foreignPrefix(parts);
   if (foreign !== null) {
-    result.error = foreign + " writes WordprocessingML under a prefix other than w:; this version repairs" +
+    result.error = quoted(foreign) + " writes WordprocessingML under a prefix other than w:; this version repairs" +
       " only the prefix Word writes, so nothing was written";
     process.stdout.write(pyDumps(result) + "\n");
     return 2;
   }
   const [replace, repaired, chosen, leftNames] = repairParts(parts, before.findings, font, thaiLanguage, csAll);
-  const left = leftNames.filter((name) => before.findings.some((f) => f.part === name)).map((name) => ({ code: "left",
-    message: name + " holds a comment, a CDATA section or a processing instruction; it is left as it came, and its findings with it" }));
+  const left = leftNames.filter((name) => before.findings.some((f) => f.part === quoted(name))).map((name) => ({ code: "left",
+    message: quoted(name) + " holds a comment, a CDATA section or a processing instruction; it is left as it came, and its findings with it" }));
   if (!replace.size && !before.findings.length) {
     // a clean file is an answer, not a fault: nothing to repair, so nothing is written
     delete result.file;
-    Object.assign(result, { ok: true, repaired: {}, remaining: [], warnings: [{ code: "clean", message:
-      "nothing here needs a repair; no file was written, and " + inPath + " can be used as it is" }].concat(before.warnings) });
+    const [warnings, omitted] = listed([{ code: "clean", message:
+      "nothing here needs a repair; no file was written, and " + inPath + " can be used as it is" }].concat(before.warnings));
+    Object.assign(result, { ok: true, repaired: {}, remaining: [], warnings });
+    if (omitted.length) result.warnings_omitted = omitted;
     process.stdout.write(pyDumps(result) + "\n");
     return 0;
   }
   if (!replace.size) {
     result.repaired = {};
-    result.remaining = before.findings;
+    const [remaining, omitted] = listed(before.findings);
+    result.remaining = remaining;
+    if (omitted.length) result.remaining_omitted = omitted;
     result.error = "nothing here is a repair this version makes; the findings say what is wrong";
     process.stdout.write(pyDumps(result) + "\n");
     return 2;
@@ -356,7 +361,8 @@ function nodeRepair(argv) {
   const marked = repaired["thai-language"] || 0;
   delete repaired["thai-language"];
   // a finding in a part left as it came is still there by design, not a repair that failed
-  const still = new Set(after.findings.filter((f) => !leftNames.includes(f.part)).map((f) => f.code));
+  const leftQuoted = new Set(leftNames.map(quoted));
+  const still = new Set(after.findings.filter((f) => !leftQuoted.has(f.part)).map((f) => f.code));
   for (const code of Object.keys(repaired)) {
     if (still.has(code)) {
       result.error = "finding " + code + " is still there after the repair; nothing was written";
@@ -373,13 +379,18 @@ function nodeRepair(argv) {
   }
   result.ok = true;
   result.repaired = repaired;
-  result.remaining = after.findings;
-  result.warnings = (chosen ? [chosen] : []).concat(left, after.warnings);
+  const [remaining, remainingOmitted] = listed(after.findings);
+  result.remaining = remaining;
+  if (remainingOmitted.length) result.remaining_omitted = remainingOmitted;
+  let warnings = (chosen ? [chosen] : []).concat(left, after.warnings);
   if (marked) {
-    result.warnings = result.warnings.concat([{ code: "thai-language", message:
+    warnings = warnings.concat([{ code: "thai-language", message:
       'the Thai complex-script language w:bidi="th-TH" was written into ' + marked +
       " run properties, as --thai-language asked" }]);
   }
+  const [shown, warningsOmitted] = listed(warnings);
+  result.warnings = shown;
+  if (warningsOmitted.length) result.warnings_omitted = warningsOmitted;
   result.sha256 = sha256Hex(out);
   result.bytes = out.length;
   process.stdout.write(pyDumps(result) + "\n");
