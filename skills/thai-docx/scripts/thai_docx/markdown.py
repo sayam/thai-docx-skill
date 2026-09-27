@@ -76,22 +76,47 @@ ASCII_PUNCT = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 _WS = " \t\n\x0b\x0c\r"
 # ำ has a compatibility decomposition into these two, and no composition back (ADR 0034)
 NIKHAHIT, SARA_AA, SARA_AM = "\u0e4d", "\u0e32", "\u0e33"
+THAI_STRETCH = re.compile("[\u0e00-\u0e7f]+")
+
+
+def nfc_thai(text: str) -> str:
+    """The text with its Thai in NFC — marks typed out of order on one letter put in order — and
+    nothing else changed: NFC over the whole text changed letters that are not Thai, a
+    compatibility ideograph or U+212B, in silence (the review of 0.3.0, B-10)."""
+    return THAI_STRETCH.sub(lambda m: unicodedata.normalize("NFC", m.group(0)), text)
+
+
+# a mark above the letter, one below, and the thanthakhat, as B-13 of the review of 0.3.0 names them
+THAI_ABOVE = frozenset("\u0e31\u0e34\u0e35\u0e36\u0e37\u0e47\u0e4d")
+THAI_BELOW = frozenset("\u0e38\u0e39\u0e3a")
+THANTHAKHAT = "\u0e4c"
+
+
 def thai_marks_out_of_place(line: str) -> list[str]:
     """What is wrong with how a line's Thai marks sit, once each: a mark with no letter before it
     (a reader sees it on a dotted circle, or on whatever stands before it), and a letter carrying
     two tone marks. Named, never changed (ADR 0034)."""
-    lone, two, tones, before = "", False, 0, ""
+    lone, two, stacked, before = "", False, False, ""
+    tones = above = below = thanthakhat = am = 0
     for ch in line:
-        if ord(ch) in THAI_MARKS:
-            if not lone and not ("\u0e01" <= before <= "\u0e2e" or before and ord(before) in THAI_MARKS):
+        if ord(ch) in THAI_MARKS or ch == SARA_AM:
+            if ch != SARA_AM and not lone and not ("\u0e01" <= before <= "\u0e2e" or before and ord(before) in THAI_MARKS):
                 lone = ch
             tones += ord(ch) in THAI_TONES
+            above += ch in THAI_ABOVE
+            below += ch in THAI_BELOW
+            thanthakhat += ch == THANTHAKHAT
+            am += ch == SARA_AM
             two = two or tones == 2
+            # two vowels above, two below, a tone mark with the thanthakhat, ำ twice: each is
+            # drawn one over the other, or on a dotted circle (B-13)
+            stacked = stacked or above == 2 or below == 2 or (tones and thanthakhat) or am == 2
         else:
-            tones = 0
+            tones = above = below = thanthakhat = am = 0
         before = ch
     return ((["a Thai mark (U+%04X) with no letter before it; it is written as it stands" % ord(lone)] if lone else [])
-            + (["a letter with two tone marks; it is written as it stands"] if two else []))
+            + (["a letter with two tone marks; it is written as it stands"] if two else [])
+            + (["a letter with two marks that stand in one place; it is written as it stands"] if stacked and not two else []))
 
 
 
@@ -1899,7 +1924,7 @@ def parse(text: str) -> Document:
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     if text.startswith("\ufeff"):
         text = text[1:]
-    text = unicodedata.normalize("NFC", text)
+    text = nfc_thai(text)
     long_sara_am: list[int] = []
     marks: list[tuple[int, str]] = []
     for no, ln in enumerate(text.split("\n"), 1):
@@ -2009,6 +2034,7 @@ def _resolve_inlines(bp: BlockParser, node: Node) -> None:
 def _inlines(bp: BlockParser, block: Node, doc: Document) -> list[dict]:
     out: list[dict] = []
     tags = {"sup": 0, "sub": 0, "u": 0, "kbd": 0}
+    titles: dict[str, str] = {}  # a link's title, written as its tooltip (the review of 0.3.0, B-11)
 
     def walk(node: Node, flags: dict, link: str | None, extended: bool = False) -> None:
         for n in node.children():
@@ -2026,9 +2052,10 @@ def _inlines(bp: BlockParser, block: Node, doc: Document) -> list[dict]:
                 key = {"emph": "i", "strong": "b", "strikethrough": "strike"}[t]
                 walk(n, {**flags, key: True}, link)
             elif t == "link":
+                titles[n.destination] = n.title or titles.get(n.destination, "")
                 walk(n, flags, n.destination, n.extended)
             elif t == "image":
-                out.append(("image", n.destination, _plain(n)))
+                out.append(("image", n.destination, _plain(n), n.title or ""))
             elif t == "footnote_ref":
                 if n.label not in doc.footnotes:
                     doc.footnote_order.append(n.label)
@@ -2061,11 +2088,13 @@ def _inlines(bp: BlockParser, block: Node, doc: Document) -> list[dict]:
                     "strike": bool(flags.get("strike")), "code": bool(flags.get("code") or tags_now["kbd"]),
                     "u": bool(tags_now["u"]), "sup": bool(tags_now["sup"]), "sub": bool(tags_now["sub"]) and not tags_now["sup"],
                     "link": link, "autolink": bool(item[5] and link)}
+            if link and titles.get(link):
+                node["title"] = titles[link]
             result.append(node)
         elif kind == "hard":
             result.append({"t": "hardbreak"})
         elif kind == "image":
-            result.append({"t": "image", "src": item[1], "alt": item[2]})
+            result.append({"t": "image", "src": item[1], "alt": item[2], **({"title": item[3]} if item[3] else {})})
         elif kind == "fn":
             result.append({"t": "footnote_ref", "label": item[1], "id": item[2]})
     return _merge(result)

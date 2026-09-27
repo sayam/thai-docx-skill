@@ -413,13 +413,17 @@ def run(argv: list[str]) -> dict:
 # --- the build's --profile ---------------------------------------------------------------
 
 
-def expand(argv: list[str]) -> tuple[list[str], dict | None]:
+def expand(argv: list[str]) -> tuple[list[str], dict | None, set[str]]:
     """`--profile NAME` → the profile's flags before the rest, less the settings `--default`
-    names, and what to report."""
+    names; what to report; and the settings the profile gave that no flag typed after it names,
+    of which a "changed nothing" is not said — the user never asked for them (the review of
+    0.3.0, B-15)."""
     rest, reset = _defaults(argv)
     rest, name = _flag(rest, "--profile")
     if name is None:
-        return rest, None
+        return rest, None, set()
     data, where, path = load(name)
     used = {"name": path.stem, "where": where, "path": str(path), "sha256": digest(data["settings"])}
-    return as_flags({k: v for k, v in data["settings"].items() if k not in reset}) + rest, used
+    given = {k: v for k, v in data["settings"].items() if k not in reset}
+    typed = {s["key"] for s in st.SETTINGS if any(a == s["flag"] or a.startswith(s["flag"] + "=") for a in rest)}
+    return as_flags(given) + rest, used, set(given) - typed

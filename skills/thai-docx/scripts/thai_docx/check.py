@@ -424,9 +424,13 @@ def _check_text_part(name: str, root: ET.Element, report: Report, roles: dict) -
                 report.counts["runs"] = report.counts.get("runs", 0) + 1
                 cs = None if rpr is None else rpr.find(w("cs"))
                 marked = cs is not None and is_on(cs)
+                # <w:rtl/> makes a run use its complex-script properties too (ECMA-376 §17.3.2.30):
+                # Word writes Arabic and Hebrew that way, with no <w:cs/> (the review of 0.3.0, B-08)
+                rtl = None if rpr is None else rpr.find(w("rtl"))
+                right_to_left = rtl is not None and is_on(rtl)
                 # one direction only: a run that holds no complex script may carry the marker,
                 # because --force-cs-whole-doc writes it on every run and that file is ours too
-                if complex_text and not marked:
+                if complex_text and not marked and not right_to_left:
                     report.find("2", name, "a run whose text is complex script has no <w:cs/> element")
                 if marked:
                     lang = rpr.find(w("lang"))

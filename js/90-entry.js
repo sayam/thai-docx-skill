@@ -494,9 +494,10 @@ function cliCommand(argv) {
   if (argv.length && argv[0] === "build") {
     let opts, positional, allow, used;
     try {
-      let rest;
-      [rest, used] = profileExpand(argv.slice(1));
+      let rest, quiet;
+      [rest, used, quiet] = profileExpand(argv.slice(1));
       [opts, positional, allow] = parseArgs(rest);
+      opts._quiet = quiet; // the profile's settings no flag named: no "changed nothing" (B-15)
     } catch (e) {
       if (!(e instanceof BuildError) && !(e instanceof ProfileError)) throw e;
       process.stdout.write(pyDumps({ ok: false, error: e.what }) + "\n");

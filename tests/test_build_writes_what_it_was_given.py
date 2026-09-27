@@ -320,3 +320,90 @@ def test_pictures_side_by_side_give_their_caption_the_text_width(tmp_path):
     code, result = both(["build", "in.md", "out.docx", "--profile", "thesis"], tmp_path)
     captions = re.findall(r'<w:pStyle w:val="FigureCaption"/>((?:(?!</w:pPr>).)*)</w:pPr>', part(tmp_path / "out.docx", "word/document.xml"))
     assert captions[0] == '<w:jc w:val="center"/>' and captions[1].startswith("<w:ind "), captions
+
+
+# --- the review of 0.3.0: runs and text --------------------------------------------------------
+
+
+def _runs(document: str) -> list[tuple[bool, str]]:
+    return [("<w:cs/>" in rpr, text) for rpr, text in re.findall(r"<w:r>(<w:rPr>.*?</w:rPr>)?<w:t[^>]*>([^<]*)</w:t></w:r>", document)]
+
+
+def test_punctuation_after_formatted_thai_is_thai(tmp_path):
+    """B-04: a mark with Thai on both sides is Thai (0.3.0), but a mark in a text node of its own
+    — after a bold word or a link — had no letter beside it to read, so `.` `)` `”` were Latin."""
+    (tmp_path / "in.md").write_text("ดู[เว็บไซต์](https://example.com).\n\nคำว่า “**สำคัญ**”\n\nดูที่ (*ภาคผนวก*)\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    runs = _runs(part(tmp_path / "out.docx", "word/document.xml"))
+    assert all(cs for cs, text in runs if text.strip() in (".", "”", ")")), runs
+
+
+def test_a_run_word_writes_right_to_left_is_marked(tmp_path):
+    """B-08: Word writes Arabic and Hebrew with `<w:rtl/>`, which makes the run use its
+    complex-script properties (ECMA-376 §17.3.2.30); `check` found it unmarked and `repair` marked
+    it again."""
+    parts = replaced(good(), "word/document.xml", "<w:body>",
+                     '<w:body><w:p><w:pPr><w:bidi/></w:pPr><w:r><w:rPr><w:rtl/><w:lang w:bidi="ar-SA"/></w:rPr>'
+                     "<w:t>مرحبا</w:t></w:r></w:p>")
+    (tmp_path / "ar.docx").write_bytes(pack(parts))
+    code, result = both(["check", "ar.docx"], tmp_path)
+    assert code == 0 and result["findings"] == [], result
+
+
+def test_the_thai_language_is_written_on_thai_only(tmp_path):
+    """B-09: `--thai-language` wrote `w:bidi="th-TH"` on every complex-script run, so Lao, Arabic,
+    Devanagari and Khmer were told to Word as Thai."""
+    (tmp_path / "in.md").write_text("ภาษาลาว ພາສາລາວ ภาษาอาหรับ العربية ภาษาฮินดี हिन्दी\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx", "--thai-language"], tmp_path)
+    document = part(tmp_path / "out.docx", "word/document.xml")
+    for word in ("ພາສາລາວ", "العربية", "हिन्दी"):
+        rpr = re.search(r"<w:r>(<w:rPr>(?:(?!</w:rPr>).)*</w:rPr>)<w:t[^>]*>[^<]*" + word, document).group(1)
+        assert "<w:cs/>" in rpr and "th-TH" not in rpr, (word, rpr)
+    assert re.search(r'<w:lang w:bidi="th-TH"/></w:rPr><w:t[^>]*>ภาษาลาว', document), document
+
+
+def test_only_thai_is_put_in_its_normal_form(tmp_path):
+    """B-10: the whole text was put in NFC, which changes letters that are not Thai — a
+    compatibility ideograph (U+F92C) became its unified twin, U+212B became Å — in silence; the
+    Markdown page says the text is never altered but Thai's mark order."""
+    (tmp_path / "in.md").write_text("กุ่ 郎 Å é\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    document = part(tmp_path / "out.docx", "word/document.xml")
+    assert code == 0 and "郎" in document and "Å" in document and "é" in document, result
+
+
+def test_a_link_or_picture_title_is_written(tmp_path):
+    """B-11: a title given to a link or a picture was read and dropped in silence."""
+    (tmp_path / "p.png").write_bytes(png(96, 40))
+    (tmp_path / "in.md").write_text('ดู [ลิงก์](https://example.com "คำอธิบายลิงก์") และ ![รูป](p.png "ชื่อรูป")\n', encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    document = part(tmp_path / "out.docx", "word/document.xml")
+    assert 'w:tooltip="คำอธิบายลิงก์"' in document and 'title="ชื่อรูป"' in document, document
+
+
+def test_marks_stacked_on_one_letter_are_named(tmp_path):
+    """B-13: only two tone marks were named; two vowels above, two below, a tone mark with the
+    thanthakhat, or ำ twice went through in silence."""
+    lines = ["กิี", "กุู", "ก่์", "กำำ", "กัิ"]
+    (tmp_path / "in.md").write_text("\n\n".join(lines) + "\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    named = [w["message"] for w in result["warnings"] if "marks" in w["message"] or "mark" in w["message"]]
+    assert len(named) == len(lines), result["warnings"]
+
+
+def test_signs_between_thai_are_thai(tmp_path):
+    """B-14: `°` `×` `±` `§` `·` between Thai were Latin runs cut into the word."""
+    (tmp_path / "in.md").write_text("อุณหภูมิ ๓๐°ซ ขนาด ๒×๓ ค่า ๕±๑ มาตรา§๒\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    runs = _runs(part(tmp_path / "out.docx", "word/document.xml"))
+    assert all(cs for cs, _ in runs), runs
+
+
+def test_a_profile_setting_that_changed_nothing_is_not_said(tmp_path):
+    """B-15: the thesis profile turns on settings a document may not need, and every build then
+    said "--center-images changed nothing" of a flag the user never typed."""
+    (tmp_path / "in.md").write_text("<!-- chapters -->\n\n# บทนำ\n\nข้อความ\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx", "--profile", "thesis"], tmp_path)
+    assert code == 0 and result["warnings"] == [], result
+    code, result = both(["build", "in.md", "out.docx", "--profile", "thesis", "--center-images"], tmp_path)
+    assert any("--center-images changed nothing" in w["message"] for w in result["warnings"]), result

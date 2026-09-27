@@ -457,9 +457,12 @@ function checkTextPart(name, root, report, roles) {
         report.counts.runs = (report.counts.runs || 0) + 1;
         const cs = rpr === null ? null : rpr.find(w("cs"));
         const marked = cs !== null && isOn(cs);
+        // <w:rtl/> makes a run use its complex-script properties too (check.py says why: B-08)
+        const rtl = rpr === null ? null : rpr.find(w("rtl"));
+        const rightToLeft = rtl !== null && isOn(rtl);
         // one direction only: a run that holds no complex script may carry the marker, because
         // --force-cs-whole-doc writes it on every run and that file is ours too
-        if (complexText && !marked) {
+        if (complexText && !marked && !rightToLeft) {
           report.find("2", name, "a run whose text is complex script has no <w:cs/> element");
         }
         if (marked) {

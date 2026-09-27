@@ -317,6 +317,6 @@ about the layout of a document somebody else made; it is measured only by its ow
   substitute. Right-to-left text (Arabic, Hebrew) is marked, not set right to left.
 - **The two implementations give the same bytes when their runtimes share a Unicode version.**
   Whether `_` or `*` opens emphasis, and how a link label's case is folded, are read from the
-  runtime's own Unicode tables, and so is the NFC normalisation the build applies to the text
-  first; a character newer than one runtime's tables can read differently in the other. The characters the skill refuses are one list both read, whatever the
+  runtime's own Unicode tables, and so is the NFC normalisation the build applies to the Thai in
+  the text first; a character newer than one runtime's tables can read differently in the other. The characters the skill refuses are one list both read, whatever the
   version.

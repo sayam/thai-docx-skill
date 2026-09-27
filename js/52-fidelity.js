@@ -82,5 +82,5 @@ function expectedText(doc, opts) {
     if (!blocks.length || blocks[0].t !== "paragraph") out.push("");
     out.push(...plainText(blocks, numbersAreText, opts.thai_digits));
   }
-  return out.map((s) => s.normalize("NFC"));
+  return out.map(nfcThai);
 }

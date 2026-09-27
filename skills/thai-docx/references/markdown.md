@@ -38,7 +38,8 @@ space, so wrapping long Thai lines in the Markdown is safe.
 What the build warns about rather than refuses: an image with nothing between the brackets
 of `![]`, a heading level skipped, a link definition nobody refers to, **ำ written the long way
 as `ํ` + `า`**, **a Thai mark with no letter before it** (`นำ้`, a vowel or tone mark at the start
-of a word), **a letter with two tone marks**, and a paragraph that opens with `ตาราง:` or `รูป:` where a caption would go — the prefix is `Table:` or `Figure:`,
+of a word), **a letter with two tone marks**, **a letter with two marks that stand in one place**
+(two vowels above it or below it, a tone mark with `์`, `ำ` twice), and a paragraph that opens with `ตาราง:` or `รูป:` where a caption would go — the prefix is `Table:` or `Figure:`,
 in English, in every language. Entities (`&nbsp;`, `&amp;`) are resolved by CommonMark, so
 `&nbsp;` becomes one non-breaking space in the document, not seven characters.
 
@@ -47,10 +48,13 @@ the two characters it is, because no Unicode normalisation joins them — NFKC t
 these two, never the other way. Replace them yourself if you meant `ำ`; a reader's search for `ำ`
 will not find the long form.
 
-The text is read in Unicode's composed form (NFC) before anything else, as the two
-implementations must agree on it. For Thai that changes one thing: marks typed in another order
-on one letter are put in the canonical one — a tone mark typed before `ุ` or `ู` comes after it.
-The letters, and what a reader sees, are the same.
+The Thai in the text is read in Unicode's composed form (NFC) before anything else, as the two
+implementations must agree on it. That changes one thing: marks typed in another order on one
+letter are put in the canonical one — a tone mark typed before `ุ` or `ู` comes after it. The
+letters, and what a reader sees, are the same. Text that is not Thai is left exactly as typed.
+
+A link's title (`[text](url "title")`) is written as the tip Word shows when the link is pointed
+at, and a picture's (`![alt](p.png "title")`) as the picture's title beside its alternative text.
 
 Anything else stops the build and names the line, and so do blocks or formatting nested
 more than 100 deep. Nothing is dropped silently.

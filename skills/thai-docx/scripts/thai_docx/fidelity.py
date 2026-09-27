@@ -6,7 +6,6 @@ built from the Markdown, and the text the package does hold, read back from its 
 
 from __future__ import annotations
 
-import unicodedata
 from xml.etree import ElementTree as ET
 
 from . import markdown as md
@@ -88,4 +87,4 @@ def expected_text(doc: md.Document, opts: dict | None = None) -> list[str]:
         if not blocks or blocks[0]["t"] != "paragraph":
             out.append("")
         out.extend(md.plain_text(blocks, numbers_are_text, opts["thai_digits"]))
-    return [unicodedata.normalize("NFC", s) for s in out]
+    return [md.nfc_thai(s) for s in out]

@@ -369,7 +369,7 @@ def settings_warnings(opts: dict, present: set[str]) -> list[str]:
     missing: dict[str, list[str]] = {}
     for s in SETTINGS:
         need = s.get("needs")
-        if need in STRUCTURES and need not in present and opts[s["key"]] != s["default"]:
+        if need in STRUCTURES and need not in present and opts[s["key"]] != s["default"] and s["key"] not in opts.get("_quiet", ()):
             missing.setdefault(need, []).append(s["flag"])
     out = [_and(flags) + " changed nothing: " + STRUCTURES[need][1] for need, flags in missing.items()]
     # --thai-language names the language in the styles whatever the text is, so it changed bytes

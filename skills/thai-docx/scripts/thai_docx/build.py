@@ -277,8 +277,9 @@ def main(argv: list[str]) -> int:
     from . import profiles  # here: profiles reads this module's defaults and flags
 
     try:
-        argv, used = profiles.expand(argv)
+        argv, used, quiet = profiles.expand(argv)
         opts, (md_path, out_path), allow = parse_args(argv)
+        opts["_quiet"] = quiet  # the profile's settings no flag named: no "changed nothing" (B-15)
     except (BuildError, profiles.ProfileError) as exc:
         print(json.dumps({"ok": False, "error": exc.what}, ensure_ascii=False))
         return 2

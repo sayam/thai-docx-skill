@@ -1079,3 +1079,59 @@
   found_by: review
   test:
     - tests/test_build_writes_what_it_was_given.py::test_pictures_side_by_side_give_their_caption_the_text_width
+
+- id: V3-B-04
+  what: a mark after a bold word or a link had no letter beside it to read, so it was Latin between Thai
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_punctuation_after_formatted_thai_is_thai
+
+- id: V3-B-08
+  what: check found a run Word writes right to left unmarked, and repair marked it again
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_run_word_writes_right_to_left_is_marked
+
+- id: V3-B-09
+  what: --thai-language wrote the Thai language on Lao, Arabic, Hindi and Khmer runs
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_the_thai_language_is_written_on_thai_only
+
+- id: V3-B-10
+  what: NFC over the whole text changed letters that are not Thai in silence
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_only_thai_is_put_in_its_normal_form
+
+- id: V3-B-11
+  what: a link's or a picture's title was read and dropped in silence
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_link_or_picture_title_is_written
+
+- id: V3-B-13
+  what: marks stacked on one letter other than two tone marks went through in silence
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_marks_stacked_on_one_letter_are_named
+
+- id: V3-B-14
+  what: common signs between Thai were Latin runs cut into the word
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_signs_between_thai_are_thai
+
+- id: V3-B-15
+  what: the thesis profile made every build say changed nothing of settings never typed
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_profile_setting_that_changed_nothing_is_not_said

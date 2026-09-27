@@ -12,7 +12,7 @@ import re
 import struct
 
 from . import markdown as md
-from .ooxml import PUNCTUATION, THAI_MARKS, is_complex
+from .ooxml import PUNCTUATION, THAI_MARKS, is_complex, is_thai
 from .layout import (CAPTION_STYLE, SECTION_MARK, caption_text, chapter_title, has_thai, heading_styles, image_only, layout,
                      list_entries, list_field, number_text)
 from .settings import MIN_CAPTION_TWIPS, MIN_TEXT_TWIPS, BuildError, half_up, page_size
@@ -79,8 +79,14 @@ def _script(ch: str) -> str:
     return "P" if ch in PUNCTUATION else "L"
 
 
-def script_runs(text: str) -> list[tuple[bool, str]]:
+def script_runs(text: str, before: str = "", after: str = "", thai: bool = False) -> list[tuple[bool, str]]:
     """`text` cut where the script changes, as Word cuts it (ADR 0039).
+
+    `before` and `after` are the scripts (`C` or `L`) of the nearest letters outside `text` in
+    its paragraph, so a mark in a text node of its own — after a bold word or a link — reads the
+    letters beside it (the review of 0.3.0, B-04). With `thai`, a complex-script stretch is cut
+    again where Thai meets another complex script, so the Thai language is written on Thai
+    alone (B-09).
 
     A neutral character takes the script of the strong character before it. One that opens the
     text has none before it, so it takes the first strong character instead, and text that is
@@ -92,15 +98,15 @@ def script_runs(text: str) -> list[tuple[bool, str]]:
         return [(False, "")]
     marks = [_script(ch) for ch in text]
     # punctuation takes Thai where the nearest letter on each side that has one is Thai
-    before, after, last = [""] * len(marks), [""] * len(marks), ""
+    left, right, last = [""] * len(marks), [""] * len(marks), before
     for i, m in enumerate(marks):
-        before[i] = last
+        left[i] = last
         last = m if m in "CL" else last
-    last = ""
+    last = after
     for i in range(len(marks) - 1, -1, -1):
-        after[i] = last
+        right[i] = last
         last = marks[i] if marks[i] in "CL" else last
-    marks = [("C" if {before[i], after[i]} - {""} == {"C"} else "L") if m == "P" else m for i, m in enumerate(marks)]
+    marks = [("C" if {left[i], right[i]} - {""} == {"C"} else "L") if m == "P" else m for i, m in enumerate(marks)]
     first = next((m for m in marks if m != "N"), "L")
     out: list[str] = []
     prev = ""
@@ -110,12 +116,35 @@ def script_runs(text: str) -> list[tuple[bool, str]]:
         else:
             out.append(m)
             prev = m
+    if thai:
+        # Thai (`T`) and every other complex script (`O`) apart; what is neither takes the one
+        # before it, or the first after it
+        kinds = ["T" if is_thai(ch) else "O" if is_complex(ch) else "" for ch in text]
+        first_kind = next((k for k, o in zip(kinds, out, strict=True) if k and o == "C"), "T")
+        prev_kind = ""
+        for i, o in enumerate(out):
+            if o != "C":
+                prev_kind = ""
+                continue
+            if kinds[i]:
+                prev_kind = kinds[i]
+            out[i] = "C" + (prev_kind or next((kinds[j] for j in range(i, len(text)) if kinds[j] and out[j] == "C"), first_kind))
     pieces, start = [], 0
     for i in range(1, len(text) + 1):
         if i == len(text) or out[i] != out[start]:
-            pieces.append((out[start] == "C", text[start:i]))
+            pieces.append((out[start].startswith("C"), text[start:i]))
             start = i
     return pieces
+
+
+def letter_script(text: str, last: bool) -> str:
+    """The script (`C` or `L`) of the first — or, with `last`, the last — letter in `text`
+    that has one, or ""."""
+    for ch in (reversed(text) if last else text):
+        m = _script(ch)
+        if m in "CL":
+            return m
+    return ""
 # Word's own table default; with no table style it would otherwise be 0 and text touches the borders
 CELL_MARGINS = '<w:tblCellMar><w:left w:w="108" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar>'
 def esc(s: str) -> str:
@@ -228,17 +257,20 @@ class Writer:
 
     # -- inlines --
 
-    def marker(self, complex_script: bool) -> str:
-        """What says a run is complex script, or nothing when its text is not."""
+    def marker(self, complex_script: bool, thai: bool = True) -> str:
+        """What says a run is complex script, or nothing when its text is not; the Thai language
+        only on Thai (B-09)."""
         self.scripts.add(complex_script)
-        return self.cs if complex_script or self.cs_all else ""
+        if not (complex_script or self.cs_all):
+            return ""
+        return self.cs if thai else CS
 
     @staticmethod
     def rpr(props: str) -> str:
         """A run's properties, or nothing at all rather than an empty element."""
         return "<w:rPr>" + props + "</w:rPr>" if props else ""
 
-    def runs(self, text: str, props: str = "") -> str:
+    def runs(self, text: str, props: str = "", before: str = "", after: str = "") -> str:
         """`text` as runs, one per stretch of a single script (ADR 0039).
 
         Two stretches that end up with the same run properties are one run again: cause 4 of
@@ -247,8 +279,8 @@ class Writer:
         this puts the whole text back into the one run releases before 0.2.0 wrote.
         """
         grouped: list[list] = []
-        for complex_script, piece in script_runs(text):
-            rpr = self.rpr(props + self.marker(complex_script))
+        for complex_script, piece in script_runs(text, before, after, self.opts["thai_language"]):
+            rpr = self.rpr(props + self.marker(complex_script, not complex_script or any(is_thai(c) for c in piece)))
             if grouped and grouped[-1][0] == rpr:
                 grouped[-1][1] += piece
             else:
@@ -279,10 +311,28 @@ class Writer:
             p.append('<w:vertAlign w:val="subscript"/>')
         return "".join(p)
 
-    def text_run(self, node: dict, bold: bool = False) -> str:
-        return self.runs(node["s"], self.run_props(node, bold))
+    def text_run(self, node: dict, bold: bool = False, context: tuple[str, str] = ("", "")) -> str:
+        return self.runs(node["s"], self.run_props(node, bold), *context)
 
     def inlines(self, nodes: list[dict], bold: bool = False) -> str:
+        # each text node's nearest letters outside it in the paragraph, through the text nodes
+        # beside it: what a mark at its edge reads (B-04)
+        context = [("", "")] * len(nodes)
+        last = ""
+        for k, n in enumerate(nodes):
+            if n["t"] != "text":
+                last = ""
+                continue
+            context[k] = (last, "")
+            last = letter_script(n["s"], True) or last
+        last = ""
+        for k in range(len(nodes) - 1, -1, -1):
+            n = nodes[k]
+            if n["t"] != "text":
+                last = ""
+                continue
+            context[k] = (context[k][0], last)
+            last = letter_script(n["s"], False) or last
         out = []
         i = 0
         while i < len(nodes):
@@ -293,13 +343,15 @@ class Writer:
                     j += 1
                 rid = self.rel(REL + "hyperlink", uri(n["link"]), external=True)
                 self.counts["links"] += 1
-                runs = "".join(self.text_run(x, bold) for x in nodes[i:j])
-                out.append('<w:hyperlink r:id="' + rid + '" w:history="1">' + runs + "</w:hyperlink>")
+                runs = "".join(self.text_run(nodes[k], bold, context[k]) for k in range(i, j))
+                title = n.get("title")  # the link's title, which Word shows as it is pointed at (B-11)
+                out.append('<w:hyperlink r:id="' + rid + '"' + (" w:tooltip=" + attr(title) if title else "")
+                           + ' w:history="1">' + runs + "</w:hyperlink>")
                 i = j
                 continue
             t = n["t"]
             if t == "text":
-                out.append(self.text_run(n, bold))
+                out.append(self.text_run(n, bold, context[i]))
             elif t == "hardbreak":
                 out.append("<w:r>" + self.rpr(self.marker(False)) + "<w:br/></w:r>")
             elif t == "task":
@@ -355,7 +407,8 @@ class Writer:
         return (
             "<w:r>" + self.rpr(self.marker(False)) + "<w:drawing>"
             '<wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + str(cx) + '" cy="' + str(cy) + '"/>'
-            '<wp:docPr id="' + k + '" name="Picture ' + k + '" descr=' + attr(node["alt"]) + "/>"
+            '<wp:docPr id="' + k + '" name="Picture ' + k + '" descr=' + attr(node["alt"])
+            + (" title=" + attr(node["title"]) if node.get("title") else "") + "/>"
             '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
             '<pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="Picture ' + k + '"/><pic:cNvPicPr/></pic:nvPicPr>'
             '<pic:blipFill><a:blip r:embed="' + rid + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'

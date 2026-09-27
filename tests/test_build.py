@@ -113,9 +113,9 @@ def test_sample_text_round_trips_paragraph_for_paragraph():
 def test_a_writer_that_drops_a_character_is_refused(tmp_path, monkeypatch):
     original = wr.Writer.text_run
 
-    def lossy(self, node, extra=""):
+    def lossy(self, node, *rest):
         node = dict(node, s=node["s"][:-1]) if node["s"].endswith("ข") else node
-        return original(self, node, extra)
+        return original(self, node, *rest)
 
     monkeypatch.setattr(wr.Writer, "text_run", lossy)
     result, out = build(tmp_path, "กข")
