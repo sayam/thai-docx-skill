@@ -638,3 +638,77 @@ def test_check_reads_which_way_the_numbers_are_made(tmp_path):
     (tmp_path / "plain.md").write_text("ข้อความเท่านั้น\n", encoding="utf-8")
     both(["build", "plain.md", "plain.docx"], tmp_path)
     assert both(["check", "plain.docx"], tmp_path)[1]["numbering"]["kind"] == "none"
+
+
+# --- the review of 0.3.0: what `build` reads -------------------------------------------------
+
+
+def test_twenty_thousand_unclosed_dollars_build_in_seconds(tmp_path):
+    """D-05: a `$` with no closer searched to the end of its paragraph again for every `$`, so
+    60 KB of `$a ` — a price list pasted in — took 87 s in Python and 15 s in Node."""
+    (tmp_path / "in.md").write_text("$a " * 20_000, encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)  # each within the helper's 30 s
+    assert code == 0 and result["ok"], result
+
+
+def test_an_image_path_that_names_a_network_share_is_refused_before_any_lookup(tmp_path):
+    """D-12: a picture's path was walked — each component looked up — before it was judged
+    inside the folders a build reads, so `//host/share/p.png` was looked up first, which on
+    Windows opens a connection to that host. A path that begins with two separators is refused
+    as written, and so is a link inside the folder that points to one."""
+    (tmp_path / "in.md").write_text("![a](//host.invalid/share/p.png)\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    assert code == 2 and result["error"] == "image '//host.invalid/share/p.png': a network path is never read (ADR 0040 §4)", result
+    if POSIX:
+        (tmp_path / "p.png").symlink_to("//host.invalid/share/p.png")
+        (tmp_path / "in.md").write_text("![a](p.png)\n", encoding="utf-8")
+        code, result = both(["build", "in.md", "out.docx"], tmp_path)
+        assert code == 2 and result["error"] == "image 'p.png': a network path is never read (ADR 0040 §4)", result
+
+
+def test_pictures_past_the_package_cap_stop_at_the_first_that_crosses_it(tmp_path):
+    """D-15: every picture was held in memory before the package's size was judged, so eight of
+    30 MiB took 1 GB to refuse. The pictures a document holds stop at 64 MiB, at the one that
+    crosses it."""
+    import struct as _struct
+    import zlib as _zlib
+
+    def png(size: int) -> bytes:
+        def chunk(kind: bytes, data: bytes) -> bytes:
+            return _struct.pack(">I", len(data)) + kind + data + _struct.pack(">I", _zlib.crc32(kind + data))
+        return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", _struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0))
+                + chunk(b"IDAT", bytes(size)) + chunk(b"IEND", b""))
+    for k in range(3):
+        (tmp_path / f"p{k}.png").write_bytes(png(30 * 1024 * 1024))
+    (tmp_path / "in.md").write_text("![a](p0.png)\n\n![a](p0.png)\n\n![b](p1.png)\n\n![c](p2.png)\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx"], tmp_path)
+    assert code == 2 and result["error"] == "image 'p2.png': the pictures add up to more than 64 MiB, more than a .docx holds", result
+
+
+def test_the_share_line_quotes_only_a_plain_file_name(tmp_path):
+    """D-16: `profile export` put the file name it wrote into the command it tells the other
+    person to run, whatever the name held."""
+    code, result = both(["profile", "export", "thesis", "x;touch PWNED;.json"], tmp_path)
+    assert code == 0 and result["share"] == "send this file; the other side runs `thai_docx profile import FILE.json`", result
+    code, result = both(["profile", "export", "thesis", "ของฉัน-1.json"], tmp_path)
+    assert result["share"] == "send this file; the other side runs `thai_docx profile import ของฉัน-1.json`", result
+
+
+@pytest.mark.skipif(not os.path.exists("/proc/sys/kernel/ostype"), reason="a file whose size reads 0, as Linux's /proc has")
+def test_a_file_whose_size_reads_zero_is_read_to_its_end(tmp_path):
+    """D-17: JavaScript sized its buffer by the size the file reported, so a file that reports 0
+    — /proc's, or one still being written — was read one byte long, where Python read it all."""
+    code, result = both(["build", "/proc/sys/kernel/ostype", "out.docx"], tmp_path)
+    assert code == 0 and result["counts"]["paragraphs"] == 1, result
+
+
+def test_markdown_at_the_root_allows_no_picture_by_where_it_is(tmp_path, monkeypatch):
+    """D-17: `--allow-dir /` is refused because it would allow every picture on the machine; a
+    Markdown file at the root allowed the same by where it stood. Its folder allows nothing
+    then; `--allow-dir` names what a picture may come from."""
+    sys.path.insert(0, str(ROOT / "skills" / "thai-docx" / "scripts"))
+    from thai_docx import build as b
+
+    reader = b.image_reader(os.sep, [], at_root=True)
+    with pytest.raises(b.BuildError, match="the Markdown file is at the filesystem's root"):
+        reader(str(tmp_path / "p.png"))

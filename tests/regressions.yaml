@@ -1001,3 +1001,39 @@
   found_by: review
   test:
     - tests/test_check_holds_its_limits.py::test_a_run_nested_past_what_repair_edits_is_refused_alike
+
+- id: V3-D-05
+  what: a $ with no closer was searched for again from every $, so 60 KB of $a took 87 s to build
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_twenty_thousand_unclosed_dollars_build_in_seconds
+
+- id: V3-D-12
+  what: an image path naming a network share was looked up before it was judged, which on Windows reaches that host
+  class: C0, C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_an_image_path_that_names_a_network_share_is_refused_before_any_lookup
+
+- id: V3-D-15
+  what: every picture was held in memory before the package's size was judged
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_pictures_past_the_package_cap_stop_at_the_first_that_crosses_it
+
+- id: V3-D-16
+  what: profile export's share line put an unchecked file name into a command for the other person to run
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_the_share_line_quotes_only_a_plain_file_name
+
+- id: V3-D-17
+  what: Markdown at the filesystem's root allowed every picture, and JavaScript read a file only as long as its reported size
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_markdown_at_the_root_allows_no_picture_by_where_it_is
+    - tests/test_what_a_command_takes.py::test_a_file_whose_size_reads_zero_is_read_to_its_end

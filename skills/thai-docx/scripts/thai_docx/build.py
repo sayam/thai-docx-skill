@@ -130,7 +130,15 @@ def _parent(path: str, root: str) -> str:
     return root if cut < len(root) else path[:cut]
 
 
-def real_path(path: str) -> str | None:
+class NetworkPath(Exception):
+    """A link whose target begins with two separators: a network share on Windows, where looking
+    it up opens a connection to that host (the review of 0.3.0, D-12)."""
+
+
+NETWORK = re.compile(r"^[\\/]{2}")
+
+
+def real_path(path: str, refuse_network: bool = False) -> str | None:
     """The path as the file system walks it: each component's symbolic link
     followed, `..` taken from what is already resolved. A component that does not
     exist stays as written. A walk that meets a link past the fortieth has no end
@@ -163,6 +171,8 @@ def real_path(path: str) -> str | None:
         except (OSError, ValueError):
             resolved = candidate
             continue
+        if refuse_network and NETWORK.match(target):
+            raise NetworkPath(target)
         if os.path.isabs(target):
             root, parts = _split_root(target)
             resolved = root
@@ -176,14 +186,30 @@ def _inside(path: str, directory: str) -> bool:
     return path == directory or path.startswith(directory if directory.endswith(os.sep) else directory + os.sep)
 
 
-def image_reader(md_dir: str, allow_dirs: list[str]):
-    roots = [md_dir] + allow_dirs
+def image_reader(md_dir: str, allow_dirs: list[str], at_root: bool = False):
+    """`read(src)` for the writer. A Markdown file at the filesystem's root allows no picture by
+    where it stands — that would be every picture on the machine, which `--allow-dir /` is refused
+    for (the review of 0.3.0, D-17). The pictures read add up to at most a package's size, and the
+    one that crosses it is named before the rest are read (D-15)."""
+    roots = allow_dirs if at_root else [md_dir] + allow_dirs
+    seen: set[str] = set()
+    total = [0]
 
     def read(src: str) -> tuple[str, bytes]:
-        path = real_path(src if os.path.isabs(src) else md_dir + os.sep + src)
+        network = "image '" + src + "': a network path is never read (ADR 0040 §4)"
+        if NETWORK.match(src):
+            raise BuildError(network)  # judged as written: looking it up is what reaches the host
+        try:
+            path = real_path(src if os.path.isabs(src) else md_dir + os.sep + src, refuse_network=True)
+        except NetworkPath:
+            raise BuildError(network) from None
         if path is None:
             raise BuildError("image '" + src + "': more than " + str(MAX_LINKS) + " symbolic links")
         if not any(_inside(path, root) for root in roots):
+            if at_root:
+                raise BuildError("image '" + src + "' lies outside the folders a build may read: the Markdown file is at the"
+                                 " filesystem's root, which allows no picture by itself; pass --allow-dir for its directory"
+                                 " (ADR 0040 §4)")
             raise BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0040 §4)")
         try:
             data = package.read_regular(path, MAX_IMAGE)
@@ -193,6 +219,11 @@ def image_reader(md_dir: str, allow_dirs: list[str]):
             raise BuildError("image '" + src + "': cannot be read") from None
         if len(data) > MAX_IMAGE:
             raise BuildError("image '" + src + "': larger than 32 MiB")
+        if path not in seen:
+            seen.add(path)
+            total[0] += len(data)
+            if total[0] > package.MAX_FILE:
+                raise BuildError("image '" + src + "': the pictures add up to more than 64 MiB, more than a .docx holds")
         return path, data
 
     return read
@@ -226,7 +257,8 @@ def build(md_path, out_path, opts: dict, allow_dirs: list) -> dict:
     if any(d == _split_root(d)[0] for d in allowed):
         result["error"] = "--allow-dir names the filesystem's root, which would allow every picture on the machine"
         return result
-    reader = image_reader(_parent(resolved, _split_root(resolved)[0]), allowed)
+    md_dir = _parent(resolved, _split_root(resolved)[0])
+    reader = image_reader(md_dir, allowed, at_root=md_dir == _split_root(md_dir)[0])
     outcome, data = build_text(text, opts, reader)
     result.update(outcome)
     if data is None:

@@ -1098,6 +1098,7 @@ class InlineParser:
     def __init__(self, bp: BlockParser, line: int):
         self.bp = bp
         self.subject = ""
+        self.math_closer: tuple[int, int] | None = None
         self.pos = 0
         self.delimiters: Delimiter | None = None
         self.brackets: Bracket | None = None
@@ -1139,6 +1140,7 @@ class InlineParser:
 
     def parse(self, block: Node) -> None:
         self.subject = strip_ws(block.string_content)
+        self.math_closer = None
         self.line_starts = [0] + [i + 1 for i, ch in enumerate(self.subject) if ch == "\n"]
         self.pos = 0
         self.delimiters = None
@@ -1615,10 +1617,16 @@ class InlineParser:
         else:
             end = -1
             if i + 1 < n and not is_unicode_whitespace(subj[i + 1]):
-                j = subj.find("$", i + 1)
-                while j != -1 and (is_unicode_whitespace(subj[j - 1]) or (j + 1 < n and "0" <= subj[j + 1] <= "9")):
-                    j = subj.find("$", j + 1)
-                end = j
+                # the next `$` that can close, from i + 1: found once and kept, as none lies between
+                # where it was sought from and where it is — sought again from every `$`, 60 KB of
+                # `$a ` took 87 s (the review of 0.3.0, D-05)
+                known = self.math_closer
+                if known is None or known[0] > i + 1 or (known[1] != -1 and known[1] < i + 1):
+                    j = subj.find("$", i + 1)
+                    while j != -1 and (is_unicode_whitespace(subj[j - 1]) or (j + 1 < n and "0" <= subj[j + 1] <= "9")):
+                        j = subj.find("$", j + 1)
+                    known = self.math_closer = (i + 1, j)
+                end = known[1]
         if end == -1 or end <= i + width - 1 or end == i + width:
             return False
         node = Node("code")
@@ -1638,6 +1646,7 @@ class InlineParser:
 
     def parse_reference(self, s: str, refmap: dict) -> int:
         self.subject = s
+        self.math_closer = None
         self.pos = 0
         startpos = self.pos
         match_chars = self.parse_link_label()
