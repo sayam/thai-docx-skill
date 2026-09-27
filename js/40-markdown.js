@@ -985,6 +985,7 @@ class InlineParser {
   constructor(bp, line) {
     this.bp = bp;
     this.subject = "";
+    this.mathCloser = null;
     this.pos = 0;
     this.delimiters = null;
     this.brackets = null;
@@ -1026,6 +1027,7 @@ class InlineParser {
 
   parse(block) {
     this.subject = stripWs(block.stringContent);
+    this.mathCloser = null;
     this.lineStarts = [0];
     for (let i = 0; i < this.subject.length; i++) if (this.subject[i] === "\n") this.lineStarts.push(i + 1);
     this.pos = 0;
@@ -1514,11 +1516,16 @@ class InlineParser {
     } else {
       end = -1;
       if (i + 1 < n && !isUnicodeWhitespace(cpAt(subj, i + 1))) {
-        let j = subj.indexOf("$", i + 1);
-        while (j !== -1 && (isUnicodeWhitespace(cpBefore(subj, j)) || (j + 1 < n && subj[j + 1] >= "0" && subj[j + 1] <= "9"))) {
-          j = subj.indexOf("$", j + 1);
+        // the next `$` that can close, found once and kept (markdown.py says why: D-05)
+        let known = this.mathCloser;
+        if (known === null || known[0] > i + 1 || (known[1] !== -1 && known[1] < i + 1)) {
+          let j = subj.indexOf("$", i + 1);
+          while (j !== -1 && (isUnicodeWhitespace(cpBefore(subj, j)) || (j + 1 < n && subj[j + 1] >= "0" && subj[j + 1] <= "9"))) {
+            j = subj.indexOf("$", j + 1);
+          }
+          known = this.mathCloser = [i + 1, j];
         }
-        end = j;
+        end = known[1];
       }
     }
     if (end === -1 || end <= i + width - 1 || end === i + width) return false;
@@ -1540,6 +1547,7 @@ class InlineParser {
 
   parseReference(s, refmap) {
     this.subject = s;
+    this.mathCloser = null;
     this.pos = 0;
     const startpos = this.pos;
     const matchChars = this.parseLinkLabel();

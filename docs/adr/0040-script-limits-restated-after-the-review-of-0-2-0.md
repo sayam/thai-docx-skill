@@ -74,6 +74,15 @@ unchanged.
    - profiles, at most 64 KiB, only from the four places of 0024, only JSON, checked against
      0024's shape before anything uses them;
    - a .docx given to `check` or `repair`, within the checker's caps (item 9).
+
+   > **Later (2026-09-27, the review of 0.3.0):** a file is read in pieces to its ceiling or its
+   > end, not by the size it reports — a `/proc` file reports 0, and refuses one read the size of
+   > the ceiling (D-17). An image path, or a link on the way to one, that begins with two
+   > separators is refused as written: on Windows it names a network share, and looking it up
+   > reaches that host (D-12). A Markdown file at the filesystem's root allows no picture by where
+   > it stands, as `--allow-dir /` is refused (D-17); the pictures together stop at 64 MiB, at the
+   > one that crosses it (D-15). `profile export`'s `share` line names the file only when its
+   > name is letters, marks, digits and `-_.`, else `FILE.json` (D-16).
 5. **Accepts as text** only Unicode scalar values. A lone surrogate, or bytes that are not UTF-8, in
    an argument, a profile or the Markdown is refused with exit 2 and the place it was found — in
    both implementations alike. An argument holding U+FFFD is refused too: Node puts U+FFFD where

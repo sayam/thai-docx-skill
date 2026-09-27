@@ -225,6 +225,14 @@ def read(path: pathlib.Path) -> dict:
     return validate(data, str(path))
 
 
+def _plain(file_name: str) -> str:
+    """A file name to put in a command the other person runs: as it is when it holds letters,
+    marks, digits and `-_.` only, else `FILE.json` — a name like `x;touch y;.json` is a command
+    (the review of 0.3.0, D-16; grill reads a source the same way)."""
+    plain = file_name and all(c in "-_." or unicodedata.category(c)[0] in "LMN" for c in file_name)
+    return file_name if plain else "FILE.json"
+
+
 def load(name: str) -> tuple[dict, str, pathlib.Path]:
     where, path = find(name)
     return read(path), where, path
@@ -382,7 +390,7 @@ def run(argv: list[str]) -> dict:
         out = pathlib.Path(rest[1]) if len(rest) == 2 else pathlib.Path(path.stem + ".json")
         write(data, out, make_folder=False)
         return {"ok": True, "name": path.stem, "path": str(out), "sha256": digest(data["settings"]),
-                "share": "send this file; the other side runs `thai_docx profile import " + out.name + "`"}
+                "share": "send this file; the other side runs `thai_docx profile import " + _plain(out.name) + "`"}
     if command == "import" and rest:
         source, rest = rest[0], rest[1:]
         rest, project = ([a for a in rest if a != "--project"], "--project" in rest)

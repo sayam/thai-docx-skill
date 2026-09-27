@@ -103,11 +103,30 @@ quotation. What the five applications draw is read on these bytes before the tag
 - Runs nested 1,200 deep ended `repair` in exit 1 in Python — "a defect; do not retry" — and ok in
   Node. An element more than 100 deep in its own name is refused alike, exit 2
   (`tests/test_check_holds_its_limits.py::test_a_run_nested_past_what_repair_edits_is_refused_alike`).
+- A `$` with no closer was searched for again from every `$`, so 60 KB of `$a ` — a price list
+  pasted in — took 87 s to build in Python; the next closer is found once
+  (`tests/test_what_a_command_takes.py::test_twenty_thousand_unclosed_dollars_build_in_seconds`).
+- Every picture was held in memory before the package's size was judged: eight of 30 MiB took
+  1 GB to refuse. The pictures stop at 64 MiB, at the one that crosses it
+  (`tests/test_what_a_command_takes.py::test_pictures_past_the_package_cap_stop_at_the_first_that_crosses_it`).
+- A file that reports its size as 0 — `/proc`'s, or one still being written — was read one byte
+  long in JavaScript, and refused in Python; both read in pieces to the ceiling or the end
+  (`tests/test_what_a_command_takes.py::test_a_file_whose_size_reads_zero_is_read_to_its_end`).
 - An output path that was a FIFO held `build` and `repair` forever; it is refused as not a
   regular file (`tests/test_what_a_command_takes.py::test_a_write_never_goes_through_a_link_or_into_a_pipe`).
 
 ### Security
 
+- A picture's path was looked up component by component before it was judged, so
+  `![](//host/share/p.png)` — a network share on Windows — would reach that host first. A path, or a
+  link, that begins with two separators is refused as written
+  (`tests/test_what_a_command_takes.py::test_an_image_path_that_names_a_network_share_is_refused_before_any_lookup`).
+- A Markdown file at the filesystem's root allowed every picture on the machine, which
+  `--allow-dir /` is refused for; it allows none by where it stands now
+  (`tests/test_what_a_command_takes.py::test_markdown_at_the_root_allows_no_picture_by_where_it_is`).
+- `profile export` put the file name it wrote into the command it tells the other person to run,
+  whatever the name held; a name that is not plain is shown as `FILE.json`
+  (`tests/test_what_a_command_takes.py::test_the_share_line_quotes_only_a_plain_file_name`).
 - `repair` read every entry and parsed any part the document names, so a header named
   `header1.bin` with a DOCTYPE — which the checker never saw, reading `.xml` and `.rels` only —
   went to the parser with its entities, and a 15 KB file grew to 73 million characters. A part the

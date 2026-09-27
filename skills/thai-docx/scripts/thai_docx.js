@@ -2689,6 +2689,7 @@ class InlineParser {
   constructor(bp, line) {
     this.bp = bp;
     this.subject = "";
+    this.mathCloser = null;
     this.pos = 0;
     this.delimiters = null;
     this.brackets = null;
@@ -2730,6 +2731,7 @@ class InlineParser {
 
   parse(block) {
     this.subject = stripWs(block.stringContent);
+    this.mathCloser = null;
     this.lineStarts = [0];
     for (let i = 0; i < this.subject.length; i++) if (this.subject[i] === "\n") this.lineStarts.push(i + 1);
     this.pos = 0;
@@ -3218,11 +3220,16 @@ class InlineParser {
     } else {
       end = -1;
       if (i + 1 < n && !isUnicodeWhitespace(cpAt(subj, i + 1))) {
-        let j = subj.indexOf("$", i + 1);
-        while (j !== -1 && (isUnicodeWhitespace(cpBefore(subj, j)) || (j + 1 < n && subj[j + 1] >= "0" && subj[j + 1] <= "9"))) {
-          j = subj.indexOf("$", j + 1);
+        // the next `$` that can close, found once and kept (markdown.py says why: D-05)
+        let known = this.mathCloser;
+        if (known === null || known[0] > i + 1 || (known[1] !== -1 && known[1] < i + 1)) {
+          let j = subj.indexOf("$", i + 1);
+          while (j !== -1 && (isUnicodeWhitespace(cpBefore(subj, j)) || (j + 1 < n && subj[j + 1] >= "0" && subj[j + 1] <= "9"))) {
+            j = subj.indexOf("$", j + 1);
+          }
+          known = this.mathCloser = [i + 1, j];
         }
-        end = j;
+        end = known[1];
       }
     }
     if (end === -1 || end <= i + width - 1 || end === i + width) return false;
@@ -3244,6 +3251,7 @@ class InlineParser {
 
   parseReference(s, refmap) {
     this.subject = s;
+    this.mathCloser = null;
     this.pos = 0;
     const startpos = this.pos;
     const matchChars = this.parseLinkLabel();
@@ -7002,6 +7010,13 @@ function profileWrite(profile, p, makeFolder = true) {
   }
 }
 
+// A file name to put in a command the other person runs — _plain() in thai_docx/profiles.py:
+// as it is when it holds letters, marks, digits and `-_.` only, else FILE.json (D-16).
+function plainFileName(fileName) {
+  const plain = fileName !== "" && [...fileName].every((c) => "-_.".includes(c) || /^[\p{L}\p{M}\p{N}]$/u.test(c));
+  return plain ? fileName : "FILE.json";
+}
+
 function profileTarget(name, project) {
   const path = require("path");
   profileCheckName(name);
@@ -7168,7 +7183,7 @@ function profileRun(argv) {
     const out = rest.length === 2 ? rest[1] : name + ".json";
     profileWrite(data, out, false);
     return { ok: true, name, path: out, sha256: profileDigest(data.settings),
-      share: "send this file; the other side runs `thai_docx profile import " + path.basename(out) + "`" };
+      share: "send this file; the other side runs `thai_docx profile import " + plainFileName(path.basename(out)) + "`" };
   }
   if (command === "import" && rest.length) {
     const source = rest[0];
@@ -7534,11 +7549,20 @@ function readRegular(fs, p, cap) {
     const st = fs.fstatSync(fd);
     if (st.isDirectory()) throw codedError("EISDIR");
     if (!st.isFile()) throw codedError("ENOTREG");
-    const buf = new Uint8Array(Math.min(st.size, cap) + 1);
+    // sized by what is read, not by the size the file reports: /proc reports 0, and a file still
+    // being written grows past it (the review of 0.3.0, D-17)
+    let buf = new Uint8Array(Math.min(Math.max(st.size, 65536), cap) + 1);
     let n = 0;
     for (;;) {
+      if (n === buf.length) {
+        if (n === cap + 1) break;
+        const bigger = new Uint8Array(Math.min(buf.length * 2, cap + 1));
+        bigger.set(buf);
+        buf = bigger;
+      }
       const got = fs.readSync(fd, buf, n, buf.length - n, null);
-      if (got === 0 || (n += got) === buf.length) break;
+      if (got === 0) break;
+      n += got;
     }
     return buf.subarray(0, n);
   } finally {
@@ -7582,7 +7606,9 @@ function parentOf(path, p, root) {
 // thai_docx/build.py: each component's symbolic link followed, `..` taken from
 // what is already resolved; a missing component stays as written. A walk that
 // meets a link past the fortieth has no end this answers for: null (ADR 0040 §4).
-function realPath(fs, path, p) {
+const NETWORK = /^[\\/]{2}/; // a network share on Windows: looking it up reaches the host (D-12)
+
+function realPath(fs, path, p, refuseNetwork = false) {
   if (!path.isAbsolute(p)) p = process.cwd() + path.sep + p;
   let [root, parts] = splitRoot(path, p);
   const pending = parts.reverse();
@@ -7614,6 +7640,7 @@ function realPath(fs, path, p) {
       resolved = candidate;
       continue;
     }
+    if (refuseNetwork && NETWORK.test(target)) throw codedError("ENETWORK");
     if (path.isAbsolute(target)) {
       [root, parts] = splitRoot(path, target);
       resolved = root;
@@ -7660,15 +7687,33 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
   }
   const mdDir = parentOf(path, resolved, splitRoot(path, resolved)[0]);
   // a directory past the fortieth link is no directory this answers for, so it allows nothing
-  const roots = [mdDir, ...allowDirs.map((d) => realPath(fs, path, d)).filter((d) => d !== null)];
-  if (roots.slice(1).some((d) => d === splitRoot(path, d)[0])) {
+  const allowed = allowDirs.map((d) => realPath(fs, path, d)).filter((d) => d !== null);
+  if (allowed.some((d) => d === splitRoot(path, d)[0])) {
     result.error = "--allow-dir names the filesystem's root, which would allow every picture on the machine";
     return result;
   }
+  // image_reader() in thai_docx/build.py says why: a Markdown file at the root allows no picture
+  // by where it stands (D-17), and the pictures stop at a package's size (D-15)
+  const atRoot = mdDir === splitRoot(path, mdDir)[0];
+  const roots = atRoot ? allowed : [mdDir, ...allowed];
+  const seen = new Set();
+  let total = 0;
   const readImage = (src) => {
-    const p = realPath(fs, path, path.isAbsolute(src) ? src : mdDir + path.sep + src);
+    const network = "image '" + src + "': a network path is never read (ADR 0040 §4)";
+    if (NETWORK.test(src)) throw new BuildError(network);
+    let p;
+    try {
+      p = realPath(fs, path, path.isAbsolute(src) ? src : mdDir + path.sep + src, true);
+    } catch (e) {
+      if (e.code === "ENETWORK") throw new BuildError(network);
+      throw e;
+    }
     if (p === null) throw new BuildError("image '" + src + "': more than " + MAX_LINKS + " symbolic links");
     if (!roots.some((root) => inside(path, p, root))) {
+      if (atRoot) {
+        throw new BuildError("image '" + src + "' lies outside the folders a build may read: the Markdown file is at the" +
+          " filesystem's root, which allows no picture by itself; pass --allow-dir for its directory (ADR 0040 §4)");
+      }
       throw new BuildError("image '" + src + "' lies outside the Markdown file's directory; pass --allow-dir for its directory (ADR 0040 §4)");
     }
     let b;
@@ -7678,6 +7723,11 @@ function nodeBuild(mdPath, outPath, opts, allowDirs) {
       throw new BuildError("image '" + src + "': " + osError(e));
     }
     if (b.length > MAX_IMAGE) throw new BuildError("image '" + src + "': larger than 32 MiB");
+    if (!seen.has(p)) {
+      seen.add(p);
+      total += b.length;
+      if (total > MAX_FILE) throw new BuildError("image '" + src + "': the pictures add up to more than 64 MiB, more than a .docx holds");
+    }
     return [p, b];
   };
   const [outcome, data] = buildText(text, opts, readImage);

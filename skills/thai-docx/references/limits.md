@@ -229,7 +229,10 @@ scheme, `#top` or `other.docx`, is written as before); nesting past 100 deep; a 
 referenced, or defined twice; an image that is not PNG or JPEG by its bytes, is truncated, is
 remote (a URL; a drive path such as `C:\…` is a path, and read as one), is wider or taller than
 20,000 pixels, is larger than 32 MiB, or lies outside the
-Markdown's own directory unless `--allow-dir` names one — through at most 40 symbolic links; a table row
+Markdown's own directory unless `--allow-dir` names one — through at most 40 symbolic links; a
+Markdown file at the filesystem's root allows no picture by where it is; an image path, or a link
+to one, that begins with two separators (`//host/…`, `\\host\…`), which is a network share on
+Windows and is never looked up; pictures that together pass 64 MiB, named at the one that crosses; a table row
 with more cells than its header; region comments out of order or twice; a front-matter or flag
 value outside its range; a caption label holding `%`, `"` or `\`, or a table or figure label
 holding a space under `--auto-numbering` (Word's counter takes one word); margins, an indent or a

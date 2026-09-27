@@ -86,13 +86,23 @@ def read_regular(path: str, cap: int) -> bytes:
     the look and the read. A directory is refused as the OS would name it; anything else that
     is not a regular file is refused before a byte is read."""
     fd = os.open(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0))
-    with os.fdopen(fd, "rb") as f:
+    with os.fdopen(fd, "rb"):  # closes the descriptor however this ends
         mode = os.fstat(fd).st_mode
         if stat.S_ISDIR(mode):
             raise IsADirectoryError(errno.EISDIR, "Is a directory", path)
         if not stat.S_ISREG(mode):
             raise NotRegularFile(path)
-        return f.read(cap + 1)
+        # in pieces, to the cap or the end: one read the size of the cap is refused by some files
+        # (a /proc one answers ENOMEM), and the size a file reports is not what it holds — /proc
+        # reports 0 (the review of 0.3.0, D-17)
+        chunks, got = [], 0
+        while got <= cap:
+            chunk = os.read(fd, min(65536, cap + 1 - got))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            got += len(chunk)
+        return b"".join(chunks)
 
 
 def same_file(a: str, b: str) -> bool:

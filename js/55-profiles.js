@@ -392,6 +392,13 @@ function profileWrite(profile, p, makeFolder = true) {
   }
 }
 
+// A file name to put in a command the other person runs — _plain() in thai_docx/profiles.py:
+// as it is when it holds letters, marks, digits and `-_.` only, else FILE.json (D-16).
+function plainFileName(fileName) {
+  const plain = fileName !== "" && [...fileName].every((c) => "-_.".includes(c) || /^[\p{L}\p{M}\p{N}]$/u.test(c));
+  return plain ? fileName : "FILE.json";
+}
+
 function profileTarget(name, project) {
   const path = require("path");
   profileCheckName(name);
@@ -558,7 +565,7 @@ function profileRun(argv) {
     const out = rest.length === 2 ? rest[1] : name + ".json";
     profileWrite(data, out, false);
     return { ok: true, name, path: out, sha256: profileDigest(data.settings),
-      share: "send this file; the other side runs `thai_docx profile import " + path.basename(out) + "`" };
+      share: "send this file; the other side runs `thai_docx profile import " + plainFileName(path.basename(out)) + "`" };
   }
   if (command === "import" && rest.length) {
     const source = rest[0];

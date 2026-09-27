@@ -208,7 +208,9 @@ def test_an_image_too_large_to_carry_is_the_users_problem_not_a_defect(tmp_path)
     out = tmp_path / "out.docx"
     result = b.build(src, out, dict(b.DEFAULTS), [])
     assert "error" in result and not result.get("findings"), result
-    assert "does not fit in a .docx" in result["error"] and not out.exists()
+    # named at the picture that crosses the package's size, before the rest are read (D-15)
+    assert result["error"] == "image 'c.png': the pictures add up to more than 64 MiB, more than a .docx holds", result
+    assert not out.exists()
     assert b.main([str(src), str(out)]) == 2
 
 
