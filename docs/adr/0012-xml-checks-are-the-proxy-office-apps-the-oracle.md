@@ -9,7 +9,14 @@
 
 > **Later (2026-09-26):** the rule is held at the tag. `tools/package_skill.py --tag`, which the
 > release workflow runs, refuses a tag until the newest reading record names every golden's
-> sha256; between releases the goldens may move on `main`.
+> sha256; between releases the goldens may move on `main`. Since the review of 0.3.0 (F-12) it
+> reads the reading records of the version being tagged, not the newest of any version.
+
+> **Later (2026-09-28):** where the goldens move after a reading, only what moved is read again,
+> when a part-by-part comparison with the bytes read shows the change stays where it was made;
+> what a comparison cannot show — how the pages flow — is read where the change acts, and a new
+> variant is read in full. The record says so, and names every golden
+> ([2026-09-28](../evidence/2026-09-28-what-v0.3.0-was-read-in.md)).
 
 ## Where it came from
 

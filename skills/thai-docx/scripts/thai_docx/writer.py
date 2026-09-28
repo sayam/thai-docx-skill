@@ -624,7 +624,8 @@ class Writer:
         it; otherwise it starts at the margin, where the picture does. The width is the last
         picture written, which is this caption's: a `Figure:` caption is made only where the
         paragraph just before it holds a picture and nothing else (layout.py). A caption in a box
-        is not centred: its first line starts where the picture does, and under `--align thai` it
+        is not centred: its first line starts at the box's left edge — the picture's, where the picture
+        is 3 inches or wider — and under `--align thai` it
         is justified at the spaces between words, never distributed (`box_jc`).
 
         A box that `hang` leaves less than an inch for the caption's lines gives its caption the

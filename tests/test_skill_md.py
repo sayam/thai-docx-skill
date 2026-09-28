@@ -302,8 +302,10 @@ GUIDES = {
 README = (ROOT / "README.md").read_text(encoding="utf-8")
 PROMPTS = {lang: (ROOT / name).read_text(encoding="utf-8") for lang, name in (("en", "PROMPT.md"), ("th", "PROMPT.th.md"))}
 # lines that run another program — an installer, a version check — whose flags are not ours
-# a verify command goes on to its next line with `--signer-workflow`, a flag of gh, not of this skill
-OTHER_PROGRAMS = re.compile(r"^.*(?:\bnpx skills|\bgh skill|\bgh attestation|--signer-workflow|\bgemini skills|--version).*$", re.M)
+# a verify command goes on to its next line with `--signer-workflow`, a flag of gh, not of this skill,
+# and so is `--custom-trusted-root`, named in the prose beside it
+OTHER_PROGRAMS = re.compile(r"^.*(?:\bnpx skills|\bgh skill|\bgh attestation|--signer-workflow|--custom-trusted-root"
+                            r"|\bgemini skills|--version).*$", re.M)
 
 
 def _slug(heading: str) -> str:
@@ -363,6 +365,12 @@ def test_the_user_guides_link_to_what_is_there_in_both_languages():
     for page in GUIDES["th"]:
         th, en = (re.findall(r"^(#{2,3}) ", GUIDES[lang][page], re.M) for lang in ("th", "en"))
         assert th == en, page
+    # a path inside this repository names nothing for a reader who unpacked the release's zip,
+    # where the skill is `thai-docx/…`: a page of the skill is linked on GitHub instead (the doc
+    # audit of 0.3.0, #5). Where the skill is installed, `skills/thai-docx/SKILL.md`, is the reader's.
+    for lang, pages in GUIDES.items():
+        for page, text in pages.items():
+            assert not re.search(r"`skills/thai-docx/(?:references|scripts|profiles|examples)/", text), (lang, page)
 
 
 def test_the_command_line_guide_runs_as_written_from_the_download(unpacked, tmp_path):

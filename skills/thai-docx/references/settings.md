@@ -46,7 +46,7 @@ How tables are laid out.
 
 | setting | default | flag |
 |---|---|---|
-| table header row | repeats on every page | `--no-repeat-table-header` |
+| table header row | repeats on every page | `--no-repeat-table-header` (and is then no header row to a screen reader either: the file has one mark for both) |
 | table column widths | equal | `--table-widths auto` (wider for longer text) |
 | table text size | as the body | `--table-size 14` (1–400) |
 
@@ -74,7 +74,7 @@ For a report or thesis: region comments and `Table:` / `Figure:` captions — [c
 | figure caption label | รูปที่ | `--figure-label "ภาพที่"` |
 | caption lines after the first | start at the margin, like the first | `--caption-hanging-indent 0.75` (0–4 in; independent of `--indent`) |
 | an image on a line of its own | starts at the left margin | `--center-images` |
-| the width of a caption | the width of the text | `--caption-matches-object` (as wide as the picture it belongs to and never narrower than 3 in, starting where the picture starts; a hang that leaves it less than an inch gives the caption the text width, and the build says so) |
+| the width of a caption | the width of the text | `--caption-matches-object` (as wide as the picture it belongs to and never narrower than 3 in, centred with the picture under `--center-images` and starting at the margin, where the picture does, without it: under a picture narrower than 3 in the caption is wider than the picture; a hang that leaves it less than an inch gives the caption the text width, and the build says so) |
 | page numbers before the chapters | ก ข ค | `--front-page-numbers lower-roman` (or `upper-roman`, `decimal`) |
 | appendix label | ภาคผนวก | `--appendix-label "Appendix"` |
 | appendix numbers | ก ข ค | `--appendix-numbers upper-letters` (or `decimal`, `upper-roman`) |

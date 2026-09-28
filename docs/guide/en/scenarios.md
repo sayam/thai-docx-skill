@@ -251,6 +251,8 @@ More you can ask for:
 | appendices A B C, 1 2 3 or I II III | "letter the appendices A B C" |
 | no page number on the first page of each part | "no page number on the first page" |
 | บทที่ 1 on one line, the title under it | "put the chapter title on a new line" |
+| a picture centred on its own line | "center the images" |
+| a figure's caption boxed to its picture, at least 3 inches wide | "match the caption width to the picture" |
 
 Good to know:
 
@@ -259,7 +261,7 @@ Good to know:
   again. Out of order,
   the build stops and names the line.
 - Front pages are numbered ก ข ค only when you ask for page numbers.
-- Outside a chapter, captions read "ตารางที่ 1"; in an appendix, "ตารางที่ ก-1".
+- Outside a chapter, captions read "ตารางที่ 1" or "รูปที่ 1"; in an appendix, "ตารางที่ ก-1" or "รูปที่ ก-1".
 - **Chapter, heading, list and caption numbers are written into the file, not numbers Word keeps
   up to date.** That is why the file reads the same in Word, LibreOffice, WPS and Google Docs, in
   Arabic digits or Thai. If you open the .docx and insert a chapter or a table yourself, renumber
@@ -289,7 +291,7 @@ Full rules: [references/chapters.md](https://github.com/sayam/thai-docx-skill/bl
 **Way 2: say it.**
 
 ```text
-Save these settings as a profile called thesis: size 15, Thai distributed alignment, page numbers at the bottom center
+Save these settings as a profile called my-thesis: size 15, Thai distributed alignment, page numbers at the bottom center
 ```
 
 Where the profile goes:
@@ -300,7 +302,7 @@ Where the profile goes:
 - **In a chat app** (Claude on the web, ChatGPT, Gemini): you get a `.json` file. **Keep it**, and
   attach it next time.
 
-A profile name uses letters, digits, `-` or `_`, with no spaces.
+A profile name uses letters of any script — Thai included — digits, `-` or `_`, with no spaces.
 
 Good to know:
 
@@ -312,20 +314,20 @@ Good to know:
 1. Name the profile in your request. In a chat app, attach its `.json` file too.
 
    ```text
-   Turn chapter2.md into a Word file using the profile thesis
+   Turn chapter2.md into a Word file using the profile my-thesis
    ```
 
 2. The assistant makes the file with the profile and tells you which one it used.
 3. To change something for this file only, add it. What you add wins over the profile.
 
    ```text
-   Use the profile thesis, but size 18 this time
+   Use the profile my-thesis, but size 18 this time
    ```
 
 Or take something out, for this file only:
 
 ```text
-Use the profile thesis, but without the table of contents
+Use the profile my-thesis, but without the table of contents
 ```
 
 A profile file can also be used straight from its path, such as `profiles/thesis.json`, without
@@ -334,7 +336,7 @@ importing it.
 To see your profiles and their settings:
 
 ```text
-Which thai-docx profiles do I have, and what is in thesis?
+Which thai-docx profiles do I have, and what is in my-thesis?
 ```
 
 ## Scenario 10: share a profile
@@ -344,10 +346,10 @@ Which thai-docx profiles do I have, and what is in thesis?
 1. Type:
 
    ```text
-   Export the profile thesis as a file
+   Export the profile my-thesis as a file
    ```
 
-2. You get `thesis.json`. Send it by email, chat or a shared drive.
+2. You get `my-thesis.json`. Send it by email, chat or a shared drive.
 
 **Use one you received**
 
@@ -355,7 +357,7 @@ Which thai-docx profiles do I have, and what is in thesis?
 2. Type:
 
    ```text
-   Import the profile from thesis.json
+   Import the profile from my-thesis.json
    ```
 
 3. To give it another name, say "import it as school-thesis".

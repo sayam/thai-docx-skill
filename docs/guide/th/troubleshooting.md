@@ -1,7 +1,7 @@
 # แก้ปัญหา
 
 ข้อกำหนดทั้งหมดรวมไว้ที่เดียว — สกิลนี้รับประกันอะไร เปิดไฟล์แล้วต้องทำอะไรเอง อะไรที่ไม่ไล่เลขให้เมื่อแก้ไฟล์
-และห้าแอปต่างกันตรงไหน: `skills/thai-docx/references/limits.md`
+และห้าแอปต่างกันตรงไหน: [references/limits.md](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/limits.md)
 
 ค้นหาอาการที่พบในคอลัมน์ซ้าย
 

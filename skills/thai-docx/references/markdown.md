@@ -6,7 +6,7 @@ CommonMark, plus GitHub's tables, strikethrough, autolinks, task lists and
 footnotes.
 
 - **Blocks:** headings `#` to `######`; paragraphs; fenced or indented code; bullet
-  and numbered lists, nested; tables (the header row repeats on every page unless `--no-repeat-table-header`);
+  and numbered lists, nested; tables (the header row repeats on every page, and is the row a screen reader reads as the column headers, unless `--no-repeat-table-header`, which takes both away);
   blockquotes; `---`; task items `- [ ]` and `- [x]`; footnotes `[^1]`.
 - **Inline:** `*italic*`, `**bold**`, `~~strike~~`, `` `code` ``, links, footnote
   references, images.
@@ -31,7 +31,7 @@ footnotes.
 - **Math:** `$…$` and `$$…$$` stay literal LaTeX in code formatting, with a warning.
 - **Front matter:** only flat `key: value` lines between `---` lines at the very top;
   `title` and `author` become the document properties, `heading-1` … `heading-6` style
-  the headings ([heading-styles.md](heading-styles.md)), and other keys are ignored. Any
+  the headings ([heading-styles.md](heading-styles.md)), and other keys are ignored — one that looks like a heading key but is not (`h1`, `Heading-1`) with a warning. Any
   other shape (lists, nesting) is read as ordinary Markdown text.
 
 A line break inside a paragraph between two Thai characters joins them with no

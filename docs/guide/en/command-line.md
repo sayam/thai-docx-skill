@@ -136,7 +136,7 @@ python3 thai-docx/scripts/thai_docx profile import my-thesis.json --name school-
 **Careful:** `profile save` and `profile import` replace a profile of the same name without
 asking. When they did, the line they print says `"replaced": true` and has a warning. A name that
 hides another one — the skill ships a profile named `thesis` — says `"shadows"` and has a warning
-too. A name is letters, digits, `-` and `_`.
+too. A name is letters of any script — Thai included — digits, `-` and `_`.
 
 Profiles live in `~/.thai-docx/profiles/` (on Windows, `%USERPROFILE%\.thai-docx\profiles\`), or
 `.thai-docx/profiles/` in a project; a project

@@ -59,6 +59,12 @@ not what WPS trips over.
 build writes a language: the document's default run properties, every style, every run, and
 `w:themeFontLang` in the settings. Off by default.
 
+> **Later (2026-09-27):** written explicitly at `w:docDefaults` and the `Normal` style; every
+> other style (`Heading1`–`Heading6`, `ListParagraph`, `Quote`, `CodeBlock`, `FootnoteText`,
+> `FootnoteReference`, `Hyperlink`) carries no `w:lang` of its own and reaches the same language
+> by inheriting from `Normal` or, for the two character styles, from `w:docDefaults` directly —
+> "every style" above is the language reaching every style, not a copy written onto each one.
+
 **Why off by default.** The reader's machine decides the complex-script language when the document
 does not, and every machine this skill is for — a Thai document, written by someone typing Thai —
 has Thai among its languages. Against that, ำ misplaced in WPS Writer is wrong on the page for

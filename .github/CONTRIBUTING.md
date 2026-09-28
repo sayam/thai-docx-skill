@@ -24,6 +24,7 @@ security problem goes to private reporting instead (`.github/SECURITY.md`).
 
 ```sh
 python3 tools/gates_doctor.py                                   # the gates
+python3 -m venv .venv && . .venv/bin/activate                   # the tools stay out of the system Python
 python3 -m pip install --require-hashes -r requirements/dev.txt
 (cd tests/js && npm ci --ignore-scripts)                        # the CommonMark reference and ESLint
 python3 -m pytest -q tests                                      # the suite
@@ -31,6 +32,10 @@ python3 -m ruff check skills/thai-docx/scripts tools tests      # the Python lin
 tests/js/node_modules/.bin/eslint --config tests/js/eslint.config.cjs js   # the JavaScript lint
 python3 -m coverage run -m pytest -q tests && python3 -m coverage combine -q && python3 -m coverage report
 ```
+
+The hashes in `requirements/dev.txt` are those of the Linux x86_64 wheels CI installs; on macOS,
+Windows or Linux on ARM, pip refuses them. Work in a Linux x86_64 container or virtual machine
+there — the skill itself runs anywhere, only the development tools are pinned this way.
 
 The gates come from [verifiable-gates](https://github.com/sayam/verifiable-gates). The doctor
 also refuses a `tools/` file that differs from what was installed (`tools/installed.json`).
@@ -96,7 +101,7 @@ a written reason why it is not exploitable here; the reason stays on the alert.
 - `docs/templates/decision.md` — the shape of a new record
 - `SOURCES.md` — the sources the records cite, by id
 - `tools/` — verifiable-gates 0.10.0 (Apache-2.0), plus this project's
-  `bundle_js.py`, `gen_settings_docs.py`, `lint_pr_body.py`, `measure_xml_names.py`, `oracle_set.py` and `package_skill.py`
+  `bundle_js.py`, `gen_settings_docs.py`, `lint_pr_body.py`, `measure_xml_names.py`, `oracle_set.py`, `package_skill.py` and `render_libreoffice.py`
 
 Only `skills/thai-docx/`, the README, the licence, the changelog, `PROMPT.md` and `PROMPT.th.md` reach a user;
 the rest is marked `export-ignore` (`docs/adr/0018`).
@@ -121,13 +126,14 @@ the rest is marked `export-ignore` (`docs/adr/0018`).
 - **Settings through the registry.** A new setting is one entry in `settings.py` and
   `js/45-settings.js` (`docs/adr/0028`); run `python3 tools/gen_settings_docs.py` to
   regenerate `references/settings.md`.
-- **SKILL.md stays small.** It must stay under 12,000 bytes; move tables into
+- **SKILL.md stays small.** It must stay within 12,000 bytes; move tables into
   `skills/thai-docx/references/` rather than raise the ceiling, and link every reference.
 - **A record for a decision.** A change of design is an ADR in `docs/adr/`, numbered next
   without gaps (below, "Add a decision"); a record is restated by a new one, never
   edited into something else.
-- **Evidence for a new gate.** A gate in `gates.yaml` names the file in `docs/evidence/` that
-  shows its planted defects red.
+- **Evidence for a new gate.** A gate in `gates.yaml` shows its planted defects red: in a file in
+  `docs/evidence/` it names as `proved_by`, or in a test of its own that plants them and fails
+  without the fix.
 - **SPDX lines on a new source file.** A new file in `js/`, the Python package, `tests/` or this
   project's tools starts with SPDX comment lines: `SPDX-FileCopyrightText: <year> <your name>`
   — you keep the copyright of what you write; add your own line to a file you change substantially —
@@ -154,7 +160,7 @@ review looks at:
    input from a user, an agent or a file is checked against an allowlist before use. A change that
    moves a boundary updates `docs/assurance-case.md`.
 6. **What the agent reads.** SKILL.md and `references/` stay true (the tests say so) and SKILL.md
-   stays under 12,000 bytes; wording an agent follows is changed only with a note of how it was
+   stays within 12,000 bytes; wording an agent follows is changed only with a note of how it was
    tried on an agent.
 7. **Documentation.** The user guides, the settings reference and the CHANGELOG say what changed.
 8. **Dependencies and workflows.** New CI tools are pinned by hash and actions by commit SHA;

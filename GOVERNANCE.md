@@ -31,7 +31,8 @@ and what was seen. A record shows how a rule was applied and never stands above 
   the maintainer included
   ([ADR 0018](docs/adr/0018-users-get-the-skill-contributors-get-the-gates.md)).
 - **Rendering questions are settled in Word 365 for Windows**, the reference application; other
-  applications' differences are recorded in `docs/evidence/`, not fixed by changing bytes.
+  applications' differences are recorded in `docs/evidence/` and stated to the user in
+  `skills/thai-docx/references/limits.md`, not fixed by changing bytes.
 
 ## Roles
 

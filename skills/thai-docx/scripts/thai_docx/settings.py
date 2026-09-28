@@ -150,7 +150,8 @@ SETTINGS: tuple[dict, ...] = (
     {"key": "repeat_table_header", "flag": "--no-repeat-table-header", "kind": "off", "default": True, "layer": 3,
      "needs": "tables",
      "report": ("repeat_table_header", "value"),
-     "doc": ("table header row", "repeats on every page", "`--no-repeat-table-header`")},
+     "doc": ("table header row", "repeats on every page",
+                "`--no-repeat-table-header` (and is then no header row to a screen reader either: the file has one mark for both)")},
     {"key": "table_widths", "flag": "--table-widths", "kind": "value", "default": "equal", "layer": 3,  # or by the longest text
      "read": ("choice", ("equal", "auto")), "takes": "equal or auto",
      "needs": "tables",
@@ -190,8 +191,9 @@ SETTINGS: tuple[dict, ...] = (
      "report": ("caption_matches_object", "value"),
      "doc": ("the width of a caption", "the width of the text",
              "`--caption-matches-object` (as wide as the picture it belongs to and never narrower than 3 in, "
-             "starting where the picture starts; a hang that leaves it less than an inch gives the caption the "
-             "text width, and the build says so)")},
+             "centred with the picture under `--center-images` and starting at the margin, where the picture "
+             "does, without it: under a picture narrower than 3 in the caption is wider than the picture; a hang "
+             "that leaves it less than an inch gives the caption the text width, and the build says so)")},
     {"key": "front_page_numbers", "flag": "--front-page-numbers", "kind": "value", "default": "thai-letters", "layer": 5,
      "read": ("choice", tuple(FRONT_NUMBERS)), "takes": ", ".join(FRONT_NUMBERS),
      "needs": "front",

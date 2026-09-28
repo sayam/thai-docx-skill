@@ -48,7 +48,7 @@ Only what has been measured is here. A blank is not a promise.
 | application | Arabic digits | with `--thai-digits` | chapter-numbered captions (region comments) |
 |---|---|---|---|
 | **Word 365 for Windows** (the one this mode is for) | correct; a heading, chapter, list item or caption inserted renumbers what follows | correct, in Thai digits | correct |
-| Word on the web | **not covered for this mode**, and **wrong** where measured (2026-09-26): appendices counted on as chapters (`บทที่ 6` for Appendix A — the appendix numbering a heading carries over its style is not read), and after an update the list of figures is empty ("No table of figures entries found") while the list of tables fills in; no section break can be inserted (Layout → Breaks offers Page and Column only), and Format Painter does not carry a heading's number. A document to be edited there is a ready-to-use one | **heading and list numbers drawn as 1, 2, 3** on screen (its PDF, made on a server, shows ๑ ๒ ๓); captions in Thai digits | correct as opened (`ตารางที่ B-๑`) |
+| Word on the web | **not covered for this mode**, and **wrong** where seen (2026-09-26, not recorded): appendices counted on as chapters (`บทที่ 6` for Appendix A — the appendix numbering a heading carries over its style is not read), and after an update the list of figures is empty ("No table of figures entries found") while the list of tables fills in; no section break can be inserted (Layout → Breaks offers Page and Column only), and Format Painter does not carry a heading's number. A document to be edited there is a ready-to-use one | **heading and list numbers drawn as 1, 2, 3** on screen (its PDF, made on a server, shows ๑ ๒ ๓); captions in Thai digits | correct as opened (`ตารางที่ B-๑`) |
 | Word for macOS | correct | headings correct (`บทที่ ๑`, `๑.๑`), at the heading's size | not measured on its own |
 | Google Docs | correct as opened; renumbering on edit not measured | not measured | correct as opened |
 | LibreOffice Writer | correct | **draws 1, 2, 3** — it has no Thai-digit numbering | **wrong**: `ตารางที่ บทนำ-ก` — it answers the chapter-number field with the chapter's *title*, ignores the restart at each chapter, and draws the Thai-digit counter as Thai letters (ก, ข, ค) — measured again 2026-09-23, and a chapter-numbered caption LibreOffice makes itself loses its chapter number the same way through .docx |
@@ -138,10 +138,12 @@ moves the block in from the left and each line is centred in what is left; a tab
 
 By default a caption fills the width of the text, whatever the size of the picture above it, so a
 caption under a small picture runs on past both its edges. `--caption-matches-object` indents a
-figure's caption to the picture's own box: the caption then starts and ends where the picture
-does, and aligns as the body does rather than centred, so its first line starts at the picture's
-left edge. A picture narrower than 3 inches gives its caption a 3-inch box (or the text width,
-where that is less): a caption a few words to a line reads badly. A `--caption-hanging-indent`
+figure's caption to the picture's own box, and the caption aligns as the body does rather than
+centred: under a picture 3 inches wide or wider it starts and ends where the picture does, its
+first line at the picture's left edge. A picture narrower than 3 inches gives its caption a
+3-inch box (or the text width, where that is less), since a caption a few words to a line reads
+badly: that box is wider than the picture, and under `--center-images` it starts before the
+picture's left edge. A `--caption-hanging-indent`
 that leaves the box less than an inch gives the caption the text width, and the build says so.
 `--center-images` centres a picture that stands alone on its line, and the caption's box is
 centred with it; without it the picture keeps the left margin and all the indent goes on the right.

@@ -240,7 +240,7 @@ gates:
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_adr_amendments.py]}
   - id: live-pages-cite-the-record-in-force
-    title: The rules page is one text — Thai the rule, the English below it marked a translation — every link on it reaches a file, each rule traces to a record the index marks accepted, the pages that decide send a reader there, and no live page of this project cites a record the index marks superseded unless it names the record in force on the same line; a dated measurement in the references is the date of a record, the newest release record names every golden's sha256, and the sentences of records found stale in 0.2.0 carry their Later line (docs/rules.md, ADR 0001, 0041)
+    title: The rules page is one text — Thai the rule, the English below it marked a translation — every link on it reaches a file, each rule traces to a record the index marks accepted, the pages that decide send a reader there, and no live page of this project cites a record the index marks superseded unless it names the record in force on the same line; a dated measurement in the references is the date of a record, the tag is refused until the reading record of its version names every golden's sha256, and the sentences of records found stale in 0.2.0 carry their Later line (docs/rules.md, ADR 0001, 0041)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_rules.py]}

@@ -26,8 +26,9 @@ anything.
 **The profile — settings you reuse across documents.** `--profile thesis` carries Thai
 distributed alignment, a first-line indent, 1.5 line spacing, page numbers at the top right with
 none on the first page of a section, numbered sub-headings, Thai digits, the chapter title on
-its own line, and a picture centred on its line with its caption as wide as the picture (never
-narrower than 3 inches), starting where the picture starts. The interview (`thai-docx grill`) asks about some of these; save your own with `profile save`,
+its own line, and a picture centred on its line with its caption boxed to the picture's width and
+centred with it — never narrower than 3 inches, so under a smaller picture the caption reaches
+past both its edges. The interview (`thai-docx grill`) asks about some of these; save your own with `profile save`,
 under a name of your own.
 
 ```sh
@@ -53,8 +54,8 @@ change the Markdown and build again, where every number is worked out afresh.
 
 If you will go on working on the thesis in Microsoft Word, add `--auto-numbering`: Word then
 counts the chapters, headings, lists and captions itself and renumbers as you edit, in Thai digits
-too. That file is made for Word — `../references/numbering.md` says what LibreOffice Writer, WPS
-Writer and Google Docs draw with it.
+too. That file is made for Word — `../references/numbering.md` says what Word on the web, Word for macOS,
+LibreOffice Writer, WPS Writer and Google Docs draw with it — Word on the web gets it wrong.
 
 ## The files
 

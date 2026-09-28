@@ -97,7 +97,7 @@ Markdown ──parse──▶ blocks ──lay out──▶ sections, numbering 
 
 | property | how it is held |
 |---|---|
-| Same bytes everywhere: same input → same sha256 on every run, machine and runtime | no clock, host or user name in any part; stored zip entries; goldens in `tests/golden`; parity tests ([0008](adr/0008-two-zero-dependency-implementations-byte-identical.md)) |
+| Same bytes everywhere: same input → same sha256 on every run, machine and runtime of the same Unicode version | no clock, host or user name in any part; stored zip entries; goldens in `tests/golden`; parity tests on the oldest and the newest runtimes promised ([0008](adr/0008-two-zero-dependency-implementations-byte-identical.md), amended by [0040](adr/0040-script-limits-restated-after-the-review-of-0-2-0.md)) |
 | Zero run-time dependencies | Python standard library; one JS file needing only `TextEncoder`/`TextDecoder` |
 | The user's text is never changed | the fidelity check on every build |
 | Limited reach | no network, subprocess or eval; writes only named paths; bounded reads ([0040](adr/0040-script-limits-restated-after-the-review-of-0-2-0.md)) — see the [assurance case](assurance-case.md) |
