@@ -58,7 +58,8 @@ def opening(name: bytes) -> re.Pattern:
 
 
 NO_PROOF = re.compile(rb"<w:noProof" + ATTRS + rb"(?:/>|>\s*</w:noProof>)")
-COMPAT_SETTING = re.compile(rb"<w:compatSetting" + ATTRS + rb"/>")
+# closed by `/>` or by an end tag of its own: the same element (the reviews of 0.3.1)
+COMPAT_SETTING = re.compile(rb"<w:compatSetting" + ATTRS + rb"(?:/>|>\s*</w:compatSetting\s*>)")
 ATTR = re.compile(rb"""([\w:]+)\s*=\s*(?:"([^"]*)"|'([^']*)')""")
 VALUE = rb"""\s*=\s*(?:"[^"]*"|'[^']*')"""
 MODE, URI = b"compatibilityMode", check_mod.COMPAT_URI.encode()
@@ -78,6 +79,14 @@ def _right_to_left(rpr_inner: bytes) -> bool:
     already: it is neither marked again nor cut (the review of 0.3.0, B-08)."""
     m = RTL.search(rpr_inner)
     return m is not None and not _off(m.group(0))
+
+
+def _with_attribute(raw: bytes, attribute: bytes) -> bytes:
+    """`raw` with one more attribute in its start tag, however the element closes: `/>`, or an
+    end tag of its own, which the schema allows as well (the reviews of 0.3.1: a repair that cut
+    the last two characters wrote `<w:rFonts …></w:rFonts w:cs="…"/>`)."""
+    at = re.match(rb"<[^\s/>]+" + ATTRS, raw).end()
+    return raw[:at].rstrip() + b" " + attribute + raw[at:]
 
 
 def _off(tag: bytes) -> bool:
@@ -135,7 +144,7 @@ def one_compatibility_mode(xml: bytes) -> tuple[bytes, int]:
             if _attrs(tag).get(b"w:val") != b"15":
                 tag = re.sub(rb"""(w:val\s*=\s*)(?:"[^"]*"|'[^']*')""", rb'\g<1>"15"', tag)
                 if tag == m.group(0):  # no w:val at all: the default is not 15, so say it
-                    tag = tag[:-2].rstrip() + b' w:val="15"/>'
+                    tag = _with_attribute(tag, b'w:val="15"')
                 changed += 1
             out += tag
         else:
@@ -241,7 +250,7 @@ def fix_rpr(inner: bytes, font: bytes, mark: bool | None,
         has_latin = any(re.search(a + rb"""\s*=\s*["']""", fonts) for a in LATIN_FONT)
         has_cs = re.search(rb"""w:cs(?:theme)?\s*=\s*["']""", fonts)
         if has_latin and not has_cs:
-            new = fonts[:-2].rstrip() + b' w:cs="' + font + b'"/>'
+            new = _with_attribute(fonts, b'w:cs="' + font + b'"')
             children = [(n, new if n == b"w:rFonts" else raw) for n, raw in children]
             five += 1
 
@@ -265,7 +274,7 @@ def fix_rpr(inner: bytes, font: bytes, mark: bool | None,
                 marked += 1
             elif not re.search(rb"""w:bidi\s*=\s*["']th-TH["']""", lang):
                 new = (re.sub(rb"w:bidi" + VALUE, b'w:bidi="th-TH"', lang)
-                       if re.search(rb"w:bidi" + VALUE, lang) else lang[:-2].rstrip() + b' w:bidi="th-TH"/>')
+                       if re.search(rb"w:bidi" + VALUE, lang) else _with_attribute(lang, b'w:bidi="th-TH"'))
                 children = [(n, new if n == b"w:lang" else raw) for n, raw in children]
                 marked += 1
 

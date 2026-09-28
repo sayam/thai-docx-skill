@@ -257,7 +257,7 @@ function profileValidate(data, where) {
   if (profileSurrogateIn(data)) throw new ProfileError(where + ": holds a lone surrogate (\\ud800 to \\udfff), which is not text");
   if (data.schema !== PROFILE_SCHEMA) throw new ProfileError(where + ': "schema" must be ' + PROFILE_SCHEMA);
   for (const key of Object.keys(data)) {
-    if (!PROFILE_KEYS.includes(key)) throw new ProfileError(where + ': unknown key "' + key + '"; a profile holds ' + PROFILE_KEYS.join(", "));
+    if (!PROFILE_KEYS.includes(key)) throw new ProfileError(where + ': unknown key "' + quoted(key) + '"; a profile holds ' + PROFILE_KEYS.join(", ")); // D-10
   }
   for (const key of PROFILE_TEXT_KEYS) {
     if (Object.prototype.hasOwnProperty.call(data, key) &&
@@ -278,7 +278,7 @@ function profileValidate(data, where) {
   }
   for (const key of Object.keys(settings)) {
     if (!Object.prototype.hasOwnProperty.call(PROFILE_FLAGS, key)) {
-      throw new ProfileError(where + ': unknown setting "' + key + '"; the settings are ' + Object.keys(PROFILE_FLAGS).join(", "));
+      throw new ProfileError(where + ': unknown setting "' + quoted(key) + '"; the settings are ' + Object.keys(PROFILE_FLAGS).join(", "));
     }
     const fault = profileValueFault(key, settings[key]);
     if (fault !== null) throw new ProfileError(where + ': "' + key + '" takes ' + fault);
@@ -384,6 +384,13 @@ function profileWrite(profile, p, makeFolder = true) {
   const fs = require("fs");
   const path = require("path");
   const data = utf8(profileCanonical(profile));
+  // the folder itself, never one a link points to (profiles.py says why)
+  if (makeFolder) {
+    for (const folder of [path.dirname(path.dirname(p)), path.dirname(p)]) {
+      const link = fs.lstatSync(folder, { throwIfNoEntry: false }); // not there yet: made below
+      if (link !== undefined && link.isSymbolicLink()) throw new ProfileError("cannot write " + p + ": " + folder + " is a link; a profile is written into the folder itself, never through a link");
+    }
+  }
   try {
     if (makeFolder) fs.mkdirSync(path.dirname(p), { recursive: true });
     writeWhole(fs, p, data); // never through a link planted as NAME.json.partial

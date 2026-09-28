@@ -29,10 +29,17 @@ const RE_T_START = new RegExp("<w:(?:t|delText)" + ATTRS + ">");
 
 class RepairError extends Error {}
 const RE_NO_PROOF = new RegExp("<w:noProof" + ATTRS + "(?:\\/>|>\\s*<\\/w:noProof>)", "g");
-const RE_COMPAT_SETTING = new RegExp("<w:compatSetting" + ATTRS + "\\/>", "g");
+const RE_COMPAT_SETTING = new RegExp("<w:compatSetting" + ATTRS + "(?:\\/>|>\\s*<\\/w:compatSetting\\s*>)", "g"); // either close
 const RE_ATTR = /([\w:]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 const VALUE = "\\s*=\\s*(?:\"[^\"]*\"|'[^']*')";
 const RE_XMLNS = /xmlns(?::([\w.-]+))?\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+
+// `raw` with one more attribute in its start tag, however the element closes — _with_attribute()
+// in thai_docx/repair.py says why
+function withAttribute(raw, attribute) {
+  const at = new RegExp("^<[^\\s/>]+" + ATTRS).exec(raw)[0].length;
+  return raw.slice(0, at).replace(/\s+$/, "") + " " + attribute + raw.slice(at);
+}
 
 function tagAttrs(tag) {
   const out = new Map();
@@ -94,7 +101,7 @@ function oneCompatibilityMode(xml) {
       let tag = m[0];
       if (tagAttrs(tag).get("w:val") !== "15") {
         const set = tag.replace(/(w:val\s*=\s*)(?:"[^"]*"|'[^']*')/, '$1"15"');
-        tag = set === tag ? tag.slice(0, -2).replace(/\s+$/, "") + ' w:val="15"/>' : set;
+        tag = set === tag ? withAttribute(tag, 'w:val="15"') : set;
         changed += 1;
       }
       out += tag;
@@ -189,7 +196,7 @@ function fixRpr(inner, font, mark, thaiLanguage) {
     const hasLatin = LATIN_FONT.some((a) => new RegExp(a + "\\s*=\\s*[\"']").test(fonts));
     const hasCs = /w:cs(?:theme)?\s*=\s*["']/.test(fonts);
     if (hasLatin && !hasCs) {
-      const put = fonts.slice(0, -2).replace(/\s+$/, "") + ' w:cs="' + font + '"/>';
+      const put = withAttribute(fonts, 'w:cs="' + font + '"');
       children = children.map(([n, raw]) => [n, n === "w:rFonts" ? put : raw]);
       five += 1;
     }
@@ -218,7 +225,7 @@ function fixRpr(inner, font, mark, thaiLanguage) {
       } else if (!/w:bidi\s*=\s*["']th-TH["']/.test(lang)) {
         const put = new RegExp("w:bidi" + VALUE).test(lang)
           ? lang.replace(new RegExp("w:bidi" + VALUE), 'w:bidi="th-TH"')
-          : lang.slice(0, -2).replace(/\s+$/, "") + ' w:bidi="th-TH"/>';
+          : withAttribute(lang, 'w:bidi="th-TH"');
         children = children.map(([n, raw]) => [n, n === "w:lang" ? put : raw]);
         marked += 1;
       }

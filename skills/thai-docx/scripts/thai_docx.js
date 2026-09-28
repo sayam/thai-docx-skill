@@ -1175,13 +1175,19 @@ function unseenIn(text) {
 // says why (the review of 0.3.0, D-10, D-11).
 const LISTED = 20;
 const QUOTED_MAX = 64;
+const FONT_MAX = 31; // a font's name: 31 characters in Windows and Word (check.py says why)
 const PLAIN = new Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_./()[]+&,");
 
+// one argument only: it is handed to map(), which would pass the index as a second
 function quoted(value) {
+  return quotedTo(value, QUOTED_MAX);
+}
+
+function quotedTo(value, most) {
   let shown = "";
   for (const c of value) shown += PLAIN.has(c) || (c >= "\u0e00" && c <= "\u0e7f") ? c : "?";
   const chars = [...shown];
-  return chars.length <= QUOTED_MAX ? shown : chars.slice(0, QUOTED_MAX - 1).join("") + "…";
+  return chars.length <= most ? shown : chars.slice(0, most - 1).join("") + "…";
 }
 
 // At most LISTED items of each code, in order, and how many of each code were left out.
@@ -1480,7 +1486,7 @@ function checkRprTwins(rpr, part, report, what, thai) {
     const cs = fonts.get(w("cs")) || fonts.get(w("cstheme"));
     if (latin && !cs) report.find("5", part, "in " + what + ", w:rFonts names a Latin font but no w:cs font");
     else if (thai && cs && !fonts.get(w("cstheme")) && !THAI_FONTS.has(cs.toLowerCase())) {
-      report.warn("font", part, "in " + what + ", complex-script font '" + quoted(cs) + "' is not known to carry Thai glyphs");
+      report.warn("font", part, "in " + what + ", complex-script font '" + quotedTo(cs, FONT_MAX) + "' is not known to carry Thai glyphs");
     }
   }
   for (const [latin, twin] of [["sz", "szCs"], ["b", "bCs"], ["i", "iCs"]]) {
@@ -1497,7 +1503,7 @@ function checkSettings(part, root, report) {
     if (cs.get(w("name")) === "compatibilityMode" && cs.get(w("uri")) === COMPAT_URI) modes.push(cs.get(w("val")));
   }
   if (!(modes.length === 1 && modes[0] === "15")) {
-    const shown = modes.map((m) => (m === null ? "None" : m)).join(", ");
+    const shown = modes.map((m) => (m === null ? "no w:val" : quoted(m))).join(", ");
     report.find("1", part, "compatibilityMode declared as " + (shown || "nothing") + "; must be exactly one 15");
   }
 }
@@ -1629,7 +1635,8 @@ function prooflessCode(root) {
     const rpr = run.find(w("rPr"));
     if (rpr === null) continue;
     let text = "";
-    for (const t of run.iter()) if (t.tag === w("t") || t.tag === w("delText")) text += t.text || "";
+    // its own text, the children: a nested run is a run of its own (check.py says why)
+    for (const t of run.children) if (t.tag === w("t") || t.tag === w("delText")) text += t.text || "";
     if (!Array.from(text).some(isComplex)) for (const el of rpr.findall(w("noProof"))) out.add(el);
   }
   return out;
@@ -6189,10 +6196,17 @@ const RE_T_START = new RegExp("<w:(?:t|delText)" + ATTRS + ">");
 
 class RepairError extends Error {}
 const RE_NO_PROOF = new RegExp("<w:noProof" + ATTRS + "(?:\\/>|>\\s*<\\/w:noProof>)", "g");
-const RE_COMPAT_SETTING = new RegExp("<w:compatSetting" + ATTRS + "\\/>", "g");
+const RE_COMPAT_SETTING = new RegExp("<w:compatSetting" + ATTRS + "(?:\\/>|>\\s*<\\/w:compatSetting\\s*>)", "g"); // either close
 const RE_ATTR = /([\w:]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 const VALUE = "\\s*=\\s*(?:\"[^\"]*\"|'[^']*')";
 const RE_XMLNS = /xmlns(?::([\w.-]+))?\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+
+// `raw` with one more attribute in its start tag, however the element closes — _with_attribute()
+// in thai_docx/repair.py says why
+function withAttribute(raw, attribute) {
+  const at = new RegExp("^<[^\\s/>]+" + ATTRS).exec(raw)[0].length;
+  return raw.slice(0, at).replace(/\s+$/, "") + " " + attribute + raw.slice(at);
+}
 
 function tagAttrs(tag) {
   const out = new Map();
@@ -6254,7 +6268,7 @@ function oneCompatibilityMode(xml) {
       let tag = m[0];
       if (tagAttrs(tag).get("w:val") !== "15") {
         const set = tag.replace(/(w:val\s*=\s*)(?:"[^"]*"|'[^']*')/, '$1"15"');
-        tag = set === tag ? tag.slice(0, -2).replace(/\s+$/, "") + ' w:val="15"/>' : set;
+        tag = set === tag ? withAttribute(tag, 'w:val="15"') : set;
         changed += 1;
       }
       out += tag;
@@ -6349,7 +6363,7 @@ function fixRpr(inner, font, mark, thaiLanguage) {
     const hasLatin = LATIN_FONT.some((a) => new RegExp(a + "\\s*=\\s*[\"']").test(fonts));
     const hasCs = /w:cs(?:theme)?\s*=\s*["']/.test(fonts);
     if (hasLatin && !hasCs) {
-      const put = fonts.slice(0, -2).replace(/\s+$/, "") + ' w:cs="' + font + '"/>';
+      const put = withAttribute(fonts, 'w:cs="' + font + '"');
       children = children.map(([n, raw]) => [n, n === "w:rFonts" ? put : raw]);
       five += 1;
     }
@@ -6378,7 +6392,7 @@ function fixRpr(inner, font, mark, thaiLanguage) {
       } else if (!/w:bidi\s*=\s*["']th-TH["']/.test(lang)) {
         const put = new RegExp("w:bidi" + VALUE).test(lang)
           ? lang.replace(new RegExp("w:bidi" + VALUE), 'w:bidi="th-TH"')
-          : lang.slice(0, -2).replace(/\s+$/, "") + ' w:bidi="th-TH"/>';
+          : withAttribute(lang, 'w:bidi="th-TH"');
         children = children.map(([n, raw]) => [n, n === "w:lang" ? put : raw]);
         marked += 1;
       }
@@ -7094,7 +7108,7 @@ function profileValidate(data, where) {
   if (profileSurrogateIn(data)) throw new ProfileError(where + ": holds a lone surrogate (\\ud800 to \\udfff), which is not text");
   if (data.schema !== PROFILE_SCHEMA) throw new ProfileError(where + ': "schema" must be ' + PROFILE_SCHEMA);
   for (const key of Object.keys(data)) {
-    if (!PROFILE_KEYS.includes(key)) throw new ProfileError(where + ': unknown key "' + key + '"; a profile holds ' + PROFILE_KEYS.join(", "));
+    if (!PROFILE_KEYS.includes(key)) throw new ProfileError(where + ': unknown key "' + quoted(key) + '"; a profile holds ' + PROFILE_KEYS.join(", ")); // D-10
   }
   for (const key of PROFILE_TEXT_KEYS) {
     if (Object.prototype.hasOwnProperty.call(data, key) &&
@@ -7115,7 +7129,7 @@ function profileValidate(data, where) {
   }
   for (const key of Object.keys(settings)) {
     if (!Object.prototype.hasOwnProperty.call(PROFILE_FLAGS, key)) {
-      throw new ProfileError(where + ': unknown setting "' + key + '"; the settings are ' + Object.keys(PROFILE_FLAGS).join(", "));
+      throw new ProfileError(where + ': unknown setting "' + quoted(key) + '"; the settings are ' + Object.keys(PROFILE_FLAGS).join(", "));
     }
     const fault = profileValueFault(key, settings[key]);
     if (fault !== null) throw new ProfileError(where + ': "' + key + '" takes ' + fault);
@@ -7221,6 +7235,13 @@ function profileWrite(profile, p, makeFolder = true) {
   const fs = require("fs");
   const path = require("path");
   const data = utf8(profileCanonical(profile));
+  // the folder itself, never one a link points to (profiles.py says why)
+  if (makeFolder) {
+    for (const folder of [path.dirname(path.dirname(p)), path.dirname(p)]) {
+      const link = fs.lstatSync(folder, { throwIfNoEntry: false }); // not there yet: made below
+      if (link !== undefined && link.isSymbolicLink()) throw new ProfileError("cannot write " + p + ": " + folder + " is a link; a profile is written into the folder itself, never through a link");
+    }
+  }
   try {
     if (makeFolder) fs.mkdirSync(path.dirname(p), { recursive: true });
     writeWhole(fs, p, data); // never through a link planted as NAME.json.partial
