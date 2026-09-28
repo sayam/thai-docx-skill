@@ -284,3 +284,26 @@ def test_cli_exit_codes_and_json_line(tmp_path):
 
     done = subprocess.run([sys.executable, str(SCRIPT), "check"], capture_output=True, text=True)
     assert done.returncode == 2
+
+
+@pytest.mark.parametrize("name,root,wrap", [
+    ("word/endnotes.xml", "endnotes", '<w:endnote w:id="1">{}</w:endnote>'),
+    ("word/header1.xml", "hdr", "{}"),
+    ("word/footer1.xml", "ftr", "{}"),
+    ("word/footer9.xml", "ftr", "{}"),
+])
+def test_every_part_the_gate_names_is_checked_in_both(tmp_path, name, root, wrap):
+    """The gate says a planted violation is found in the body, comments, footnotes, endnotes,
+    headers and footers; endnotes and footers had no test, and taking them from TEXT_PARTS left
+    every test passing (the reviews of 0.3.1). A Thai run with no <w:cs/> is finding 2 there,
+    in both implementations."""
+    from test_what_a_command_takes import both
+    parts = good()
+    parts[name] = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+        f'<w:{root} xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        + wrap.format('<w:p><w:r><w:t>ข้อความไทย</w:t></w:r></w:p>') + f"</w:{root}>"
+    )
+    (tmp_path / "in.docx").write_bytes(pack(parts))
+    code, result = both(["check", "in.docx"], tmp_path)
+    assert [(f["code"], f["part"]) for f in result["findings"]] == [("2", name)], result

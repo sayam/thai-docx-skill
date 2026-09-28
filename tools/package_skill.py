@@ -80,12 +80,14 @@ def unread_goldens(version: str, root: pathlib.Path = ROOT) -> list[str]:
     on bytes read in the office applications (ADR 0012): its `what-vX.Y.Z-was-read-in` record names
     each golden's sha256. Between releases the goldens may move on `main`; a tag may not. The record
     is the one of the version tagged, not the newest file: a record of another version named the
-    bytes it read, not these (the review of 0.3.0, F-12)."""
+    bytes it read, not these (the review of 0.3.0, F-12). A golden is named by a line that holds its
+    file name and its sha256 both: a hash anywhere in the record let two goldens whose hashes were
+    swapped pass as read (the reviews of 0.3.1)."""
     import hashlib
     records = sorted((root / "docs" / "evidence").glob("*-what-v" + version + "-was-read-in.md"))
-    named = "".join(r.read_text(encoding="utf-8") for r in records)
+    lines = [line for r in records for line in r.read_text(encoding="utf-8").splitlines()]
     return [g.name for g in sorted((root / "tests" / "golden").glob("*.docx"))
-            if hashlib.sha256(g.read_bytes()).hexdigest() not in named]
+            if not any(g.name in line and hashlib.sha256(g.read_bytes()).hexdigest() in line for line in lines)]
 
 
 def main(argv: list[str]) -> int:

@@ -34,6 +34,9 @@ before two applications were read; the exception and what is owed are in
   a defect not to retry; a `w:compatSetting` closed that way was not seen at all. Each attribute
   it writes now goes into the start tag, however the element closes
   (`tests/test_what_a_command_takes.py::test_repair_adds_to_an_element_that_closes_with_an_end_tag`).
+- `package_skill.py --tag` took a golden as read when its sha256 appeared anywhere in the version's
+  reading record, so two goldens whose hashes were swapped passed. The hash must stand on the line
+  that names the golden's file (`tests/test_rules.py::test_the_newest_release_record_names_the_bytes_it_read`).
 
 ### Security
 
