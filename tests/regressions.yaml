@@ -1317,3 +1317,24 @@
   found_by: review
   test:
     - tests/test_what_a_command_takes.py::test_what_the_file_says_is_shown_as_a_name_not_as_a_sentence
+
+- id: V31-05
+  what: the checker's gate claimed planted violations are found in endnotes and footers, and no test planted one; taking both from TEXT_PARTS left every test passing
+  class: C1
+  found_by: review
+  test:
+    - tests/test_check.py::test_every_part_the_gate_names_is_checked_in_both
+
+- id: V31-06
+  what: the tag's reading gate passed a record whose goldens' hashes were swapped, since a hash anywhere in the record counted
+  class: C1
+  found_by: review
+  test:
+    - tests/test_rules.py::test_the_newest_release_record_names_the_bytes_it_read
+
+- id: V31-07
+  what: the reorder timing test held 20,000 runs to a fixed 30 seconds and failed at 31 on a slower machine, though the time grew linearly
+  class: C1
+  found_by: review
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_putting_properties_in_order_takes_time_in_proportion_to_the_part

@@ -182,13 +182,28 @@ def test_a_picture_is_left_byte_for_byte_whatever_its_bytes_spell(tmp_path):
 
 def test_putting_properties_in_order_takes_time_in_proportion_to_the_part(tmp_path):
     """Once the whole part was copied at every element put right: twenty seconds for nine
-    kilobytes, and far longer for a real document."""
-    runs = '<w:r><w:rPr><w:lang w:val="en-US"/><w:cs/></w:rPr><w:t xml:space="preserve">ไทย</w:t></w:r>' * 20000
-    body(tmp_path, runs)
-    began = time.monotonic()
-    code, result = both(["repair", "in.docx", "out.docx"], tmp_path)
-    assert result["ok"] and result["repaired"].get("order") == 20000, result
-    assert time.monotonic() - began < 30
+    kilobytes, and far longer for a real document. Four times the runs takes about four times
+    as long, measured as a ratio: a fixed 30 seconds for 20,000 runs failed on a slower machine
+    at 31 (the reviews of 0.3.1), and a part copied at each element would take sixteen times."""
+    took = {}
+    for n in (2500, 10000):
+        body(tmp_path, '<w:r><w:rPr><w:lang w:val="en-US"/><w:cs/></w:rPr><w:t xml:space="preserve">ไทย</w:t></w:r>' * n)
+        (tmp_path / "out.docx").unlink(missing_ok=True)
+        began = time.monotonic()
+        code, result = both(["repair", "in.docx", "out.docx"], tmp_path)
+        took[n] = time.monotonic() - began
+        assert result["ok"] and result["repaired"].get("order") == n, result
+    assert took[10000] / took[2500] < 8, took
+    # the walk itself, where no start-up or check hides it: a copy of the part at every element
+    # put right took this ratio from 3 to 15
+    from thai_docx import ooxml
+    walked = {}
+    for n in (5000, 20000):
+        xml = b"<w:body>" + b'<w:r><w:rPr><w:lang w:val="en-US"/><w:cs/></w:rPr><w:t>x</w:t></w:r>' * n + b"</w:body>"
+        began = time.perf_counter()
+        assert rp.reorder(xml, b"w:rPr", ooxml.RPR_ORDER)[1] == n
+        walked[n] = time.perf_counter() - began
+    assert walked[20000] / walked[5000] < 8, walked
 
 
 # --- the guards, shown on planted repairs --------------------------------------------------------
