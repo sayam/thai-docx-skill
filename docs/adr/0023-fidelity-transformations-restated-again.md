@@ -48,6 +48,10 @@ build checks all of this on every run and fails if it does not hold.
 > run of the word they join, and `check` does not report them. In Thai, or beside anything else,
 > each is still refused and reported (the review of 0.3.0, B-D1).
 
+> **Later (2026-09-29):** rule 2's boxes are □ (U+25A1) and ■ (U+25A0) since
+> [ADR 0033](0033-the-task-box-is-a-square-in-a-text-font.md), in a run that names Arial; ☐ and
+> ☑ above are the boxes of this record's day (the reviews of 0.3.1).
+
 Left out on purpose, as in 0005 and 0016: zero-width spaces, or any other character, to
 steer Thai line breaking. Breaking Thai lines is left to the application's dictionary,
 reached through 0004.

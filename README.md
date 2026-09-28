@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/sayam/thai-docx-skill/blob/main/LICENSE)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/sayam/thai-docx-skill/badge)](https://scorecard.dev/viewer/?uri=github.com/sayam/thai-docx-skill)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14687/badge)](https://www.bestpractices.dev/projects/14687)
+[![OpenSSF Baseline](https://www.bestpractices.dev/projects/14687/baseline)](https://www.bestpractices.dev/projects/14687)
 [![DOI 10.5281/zenodo.22815936](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22815936-blue)](https://doi.org/10.5281/zenodo.22815936)
 
 An Agent Skill that makes Word files with Thai text render correctly, made for any app that loads Agent Skills — tried in Claude and Claude Code; ChatGPT, Codex, Copilot
