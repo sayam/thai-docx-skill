@@ -90,6 +90,12 @@ def release_faults(text: str) -> list[str]:
         out.append("release-check does not run the OSV scanner")
     if '[ "$GITHUB_REF" = "refs/tags/$TAG" ]' not in check:
         out.append("release-check does not hold the run to the tag it builds")
+    if 'git -c gpg.ssh.allowedSignersFile=.github/allowed_signers tag -v "$TAG"' not in check:
+        out.append("release-check does not verify the tag's signature")
+    if '[ "$(git cat-file -t "refs/tags/$TAG")" = tag ]' not in check:
+        out.append("release-check takes a lightweight tag")
+    if "gh api users/sayam/ssh_signing_keys" not in check:
+        out.append("release-check does not hold .github/allowed_signers to the keys the account lists")
     archive = [said(s) for s in steps("release-archive")]
     at = {key: next((i for i, s in enumerate(archive) if key in s), None)
           for key in ("package_skill.py --tag", 'package_skill.py "dist/', "gh attestation verify tampered.zip", "gh release upload")}
@@ -116,6 +122,8 @@ def test_a_release_that_skips_its_gates_is_named():
         '            echo "a tampered archive verified — the verifier reads nothing"; exit 1': '            echo "x"; exit 0',
         "      - run: python3 -m coverage run -m pytest -q tests\n": "      # - run: python3 -m coverage run -m pytest -q tests\n",
         '      - name: the run is on the tag it builds\n': '      - name: the run is on the tag it builds\n        if: false\n',
+        '      - name: the tag is annotated and signed with a key the account lists\n':
+            '      - name: the tag is annotated and signed with a key the account lists\n        if: false\n',
     }
     for old, new in mutations.items():
         assert old in RELEASE, old
@@ -171,3 +179,16 @@ def test_the_readme_says_when_scorecard_reads_a_release():
     assert set(triggers) == {"push", "schedule"}, triggers
     readme = " ".join((ROOT / "README.md").read_text(encoding="utf-8").split())
     assert "read on each push to `main` and weekly, not when a release is published" in readme
+
+
+def test_a_release_tag_is_signed_with_a_key_the_account_lists():
+    """F-08 (the review of 0.2.0): release tags were lightweight and unsigned, and nothing stopped
+    one being moved to another commit and released again. The `release-tags` ruleset now keeps a
+    `v*` tag from being deleted or moved — a setting, recorded, not a file a test can read — and
+    the release refuses a tag that is not annotated and signed with a key in
+    `.github/allowed_signers`, each of which the maintainer's account lists as a signing key."""
+    signers = [line.split() for line in (ROOT / ".github" / "allowed_signers").read_text(encoding="utf-8").splitlines()
+               if line.strip() and not line.startswith("#")]
+    assert signers and all(len(s) == 4 and s[1] == 'namespaces="git"' and s[2] == "ssh-ed25519" for s in signers), signers
+    security = " ".join((ROOT / ".github" / "SECURITY.md").read_text(encoding="utf-8").split())
+    assert "git -c gpg.ssh.allowedSignersFile=.github/allowed_signers tag -v v<version>" in security

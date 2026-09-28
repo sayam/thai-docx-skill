@@ -11,6 +11,12 @@ before two applications were read; the exception and what is owed are in
 
 ## [Unreleased]
 
+### Changed
+
+- SECURITY.md said every confirmed vulnerability becomes an advisory. It now says what is done: a
+  reported one becomes an advisory, and every fixed one, reported or found in the project's own
+  review, is listed under `### Security` with its test.
+
 ### Fixed
 
 - `--heading-numbers`, `--indent`, `--table-size` and `--thai-digits` now say so when the document
@@ -19,6 +25,10 @@ before two applications were read; the exception and what is owed are in
   what nothing uses. Under region comments, `--heading-numbers` numbers only the `##` and lower
   headings in chapters and appendices, and a document with none is told so. No byte of a built file
   changes (`tests/test_build_writes_what_it_was_given.py::test_each_of_four_flags_that_reaches_nothing_is_named`).
+- A release is built only from a tag that is annotated and signed with a key in
+  `.github/allowed_signers` that the maintainer's GitHub account also lists; SECURITY.md says how to
+  check a tag the same way, and that tags before v0.2.2 are unsigned
+  (`tests/test_release_is_bound_to_its_tag.py::test_a_release_tag_is_signed_with_a_key_the_account_lists`).
 
 ## [0.3.0] - 2026-09-28
 

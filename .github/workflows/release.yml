@@ -55,6 +55,20 @@ jobs:
           persist-credentials: false
       - name: what was checked out is the tag's commit
         run: test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$TAG^{commit}")"
+      # the tag is what names the commit a release is: annotated and signed, with a key the
+      # maintainer's account lists and not only one the tagged tree names (the review of 0.2.0,
+      # F-08); the release-tags ruleset keeps it from being moved or deleted after
+      - name: the tag is annotated and signed with a key the account lists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [ "$(git cat-file -t "refs/tags/$TAG")" = tag ] || { echo "$TAG is a lightweight tag: tag with git tag -s"; exit 1; }
+          gh api users/sayam/ssh_signing_keys --jq '.[].key' > "$RUNNER_TEMP/listed"
+          if grep -v '^#' .github/allowed_signers | awk 'NF { print $3, $4 }' | grep -vxF -f "$RUNNER_TEMP/listed"; then
+            echo ".github/allowed_signers holds a key @sayam does not list as a signing key"; exit 1
+          fi
+          git -c gpg.ssh.allowedSignersFile=.github/allowed_signers tag -v "$TAG"
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"

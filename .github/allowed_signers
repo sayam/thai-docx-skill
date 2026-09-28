@@ -1,0 +1,5 @@
+# The keys a release tag is signed with: each is one GitHub lists as a signing key of @sayam
+# (https://api.github.com/users/sayam/ssh_signing_keys), and the release refuses a tag signed
+# with any other. Check a tag with
+#   git -c gpg.ssh.allowedSignersFile=.github/allowed_signers tag -v v<version>
+976721+sayam@users.noreply.github.com namespaces="git" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEi3CEuIaAaLRXOy6prqdNZqdH2/pdbck4BctRZNbTgK
