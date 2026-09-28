@@ -78,11 +78,12 @@ right), `--page-numbers top-center` or `--page-numbers bottom-center`; heading n
 headings, thesis structure. Read it before you use a flag not named here; never guess a name.
 
 When the user asks for a change ("ขอฟอนต์ Sarabun ขนาด 14", "add page numbers"), build
-again with every flag of the last build plus the flags for what they now ask, and report the
-new settings; a setting they ask to remove goes back to its default. Add a flag only for what
+again with every flag of the last build plus the flags for what they now ask (nothing built
+yet: the defaults plus those), and report the new settings; a setting they ask to remove goes back to its default. Add a flag only for what
 the user asked for; a setting nobody has mentioned keeps its default. When they ask to change a
 setting but not to what ("change the font"), do not choose it: ask which, in one line — a font
-from TH Sarabun New, TH SarabunPSK or Sarabun, or one they name. A font without Thai glyphs, or a flag the
+from TH Sarabun New, TH SarabunPSK or Sarabun, or one they name. Ask that one value only: a
+setting asked for without a choice ("add page numbers") takes its default, and you say which. A font without Thai glyphs, or a flag the
 document gives nothing to act on, is a warning, not an error.
 
 Heading, list and caption numbers are text the build writes: the same in every application,
@@ -123,7 +124,8 @@ python3 <skill>/scripts/thai_docx grill --said 'ช่วยทำไฟล์ w
 
 In single quotes, so the shell changes nothing in it (a `'` in the message is written `'\''` in a
 POSIX shell, `''` in PowerShell).
-`"mode": "build"` means build at once, asking nothing. `"mode": "grill"` means ask the
+`"mode": "build"` means build at once, asking nothing but the value of a setting named without
+one (Settings); a request about a .docx the user has goes to *Check an existing .docx*. `"mode": "grill"` means ask the
 questions the JSON lists, as [references/interview.md](references/interview.md) says — as
 choices the user can pick, with your client's question tool if it has one — then run what
 its `"next"` says with the args of the chosen choices. An unanswered question keeps its

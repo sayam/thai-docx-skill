@@ -218,7 +218,8 @@ def run(argv: list[str]) -> dict:
     message = head if mode(head) == "grill" else tail if tail and mode(tail) == "grill" else None
     if message is None:
         answer = {"ok": True, "mode": "build",
-                  "next": "build at once with the announced defaults; ask nothing first"}
+                  "next": "build at once with the announced defaults; ask nothing first but the value of a"
+                          " setting named without one"}
         if between:
             answer["warnings"] = ["the message was read to its first " + str(MAX_CHARS) + " and its last " + str(MAX_CHARS)
                                   + " characters; " + str(between) + " between them were not read, and the phrase may be among them"]

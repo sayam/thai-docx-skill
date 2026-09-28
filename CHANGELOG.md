@@ -41,6 +41,11 @@ before two applications were read; the exception and what is owed are in
 - `package_skill.py --tag` took a golden as read when its sha256 appeared anywhere in the version's
   reading record, so two goldens whose hashes were swapped passed. The hash must stand on the line
   that names the golden's file (`tests/test_rules.py::test_the_newest_release_record_names_the_bytes_it_read`).
+- Asked to change the font without saying to what, the agent was told three things: SKILL.md
+  said ask which, `grill` said ask nothing first, and PROMPT.md said never ask about fonts. All
+  three now ask the value in one line, and nothing else. A change asked for before anything was
+  built starts from the defaults, and a request about a .docx the user has goes to `check`
+  (`tests/test_skill_md.py::test_every_way_the_agent_is_told_asks_the_value_of_a_setting_named_without_one`).
 
 ### Security
 
