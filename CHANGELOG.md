@@ -11,7 +11,7 @@ before two applications were read; the exception and what is owed are in
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-09-26
+## [0.3.0] - 2026-09-28
 
 **The goldens move**: most Thai documents are written differently from 0.2.2 — punctuation
 between Thai, scripts besides Thai, code with proofing off, a link or picture with a title, a
