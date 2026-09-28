@@ -11,6 +11,15 @@ before two applications were read; the exception and what is owed are in
 
 ## [Unreleased]
 
+### Fixed
+
+- `--heading-numbers`, `--indent`, `--table-size` and `--thai-digits` now say so when the document
+  holds nothing for them, as every other flag does: `--indent` with no body paragraph "changed
+  nothing"; the other three "reached no" heading, table or number, because each may still write
+  what nothing uses. Under region comments, `--heading-numbers` numbers only the `##` and lower
+  headings in chapters and appendices, and a document with none is told so. No byte of a built file
+  changes (`tests/test_build_writes_what_it_was_given.py::test_each_of_four_flags_that_reaches_nothing_is_named`).
+
 ## [0.3.0] - 2026-09-28
 
 **The goldens move**: most Thai documents are written differently from 0.2.2 — punctuation

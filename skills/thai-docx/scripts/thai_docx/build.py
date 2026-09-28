@@ -90,6 +90,14 @@ def build_text(text: str, opts: dict, read_image) -> tuple[dict, bytes | None]:
         ("toc comment", any(item["block"]["t"] == "directive" and item["block"]["name"] == "toc" for item in items)),
         ("thai text", True in writer.scripts),
         ("headings", any(item["block"]["t"] == "heading" for item in items)),
+        # a chapter's or an appendix's own # heading is numbered without --heading-numbers
+        ("headings it numbers", any(item["block"]["t"] == "heading" and "number" in item
+                                    and (item["block"]["level"] > 1 or not writer.regions) for item in items)),
+        ("body paragraphs", any("caption" not in item and item["block"]["t"] == "paragraph"
+                                and not image_only(item["block"]) for item in items)),
+        # what --thai-digits reaches: a page number, a field that lists pages, or a number written
+        ("numbers shown", bool(opts["page_numbers"] or opts["toc"] or doc.footnote_order or writer.has_ordered_list)
+         or any("number" in item or "caption" in item or item["block"]["t"] == "directive" for item in items)),
         ("other text", False in writer.scripts),
     ) if there}
     result.update(

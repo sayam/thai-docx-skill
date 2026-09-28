@@ -174,12 +174,13 @@ text to Justify or Align Left.
   sits on the second line. That is the application laying out a long line, and no attribute
   reaches it.
 - A flag that reaches nothing in the document is named by the build, with what was missing. Pass
-  that on. Four say nothing: `--heading-numbers` in a document without headings and `--indent` in
-  one without a body paragraph, which change no byte; `--table-size` in one without a table and
-  `--thai-digits` in one with no page, heading, list, caption or footnote number, which write a
-  style or a page-number format that nothing in the document uses.
-  `--thai-language` in a document with no Thai text still names the language in the styles, and
-  the build says it reached no run.
+  that on. Where no byte of the file differs, the flag "changed nothing". Four say "reached no"
+  instead, because each may still write what nothing in the document uses: `--thai-language` with
+  no Thai text names the language in the styles, `--table-size` with no table writes its style,
+  `--thai-digits` with no page, heading, list, caption or footnote number writes a page-number
+  format, and `--heading-numbers` with no heading it numbers writes the heading levels'
+  numbering when `--auto-numbering` is on. Under region comments it numbers only the `##` and
+  lower headings in chapters and appendices.
 
 ## 7. Where the five applications differ, as measured
 
@@ -283,7 +284,9 @@ marks, or a letter with two marks that stand in one place, each left as typed; a
 a Thai caption prefix, which is not one — the prefix is `Table:`/`Figure:` in every language;
 a region comment inside a list, quotation or footnote, or one misspelled (`<!-- chapter -->`), read as an ordinary comment; a front-matter key that looks like a heading style's but is not one (`h1`, `Heading-1`); `$…$` math kept as literal LaTeX; a
 `--caption-hanging-indent` that leaves a caption boxed by `--caption-matches-object` less than an
-inch, whose caption takes the text width; `--thai-language` in a document with no Thai text, which reached no run.
+inch, whose caption takes the text width; `--thai-language`, `--table-size`, `--thai-digits` or
+`--heading-numbers` where the document has nothing for it, which reached no run, table, number or
+heading.
 
 **`build` overwrites the output path without asking** — any path but the Markdown's own. Give a
 new name to keep the old file.

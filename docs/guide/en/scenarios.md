@@ -139,7 +139,8 @@ What you can ask for:
 Every setting: [references/settings.md](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/settings.md).
 Ask for something the document has nothing for, such as `--no-repeat-table-header` with no table,
 and the assistant tells you it "changed nothing". A setting that still changes the file there —
-`--table-size` or `--thai-digits` sets a style all the same — says nothing.
+`--table-size` or `--thai-digits` sets a style all the same — is said to have "reached no" table
+or number.
 
 ## Scenario 4: give the settings in your first message
 

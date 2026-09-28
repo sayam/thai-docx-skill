@@ -28,6 +28,7 @@ const STRUCTURES = {
   "chapter headings": "no heading carries a chapter number; a # heading under <!-- chapters --> does",
   front: "the document has no <!-- front --> comment",
   numbers: "the document has no numbered heading, ordered list or caption",
+  "body paragraphs": "the document has no body paragraph; a heading, list, quotation, table, code, caption or picture alone in its paragraph takes no first-line indent",
   "other text": "every run is Thai text, and is marked complex script already",
 };
 const CLASHES = {
@@ -46,7 +47,7 @@ const SETTINGS = [
   { key: "margins", flag: "--margins", kind: "list", default: [1.0, 1.0, 1.0, 1.5], layer: 1, // top, right, bottom, left — inches
     read: ["numbers", 4], takes: "four non-negative numbers: top,right,bottom,left", usage: "T,R,B,L", report: ["margins_in", "sides"] },
   { key: "indent", flag: "--indent", kind: "value", default: 0.0, layer: 1, // first line of body paragraphs — inches
-    read: ["number", null, null], takes: "a non-negative number of inches", usage: "IN", report: ["first_line_indent_in", "float"] },
+    read: ["number", null, null], takes: "a non-negative number of inches", usage: "IN", needs: "body paragraphs", report: ["first_line_indent_in", "float"] },
   { key: "line_spacing", flag: "--line-spacing", kind: "value", default: 1.0, layer: 1, // code and footnotes stay single
     read: ["number", 1, 3], takes: "a multiple of single spacing from 1 to 3", usage: "N", report: ["line_spacing", "float"] },
   { key: "align", flag: "--align", kind: "value", default: "left", layer: 1,
@@ -271,6 +272,18 @@ function settingsWarnings(opts, present) {
   // --toc writes its field whatever the document holds (settings.py says why)
   if (opts.toc && !present.has("headings")) {
     out.push("--toc has no heading to list: the document has none, so the table of contents is empty");
+  }
+  // three more write bytes that nothing may use, so they too "reached no" (settings.py says why)
+  const quiet = (key) => Boolean(opts._quiet && opts._quiet.has(key));
+  if (opts.heading_numbers && !quiet("heading_numbers") && !present.has("headings it numbers")) {
+    out.push("--heading-numbers reached no heading: " + (!present.has("headings") ? "the document has none"
+      : "in a document with region comments it numbers the ## and lower headings under <!-- chapters --> or <!-- appendices -->, and there are none"));
+  }
+  if (opts.thai_digits && !quiet("thai_digits") && !present.has("numbers shown")) {
+    out.push("--thai-digits reached no number: the document has no page, heading, list, caption or footnote number, and only the page-number format names Thai digits");
+  }
+  if (opts.table_size !== null && !quiet("table_size") && !present.has("tables")) {
+    out.push("--table-size reached no table: the document has none, and only the Table Text style carries the size");
   }
   for (const s of SETTINGS) {
     if (s.clashes && present.has(s.clashes) && opts[s.key] !== s.default) out.push(s.flag + ": " + CLASHES[s.clashes]);

@@ -56,6 +56,13 @@ function buildText(text, opts, readImage) {
     ["toc comment", items.some((item) => item.block.t === "directive" && item.block.name === "toc")],
     ["thai text", writer.scripts.has(true)],
     ["headings", items.some((item) => item.block.t === "heading")],
+    // a chapter's or an appendix's own # heading is numbered without --heading-numbers
+    ["headings it numbers", items.some((item) => item.block.t === "heading" && item.number !== undefined
+      && (item.block.level > 1 || writer.regions.length === 0))],
+    ["body paragraphs", items.some((item) => item.caption === undefined && item.block.t === "paragraph" && !imageOnly(item.block))],
+    // what --thai-digits reaches: a page number, a field that lists pages, or a number written
+    ["numbers shown", Boolean(opts.page_numbers || opts.toc || doc.footnoteOrder.length || writer.hasOrderedList)
+      || items.some((item) => item.number !== undefined || item.caption !== undefined || item.block.t === "directive")],
     ["other text", writer.scripts.has(false)],
   ].filter(([, there]) => there).map(([name]) => name));
   const outcome = {

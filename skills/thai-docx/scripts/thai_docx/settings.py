@@ -50,6 +50,9 @@ STRUCTURES = {
     "front": ("a `<!-- front -->` comment", "the document has no <!-- front --> comment"),
     "numbers": ("a numbered heading, an ordered list or a caption",
                 "the document has no numbered heading, ordered list or caption"),
+    "body paragraphs": ("a paragraph of body text",
+                        "the document has no body paragraph; a heading, list, quotation, table, code, caption"
+                        " or picture alone in its paragraph takes no first-line indent"),
     "other text": ("a run that is not Thai (a number, a Latin word, a footnote's mark)",
                    "every run is Thai text, and is marked complex script already"),
 }
@@ -91,6 +94,7 @@ SETTINGS: tuple[dict, ...] = (
      "doc": ("margins, inches", "1, 1, 1, 1.5 (top, right, bottom, left)", "`--margins 1,1,1,1`")},
     {"key": "indent", "flag": "--indent", "kind": "value", "default": 0.0, "layer": 1,  # first line of body paragraphs — inches
      "read": ("number", None, None), "takes": "a non-negative number of inches", "usage": "IN",
+     "needs": "body paragraphs",
      "report": ("first_line_indent_in", "float"),
      "doc": ("first-line indent, inches", "none", "`--indent 0.5` (body paragraphs only; not a picture alone in its paragraph)")},
     {"key": "line_spacing", "flag": "--line-spacing", "kind": "value", "default": 1.0, "layer": 1,  # code and footnotes stay single
@@ -383,6 +387,20 @@ def settings_warnings(opts: dict, present: set[str]) -> list[str]:
     # the field lists nothing, and an application updating it may write that it found none
     if opts["toc"] and "headings" not in present:
         out.append("--toc has no heading to list: the document has none, so the table of contents is empty")
+    # three more write bytes that nothing may use — --auto-numbering's heading levels, a page-number
+    # format, a style — so they too "reached no" rather than "changed nothing"; a profile's are
+    # not said, as above (B-15)
+    quiet = opts.get("_quiet", ())
+    if opts["heading_numbers"] and "heading_numbers" not in quiet and "headings it numbers" not in present:
+        out.append("--heading-numbers reached no heading: " + (
+            "the document has none" if "headings" not in present else
+            "in a document with region comments it numbers the ## and lower headings under"
+            " <!-- chapters --> or <!-- appendices -->, and there are none"))
+    if opts["thai_digits"] and "thai_digits" not in quiet and "numbers shown" not in present:
+        out.append("--thai-digits reached no number: the document has no page, heading, list, caption or footnote"
+                   " number, and only the page-number format names Thai digits")
+    if opts["table_size"] is not None and "table_size" not in quiet and "tables" not in present:
+        out.append("--table-size reached no table: the document has none, and only the Table Text style carries the size")
     for s in SETTINGS:
         clash = s.get("clashes")
         if clash in present and opts[s["key"]] != s["default"]:
