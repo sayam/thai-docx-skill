@@ -1264,3 +1264,19 @@
   test:
     - tests/test_build_writes_what_it_was_given.py::test_each_of_four_flags_that_reaches_nothing_is_named
     - tests/test_build_writes_what_it_was_given.py::test_a_profile_setting_that_reached_nothing_is_not_said_either
+
+- id: C-13
+  what: where this reading of Markdown refuses what GitHub drops or bends — a comment never closed or with text after it, a table row with more cells than its header, a footnote defined twice or never referenced, <?…?>, <!DOCTYPE …>, <![CDATA[…]]> — nothing said so, and nothing held all of it
+  class: C1, C2
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_where_this_reading_and_githubs_differ_the_build_stops_at_the_line
+    - tests/test_markdown.py::test_non_breaking_space_at_paragraph_edges_is_kept
+
+- id: F-15
+  what: Scorecard read v0.2.0 before its signed archive was attached and the badge fell, and the README did not say when Scorecard reads
+  class: C1, C2
+  found_by: review
+  test:
+    - tests/test_release_is_bound_to_its_tag.py::test_the_readme_says_when_scorecard_reads_a_release
+
