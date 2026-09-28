@@ -44,4 +44,5 @@ contains Thai, follow these rules instead of writing document code of your own.
    wording to get a build through.
 4. Give me the .docx as a file, and tell me in two or three lines, in my language, the
    settings it used and that any of them can be changed.
-5. Do not ask me about fonts or layout unless my message says `thai-docx grill`.
+5. Do not ask me about fonts or layout unless my message says `thai-docx grill`, or asks to
+   change a setting without saying to what ("change the font"): then ask which, in one line.

@@ -1338,3 +1338,17 @@
   found_by: review
   test:
     - tests/test_repair_reads_xml_as_xml.py::test_putting_properties_in_order_takes_time_in_proportion_to_the_part
+
+- id: V31-08
+  what: asked to change the font without a name, the agent was told three things, since SKILL.md said ask which, grill said ask nothing first and PROMPT.md said never ask about fonts; and a change before any build had no last build to start from
+  class: C1, C2
+  found_by: review
+  test:
+    - tests/test_skill_md.py::test_every_way_the_agent_is_told_asks_the_value_of_a_setting_named_without_one
+
+- id: V31-09
+  what: a request to check or repair a .docx got grill's build mode, with nothing saying it goes to check
+  class: C1, C2
+  found_by: review
+  test:
+    - tests/test_skill_md.py::test_every_way_the_agent_is_told_asks_the_value_of_a_setting_named_without_one
