@@ -28,10 +28,13 @@ rather than using `main`.
 
 ## How fixed vulnerabilities are published
 
-Each confirmed vulnerability is published as a GitHub Security Advisory on this repository, naming
-the affected and the fixed versions and crediting the reporter, and is listed under `### Security`
-in `CHANGELOG.md` for the release that fixes it. If a vulnerability in a component the project uses
-is found not to affect thai-docx, an OpenVEX statement saying so is published in the repository.
+A vulnerability reported to the project is published as a GitHub Security Advisory on this
+repository once fixed, naming the affected and the fixed versions and crediting the reporter.
+Every fixed vulnerability — reported, or found by the project's own review before a release — is
+listed under `### Security` in `CHANGELOG.md` for the release that fixes it, with the test that
+holds it fixed. Those the project finds itself are published there, not as advisories.
+If a vulnerability in a component the project uses is found not to affect thai-docx, an OpenVEX
+statement saying so is published in the repository.
 
 ## Verify a release
 
@@ -68,6 +71,9 @@ gh attestation verify thai-docx-<version>.zip --bundle thai-docx-<version>.intot
   --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v<version>
 ```
 
+That last command was run signed out and offline on the v0.3.0 release, with GitHub CLI 2.97.0
+([record](../docs/evidence/2026-09-28-the-0.3.0-archive-verifies-offline.md)).
+
 The release workflow verifies both ways itself, against the very file it is about to attach, and
 attaches nothing if either check passes for a tampered archive.
 
@@ -82,6 +88,23 @@ sha256sum thai-docx-<version>.zip
 
 The SHA-256 equals that of the attached archive: entries are stored, in path order, with fixed dates
 and modes.
+
+### The tag
+
+A release is built from its tag, so the tag is checked too. From v0.2.2 on, every release tag is
+annotated and signed with an SSH key GitHub lists as a signing key of @sayam
+(<https://api.github.com/users/sayam/ssh_signing_keys>); the tags before v0.2.2 are not signed.
+The key is in `.github/allowed_signers`. From a clone:
+
+```sh
+git -c gpg.ssh.allowedSignersFile=.github/allowed_signers tag -v v<version>
+```
+
+It prints `Good "git" signature` and exits 0. The release workflow runs the same check and builds
+nothing from a tag that is lightweight, or signed with a key the file or the account does not
+hold. A `v*` tag cannot be deleted or moved once pushed: the repository's `release-tags` ruleset
+refuses it, with no one allowed past
+([record](../docs/evidence/2026-09-29-release-tags-are-signed-and-cannot-move.md)).
 
 ## Secrets and credentials
 
