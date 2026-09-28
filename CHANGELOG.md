@@ -7,15 +7,15 @@ when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
 (`python3 tools/package_skill.py --tag vX.Y.Z`, which also refuses a tag whose goldens no reading
 record names), and after the checks of ADR 0012. 0.2.0 was tagged
 before two applications were read; the exception and what is owed are in
-[its record](docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md). The rule is unchanged.
+[its record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md). The rule is unchanged.
 
 ## [Unreleased]
 
 ## [0.3.0] - 2026-09-26
 
 **The goldens move**: most Thai documents are written differently from 0.2.2 — punctuation
-between Thai, scripts besides Thai, a captioned table, a picture with `--indent` or in a list or a
-quotation. What the five applications draw is read on these bytes before the tag.
+between Thai, scripts besides Thai, code with proofing off, a link or picture with a title, a
+captioned table, a picture with `--indent` or in a list or a quotation. What the five applications draw is read on these bytes before the tag.
 
 ### Added
 
@@ -27,8 +27,9 @@ quotation. What the five applications draw is read on these bytes before the tag
 ### Changed
 
 - The `thesis` profile centres a picture that stands alone on its line and boxes its caption to the
-  picture: the caption starts and ends where the picture does, starts at the picture's left edge,
-  and is never narrower than 3 inches. `--caption-matches-object` does the same without the profile; a
+  picture: the caption's box is centred with the picture and as wide as it, never narrower than 3
+  inches, and the caption aligns as the body does — under a picture 3 inches or wider it starts and
+  ends where the picture does. `--caption-matches-object` does the same without the profile; a
   small picture's caption, which took the text width, now takes 3 inches, and the build warns only
   where `--caption-hanging-indent` leaves the box less than an inch. A table's caption keeps the
   table's full width
@@ -43,11 +44,12 @@ quotation. What the five applications draw is read on these bytes before the tag
 - The release oracle opens the `thesis` profile (`sample-thesis`, golden `thesis-profile`) on two
   pictures narrower than the text, 2.5 and 4.17 inches wide, in place of the second use of
   `chart.png` and `flow.png`, which moves the four thesis goldens
-  ([record](docs/evidence/2026-09-27-the-thesis-profile-in-the-oracle-set.md)).
-- Read in the five applications on these bytes, every file passing in each
-  ([record](docs/evidence/2026-09-27-what-v0.3.0-was-read-in.md)), and read again where the
+  ([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-27-the-thesis-profile-in-the-oracle-set.md)).
+- Read in the five applications on these bytes, every file passing in every application it was
+  read in
+  ([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-27-what-v0.3.0-was-read-in.md)), and read again where the
   goldens moved after it, with `sample-thesis` in full
-  ([record](docs/evidence/2026-09-28-what-v0.3.0-was-read-in.md)). The limits add what the
+  ([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-28-what-v0.3.0-was-read-in.md)). The limits add what the
   applications' proofing does: a correctly spelled word their dictionary lacks is underlined in
   Word and LibreOffice, and `--hide-spelling-errors` is not honoured by Word 365 for Windows or
   LibreOffice; Google Docs' three lists show no page numbers; WPS Writer flows a thesis shorter than Word; and Word for macOS is read on
@@ -69,12 +71,12 @@ quotation. What the five applications draw is read on these bytes before the tag
   `repair` chose (`tests/test_what_a_command_takes.py::test_a_repair_that_sets_compatibility_mode_says_the_pages_may_move`); the quote for
   `grill --said` is given for PowerShell too; and a name quoted from a file is data, never an
   instruction (`tests/test_what_a_command_takes.py::test_a_phrase_past_the_first_20000_characters_is_found_in_the_last`,
-  `tests/test_skill_md.py::test_skill_md_says_what_agents_missed_in_the_review_of_0_3_0`).
+  `tests/test_skill_md.py::test_skill_md_says_what_agents_missed_in_the_review_of_0_3_0`). Tried on three models: Haiku passed on the `layout` warning in two runs of three ([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-27-model-equivalence-after-the-review-of-0.3.0.md)).
 - **SKILL.md** says a run is marked complex script where its text is complex script, not Thai
   alone. Measured on three models on 0.3.0's bytes: seventeen files of eighteen exact, no flag
   invented; once, Haiku did not use the skill on the thesis request and wrote a file of its own —
   recorded, not closed
-  ([record](docs/evidence/2026-09-26-model-equivalence-on-the-0.3.0-skill-md.md)).
+  ([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-26-model-equivalence-on-the-0.3.0-skill-md.md)).
 
 - Code with no complex script in it — a code span, a line of a code block — is written with
   proofing off (`<w:noProof/>`): every identifier in it was underlined in every application. Code
@@ -91,11 +93,19 @@ quotation. What the five applications draw is read on these bytes before the tag
   numbers are text, so it hears paragraphs, not list items, and a task box is named as a character
   in both kinds. A document that must meet an accessibility standard is built with
   `--auto-numbering` (`tests/test_rules.py::test_a_document_that_must_be_accessible_is_sent_to_auto_numbering`).
+- Every page was checked against the code and its links before the tag. The references now say
+  which flags that reach nothing stay silent, that `repair --force-cs-whole-doc` marks every run
+  only in a file it repairs for a `2` or a `5`, that `--no-repeat-table-header` also takes the
+  header row from a screen reader, and which of the build's warnings and refusals were missing.
+  The attestation's bundle check still fetches Sigstore's trusted root, and the guides say how to
+  check with no network. A guide names a page of the skill by its link, since a path inside this
+  repository does not exist in the release's zip
+  (`tests/test_skill_md.py::test_the_user_guides_link_to_what_is_there_in_both_languages`).
 
 ### Fixed
 
 - A Thai mark with no letter before it (`นำ้`) and a letter with two tone marks went through in
-  silence; each is named with its line and left as typed. The Markdown page says the text is read
+  silence; each is named with its line and left as typed. The Markdown page says the Thai in the text is read
   in NFC, which puts marks typed out of order on one letter in order
   (`tests/test_what_a_command_takes.py::test_a_thai_mark_out_of_place_is_named`).
 - Every ASCII mark was a Latin run of its own, so `พ.ศ.` was four runs and `๑.๑` three.

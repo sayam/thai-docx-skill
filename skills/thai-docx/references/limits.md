@@ -28,8 +28,11 @@ build, and the build is the only thing that changes it.
 Windows (the reference application, which must pass every item), Word for macOS, LibreOffice
 Writer, Google Docs and WPS Writer before every release that changes a document's bytes. v0.2.0
 went out with Word for macOS not yet read on its bytes and LibreOffice Writer read on the
-`--auto-numbering` document only; both readings are owed
-(record: `docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md` in the repository).
+`--auto-numbering` document only (record: `docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md`
+in the repository); 0.3.0's files were read in both, and in the other three, on 2026-09-26 and
+2026-09-27, and again where they moved, on 2026-09-28 (records:
+`docs/evidence/2026-09-27-what-v0.3.0-was-read-in.md` and `…/2026-09-28-what-v0.3.0-was-read-in.md`,
+which say what the reading did not cover).
 **Nothing outside those five applications is covered**, and it must never be described as working.
 
 **`--auto-numbering` is held to Word on the desktop, and to nothing else.** Word on the web is not
@@ -54,8 +57,10 @@ lists updating from what is there. Every setting works in both kinds; only the n
 **What a screen reader is given.** In a ready-to-use document a list's numbers and bullets are
 text, so the file gives a screen reader a paragraph, not a list item; with `--auto-numbering` it
 is a list in Word's own numbering. A task item's box is the character □ or ■ in both kinds, which
-a screen reader names as a character, not as checked or unchecked. **A document that must meet an
-accessibility standard is built with `--auto-numbering`.** Neither was measured with NVDA or JAWS.
+a screen reader names as a character, not as checked or unchecked. A table's first row is its
+header row by the one mark the format has for it, `w:tblHeader`, which also repeats the row on
+every page; `--no-repeat-table-header` takes both away. **A document that must meet an
+accessibility standard is built with `--auto-numbering`, and without `--no-repeat-table-header`.** Neither was measured with NVDA or JAWS.
 
 ## 3. What the reader must do after opening the file
 
@@ -84,8 +89,8 @@ accessibility standard is built with `--auto-numbering`.** Neither was measured 
   measured on one). Whether
   `--thai-language` settles it there has not been measured. **Word for the web does not read the
   machine's languages either**: it proofs such Thai as Arabic (Saudi Arabia), the status bar says
-  so, and every Thai word is underlined — `--hide-spelling-errors` does not hide it there (measured
-  2026-09-26). Whether `--thai-language` settles it there has not been measured.
+  so, and every Thai word is underlined — `--hide-spelling-errors` does not hide it there (seen
+  2026-09-26, not recorded). Whether `--thai-language` settles it there has not been measured.
 - **Install the font the file names.** The default is TH Sarabun New; a file names whatever
   `--font` said. A font that is not on the reader's machine is outside the rendering contract —
   the application substitutes, and the page will not look the same. Sarabun is free from Google
@@ -168,8 +173,11 @@ text to Justify or Align Left.
   In both kinds, a caption long enough to fill the line wraps in the list, and its page number
   sits on the second line. That is the application laying out a long line, and no attribute
   reaches it.
-- A flag that reaches nothing in the document changes no byte, and — except `--heading-numbers` in
-  a document without headings — the build says which flag and what was missing. Pass that on.
+- A flag that reaches nothing in the document is named by the build, with what was missing. Pass
+  that on. Four say nothing: `--heading-numbers` in a document without headings and `--indent` in
+  one without a body paragraph, which change no byte; `--table-size` in one without a table and
+  `--thai-digits` in one with no page, heading, list, caption or footnote number, which write a
+  style or a page-number format that nothing in the document uses.
   `--thai-language` in a document with no Thai text still names the language in the styles, and
   the build says it reached no run.
 
@@ -182,8 +190,8 @@ application. None can be reached by anything the file could say differently.
 |---|---|
 | **WPS Writer** | **with `--thai-language`, SARA AM (ำ) placed over the wrong letter** — it is that flag's `w:bidi="th-TH"` that WPS trips over, measured attribute by attribute on 2026-09-20 and again on 2026-09-23, and a ำ under a tone mark (น้ำ) is drawn correctly; the three lists show no page numbers until References → Update (§3); a thesis flows shorter than in Word — in the release oracle's `sample-thesis`, picture ๔-๑ falls on page 11, not 14, and WPS's own list of figures agrees (2026-09-28). A chapter label drawn as Latin letters (`ÓõõõyA 1`) and the value 1 drawn as ๕, recorded on 2026-09-19, did not reproduce on 2026-09-23 — on a build from before ADR 0039 as well as the current one — and what changed is not established |
 | **LibreOffice Writer** | **page numbers set to Thai digits, and footnote numbers, drawn as 1, 2, 3** — front pages counted ก ข ค or i ii iii are drawn as set; **Thai distributed alignment drawn as left-aligned**: it does not know `thaiDistribute`, whether the paragraph or the document defaults say it (measured 2026-09-26); with `--auto-numbering`: Thai-digit numbering drawn as 1, 2, 3, and a chapter-numbered caption as `ตารางที่ บทนำ-ก` — it answers the chapter-number field with the chapter's *title*, ignores the restart at each chapter and draws the Thai-digit counter as Thai letters (ก, ข, ค). A chapter-numbered caption LibreOffice makes itself loses its chapter number the same way once saved as .docx, opened again and updated (measured 2026-09-24) |
-| **Google Docs** | converts a table of contents into an object of its own, with its own font and page numbers; **has no list of tables and no list of figures**, so asking it to update rewrites all three as heading lists and the two lose their entries (§3 — do not ask it to update); **draws every page number in Arabic digits** — the front pages' ก ข ค or i ii iii and the chapters' Thai digits are not kept — and footnote numbers in Arabic too; a table that ends at the foot of the last page of a chapter is followed by a page blank but for its number (measured 2026-09-26); the three lists keep the entries the file carries but show no page numbers, since it updates no field and must not be asked to (§3; read 2026-09-27) |
-| **Word on the web** | **has no TH Sarabun New in its font list** (TH SarabunPSK is there), and the font it substitutes floats the tone marks above the letter (§3 — build with `--font "TH SarabunPSK"` for that destination); cannot insert a section break (Layout → Breaks offers Page and Column only); Format Painter does not carry a heading's number — apply the Heading style instead; **its table-of-contents update numbers each entry by the page's place counted from the cover, in Arabic digits** (บทที่ 1 listed at 7 where its page shows 1), not by the page number each region prints — a second update gives the same, and the list of tables and list of figures are numbered right (measured 2026-09-26); proofs Thai as Arabic (§3); its Download as PDF is made on a server with no TH Sarabun New either (Cordia New stands in), so that PDF shows the layout, not the font |
+| **Google Docs** | converts a table of contents into an object of its own, with its own font and page numbers; **has no list of tables and no list of figures**, so asking it to update rewrites all three as heading lists and the two lose their entries (§3 — do not ask it to update); **draws every page number in Arabic digits** — the front pages' ก ข ค or i ii iii and the chapters' Thai digits are not kept — and footnote numbers in Arabic too; a table that ends at the foot of the last page of a chapter is followed by a page blank but for its number (seen 2026-09-26, not recorded); the three lists keep the entries the file carries but show no page numbers, since it updates no field and must not be asked to (§3; read 2026-09-27) |
+| **Word on the web** | **has no TH Sarabun New in its font list** (TH SarabunPSK is there), and the font it substitutes floats the tone marks above the letter (§3 — build with `--font "TH SarabunPSK"` for that destination); cannot insert a section break (Layout → Breaks offers Page and Column only); Format Painter does not carry a heading's number — apply the Heading style instead; **its table-of-contents update numbers each entry by the page's place counted from the cover, in Arabic digits** (บทที่ 1 listed at 7 where its page shows 1), not by the page number each region prints — a second update gives the same, and the list of tables and list of figures are numbered right (seen 2026-09-26, not recorded); proofs Thai as Arabic (§3); its Download as PDF is made on a server with no TH Sarabun New either (Cordia New stands in), so that PDF shows the layout, not the font |
 | **Word for macOS** | correct in what was read on 0.3.0's bytes (2026-09-27); a heading's number takes its heading's size |
 
 Two that belong to the applications' proofing, read on 0.3.0's bytes (2026-09-27):
@@ -240,12 +248,12 @@ was published here in error.
 ## 9. What the build refuses, and what it only warns about
 
 **Refused — no file is written, and the line is named (for a picture, its path):** any HTML but `<br> <sup> <sub> <u>
-<kbd>` — and one of those alone on its own line, which is an HTML block; a character a reader
+<kbd>` — and one of those alone on its own line, which is an HTML block; a comment never closed, or text after a comment on its line; a character a reader
 cannot see — a zero-width character, a soft hyphen, a direction mark or any other format
 character, or a noncharacter — but for U+200C and U+200D between two letters of a complex script
 other than Thai, which is how Persian and Devanagari spell, and which Thai never needs; a link to anything but `http`, `https` or `mailto` (a link with no
 scheme, `#top` or `other.docx`, is written as before); nesting past 100 deep; a footnote defined and never
-referenced, or defined twice; an image that is not PNG or JPEG by its bytes, is truncated, is
+referenced, or defined twice; an image that is missing, is not PNG or JPEG by its bytes, is truncated, has no width or height, is
 remote (a URL; a drive path such as `C:\…` is a path, and read as one), is wider or taller than
 20,000 pixels, is larger than 32 MiB, or lies outside the
 Markdown's own directory unless `--allow-dir` names one — through at most 40 symbolic links; a
@@ -270,10 +278,10 @@ nothing; `--toc` beside `<!-- toc -->`, which gives two tables of contents; `--t
 with no heading, whose table of contents is empty; a font not known to
 carry Thai; `![]` with nothing between the brackets; a heading level skipped; a link definition
 nobody refers to; `ำ` typed the long way (`ํ` + `า`), which is left exactly as typed and which a
-search for `ำ` will not find; a Thai mark with no letter before it, or a letter with two tone
-marks, each left as typed; a `Table:` or `Figure:` line in a place where it is not a caption;
+search for `ำ` will not find; a Thai mark with no letter before it, a letter with two tone
+marks, or a letter with two marks that stand in one place, each left as typed; a `Table:` or `Figure:` line in a place where it is not a caption;
 a Thai caption prefix, which is not one — the prefix is `Table:`/`Figure:` in every language;
-a region comment inside a list, quotation or footnote; `$…$` math kept as literal LaTeX; a
+a region comment inside a list, quotation or footnote, or one misspelled (`<!-- chapter -->`), read as an ordinary comment; a front-matter key that looks like a heading style's but is not one (`h1`, `Heading-1`); `$…$` math kept as literal LaTeX; a
 `--caption-hanging-indent` that leaves a caption boxed by `--caption-matches-object` less than an
 inch, whose caption takes the text width; `--thai-language` in a document with no Thai text, which reached no run.
 
@@ -291,10 +299,10 @@ was written, do not retry, quote the codes.
 script, and take the marker off where it is not** — off the document defaults and the styles too,
 without which a run that leaves it off only inherits it again; **cut a run that holds both scripts
 where the script changes**, so the English inside a Thai sentence stops being proofed with a
-complex-script dictionary; remove `noProof` — but from a run whose text holds no complex script,
+complex-script dictionary; remove `noProof` — but not from a run whose text holds no complex script,
 which is how the build writes code; write the missing twin of a size, bold or italic;
 give a run that names only a Latin font a complex-script one; give a Symbol bullet a font with Thai
-in it; put properties back into schema order. `--force-cs-whole-doc` marks every run instead and cuts nothing — in a file it repairs for another finding — which is the shape
+in it; put properties back into schema order. `--force-cs-whole-doc` marks every run instead and cuts nothing — in a file it repairs for a `2` or a `5`; a file with neither is repaired as if the flag were not there — which is the shape
 releases before 0.2.0 wrote.
 
 **It never:** changes a character of the text — the output's text, in every part a reader sees, is
@@ -310,7 +318,8 @@ removes an invisible character (reported, left); touches fonts, styles, layout, 
 fields or document properties beyond the list above; or overwrites the original — a new file is
 written, always, both paths are given to the user, and an output that is the input — by its
 path, a link or a hard link — is refused. A file with nothing to repair is answered `ok`, with
-nothing written.
+nothing written; a mark on a run that is not complex script is something to repair, though
+`check` does not count it.
 
 **What follows from it:** compatibility mode 15 **reflows the document, and page breaks can move**
 — say so before the user sends the file to anyone. The complex-script font it writes where a run

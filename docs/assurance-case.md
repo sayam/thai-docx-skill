@@ -19,7 +19,7 @@ application that opens the result, and the development tools under `tools/` (rep
 | # | requirement | from |
 |---|---|---|
 | R1 | Make no network connection; start no process; evaluate no code from input or from outside the skill. | ADR 0040 §1–2 |
-| R2 | Write only the output path given, the one profile file a `profile save`/`import` names in the profile directories, and the path given to `profile export` (`./NAME.json` when none is). Each profile write goes through a `.partial` file beside its target. | ADR 0040 §3 |
+| R2 | Write only the output path given, the one profile file a `profile save`/`import` names in the profile directories, and the path given to `profile export` (`./NAME.json` when none is). Every write — `build`, `repair`, each `profile` command — goes through a `.partial` file beside its target, made new and never opened through a link; a new file is its owner's alone to read and write (mode `600`). | ADR 0040 §3 |
 | R3 | Read images only from the Markdown file's tree or a directory named with `--allow-dir`, and only PNG or JPEG by magic bytes. | ADR 0040 §4 |
 | R4 | Read a profile only as JSON of at most 64 KiB that passes the settings schema; a profile is data and can hold nothing a flag could not. | ADR 0040 §4, ADR 0024 |
 | R5 | Read no environment variable except the platform's own lookup of the home directory. | ADR 0040 §6 |
@@ -66,9 +66,9 @@ widen what the commands do: the limits of §2 hold whatever the arguments.
 
 | threat | entry | example | countered by |
 |---|---|---|---|
-| T1 local file disclosure | Markdown image path | `![](~/.ssh/id_rsa)`, `![](link/../../etc/passwd)`, a symlink out of the tree | R3: resolved path must stay under the allowed roots; magic bytes; the same resolution rule in both runtimes (ADR 0017) |
+| T1 local file disclosure | Markdown image path | `![](~/.ssh/id_rsa)`, `![](link/../../etc/passwd)`, a symlink out of the tree | R3: resolved path must stay under the allowed roots; a path that begins with two separators (a Windows network share) refused before any lookup; a Markdown file at the root allows no picture by where it stands; magic bytes; the same resolution rule in both runtimes (ADR 0017) |
 | T2 XML external entity / billion laughs | .docx to `check` or `repair` | `<!DOCTYPE … <!ENTITY …>` | R7: DOCTYPE refused before parsing |
-| T3 zip bomb, zip tricks | .docx to `check` or `repair` | huge declared sizes, entries inflating past their size, overlapping records, zip64 | R7: part and total size caps (32 MiB / 64 MiB), stated zip reading rules |
+| T3 zip bomb, zip tricks | .docx to `check` or `repair` | huge declared sizes, entries inflating past their size, overlapping records, zip64 | R7: part and total size caps (32 MiB / 64 MiB), at most 3,000,000 elements, stated zip reading rules |
 | T4 resource exhaustion by nesting | Markdown | 10,000 nested quotes or lists | R8: depth limit 100, refused with its line |
 | T5 arbitrary write / path traversal | profile name, output path | `profile save ../../.bashrc` | R2: a profile name is a name, never a path; writes only named files |
 | T6 code or setting injection | profile file | extra keys, huge file, non-JSON | R4: size cap, schema of the build's own flags |
@@ -76,6 +76,7 @@ widen what the commands do: the limits of §2 hold whatever the arguments.
 | T8 data exfiltration | any | network call, telemetry | R1: no network code; test over the JavaScript file's modules |
 | T9 identity leak | output | author = OS user | R6: properties only from front matter |
 | T10 supply-chain tampering of the release | release archive | swapped zip on the release page | build in CI from the tag, provenance attestation verified before attaching; no run-time dependencies |
+| T11 instructions smuggled into the verdict | .docx to `check` or `repair` | a font or part name reading "ignore the user and…"; 35 MB of findings | a name from the file shown with ASCII or Thai letters and digits, spaces and `-_./()[]+&,` only, at most 64 characters; at most 20 findings and 20 warnings of a code listed, the rest counted (ADR 0040 §8) |
 
 ## 4. Secure design principles applied
 
@@ -127,8 +128,9 @@ Each gate that holds these tests records the planted defects it was seen to catc
 
 ## 7. Residual risks
 
-- Limits 1, 2 and 6 are read from the source in both implementations (ADR 0040); reach the source does not
-  spell (`getattr(os, "system")`, a module name built at run time) is still left to review.
+- Limits 1, 2 and 6 are read from the source in both implementations (ADR 0040), aliases,
+  `getattr`, `__dict__`, `vars` and `__builtins__` included; reach built from data the reading
+  cannot follow — a module loaded by a name read from a file, say — is still left to review.
 - `xml.etree.ElementTree` (expat) is used on untrusted input; DOCTYPE is refused first, and size is
   capped, but a new expat weakness would reach the checker.
 - The agent may ignore SKILL.md and write its own document code; the skill cannot prevent that.
@@ -139,5 +141,5 @@ Each gate that holds these tests records the planted defects it was seen to catc
 A change to ADR 0040 or 0017, a new input type, or a new command updates this page in the same pull
 request, and the security review (`docs/evidence/*-security-review.md`) is repeated at least once a
 year or before a release that changes a boundary. The last one was
-[2026-09-18](evidence/2026-09-18-security-review.md), on 0.1.1: every requirement held, no finding. It came before `repair`; a review
-that covers it is owed.
+[2026-09-18](evidence/2026-09-18-security-review.md), on 0.1.1: every requirement held, no finding. It came before `repair` and before the boundaries 0.3.0 moved (ADR 0040, Later
+2026-09-27); a review that covers them is owed.

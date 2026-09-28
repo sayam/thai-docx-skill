@@ -50,11 +50,21 @@ It fails for any file the workflow did not build, and for one it built from any 
 
 That command asks GitHub for the attestation, so it needs `gh auth login`. A release that also
 carries `thai-docx-<version>.intoto.jsonl` can be checked against that file instead, with no
-account and no network:
+account. It still fetches Sigstore's trusted root over the network:
 
 ```sh
 gh attestation verify thai-docx-<version>.zip --bundle thai-docx-<version>.intoto.jsonl \
   --repo sayam/thai-docx-skill \
+  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v<version>
+```
+
+On a machine with no network, fetch the trusted root once on a machine that has one, carry
+it over with the two files, and name it:
+
+```sh
+gh attestation trusted-root > trusted_root.jsonl        # on a machine with a network
+gh attestation verify thai-docx-<version>.zip --bundle thai-docx-<version>.intoto.jsonl \
+  --custom-trusted-root trusted_root.jsonl --repo sayam/thai-docx-skill \
   --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v<version>
 ```
 

@@ -7,8 +7,8 @@
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14687/badge)](https://www.bestpractices.dev/projects/14687)
 [![DOI 10.5281/zenodo.22815936](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22815936-blue)](https://doi.org/10.5281/zenodo.22815936)
 
-An Agent Skill that makes Word files with Thai text render correctly, for any app that loads Agent Skills: Claude, ChatGPT, Codex, Copilot and more
-([tried where](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en/install.md#what-works-where)).
+An Agent Skill that makes Word files with Thai text render correctly, made for any app that loads Agent Skills — tried in Claude and Claude Code; ChatGPT, Codex, Copilot
+and the rest follow their makers' documentation ([what works where](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en/install.md#what-works-where)).
 
 **User guide · คู่มือการใช้งาน:** [English](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en.md) · [ภาษาไทย](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/th.md)
 
@@ -23,7 +23,7 @@ the faults above do not appear. Everywhere else they do. A file written by a pro
 script, or an AI assistant asked for a `.docx` — comes out with Thai marked as Latin. Word does not
 fix it afterwards: in Word for the web, editing such a file and saving it rewrites every run as English and still leaves
 the Thai unmarked, whether a person or an assistant working inside Word makes the edit
-([measured](docs/evidence/2026-09-18-word-does-not-repair-what-it-opens.md)). thai-docx builds the
+([measured](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-18-word-does-not-repair-what-it-opens.md)). thai-docx builds the
 file right in the first place, and checks one that another program produced.
 
 ## Quick start
@@ -89,10 +89,12 @@ Each one, step by step, with the words to type:
 ## Status
 
 Version 0.3.0, which moves the bytes of most Thai documents: punctuation between Thai stays in the
-Thai run, scripts besides Thai are marked complex script, a captioned table is named, and a picture
-fits the line it is on. The five applications are Word 365 for Windows (the reference), Word for
-macOS, Google Docs, LibreOffice Writer and WPS Writer; every file passes in each on 0.3.0's bytes
-([read 2026-09-27](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-27-what-v0.3.0-was-read-in.md)). What each application draws its own way
+Thai run, scripts besides Thai are marked complex script, code is not proofed, a captioned table
+is named, and a picture fits the line it is on. The five applications are Word 365 for Windows (the reference), Word for
+macOS, Google Docs, LibreOffice Writer and WPS Writer; every file passes in every application it
+was read in, on 0.3.0's bytes
+([read 2026-09-27](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-27-what-v0.3.0-was-read-in.md),
+and [again where the files moved, 2026-09-28](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-28-what-v0.3.0-was-read-in.md)). What each application draws its own way
 is in [the limits](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/limits.md). Changes are listed in
 [CHANGELOG.md](https://github.com/sayam/thai-docx-skill/blob/main/CHANGELOG.md).
 

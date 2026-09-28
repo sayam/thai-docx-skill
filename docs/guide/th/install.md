@@ -213,14 +213,15 @@ Claude จะสร้างไฟล์ให้ กดดาวน์โหล
 
 ข้อควรรู้
 
-- เงื่อนไขของ Google: เจ้าของบัญชีต้องอายุ 18 ปีขึ้นไป ต้องเปิด Keep Activity และยังไม่เปิดให้ใช้ใน
+- เงื่อนไขของ Google: เจ้าของบัญชีต้องอายุ 18 ปีขึ้นไป ลงชื่อเข้าด้วยบัญชี Google ส่วนตัว (ไม่ใช่บัญชีที่ทำงานหรือสถานศึกษา)
+  มีสมาชิก Google AI Pro หรือ Ultra และเปิด Keep Activity สกิลใช้ได้ใน Gemini Spark และยังไม่เปิดให้ใช้ใน
   เขตเศรษฐกิจยุโรป (EEA) สหราชอาณาจักร สวิตเซอร์แลนด์ และไนจีเรีย
 - แอป Gemini รันสคริปต์ `.py` และ `.sh` ของสกิล ส่วน Python ของ thai-docx ใช้ได้ ไฟล์ `.js` ไม่ได้ใช้
   คู่มือของ Google ให้ `SKILL.md` อยู่ในโฟลเดอร์หลักของไฟล์ zip แต่ zip ของ thai-docx มีโฟลเดอร์ซ้อนอยู่
   จึงอาจอัปโหลดไม่ผ่าน ถ้าไม่ผ่าน ให้ zip **ของข้างใน** โฟลเดอร์ `thai-docx` แล้วลองใหม่
 - ยังไม่ได้ลอง และคู่มือของ Google ไม่ได้บอกว่าดาวน์โหลดไฟล์ Word ได้หรือไม่ ช่วย
   [แจ้งที่หน้า Issues](https://github.com/sayam/thai-docx-skill/issues) ว่าเจออะไร
-- ที่มา: [Skills in Gemini](https://support.google.com/gemini/answer/17094296)
+- ที่มา: [Create & manage skills for Gemini Apps](https://support.google.com/gemini/answer/17094296) (อ่านเมื่อ 2026-09-28)
 
 ### Antigravity และ Gemini CLI
 
@@ -351,12 +352,15 @@ gh attestation verify thai-docx-0.3.0.zip --repo sayam/thai-docx-skill \
 
 คำสั่งนั้นไปถาม GitHub จึงต้องลงชื่อเข้าใช้ด้วย `gh auth login` ก่อน ถ้าหน้ารุ่นมีไฟล์
 `thai-docx-0.3.0.intoto.jsonl` มาด้วย ให้ดาวน์โหลดไฟล์นั้นไว้ข้าง ๆ zip แล้วตรวจกับไฟล์นั้นแทน
-ไม่ต้องมีบัญชี ไม่ต้องต่อเน็ต
+ไม่ต้องมีบัญชี แต่ยังต้องต่อเน็ตเพื่อดึง trusted root ของ Sigstore
 
 ```sh
 gh attestation verify thai-docx-0.3.0.zip --bundle thai-docx-0.3.0.intoto.jsonl --repo sayam/thai-docx-skill \
   --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.3.0
 ```
+
+ถ้าเครื่องไม่มีเน็ตเลย ให้รัน `gh attestation trusted-root > trusted_root.jsonl` ครั้งเดียวบนเครื่องที่มีเน็ต
+นำไฟล์นั้นมาด้วย แล้วเติม `--custom-trusted-root trusted_root.jsonl` ในคำสั่งข้างบน
 
 ## อัปเดตหรือลบสกิล
 

@@ -19,8 +19,9 @@ abstract: >-
   word, Thai lines that wrap inside words, working bullets and bold. The agent
   writes Markdown; one bundled command builds the document and checks it
   without changing a character of the content. Two zero-dependency
-  implementations, Python and JavaScript, produce byte-identical files, and a
-  checker reports the five causes of broken Thai in any .docx.
+  implementations, Python and JavaScript, produce byte-identical files; a
+  checker reports the five causes of broken Thai in any .docx, and a repair
+  command clears them in a new file without changing its text.
 keywords:
   - Thai
   - docx

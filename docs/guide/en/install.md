@@ -222,15 +222,16 @@ Skills work in Gemini Spark, for Google AI Pro and Ultra on a personal account.
 
 Good to know:
 
-- Google's rules: the account holder must be 18 or older, Keep Activity must be on, and it is not
-  offered in the EEA, the UK, Switzerland or Nigeria.
+- Google's rules: the account holder must be 18 or older, signed in with a personal Google Account
+  (not a work or school one), with a Google AI Pro or Ultra subscription and Keep Activity on;
+  skills live in Gemini Spark, and are not offered in the EEA, the UK, Switzerland or Nigeria.
 - The Gemini app runs `.py` and `.sh` scripts from a skill; thai-docx's Python works, its `.js` file
   is not used. Google's page asks for `SKILL.md` in the main folder of the zip, and thai-docx's zip
   has a folder inside it, so the upload may be refused. If it is, zip the **contents** of the
   `thai-docx` folder and try again.
 - Not tried yet, and Google's page does not say whether a Word file can be downloaded. Please
   [open an issue](https://github.com/sayam/thai-docx-skill/issues) with what you see.
-- Source: [Skills in Gemini](https://support.google.com/gemini/answer/17094296).
+- Source: [Create & manage skills for Gemini Apps](https://support.google.com/gemini/answer/17094296) (read 2026-09-28).
 
 ### Antigravity and Gemini CLI
 
@@ -363,12 +364,16 @@ It says the verification succeeded, or fails for any other file.
 
 That asks GitHub for the proof, so you need to be signed in with `gh auth login`. If the release
 page also carries `thai-docx-0.3.0.intoto.jsonl`, download it beside the zip and check against it
-instead — no account, no network:
+instead — no account, though it still fetches Sigstore's trusted root over the network:
 
 ```sh
 gh attestation verify thai-docx-0.3.0.zip --bundle thai-docx-0.3.0.intoto.jsonl --repo sayam/thai-docx-skill \
   --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.3.0
 ```
+
+With no network at all, run `gh attestation trusted-root > trusted_root.jsonl` once on a machine
+that has one, bring the file along, and add `--custom-trusted-root trusted_root.jsonl` to the
+command above.
 
 ## Update or remove
 

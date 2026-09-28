@@ -196,10 +196,11 @@ def test_a_picture_fits_the_line_its_paragraph_leaves_it(tmp_path):
 
 
 def test_the_thesis_profile_boxes_a_caption_with_its_picture(tmp_path):
-    """The thesis profile (read in Word 365 for Windows, 2026-09-27): a picture alone on its line
-    is centred with no indent, and its caption starts and ends where the picture does — never
-    narrower than 3 inches, a box centred with the picture — and its first character stands at the
-    picture's left edge. Under the profile's `--align thai` the boxed caption is justified at the
+    """The thesis profile (read in the five applications as `sample-thesis`, 2026-09-28): a picture alone on its line
+    is centred with no indent, and its caption is boxed to the picture — never narrower than 3
+    inches, a box centred with the picture, so under a 2-inch one it starts half an inch before
+    it — and aligns as the body does: under a picture 3 inches or wider its first character stands
+    at the picture's left edge. Under the profile's `--align thai` the boxed caption is justified at the
     spaces between words, not distributed: Thai distributed alignment is for the body alone (the
     maintainer's decision, 2026-09-27). A table fills the text width, and so does its caption. A
     flag or `--default` takes either back."""

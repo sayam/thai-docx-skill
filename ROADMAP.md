@@ -7,9 +7,10 @@ not a promise; each item becomes a decision record when it is taken up.
 
 What moves the bytes of a document, read once in the five applications on its bytes: punctuation
 between Thai stays in the Thai run (`พ.ศ.` is one run), every complex script is marked, checked and
-repaired rather than Thai alone, a captioned table carries its name, and a picture fits the line its
-paragraph leaves it. `check` says which way a document's numbers are made — the first step of
-ADR 0037; renumbering in `repair` is the next, when it is asked for. The goldens may move on
+repaired rather than Thai alone, code is written with proofing off, a captioned table carries its
+name, and a picture fits the line its paragraph leaves it. `check` says which way a document's numbers are made — the first step of
+ADR 0037; renumbering in `repair` is the next, when it is asked for, and a word split across two
+runs (`4`) is still reported, not joined. The goldens may move on
 `main`; the tag refuses a version whose goldens no reading record names.
 
 ## 0.2.2 (2026-09-26)
