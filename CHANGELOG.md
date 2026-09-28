@@ -45,10 +45,12 @@ quotation. What the five applications draw is read on these bytes before the tag
   `chart.png` and `flow.png`, which moves the four thesis goldens
   ([record](docs/evidence/2026-09-27-the-thesis-profile-in-the-oracle-set.md)).
 - Read in the five applications on these bytes, every file passing in each
-  ([record](docs/evidence/2026-09-27-what-v0.3.0-was-read-in.md)). The limits add what the
+  ([record](docs/evidence/2026-09-27-what-v0.3.0-was-read-in.md)), and read again where the
+  goldens moved after it, with `sample-thesis` in full
+  ([record](docs/evidence/2026-09-28-what-v0.3.0-was-read-in.md)). The limits add what the
   applications' proofing does: a correctly spelled word their dictionary lacks is underlined in
   Word and LibreOffice, and `--hide-spelling-errors` is not honoured by Word 365 for Windows or
-  LibreOffice; Google Docs' three lists show no page numbers, and Word for macOS is read on
+  LibreOffice; Google Docs' three lists show no page numbers; WPS Writer flows a thesis shorter than Word; and Word for macOS is read on
   0.3.0's bytes.
 - The goldens may change bytes on `main` between releases. The rule that a reading record names
   every golden's sha256 is held where it matters, at the tag: `tools/package_skill.py --tag`,
