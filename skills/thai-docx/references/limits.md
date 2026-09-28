@@ -80,8 +80,10 @@ accessibility standard is built with `--auto-numbering`, and without `--no-repea
   machine's own. Every machine that types Thai has it, and nothing is underlined. On a machine
   that does not — a colleague abroad, a shared machine, a server that renders documents — Word
   underlines every correctly spelled Thai word. Building again with `--thai-language` writes the
-  language into the document and settles it in Word. **The cost is WPS Writer**: in a document
-  built with that flag it places SARA AM (ำ) over the wrong letter. **LibreOffice Writer does not
+  language into the document and settles it in Word. It is written into the document's defaults
+  and its Normal style (ADR 0038), so a run of another complex script — Lao, Arabic — takes Thai
+  as its language too. **The cost is WPS Writer**: in a document built with that flag it places
+  SARA AM (ำ) over the wrong letter. **LibreOffice Writer does not
   read the machine's languages**: it takes its own default for complex text layout (Tools →
   Options → Languages and Locales → General), which on an English installation is Hindi, and
   underlines every Thai word until that is set to Thai (measured 2026-09-23 on an
@@ -174,7 +176,8 @@ text to Justify or Align Left.
   sits on the second line. That is the application laying out a long line, and no attribute
   reaches it.
 - A flag that reaches nothing in the document is named by the build, with what was missing. Pass
-  that on. Where no byte of the file differs, the flag "changed nothing". Four say "reached no"
+  that on. Where no byte of the file differs — `--indent` with no body paragraph,
+  `--no-repeat-table-header` with no table — the flag "changed nothing". Four say "reached no"
   instead, because each may still write what nothing in the document uses: `--thai-language` with
   no Thai text names the language in the styles, `--table-size` with no table writes its style,
   `--thai-digits` with no page, heading, list, caption or footnote number writes a page-number
@@ -343,10 +346,13 @@ about the layout of a document somebody else made; it is measured only by its ow
   tree (or an `--allow-dir`, never `/` or an empty one) and the profile locations** — only regular
   files, each to a ceiling — writing only the output path and the one profile file it was asked to
   save, that one whole or not at all.
-- **It is made for Thai.** A run of Lao, Khmer, Arabic, Devanagari or another complex script is
-  marked as one and takes the complex-script font, but the fonts the skill knows carry Thai glyphs:
-  unless `--font` names one that also carries that script, the application draws it in a
-  substitute. Right-to-left text (Arabic, Hebrew) is marked, not set right to left.
+- **It is made for Thai.** A run of Lao, Khmer, Arabic, Devanagari or another script on the
+  skill's list — Hebrew to the Arabic extensions, the Indic blocks to Sinhala, Thai, Lao, Tibetan,
+  Myanmar, Khmer (ADR 0039) — is marked as complex script and takes the complex-script font. A
+  script outside that list, such as Adlam, is written and checked as Latin. The fonts the skill
+  knows carry Thai glyphs: unless `--font` names one that also carries that script, the
+  application draws it in a substitute. Right-to-left text (Arabic, Hebrew) is marked, not set
+  right to left.
 - **The two implementations give the same bytes when their runtimes share a Unicode version.**
   Whether `_` or `*` opens emphasis, and how a link label's case is folded, are read from the
   runtime's own Unicode tables, and so is the NFC normalisation the build applies to the Thai in

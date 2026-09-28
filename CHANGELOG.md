@@ -16,6 +16,10 @@ before two applications were read; the exception and what is owed are in
 - SECURITY.md said every confirmed vulnerability becomes an advisory. It now says what is done: a
   reported one becomes an advisory, and every fixed one, reported or found in the project's own
   review, is listed under `### Security` with its test.
+- `references/limits.md` names the scripts the skill marks as complex script, and says a script
+  outside them (Adlam) is written as Latin; that `--thai-language` names Thai for a run of Lao or
+  Arabic too, since it is written into the defaults and the Normal style; and which flags "changed
+  nothing". The README shows the OpenSSF Baseline badge beside Best Practices.
 
 ### Fixed
 
