@@ -460,3 +460,60 @@ def test_code_with_no_complex_script_is_not_proofed(tmp_path):
     code, result = both(["repair", "noproof.docx", "again.docx"], tmp_path)
     assert code == 0 and result["repaired"] == {"3": 1}, result
     assert proofless("again.docx") == proofless("out.docx")
+
+
+# --- 0.3.1: four flags that reached nothing in silence -------------------------------------------
+
+HEADINGS_NONE = "--heading-numbers reached no heading: the document has none"
+HEADINGS_REGIONS = ("--heading-numbers reached no heading: in a document with region comments it numbers the ## and"
+                    " lower headings under <!-- chapters --> or <!-- appendices -->, and there are none")
+BODY_NONE = ("--indent changed nothing: the document has no body paragraph; a heading, list, quotation, table,"
+             " code, caption or picture alone in its paragraph takes no first-line indent")
+TABLE_NONE = "--table-size reached no table: the document has none, and only the Table Text style carries the size"
+DIGITS_NONE = ("--thai-digits reached no number: the document has no page, heading, list, caption or footnote number,"
+               " and only the page-number format names Thai digits")
+
+
+def test_each_of_four_flags_that_reaches_nothing_is_named(tmp_path):
+    """0.3.1: --heading-numbers, --indent, --table-size and --thai-digits said nothing when the
+    document held nothing for them, where every other flag says so (ADR 0028). The two that
+    change no byte then "changed nothing"; the two that write a style or a page-number format
+    that nothing uses "reached no" — the words --thai-language uses for the same."""
+    cases = [
+        ("ข้อความ\n", ["--heading-numbers"], [HEADINGS_NONE]),
+        ("# หัว\n\nข้อความ\n", ["--heading-numbers"], []),
+        ("<!-- chapters -->\n\n# บทนำ\n\nข้อความ\n", ["--heading-numbers"], [HEADINGS_REGIONS]),
+        ("<!-- chapters -->\n\n# บทนำ\n\nข้อความ\n", ["--heading-numbers", "--auto-numbering"], [HEADINGS_REGIONS]),
+        ("<!-- chapters -->\n\n# บทนำ\n\n## ที่มา\n\nข้อความ\n", ["--heading-numbers"], []),
+        ("ปก\n\n<!-- front -->\n\n# บทคัดย่อ\n\n## ย่อย\n", ["--heading-numbers"], [HEADINGS_REGIONS]),
+        ("# หัว\n\n- รายการ\n\n> อ้าง\n", ["--indent", "0.5"], [BODY_NONE]),
+        ("# หัว\n\nข้อความ\n", ["--indent", "0.5"], []),
+        ("ข้อความ\n", ["--table-size", "12"], [TABLE_NONE]),
+        ("> | ก | ข |\n> |---|---|\n> | 1 | 2 |\n", ["--table-size", "12"], []),
+        ("ข้อความ\n", ["--thai-digits"], [DIGITS_NONE]),
+        ("# หัว\n\nข้อความ\n", ["--thai-digits"], [DIGITS_NONE]),
+        ("# หัว\n\nข้อความ\n", ["--thai-digits", "--heading-numbers"], []),
+        ("ข้อความ\n", ["--thai-digits", "--page-numbers"], []),
+        ("ข้อความ[^1]\n\n[^1]: เชิงอรรถ\n", ["--thai-digits"], []),
+        ("1. หนึ่ง\n2. สอง\n", ["--thai-digits"], []),
+        ("Table: ผล\n\n| ก | ข |\n|---|---|\n| 1 | 2 |\n", ["--thai-digits"], []),
+        ("<!-- chapters -->\n\n# บทนำ\n\nข้อความ\n", ["--thai-digits"], []),
+        ("# หัว\n\n<!-- toc -->\n", ["--thai-digits"], []),
+        ("ข้อความ\n", ["--heading-numbers", "--indent", "1", "--table-size", "12", "--thai-digits"],
+         [HEADINGS_NONE, DIGITS_NONE, TABLE_NONE]),
+    ]
+    for text, flags, expected in cases:
+        (tmp_path / "in.md").write_text(text, encoding="utf-8")
+        code, result = both(["build", "in.md", "out.docx", *flags], tmp_path)
+        said = [w["message"] for w in result["warnings"] if w["code"] == "settings"]
+        assert code == 0 and said == expected, (text, flags, said)
+
+
+def test_a_profile_setting_that_reached_nothing_is_not_said_either(tmp_path):
+    """The thesis profile turns on --heading-numbers and --indent; what it set and no flag named
+    is not the user's to hear about (B-15). Its page numbers are what its --thai-digits reaches."""
+    (tmp_path / "in.md").write_text("<!-- front -->\n\n# บทคัดย่อ\n", encoding="utf-8")
+    code, result = both(["build", "in.md", "out.docx", "--profile", "thesis"], tmp_path)
+    assert code == 0 and [w for w in result["warnings"] if w["code"] == "settings"] == [], result
+    code, result = both(["build", "in.md", "out.docx", "--profile", "thesis", "--indent", "1"], tmp_path)
+    assert [w["message"] for w in result["warnings"] if w["code"] == "settings"] == [BODY_NONE]

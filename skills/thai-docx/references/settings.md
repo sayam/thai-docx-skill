@@ -23,6 +23,8 @@ Every document has these.
 | which runs are marked complex script | the runs whose text is complex script | `--force-cs-whole-doc` (every run, as releases before 0.2.0 wrote: one font throughout, and an application underlines correctly spelled English on screen) |
 | spelling squiggles | shown | `--hide-spelling-errors` |
 
+Without a paragraph of body text, `--indent` changes nothing, and the build says so.
+
 Without a run that is not Thai (a number, a Latin word, a footnote's mark), `--force-cs-whole-doc` changes nothing, and the build says so.
 
 ## Page furniture
