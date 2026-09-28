@@ -159,3 +159,15 @@ def test_a_release_never_replaces_an_asset_it_already_has():
     release's name. Without it, an asset already there stops the upload."""
     assert "--clobber" not in RELEASE
     assert re.search(r"gh release upload \"\$TAG\" dist/\*\.zip dist/\*\.intoto\.jsonl\s*$", RELEASE, re.M)
+
+
+def test_the_readme_says_when_scorecard_reads_a_release():
+    """F-15 (the review of 0.2.0): Scorecard read v0.2.0 before its signed archive was attached,
+    and the badge fell. It runs on a push to main and weekly, never on a release, and the README
+    says so; a trigger added or taken away makes that sentence wrong."""
+    import yaml
+    flow = yaml.safe_load((ROOT / ".github" / "workflows" / "scorecard.yml").read_text(encoding="utf-8"))
+    triggers = flow.get("on", flow.get(True))  # YAML 1.1 reads a bare `on` as true
+    assert set(triggers) == {"push", "schedule"}, triggers
+    readme = " ".join((ROOT / "README.md").read_text(encoding="utf-8").split())
+    assert "read on each push to `main` and weekly, not when a release is published" in readme

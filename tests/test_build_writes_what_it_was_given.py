@@ -517,3 +517,26 @@ def test_a_profile_setting_that_reached_nothing_is_not_said_either(tmp_path):
     assert code == 0 and [w for w in result["warnings"] if w["code"] == "settings"] == [], result
     code, result = both(["build", "in.md", "out.docx", "--profile", "thesis", "--indent", "1"], tmp_path)
     assert [w["message"] for w in result["warnings"] if w["code"] == "settings"] == [BODY_NONE]
+
+
+def test_where_this_reading_and_githubs_differ_the_build_stops_at_the_line(tmp_path):
+    """C-13 (the review of 0.2.0): the places where GitHub drops or bends what this reading
+    refuses, as references/markdown.md lists them — each stops the build at its line, in both;
+    and a non-breaking space at a paragraph's edge is kept, as CommonMark says."""
+    stops = [
+        ("ก\n\n<!-- ก\n\nข\n", 3, "HTML comment is never closed"),
+        ("ก\n\n<!-- ก --> ข\n", 3, "an HTML comment block also holds text"),
+        ("| ก |\n|---|\n| 1 | 2 |\n", 3, "table row has 2 cells; the header has 1"),
+        ("ก[^1]\n\n[^1]: a\n\n[^1]: b\n", 5, "footnote [^1] is defined twice"),
+        ("ก\n\n[^1]: a\n", 3, "footnote [^1] is defined but never referenced"),
+        ("<?x?>\n", 1, "HTML blocks are not supported"),
+        ("<!DOCTYPE x>\n", 1, "HTML blocks are not supported"),
+        ("<![CDATA[x]]>\n", 1, "HTML blocks are not supported"),
+    ]
+    for text, line, said in stops:
+        (tmp_path / "in.md").write_text(text, encoding="utf-8")
+        code, result = both(["build", "in.md", "out.docx"], tmp_path)
+        assert code == 2 and result["line"] == line and result["error"].startswith(said), (text, result)
+    (tmp_path / "in.md").write_text(" ก \n", encoding="utf-8")
+    assert both(["build", "in.md", "out.docx"], tmp_path)[0] == 0
+    assert "> ก <" in part(tmp_path / "out.docx", "word/document.xml")
