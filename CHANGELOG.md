@@ -29,6 +29,26 @@ before two applications were read; the exception and what is owed are in
   `.github/allowed_signers` that the maintainer's GitHub account also lists; SECURITY.md says how to
   check a tag the same way, and that tags before v0.2.2 are unsigned
   (`tests/test_release_is_bound_to_its_tag.py::test_a_release_tag_is_signed_with_a_key_the_account_lists`).
+- `repair` wrote XML no application opens when a run's `w:rFonts` or `w:lang` closed with an end
+  tag of its own (`<w:rFonts …></w:rFonts>`), which the schema allows, and then answered exit 1,
+  a defect not to retry; a `w:compatSetting` closed that way was not seen at all. Each attribute
+  it writes now goes into the start tag, however the element closes
+  (`tests/test_what_a_command_takes.py::test_repair_adds_to_an_element_that_closes_with_an_end_tag`).
+
+### Security
+
+- A link planted as `.thai-docx` or as `.thai-docx/profiles`, in the home or in the project,
+  made `profile save` and `import` write the profile wherever it pointed: 0.3.0 guarded the file,
+  not the folders above it. A profile folder that is a link is refused, and nothing is written
+  (`tests/test_what_a_command_takes.py::test_a_profile_is_never_written_through_a_folder_that_is_a_link`).
+- A font named with a sentence still reached the agent whole, as did a profile's unknown key or
+  setting and a compatibility mode's value. A font is shown to 31 characters, what Word itself
+  takes of a name, and the others as `check` shows any name from the file; a mode with no value
+  is said to have none, not `None`
+  (`tests/test_what_a_command_takes.py::test_what_the_file_says_is_shown_as_a_name_not_as_a_sentence`).
+- `check` read the text of every run inside each run, so 4,000 runs nested in each other took 43
+  seconds in Python and 6 in JavaScript. A run's text is its own now: it takes about a second
+  (`tests/test_what_a_command_takes.py::test_check_reads_runs_nested_in_runs_in_a_moment`).
 
 ## [0.3.0] - 2026-09-28
 

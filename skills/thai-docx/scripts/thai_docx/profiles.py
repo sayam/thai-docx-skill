@@ -25,6 +25,7 @@ import pathlib
 import unicodedata
 
 from . import build as b
+from . import check as check_mod
 from . import package
 from . import settings as st
 
@@ -140,7 +141,8 @@ def validate(data, where: str) -> dict:
         raise ProfileError(where + ': "schema" must be ' + str(SCHEMA))
     for key in data:
         if key not in KEYS:
-            raise ProfileError(where + ': unknown key "' + key + '"; a profile holds ' + ", ".join(KEYS))
+            # a name from a file someone else may have written, shown as check shows one (D-10)
+            raise ProfileError(where + ': unknown key "' + check_mod.quoted(key) + '"; a profile holds ' + ", ".join(KEYS))
     for key in TEXT_KEYS:
         if key in data and (not isinstance(data[key], str) or not data[key] or len(data[key]) > MAX_TEXT):
             raise ProfileError(where + ': "' + key + '" takes text of 1 to ' + str(MAX_TEXT) + " characters")
@@ -155,7 +157,7 @@ def validate(data, where: str) -> dict:
         raise ProfileError(where + ': "settings" must be an object')
     for key in settings:
         if key not in FLAGS:
-            raise ProfileError(where + ': unknown setting "' + key + '"; the settings are ' + ", ".join(FLAGS))
+            raise ProfileError(where + ': unknown setting "' + check_mod.quoted(key) + '"; the settings are ' + ", ".join(FLAGS))
         fault = _value_fault(key, settings[key])
         if fault is not None:
             raise ProfileError(where + ': "' + key + '" takes ' + fault)
@@ -244,6 +246,14 @@ def write(profile: dict, path: pathlib.Path, make_folder: bool = True) -> None:
     folders are made when missing (ADR 0040); `export` writes where it is told (`./NAME.json` when
     told nothing), or nowhere."""
     data = canonical(profile).encode("utf-8")
+    if make_folder:
+        # the folder itself, never one a link points to: a link planted as .thai-docx or as
+        # profiles took the file elsewhere, where write_whole's own guard does not look
+        # (the reviews of 0.3.1)
+        for folder in (path.parent.parent, path.parent):
+            if folder.is_symlink():
+                raise ProfileError("cannot write " + str(path) + ": " + str(folder)
+                                   + " is a link; a profile is written into the folder itself, never through a link")
     try:
         if make_folder:
             path.parent.mkdir(parents=True, exist_ok=True)

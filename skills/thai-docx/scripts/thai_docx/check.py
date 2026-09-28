@@ -94,14 +94,18 @@ LISTED = 20
 # What a name taken from the file may show: a font's or a part's name, and nothing that reads
 # as an instruction to whoever reads the JSON (the review of 0.3.0, D-10). Anything else is `?`.
 QUOTED_MAX = 64
+# a font's name is shorter: Windows and Word take 31 characters of it (LF_FACESIZE, 32 with its
+# end), so a longer one names no font Word uses, and a sentence planted there is cut before it
+# says much (the reviews of 0.3.1)
+FONT_MAX = 31
 _PLAIN = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_./()[]+&,")
 
 
-def quoted(value: str) -> str:
+def quoted(value: str, most: int = QUOTED_MAX) -> str:
     """A name from the file as the JSON shows it: letters and digits (ASCII or Thai), spaces and
-    `-_./()[]+&,` — each other character `?` — and at most 64 characters."""
+    `-_./()[]+&,` — each other character `?` — and at most `most` characters."""
     shown = "".join(c if c in _PLAIN or "\u0e00" <= c <= "\u0e7f" else "?" for c in value)
-    return shown if len(shown) <= QUOTED_MAX else shown[:QUOTED_MAX - 1] + "…"
+    return shown if len(shown) <= most else shown[:most - 1] + "…"
 
 
 def listed(items: list[dict]) -> tuple[list[dict], list[dict]]:
@@ -381,7 +385,7 @@ def _check_rpr_twins(rpr: ET.Element, part: str, report: Report, what: str, thai
         if latin and not cs:
             report.find("5", part, f"in {what}, w:rFonts names a Latin font but no w:cs font")
         elif thai and cs and not fonts.get(w("cstheme")) and cs.lower() not in THAI_FONTS:
-            report.warn("font", part, "in " + what + ", complex-script font '" + quoted(cs) + "' is not known to carry Thai glyphs")
+            report.warn("font", part, "in " + what + ", complex-script font '" + quoted(cs, FONT_MAX) + "' is not known to carry Thai glyphs")
     for latin, twin in (("sz", "szCs"), ("b", "bCs"), ("i", "iCs")):
         if rpr.find(w(latin)) is not None and rpr.find(w(twin)) is None:
             report.find("5", part, f"in {what}, <w:{latin}> has no <w:{twin}> beside it")
@@ -395,7 +399,9 @@ def _check_settings(part: str, root: ET.Element, report: Report) -> None:
         if cs.get(w("name")) == "compatibilityMode" and cs.get(w("uri")) == COMPAT_URI
     ]
     if modes != ["15"]:
-        report.find("1", part, "compatibilityMode declared as " + (", ".join(str(m) for m in modes) or "nothing") + "; must be exactly one 15")
+        # a value from the file, quoted as a name is; one with no w:val says so, not "None"
+        shown = ", ".join("no w:val" if m is None else quoted(m) for m in modes)
+        report.find("1", part, "compatibilityMode declared as " + (shown or "nothing") + "; must be exactly one 15")
 
 
 def _check_text_part(name: str, root: ET.Element, report: Report, roles: dict) -> None:
@@ -504,7 +510,9 @@ def _proofless_code(root: ET.Element) -> set[ET.Element]:
         rpr = run.find(w("rPr"))
         if rpr is None:
             continue
-        text = "".join(t.text or "" for t in run.iter() if t.tag in (w("t"), w("delText")))
+        # its own text, the children: a run nested in it, or in a text box it draws, is a run
+        # of its own, and reading every run's whole subtree took minutes (the reviews of 0.3.1)
+        text = "".join(t.text or "" for t in run if t.tag in (w("t"), w("delText")))
         if not any(is_complex(ch) for ch in text):
             out.update(rpr.findall(w("noProof")))
     return out

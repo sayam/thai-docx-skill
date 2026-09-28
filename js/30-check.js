@@ -121,13 +121,19 @@ function unseenIn(text) {
 // says why (the review of 0.3.0, D-10, D-11).
 const LISTED = 20;
 const QUOTED_MAX = 64;
+const FONT_MAX = 31; // a font's name: 31 characters in Windows and Word (check.py says why)
 const PLAIN = new Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_./()[]+&,");
 
+// one argument only: it is handed to map(), which would pass the index as a second
 function quoted(value) {
+  return quotedTo(value, QUOTED_MAX);
+}
+
+function quotedTo(value, most) {
   let shown = "";
   for (const c of value) shown += PLAIN.has(c) || (c >= "\u0e00" && c <= "\u0e7f") ? c : "?";
   const chars = [...shown];
-  return chars.length <= QUOTED_MAX ? shown : chars.slice(0, QUOTED_MAX - 1).join("") + "…";
+  return chars.length <= most ? shown : chars.slice(0, most - 1).join("") + "…";
 }
 
 // At most LISTED items of each code, in order, and how many of each code were left out.
@@ -426,7 +432,7 @@ function checkRprTwins(rpr, part, report, what, thai) {
     const cs = fonts.get(w("cs")) || fonts.get(w("cstheme"));
     if (latin && !cs) report.find("5", part, "in " + what + ", w:rFonts names a Latin font but no w:cs font");
     else if (thai && cs && !fonts.get(w("cstheme")) && !THAI_FONTS.has(cs.toLowerCase())) {
-      report.warn("font", part, "in " + what + ", complex-script font '" + quoted(cs) + "' is not known to carry Thai glyphs");
+      report.warn("font", part, "in " + what + ", complex-script font '" + quotedTo(cs, FONT_MAX) + "' is not known to carry Thai glyphs");
     }
   }
   for (const [latin, twin] of [["sz", "szCs"], ["b", "bCs"], ["i", "iCs"]]) {
@@ -443,7 +449,7 @@ function checkSettings(part, root, report) {
     if (cs.get(w("name")) === "compatibilityMode" && cs.get(w("uri")) === COMPAT_URI) modes.push(cs.get(w("val")));
   }
   if (!(modes.length === 1 && modes[0] === "15")) {
-    const shown = modes.map((m) => (m === null ? "None" : m)).join(", ");
+    const shown = modes.map((m) => (m === null ? "no w:val" : quoted(m))).join(", ");
     report.find("1", part, "compatibilityMode declared as " + (shown || "nothing") + "; must be exactly one 15");
   }
 }
@@ -575,7 +581,8 @@ function prooflessCode(root) {
     const rpr = run.find(w("rPr"));
     if (rpr === null) continue;
     let text = "";
-    for (const t of run.iter()) if (t.tag === w("t") || t.tag === w("delText")) text += t.text || "";
+    // its own text, the children: a nested run is a run of its own (check.py says why)
+    for (const t of run.children) if (t.tag === w("t") || t.tag === w("delText")) text += t.text || "";
     if (!Array.from(text).some(isComplex)) for (const el of rpr.findall(w("noProof"))) out.add(el);
   }
   return out;
