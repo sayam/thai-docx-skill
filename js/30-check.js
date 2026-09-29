@@ -7,6 +7,8 @@ const OOXML = /*@@OOXML@@*/ null;
 
 const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const RPR_ORDER = OOXML.rpr_order;
+// the same names, one after another: the order Word writes them back in (ooxml.py's RPR_NAMES)
+const RPR_NAMES = [...RPR_ORDER[0], ...RPR_ORDER.slice(1)];
 const PPR_ORDER = OOXML.ppr_order;
 const SETTINGS_ORDER = OOXML.settings_order;
 const SECTPR_ORDER = OOXML.sectpr_order;

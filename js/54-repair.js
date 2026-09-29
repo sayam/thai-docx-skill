@@ -155,13 +155,13 @@ function childrenOf(inner) {
   }
 }
 
-// `element` among `children`, at the place the schema puts it. Nothing already there moves:
-// repairing the order is a different finding.
+// `element` among `children`, at the place Word writes it (RPR_NAMES). Nothing already there
+// moves: the schema lets a run's properties come in any order.
 function insertChild(children, name, element) {
-  const rank = RPR_ORDER.indexOf(name.slice(2)); // the run properties: no place there is shared
+  const rank = RPR_NAMES.indexOf(name.slice(2));
   for (let i = 0; i < children.length; i++) {
     const local = children[i][0].slice(2);
-    const at = RPR_ORDER.indexOf(local);
+    const at = RPR_NAMES.indexOf(local);
     if (at !== -1 && at > rank) return [...children.slice(0, i), [name, element], ...children.slice(i)];
   }
   return [...children, [name, element]];

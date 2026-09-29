@@ -4,7 +4,7 @@
 #
 # id        the finding's name in the review that found it; V3- marks the review of 0.3.0,
 #           whose names repeat those of the review of 0.2.0; AU3- the documentation audit of 0.3.0;
-#           V31- the reviews of 0.3.1, numbered as they were triaged
+#           V31- the reviews of 0.3.1, numbered as they were triaged; V32- found while making 0.3.2
 # what      the fault, as a user or an agent met it
 # class     how it is held (comma-separated): C0 the wrong path no longer exists (one reader, one escape point);
 #           C1 a test that fails when it returns; C2 a rule a person or a model reads — only
@@ -1373,3 +1373,20 @@
   found_by: review
   test:
     - tests/test_what_a_command_takes.py::test_check_reads_runs_nested_in_runs_in_a_moment
+
+- id: V32-01
+  what: check reported, and repair reordered, a run's properties that the 2016 schema lets come in any order and that Word 365 for Windows uses in any order, on a sentence ("Word ignores it") no record had measured
+  class: C1, C3
+  found_by: office-app
+  test:
+    - tests/test_check.py::test_a_runs_properties_come_in_any_order
+    - tests/test_check.py::test_order_in_run_properties
+    - tests/test_repair.py::test_a_runs_properties_are_left_in_the_order_they_came
+  record: docs/evidence/2026-09-29-a-runs-properties-come-in-any-order.md
+
+- id: V32-02
+  what: the parity package meant to hold a run's properties out of order held none once the build stopped writing w:bidi, since a replace that found nothing changed nothing, and repair was compared on a file with nothing to reorder
+  class: C1
+  found_by: review
+  test:
+    - tests/test_js_parity.py::test_command_line_is_the_same

@@ -44,6 +44,12 @@ checker reports each by its number:
 And every part is valid against the WordprocessingML schema [S7], element order
 included: a property in the wrong position can be ignored without any error.
 
+> **Later (2026-09-29):** the schema of reference is ECMA-376 5th edition (2016). There a run's
+> properties are a choice, in any order, with only `<w:rPrChange>` after them; Word 365 for
+> Windows uses every one whatever the order ([record](../evidence/2026-09-29-a-runs-properties-come-in-any-order.md)).
+> From 0.3.2 `order` in a run's properties is that one place alone. The sentence above was never
+> measured, and for a run's properties it does not hold.
+
 Left out on purpose: anything beyond these five. They are the causes found and
 confirmed, not a complete theory of Thai in OOXML; a sixth becomes a new record.
 

@@ -14,7 +14,7 @@ import zipfile
 
 import pytest
 
-from docx_fixture import good, pack, replaced, run
+from docx_fixture import REVISION, good, pack, replaced, run
 from thai_docx import ooxml
 from thai_docx import package as pk
 from thai_docx import repair as rp
@@ -91,10 +91,10 @@ def test_both_findings_at_once(tmp_path):
 
 
 def test_properties_out_of_order_are_put_back_in_it(tmp_path):
-    """The schema fixes the order of a run's and a paragraph's properties, and Word ignores
-    one that comes in the wrong place. Repairing it moves nothing else."""
+    """The schema fixes where a run's record of a revision stands: after its properties.
+    Repairing it moves nothing else."""
     parts = replaced(good(), "word/document.xml", '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>',
-                     '<w:lang w:val="en-US" w:bidi="th-TH"/><w:cs/>')
+                     f'{REVISION}<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>')
     src = written(tmp_path, parts)
     assert codes(check(src).findings) == {"order": 1}
     out = tmp_path / "out.docx"
@@ -106,21 +106,31 @@ def test_properties_out_of_order_are_put_back_in_it(tmp_path):
 def test_an_element_the_schema_does_not_name_keeps_its_place():
     """The checker skips an extension element, so moving one would change more than the
     finding asked for. The ordered ones fill the places they already occupied."""
-    mixed = b'<w:rPr><w:sz w:val="32"/><w:somethingElse/><w:b/></w:rPr>'
-    out, n = rp.reorder(mixed, b"w:rPr", ooxml.RPR_ORDER)
+    mixed = b'<w:pPr><w:jc w:val="center"/><w:somethingElse/><w:pStyle w:val="Title"/></w:pPr>'
+    out, n = rp.reorder(mixed, b"w:pPr", ooxml.PPR_ORDER)
     assert n == 1
-    assert out == b'<w:rPr><w:b/><w:somethingElse/><w:sz w:val="32"/></w:rPr>'
+    assert out == b'<w:pPr><w:pStyle w:val="Title"/><w:somethingElse/><w:jc w:val="center"/></w:pPr>'
 
 
 def test_two_children_of_one_name_keep_the_order_they_were_written_in():
-    twice = b'<w:rPr><w:sz w:val="32"/><w:b w:val="1"/><w:b w:val="0"/></w:rPr>'
-    out, _n = rp.reorder(twice, b"w:rPr", ooxml.RPR_ORDER)
-    assert out == b'<w:rPr><w:b w:val="1"/><w:b w:val="0"/><w:sz w:val="32"/></w:rPr>'
+    twice = b'<w:pPr><w:jc w:val="center"/><w:pStyle w:val="A"/><w:pStyle w:val="B"/></w:pPr>'
+    out, _n = rp.reorder(twice, b"w:pPr", ooxml.PPR_ORDER)
+    assert out == b'<w:pPr><w:pStyle w:val="A"/><w:pStyle w:val="B"/><w:jc w:val="center"/></w:pPr>'
 
 
 def test_properties_already_in_order_are_not_touched():
-    right = b'<w:rPr><w:b/><w:sz w:val="32"/></w:rPr>'
-    assert rp.reorder(right, b"w:rPr", ooxml.RPR_ORDER) == (right, 0)
+    right = b'<w:pPr><w:pStyle w:val="Title"/><w:jc w:val="center"/></w:pPr>'
+    assert rp.reorder(right, b"w:pPr", ooxml.PPR_ORDER) == (right, 0)
+
+
+def test_a_runs_properties_are_left_in_the_order_they_came():
+    """The schema lets them come in any order (0.3.2): only the record of a revision moves,
+    to stand after them, and the others keep the order they were written in."""
+    any_order = b'<w:rPr><w:sz w:val="32"/><w:cs/><w:b/></w:rPr>'
+    assert rp.reorder(any_order, b"w:rPr", ooxml.RPR_ORDER) == (any_order, 0)
+    first = f'<w:rPr>{REVISION}<w:sz w:val="32"/><w:cs/><w:b/></w:rPr>'.encode()
+    assert rp.reorder(first, b"w:rPr", ooxml.RPR_ORDER) == (
+        f'<w:rPr><w:sz w:val="32"/><w:cs/><w:b/>{REVISION}</w:rPr>'.encode(), 1)
 
 
 # --- what it must not do -------------------------------------------------------------

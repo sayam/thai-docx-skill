@@ -209,13 +209,15 @@ def _scenarios(tmp: pathlib.Path) -> list[list[str]]:
     for f in ("sample-default.docx", "sample-all-flags.docx"):
         shutil.copy(parity.GOLDEN / f, tmp / f)
     shutil.copy(parity.FIXTURES / "legacy-python-docx-default.docx", tmp / "legacy.docx")
-    # a package whose only fault is the order of a run's properties
+    # a package whose only fault is the order of a run's properties: a revision's record first
     import zipfile as _zipfile
     with _zipfile.ZipFile(parity.GOLDEN / "sample-default.docx") as _z:
         _parts = {n: _z.read(n) for n in _z.namelist()}
-    _parts["word/document.xml"] = _parts["word/document.xml"].replace(
-        b'<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>',
-        b'<w:lang w:val="en-US" w:bidi="th-TH"/><w:cs/>', 1)
+    _before = _parts["word/document.xml"]
+    _parts["word/document.xml"] = _before.replace(
+        b'<w:rPr><w:b/><w:bCs/><w:cs/></w:rPr>',
+        b'<w:rPr><w:rPrChange w:id="1" w:author="a" w:date="2026-01-01T00:00:00Z"><w:rPr/></w:rPrChange><w:b/><w:bCs/><w:cs/></w:rPr>', 1)
+    assert _parts["word/document.xml"] != _before
     from thai_docx import package as _package
     (tmp / "out-of-order.docx").write_bytes(_package.pack(list(_parts.items())))
     shutil.copytree(parity.FIXTURES / "thesis", tmp / "thesis")
