@@ -3,6 +3,12 @@
 What the project intends to do, and not do, from September 2026 to September 2027. It is a plan,
 not a promise; each item becomes a decision record when it is taken up.
 
+## 0.3.1
+
+What the reviews of 0.3.1 found, with no golden moved: a flag that reaches nothing says so, a
+release is built only from a tag signed with a listed key, and `check`, `repair` and profiles keep
+to their limits where the reviews found they did not. What was read on 0.3.0's bytes holds.
+
 ## 0.3.0
 
 What moves the bytes of a document, read once in the five applications on its bytes: punctuation

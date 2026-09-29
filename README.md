@@ -29,18 +29,18 @@ file right in the first place, and checks one that another program produced.
 
 ## Quick start
 
-1. **Download** `thai-docx-0.3.0.zip` from the
+1. **Download** `thai-docx-0.3.1.zip` from the
    [latest release](https://github.com/sayam/thai-docx-skill/releases/latest).
 2. **Install it** in your app:
 
    | app | do this |
    |---|---|
    | Claude (web, desktop) | turn on code execution, then **Customize > Skills > + > Create skill > Upload a skill** and choose the zip |
-   | Claude Code | `mkdir -p ~/.claude/skills && unzip thai-docx-0.3.0.zip -d ~/.claude/skills` |
-   | Codex, ChatGPT desktop app | `mkdir -p ~/.agents/skills && unzip thai-docx-0.3.0.zip -d ~/.agents/skills` |
+   | Claude Code | `mkdir -p ~/.claude/skills && unzip thai-docx-0.3.1.zip -d ~/.claude/skills` |
+   | Codex, ChatGPT desktop app | `mkdir -p ~/.agents/skills && unzip thai-docx-0.3.1.zip -d ~/.agents/skills` |
    | ChatGPT Business, Enterprise, Edu, Healthcare | **Plugins > Skills > Create > Upload from your computer** |
-   | GitHub Copilot | `mkdir -p ~/.copilot/skills && unzip thai-docx-0.3.0.zip -d ~/.copilot/skills` |
-   | Cursor | `mkdir -p ~/.cursor/skills && unzip thai-docx-0.3.0.zip -d ~/.cursor/skills` |
+   | GitHub Copilot | `mkdir -p ~/.copilot/skills && unzip thai-docx-0.3.1.zip -d ~/.copilot/skills` |
+   | Cursor | `mkdir -p ~/.cursor/skills && unzip thai-docx-0.3.1.zip -d ~/.cursor/skills` |
    | Gemini, other agents, the APIs | [step by step for each app](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en/install.md) |
 
 3. **Ask** for a Word file:
@@ -89,11 +89,12 @@ Each one, step by step, with the words to type:
 
 ## Status
 
-Version 0.3.0, which moves the bytes of most Thai documents: punctuation between Thai stays in the
-Thai run, scripts besides Thai are marked complex script, code is not proofed, a captioned table
-is named, and a picture fits the line it is on. The five applications are Word 365 for Windows (the reference), Word for
-macOS, Google Docs, LibreOffice Writer and WPS Writer; every file passes in every application it
-was read in, on 0.3.0's bytes
+Version 0.3.1, whose build writes byte for byte the files 0.3.0 wrote from the same Markdown and
+flags; it fixes what the reviews of 0.3.1 found in `check`, `repair`, profiles and the pages
+([what holds the reading](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-30-what-v0.3.1-was-read-in.md)).
+The five applications are Word 365 for Windows (the reference), Word for macOS, Google Docs,
+LibreOffice Writer and WPS Writer; every file passes in every application it was read in, on
+0.3.0's bytes
 ([read 2026-09-27](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-27-what-v0.3.0-was-read-in.md),
 and [again where the files moved, 2026-09-28](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-28-what-v0.3.0-was-read-in.md)). What each application draws its own way
 is in [the limits](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/limits.md). Changes are listed in
@@ -112,8 +113,8 @@ archive counts from the reading after it.
   see [Fix a problem](https://github.com/sayam/thai-docx-skill/blob/main/docs/guide/en/troubleshooting.md).
 - A security problem: report it privately, as
   [SECURITY.md](https://github.com/sayam/thai-docx-skill/blob/main/.github/SECURITY.md) says.
-- Verify a download: `gh attestation verify thai-docx-0.3.0.zip --repo sayam/thai-docx-skill
-  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.3.0`
+- Verify a download: `gh attestation verify thai-docx-0.3.1.zip --repo sayam/thai-docx-skill
+  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.3.1`
   ([how, and how to rebuild it byte for byte](https://github.com/sayam/thai-docx-skill/blob/main/.github/SECURITY.md#verify-a-release)).
 
 ## Contributing
