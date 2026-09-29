@@ -71,8 +71,9 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
         working-directory: tests/js
       # under coverage, subprocesses included; the report fails below .coveragerc's floor
+      # and a data file combine cannot read fails the job, not a warning that loses its lines
       - run: python3 -m coverage run -m pytest -q tests
-      - run: python3 -m coverage combine -q && python3 -m coverage report
+      - run: python3 -W error -m coverage combine -q && python3 -m coverage report
 
   # And on the newest the skill promises: the docs say Python 3.11 or later and Node 22 or later,
   # and a newer runtime's expat, zlib or Unicode tables are where the two ends part (ADR 0017).
