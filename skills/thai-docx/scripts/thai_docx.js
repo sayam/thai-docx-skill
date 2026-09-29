@@ -4050,6 +4050,19 @@ class BuildError extends Error {
   }
 }
 
+// The part of a font's name Word reads, when the name is longer than that; else null
+// (settings.py says why)
+function fontCut(name) {
+  const chars = [...name];
+  return chars.length > FONT_MAX ? chars.slice(0, FONT_MAX).join("") : null;
+}
+
+function fontCutSaid(what, name, kept) {
+  return what + " '" + quoted(name) + "' is longer than the " + FONT_MAX + " characters Word reads of a" +
+    " font's name, so the document names '" + quoted(kept) + "': Word uses a font only if one is" +
+    " installed under exactly that name, and shows another font if none is";
+}
+
 function halfUp(x) {
   return Math.floor(x + 0.5);
 }
@@ -4140,6 +4153,11 @@ function parseArgs(argv) {
     else opts[s.key] = readSetting(s, value);
   }
   if (positional.length !== 2) throw new BuildError(USAGE);
+  const kept = fontCut(opts.font);
+  if (kept !== null) { // said with the build's other settings warnings
+    opts._font_given = opts.font;
+    opts.font = kept;
+  }
   for (const s of SETTINGS) {
     if (s.needs && has(DEFAULTS, s.needs) && opts[s.key] !== s.default && opts[s.needs] === DEFAULTS[s.needs]) {
       throw new BuildError(s.flag + " needs " + SETTINGS.find((n) => n.key === s.needs).flag);
@@ -4195,8 +4213,12 @@ function settingsWarnings(opts, present) {
     }
   }
   const out = [...missing].map(([need, flags]) => joinFlags(flags) + " changed nothing: " + STRUCTURES[need]);
-  // --thai-language changed bytes, but with no Thai text reached no run (settings.py says why)
-  if (opts.thai_language && !present.has("thai text")) {
+  // a profile's font is said too: it is not a setting that reached nothing, but a name cut
+  if (has(opts, "_font_given")) out.push(fontCutSaid("--font", opts._font_given, opts.font));
+  // --thai-language changed bytes, but with no Thai text reached no run; a profile's is not said
+  // (settings.py says why)
+  const quiet = (key) => Boolean(opts._quiet && opts._quiet.has(key));
+  if (opts.thai_language && !quiet("thai_language") && !present.has("thai text")) {
     out.push("--thai-language reached no run: the document has no Thai text, and only the styles name the language");
   }
   // --toc writes its field whatever the document holds (settings.py says why)
@@ -4204,7 +4226,6 @@ function settingsWarnings(opts, present) {
     out.push("--toc has no heading to list: the document has none, so the table of contents is empty");
   }
   // three more write bytes that nothing may use, so they too "reached no" (settings.py says why)
-  const quiet = (key) => Boolean(opts._quiet && opts._quiet.has(key));
   if (opts.heading_numbers && !quiet("heading_numbers") && !present.has("headings it numbers")) {
     out.push("--heading-numbers reached no heading: " + (!present.has("headings") ? "the document has none"
       : "in a document with region comments it numbers the ## and lower headings under <!-- chapters --> or <!-- appendices -->, and there are none"));
@@ -4352,7 +4373,9 @@ function headingStyles(doc) {
         let bad = !val || codePointLength(val) > 64 || val.includes('"');
         for (const c of val) if (forbiddenChar(c) !== null) bad = true;
         if (bad) throw new Unsupported(line, where + " takes a font name of 1 to 64 characters");
-        props.font = val;
+        const kept = fontCut(val);
+        if (kept !== null) warnings.push("line " + line + ": " + fontCutSaid(where, val, kept));
+        props.font = kept === null ? val : kept;
       } else if (name === "font-size") {
         const pm = POINTS.exec(val);
         if (pm === null || !(Number(pm[1]) >= 1 && Number(pm[1]) <= 400)) throw new Unsupported(line, where + " takes points from 1pt to 400pt, e.g. 20pt");
@@ -6675,9 +6698,15 @@ function fixNumbering(xml, font) {
 // The font a run that names none is given, and why (ADR 0037): what the user asked for, else
 // the complex-script font this document already uses most, else the skill's default.
 function complexScriptFont(parts, asked) {
-  // an attribute value, escaped where it is written; a font found in the document below is
-  // taken from an attribute already
-  if (asked) return [asked.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"), "the font the command was given"];
+  if (asked) {
+    // what Word reads of the name, as the build writes it — said where it is written
+    const kept = fontCut(asked);
+    const why = kept === null ? "the font the command was given" : fontCutSaid("the font the command was given", asked, kept);
+    // an attribute value, escaped where it is written; a font found in the document below is
+    // taken from an attribute already
+    if (kept !== null) asked = kept;
+    return [asked.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"), why];
+  }
   const counted = new Map();
   for (const [name, bytes] of parts) {
     // the XML parts only: an image or a font holds no run properties, and reading one as text

@@ -1352,3 +1352,24 @@
   found_by: review
   test:
     - tests/test_skill_md.py::test_every_way_the_agent_is_told_asks_the_value_of_a_setting_named_without_one
+
+- id: V31-10
+  what: a profile's thai_language in a document with no Thai text was said to have reached no run, though what a profile's other settings reached nothing was not said
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_profile_setting_that_reached_nothing_is_not_said_either
+
+- id: V31-11
+  what: --font, a profile's font, a heading style's font-family and repair's --font took a name of 64 characters, though Word reads 31, so a longer name reached the document whole and named no font Word uses
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_font_name_longer_than_word_reads_is_cut_to_what_it_reads_and_said
+
+- id: V31-12
+  what: the test of runs nested in runs held both implementations to one fixed 10 seconds, so JavaScript read every run inside each run again in 1 second and passed
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_check_reads_runs_nested_in_runs_in_a_moment

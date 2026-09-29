@@ -26,9 +26,9 @@ search (`"skill"` or `"home"`).
 `list` gives `"profiles"`; `export` gives the `"path"` written and `"share"`.
 
 A build with `--profile` says nothing of a setting the profile gave that the document had no use
-for — "changed nothing" is said of a flag typed after the profile only, as the user asked for it.
-One is said either way: a profile's `thai_language` in a document with no Thai text "reached no
-run".
+for — "changed nothing" and "reached no" are said of a flag typed after the profile only, as the
+user asked for it. A profile's `font` longer than the 31 characters Word reads is said either way:
+the build writes those 31, and names them.
 
 ## What to tell the user
 

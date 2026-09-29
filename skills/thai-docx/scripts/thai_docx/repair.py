@@ -527,10 +527,14 @@ def complex_script_font(parts: dict[str, bytes], asked: str | None) -> tuple[byt
     """The font a run that names none is given, and why (ADR 0037): what the user asked for,
     else the complex-script font this document already uses most, else the skill's default."""
     if asked:
+        # what Word reads of the name, as the build writes it — said where it is written
+        kept = st.font_cut(asked)
+        why = "the font the command was given" if kept is None else st.font_cut_said("the font the command was given", asked, kept)
         # an attribute value, escaped where it is written; a font found in the document below
         # is taken from an attribute already
+        asked = asked if kept is None else kept
         escaped = asked.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
-        return escaped.encode("utf-8"), "the font the command was given"
+        return escaped.encode("utf-8"), why
     counted: dict[bytes, int] = {}
     for name, xml in parts.items():
         # the XML parts only: an image or a font holds no run properties, and reading one as
