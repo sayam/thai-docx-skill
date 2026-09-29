@@ -25,7 +25,7 @@ If something goes wrong:
 | the app writes its own code to make the Word file | say "use the program in thai-docx, as my first message says" |
 | every Thai word in the file has a red squiggle | the app did not use the program; say so as above, and ask for the file again |
 | the app reports an **error on line …** | that line holds something the program does not take; ask the app to change that line without changing its meaning |
-| the app asks about fonts though you did not write `thai-docx grill` | say "use the defaults for now" |
+| the app asks about fonts though you did not write `thai-docx grill` or ask to change the font without naming one | say "use the defaults for now" |
 
 Never attach anybody's real document to an issue.
 

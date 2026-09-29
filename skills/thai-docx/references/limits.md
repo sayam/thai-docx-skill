@@ -176,14 +176,14 @@ text to Justify or Align Left.
   sits on the second line. That is the application laying out a long line, and no attribute
   reaches it.
 - A flag that reaches nothing in the document is named by the build, with what was missing. Pass
-  that on. Where no byte of the file differs — `--indent` with no body paragraph,
-  `--no-repeat-table-header` with no table — the flag "changed nothing". Four say "reached no"
-  instead, because each may still write what nothing in the document uses: `--thai-language` with
-  no Thai text names the language in the styles, `--table-size` with no table writes its style,
+  that on. A flag that can write nothing the document does not use — `--indent` with no body
+  paragraph, `--no-repeat-table-header` with no table — "changed nothing". Four say "reached no"
+  instead, because each may still write what nothing in the document uses: `--thai-language` with no
+  Thai text names the language in the styles, `--table-size` with no table writes its style,
   `--thai-digits` with no page, heading, list, caption or footnote number writes a page-number
-  format, and `--heading-numbers` with no heading it numbers writes the heading levels'
-  numbering when `--auto-numbering` is on. Under region comments it numbers only the `##` and
-  lower headings in chapters and appendices.
+  format, and `--heading-numbers` with no heading it numbers writes the numbering of the `##` and
+  lower levels when `--auto-numbering` numbers a chapter's or an appendix's own `#` heading. Under
+  region comments it numbers only the `##` and lower headings in chapters and appendices.
 
 ## 7. Where the five applications differ, as measured
 

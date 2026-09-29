@@ -207,7 +207,7 @@ Codex.
 
 - Codex asks before it writes outside your project. Saving a profile to `~/.thai-docx/profiles/`
   is outside it: approve it, or say "save it in this project".
-- Source: [Codex skills](https://developers.openai.com/codex/skills),
+- Source: [Codex skills](https://learn.chatgpt.com/docs/build-skills),
   [Codex sandboxing](https://learn.chatgpt.com/docs/sandboxing).
 
 ## Google Gemini
@@ -360,7 +360,10 @@ gh attestation verify thai-docx-0.3.0.zip --repo sayam/thai-docx-skill \
   --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.3.0
 ```
 
-It says the verification succeeded, or fails for any other file.
+It says the verification succeeded, or fails for any other file, and for the right file built
+from any other ref. The tag the archive was built from is signed too; how to check it, and how to
+rebuild the archive and compare, is in
+[SECURITY.md](https://github.com/sayam/thai-docx-skill/blob/main/.github/SECURITY.md#the-tag).
 
 That asks GitHub for the proof, so you need to be signed in with `gh auth login`. If the release
 page also carries `thai-docx-0.3.0.intoto.jsonl`, download it beside the zip and check against it
@@ -371,9 +374,9 @@ gh attestation verify thai-docx-0.3.0.zip --bundle thai-docx-0.3.0.intoto.jsonl 
   --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.3.0
 ```
 
-With no network at all, run `gh attestation trusted-root > trusted_root.jsonl` once on a machine
-that has one, bring the file along, and add `--custom-trusted-root trusted_root.jsonl` to the
-command above.
+With no network at all, run `gh attestation trusted-root > trusted_root.jsonl` on a machine that
+has one, bring the file along, and add `--custom-trusted-root trusted_root.jsonl` to the command
+above. Fetch it again for each release: how long a saved one stays usable has not been tested.
 
 ## Update or remove
 

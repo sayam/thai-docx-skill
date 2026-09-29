@@ -476,9 +476,9 @@ DIGITS_NONE = ("--thai-digits reached no number: the document has no page, headi
 
 def test_each_of_four_flags_that_reaches_nothing_is_named(tmp_path):
     """0.3.1: --heading-numbers, --indent, --table-size and --thai-digits said nothing when the
-    document held nothing for them, where every other flag says so (ADR 0028). The two that
-    change no byte then "changed nothing"; the two that write a style or a page-number format
-    that nothing uses "reached no" — the words --thai-language uses for the same."""
+    document held nothing for them, where every other flag says so (ADR 0028). --indent, which
+    changes no byte, then "changed nothing"; the three that may write heading levels, a style or a
+    page-number format that nothing uses "reached no" — the words --thai-language uses for the same."""
     cases = [
         ("ข้อความ\n", ["--heading-numbers"], [HEADINGS_NONE]),
         ("# หัว\n\nข้อความ\n", ["--heading-numbers"], []),

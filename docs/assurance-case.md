@@ -19,7 +19,7 @@ application that opens the result, and the development tools under `tools/` (rep
 | # | requirement | from |
 |---|---|---|
 | R1 | Make no network connection; start no process; evaluate no code from input or from outside the skill. | ADR 0040 §1–2 |
-| R2 | Write only the output path given, the one profile file a `profile save`/`import` names in the profile directories, and the path given to `profile export` (`./NAME.json` when none is). Every write — `build`, `repair`, each `profile` command — goes through a `.partial` file beside its target, made new and never opened through a link; a new file is its owner's alone to read and write (mode `600`). | ADR 0040 §3 |
+| R2 | Write only the output path given, the one profile file a `profile save`/`import` names in the profile directories, and the path given to `profile export` (`./NAME.json` when none is). Every write — `build`, `repair`, each `profile` command — goes through a `.partial` file beside its target, made new and never opened through a link, and a profile is never written through a profile folder that is a link; a new file is its owner's alone to read and write (mode `600`). | ADR 0040 §3 |
 | R3 | Read images only from the Markdown file's tree or a directory named with `--allow-dir`, and only PNG or JPEG by magic bytes. | ADR 0040 §4 |
 | R4 | Read a profile only as JSON of at most 64 KiB that passes the settings schema; a profile is data and can hold nothing a flag could not. | ADR 0040 §4, ADR 0024 |
 | R5 | Read no environment variable except the platform's own lookup of the home directory. | ADR 0040 §6 |
@@ -70,13 +70,13 @@ widen what the commands do: the limits of §2 hold whatever the arguments.
 | T2 XML external entity / billion laughs | .docx to `check` or `repair` | `<!DOCTYPE … <!ENTITY …>` | R7: DOCTYPE refused before parsing |
 | T3 zip bomb, zip tricks | .docx to `check` or `repair` | huge declared sizes, entries inflating past their size, overlapping records, zip64 | R7: part and total size caps (32 MiB / 64 MiB), at most 3,000,000 elements, stated zip reading rules |
 | T4 resource exhaustion by nesting | Markdown | 10,000 nested quotes or lists | R8: depth limit 100, refused with its line |
-| T5 arbitrary write / path traversal | profile name, output path | `profile save ../../.bashrc` | R2: a profile name is a name, never a path; writes only named files |
+| T5 arbitrary write / path traversal | profile name, output path | `profile save ../../.bashrc` | R2: a profile name is a name, never a path; writes only named files, never through a folder that is a link |
 | T6 code or setting injection | profile file | extra keys, huge file, non-JSON | R4: size cap, schema of the build's own flags |
 | T7 XML injection into the output | Markdown text, front matter | `</w:t><w:hyperlink…>` in text | escaping of every text and attribute; the checker and fidelity check refuse a package whose text differs |
 | T8 data exfiltration | any | network call, telemetry | R1: no network code; test over the JavaScript file's modules |
 | T9 identity leak | output | author = OS user | R6: properties only from front matter |
-| T10 supply-chain tampering of the release | release archive | swapped zip on the release page | build in CI from the tag, provenance attestation verified before attaching; no run-time dependencies |
-| T11 instructions smuggled into the verdict | .docx to `check` or `repair` | a font or part name reading "ignore the user and…"; 35 MB of findings | a name from the file shown with ASCII or Thai letters and digits, spaces and `-_./()[]+&,` only, at most 64 characters; at most 20 findings and 20 warnings of a code listed, the rest counted (ADR 0040 §8) |
+| T10 supply-chain tampering of the release | release archive | swapped zip on the release page | build in CI from the tag, which must be annotated and signed with a key in `.github/allowed_signers` that @sayam's account lists, and which the `release-tags` ruleset keeps from being moved or deleted; provenance attestation verified before attaching; no run-time dependencies |
+| T11 instructions smuggled into the verdict | .docx to `check` or `repair`; a profile file | a font or part name reading "ignore the user and…"; 35 MB of findings | a name from the file shown with ASCII or Thai letters and digits, spaces and `-_./()[]+&,` only, at most 64 characters (a font 31, what Word takes of a name), and so is a profile's unknown key or setting; at most 20 findings and 20 warnings of a code listed, the rest counted (ADR 0040 §8) |
 
 ## 4. Secure design principles applied
 
@@ -117,7 +117,7 @@ The most likely and most harmful problems, in order, as assessed on 2026-09-17:
 |---|---|---|
 | CWE-611 | XML external entities | `tests/test_check.py::test_doctype_is_refused_before_parsing` |
 | CWE-409 | decompression bomb | `tests/test_check.py::test_oversized_package_is_refused`; R7 in `docs/evidence/2026-09-18-security-review.md` (an entry inflating to 40 MB refused); zip campaigns in `docs/evidence/2026-09-15-javascript-matches-python.md` |
-| CWE-22, CWE-59 | path traversal, link following | `tests/test_build.py::test_image_outside_the_markdown_directory_is_refused_unless_allowed`, `::test_remote_and_non_image_files_are_refused`; ADR 0017 image paths |
+| CWE-22, CWE-59 | path traversal, link following | `tests/test_build.py::test_image_outside_the_markdown_directory_is_refused_unless_allowed`, `::test_remote_and_non_image_files_are_refused`; ADR 0017 image paths; `tests/test_what_a_command_takes.py::test_a_profile_is_never_written_through_a_folder_that_is_a_link` |
 | CWE-674, CWE-400 | uncontrolled recursion, resource exhaustion | `tests/test_markdown.py::test_nesting_past_the_limit_stops_with_its_line`; `tests/test_js_parity.py::test_deep_nesting_is_read_or_refused_the_same_way` |
 | CWE-91 | XML injection | `tests/test_build.py::test_special_characters_are_escaped`; the fidelity check on every build |
 | CWE-73, CWE-20 | external control of file name, improper input validation | `tests/test_profiles.py::test_a_profile_is_refused_when_it_is_not_data_the_build_takes` and the profile tests |

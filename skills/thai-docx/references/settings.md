@@ -61,7 +61,7 @@ How headings are numbered and listed.
 | setting | default | flag |
 |---|---|---|
 | table of contents | none | `--toc` (at the top of the document) |
-| heading numbers | none | `--heading-numbers` (1. for `#`, 1.1 for `##`, 1.1.1 …) |
+| heading numbers | none | `--heading-numbers` (1. for `#`, 1.1 for `##`, 1.1.1 …; under region comments, the `##` and lower headings of chapters and appendices) |
 
 `--toc` beside a `<!-- toc -->` comment makes a second table of contents, and the build says so.
 

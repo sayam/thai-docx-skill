@@ -27,6 +27,8 @@ search (`"skill"` or `"home"`).
 
 A build with `--profile` says nothing of a setting the profile gave that the document had no use
 for — "changed nothing" is said of a flag typed after the profile only, as the user asked for it.
+One is said either way: a profile's `thai_language` in a document with no Thai text "reached no
+run".
 
 ## What to tell the user
 
@@ -54,6 +56,8 @@ for — "changed nothing" is said of a flag typed after the profile only, as the
   `./.thai-docx/profiles/`. Nowhere else; a name is a name, never a path: letters — Thai among
   them, with its marks — digits, `-` and `_`, 1 to 64 of them, never starting with `-`. A file is
   written whole or not at all: a save that fails leaves the profile that was there as it was.
+  When `.thai-docx` or its `profiles` folder is a link, nothing is written (exit 2): tell the user
+  the path the error names.
 - **A profile file is read only up to 64 KiB**, and only when it is a regular file; a larger one is
   refused with "larger than 64 KiB; a profile is settings". It must be UTF-8 JSON whose values have
   the types the settings take; `"schema"` is the integer 1.

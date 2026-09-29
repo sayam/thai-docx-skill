@@ -1,5 +1,8 @@
 # 2026-09-17 — the dependency check: red on a known vulnerability, green after the bump, closed on a missing lockfile
 
+> **Later (2026-09-30):** run 35226281263 no longer opens (404), and commit f96f2fc is not on
+> `main`. The table keeps what the run showed on its day.
+
 What this proves: the `deps` job reads both pinned dependency files, fails on a known
 vulnerability in them, passes once it is fixed, and fails — rather than passes — when a file it
 names is missing.

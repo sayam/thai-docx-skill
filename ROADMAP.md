@@ -11,7 +11,7 @@ repaired rather than Thai alone, code is written with proofing off, a captioned 
 name, and a picture fits the line its paragraph leaves it. `check` says which way a document's numbers are made — the first step of
 ADR 0037; renumbering in `repair` is the next, when it is asked for, and a word split across two
 runs (`4`) is still reported, not joined. The goldens may move on
-`main`; the tag refuses a version whose goldens no reading record names.
+`main`; the tag refuses a version whose own reading record does not name each golden's bytes.
 
 ## 0.2.2 (2026-09-26)
 

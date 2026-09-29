@@ -6,7 +6,7 @@ one zip, and nothing else from this repository (ADR 0018).
     python3 tools/package_skill.py OUT.zip          # write the archive
     python3 tools/package_skill.py --list           # the paths it would pack
     python3 tools/package_skill.py --tag v0.1.0     # exit 1 unless every version says 0.1.0, and the
-                                                    # newest reading record names every golden's bytes
+                                                    # reading record of that version names every golden's bytes
 
 The gates, tests and records stay in the repository, where a fork carries them. The
 archive holds the files a client loads — the folder a skill upload expects — stored,
@@ -110,7 +110,7 @@ def main(argv: list[str]) -> int:
     if len(argv) == 1 and not argv[0].startswith("-"):
         pack(pathlib.Path(argv[0]))
         return 0
-    print(__doc__.strip().splitlines()[2].strip() + " | --list | --tag vX.Y.Z", file=sys.stderr)
+    print("usage: python3 tools/package_skill.py OUT.zip | --list | --tag vX.Y.Z", file=sys.stderr)
     return 2
 
 
