@@ -46,6 +46,10 @@ suggests, *every reader installs a Microsoft font*, is not one a document can as
   glyph is a formatting decision and ADR 0023 does not reach it. The Markdown still says `- [ ]`
   and `- [x]`, and `plain_text` reports what the document will show.
 
+> **Later (2026-09-30):** ADR 0023's rule 2 named ☐ and ☑ as the boxes of its day;
+> [ADR 0023](0023-fidelity-transformations-restated-again.md) carries a Later note saying they are
+> □ and ■ since this record.
+
 ## Why not the alternatives
 
 **Keep ☐ and name a different font.** There is none to name: the table above is the whole of it.

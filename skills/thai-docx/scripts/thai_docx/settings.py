@@ -112,7 +112,8 @@ SETTINGS: tuple[dict, ...] = (
      "doc": ("table of contents", "none", "`--toc` (at the top of the document)")},
     {"key": "heading_numbers", "flag": "--heading-numbers", "kind": "switch", "default": False, "layer": 4,  # 1. / 1.1 / 1.1.1
      "report": ("heading_numbers", "value"),
-     "doc": ("heading numbers", "none", "`--heading-numbers` (1. for `#`, 1.1 for `##`, 1.1.1 …)")},
+     "doc": ("heading numbers", "none", "`--heading-numbers` (1. for `#`, 1.1 for `##`, 1.1.1 …;"
+                                        " under region comments, the `##` and lower headings of chapters and appendices)")},
     {"key": "page_numbers", "flag": "--page-numbers", "kind": "option", "default": False, "layer": 2,  # or one of PAGE_NUMBERS
      "read": ("position", PAGE_NUMBERS), "takes": "top-right, top-center or bottom-center",
      "report": ("page_numbers", "value"),

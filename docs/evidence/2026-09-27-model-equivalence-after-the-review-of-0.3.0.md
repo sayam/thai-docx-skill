@@ -36,6 +36,10 @@ repository.
 
 The sample moved since the last record: its link's title is written as the link's tip (B-11).
 
+> **Later (2026-09-30):** the writer fixes that went into 0.3.0 after this record moved all three
+> hashes; the goldens' hashes today, and the same runs on them, are in
+> [the record of 0.3.1's SKILL.md](2026-09-29-model-equivalence-on-the-0.3.1-skill-md.md).
+
 ## What came back
 
 The four requests of the last record, and two new ones:

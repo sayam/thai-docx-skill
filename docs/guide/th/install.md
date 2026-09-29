@@ -198,7 +198,7 @@ Claude จะสร้างไฟล์ให้ กดดาวน์โหล
 
 - Codex จะขออนุญาตก่อนเขียนไฟล์นอกโปรเจกต์ การบันทึกโปรไฟล์ไปที่ `~/.thai-docx/profiles/`
   อยู่นอกโปรเจกต์ ให้กดอนุญาต หรือสั่งว่า "บันทึกไว้ในโปรเจกต์นี้"
-- ที่มา: [Codex skills](https://developers.openai.com/codex/skills),
+- ที่มา: [Codex skills](https://learn.chatgpt.com/docs/build-skills),
   [Codex sandboxing](https://learn.chatgpt.com/docs/sandboxing)
 
 ## Google Gemini
@@ -348,7 +348,9 @@ gh attestation verify thai-docx-0.3.0.zip --repo sayam/thai-docx-skill \
   --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.3.0
 ```
 
-ถ้าถูกต้องจะขึ้นว่าตรวจผ่าน ถ้าเป็นไฟล์อื่นจะไม่ผ่าน
+ถ้าถูกต้องจะขึ้นว่าตรวจผ่าน ถ้าเป็นไฟล์อื่น หรือไฟล์ที่ถูกต้องแต่สร้างจาก ref อื่น จะไม่ผ่าน
+แท็กที่ใช้สร้างไฟล์ก็เซ็นไว้เช่นกัน วิธีตรวจแท็กและวิธีสร้าง archive ซ้ำมาเทียบอยู่ใน
+[SECURITY.md](https://github.com/sayam/thai-docx-skill/blob/main/.github/SECURITY.md#the-tag)
 
 คำสั่งนั้นไปถาม GitHub จึงต้องลงชื่อเข้าใช้ด้วย `gh auth login` ก่อน ถ้าหน้ารุ่นมีไฟล์
 `thai-docx-0.3.0.intoto.jsonl` มาด้วย ให้ดาวน์โหลดไฟล์นั้นไว้ข้าง ๆ zip แล้วตรวจกับไฟล์นั้นแทน
@@ -359,8 +361,9 @@ gh attestation verify thai-docx-0.3.0.zip --bundle thai-docx-0.3.0.intoto.jsonl 
   --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.3.0
 ```
 
-ถ้าเครื่องไม่มีเน็ตเลย ให้รัน `gh attestation trusted-root > trusted_root.jsonl` ครั้งเดียวบนเครื่องที่มีเน็ต
+ถ้าเครื่องไม่มีเน็ตเลย ให้รัน `gh attestation trusted-root > trusted_root.jsonl` บนเครื่องที่มีเน็ต
 นำไฟล์นั้นมาด้วย แล้วเติม `--custom-trusted-root trusted_root.jsonl` ในคำสั่งข้างบน
+ดึงไฟล์ใหม่ทุกครั้งที่ตรวจรุ่นใหม่ เพราะยังไม่ได้ทดสอบว่าไฟล์ที่เก็บไว้ใช้ได้นานเท่าใด
 
 ## อัปเดตหรือลบสกิล
 

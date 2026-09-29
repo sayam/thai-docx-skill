@@ -23,16 +23,17 @@ Find what you see in the left column.
 
 | you see | why | what to do |
 |---|---|---|
-| a **warning** | the file is made, but something needs a look: a font with no Thai letters, or a setting that changed nothing | read it and change the request if needed |
+| a **warning** | the file is made, but something needs a look: a font with no Thai letters, or a setting the document has nothing for ("changed nothing", "reached no table") | read it and change the request if needed |
 | an **error on line …** | that line of the Markdown has something the skill does not take, such as an HTML tag; no file is made | fix that line and ask again |
 | **findings** | a fault in the skill itself; no file is made | please report it on [Issues](https://github.com/sayam/thai-docx-skill/issues) |
 | an image is refused | it is not PNG or JPEG, it is on the internet, or it is outside the Markdown file's folder | use a PNG or JPEG in that folder, or say which folder it is in |
 | a setting you asked for is not in the reply | the assistant missed it | ask again for that setting |
-| the assistant asked questions you did not want | your message contains `thai-docx grill` — wherever it stands, even in "don't use thai-docx grill" | send it again without those words |
+| the assistant asked questions you did not want | your message contains `thai-docx grill` — wherever it stands, even in "don't use thai-docx grill" — or it names a setting without saying to what ("change the font"), and the assistant asks that one value in one line | send it again without those words, or give the value ("use Sarabun") |
 | the assistant did not ask questions | your message did not contain `thai-docx grill` (between `thai` and `docx` a hyphen, an underscore or a space; before `grill`, a space) | send it again with those words |
 | `'' is not a question` | a space after a comma in `only size, toc` | write `only size,toc` |
 | a saved profile is not found in a chat app | chat apps forget files when the chat ends | attach the profile's `.json` file |
 | saving a profile needs approval, or fails | the app does not let the assistant write outside your project | approve it, or say "save it in this project" |
+| saving a profile says "… is a link; a profile is written into the folder itself, never through a link" | `.thai-docx` or `.thai-docx/profiles`, in your home or your project, is a link (a shortcut to another folder); the skill will not write through one | replace the link with a real folder |
 
 ## Opening the file
 

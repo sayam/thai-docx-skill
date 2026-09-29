@@ -193,9 +193,13 @@ application open does (`open`: typing, editing, updating fields, proofing marks,
 `python3 tools/render_libreoffice.py OUT_DIR --match '*-libreoffice_writer.docx'` exports what
 LibreOffice draws, with complex text read as Thai. Word 365 for Windows is the
 reference. `python3 tools/package_skill.py --tag vX.Y.Z` must pass — it refuses the tag until
-`docs/evidence/*-what-vX.Y.Z-was-read-in.md`, the record of that version, names every golden's sha256, so a change of
-bytes may reach `main` before the reading, never a release — and the suite fails until the
+`docs/evidence/*-what-vX.Y.Z-was-read-in.md`, the record of that version, names every golden's sha256
+on the line that names its file, so a change of bytes may reach `main` before the reading, never a
+release — and the suite fails until the
 archive name in the README and the guides (`thai-docx-X.Y.Z.zip`) carries the new version.
+Tag with `git tag -s vX.Y.Z`, annotated and signed with the key in `.github/allowed_signers`:
+`release.yml` builds nothing from a lightweight tag or one signed with a key the file or @sayam's
+account does not hold, and a pushed `v*` tag cannot be moved or deleted (SECURITY.md, *The tag*).
 Publishing the release runs `release.yml` on the tag. To run it again for a tag that exists, run
 it on the tag itself — `gh workflow run release.yml --ref vX.Y.Z -f tag=vX.Y.Z` — since the
 attestation names the ref the run started on and a run from a branch is refused.

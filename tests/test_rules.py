@@ -156,10 +156,10 @@ def test_a_dated_measurement_in_the_references_has_a_record_of_that_day():
 
 
 def test_the_newest_release_record_names_the_bytes_it_read(tmp_path, monkeypatch, capsys):
-    """F-13: the goldens are the bytes a release reading opens (ADR 0012), so the newest
-    `what-vX.Y.Z-was-read-in` record names each one's sha256. That was held on every pull request,
-    which kept a change of bytes out of `main` until the reading; it is held where it matters,
-    at the tag, and the goldens may move between releases."""
+    """F-13: the goldens are the bytes a release reading opens (ADR 0012), so the
+    `what-vX.Y.Z-was-read-in` record of the version tagged names each one's sha256. That was held
+    on every pull request, which kept a change of bytes out of `main` until the reading; it is held
+    where it matters, at the tag, and the goldens may move between releases."""
     import hashlib
     import sys
     sys.path.insert(0, str(ROOT / "tools"))
@@ -197,7 +197,8 @@ def test_the_records_found_stale_in_0_2_0_say_what_holds_now():
     adr = {p.name[:4]: " ".join(p.read_text(encoding="utf-8").split()) for p in (ROOT / "docs" / "adr").glob("0*.md")}
     for number, later in (("0039", "−4.1%"), ("0039", "the two records meant different things"), ("0012", "since ADR 0033"),
                           ("0017", "the 100-deep cap is what keeps it within the stack"), ("0018", "`PROMPT.th.md`"),
-                          ("0031", "`license: MIT (LICENSE.txt)`"), ("0036", "`tools/oracle_set.py` holds the list")):
+                          ("0031", "`license: MIT (LICENSE.txt)`"), ("0036", "`tools/oracle_set.py` holds the list"),
+                          ("0023", "boxes are □ (U+25A1) and ■ (U+25A0) since")):
         assert later in adr[number], (number, later)
 
 

@@ -61,8 +61,8 @@ gh attestation verify thai-docx-<version>.zip --bundle thai-docx-<version>.intot
   --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v<version>
 ```
 
-On a machine with no network, fetch the trusted root once on a machine that has one, carry
-it over with the two files, and name it:
+On a machine with no network, fetch the trusted root, again for each release, on a machine that
+has one, carry it over with the two files, and name it:
 
 ```sh
 gh attestation trusted-root > trusted_root.jsonl        # on a machine with a network
@@ -100,10 +100,12 @@ The key is in `.github/allowed_signers`. From a clone:
 git -c gpg.ssh.allowedSignersFile=.github/allowed_signers tag -v v<version>
 ```
 
-It prints `Good "git" signature` and exits 0. The release workflow runs the same check and builds
-nothing from a tag that is lightweight, or signed with a key the file or the account does not
-hold. A `v*` tag cannot be deleted or moved once pushed: the repository's `release-tags` ruleset
-refuses it, with no one allowed past
+It prints `Good "git" signature for 976721+sayam@users.noreply.github.com` and exits 0. A tag signed
+with any other key prints `Good "git" signature with …` too, then `No principal matched.`, and exits
+1: it is the exit code, or the `for` and the address, that says the key is the project's. The
+release workflow runs the same check and builds nothing from a tag that is lightweight, or signed
+with a key the file or the account does not hold. A `v*` tag cannot be deleted or moved once pushed:
+the repository's `release-tags` ruleset refuses it, with no one allowed past
 ([record](../docs/evidence/2026-09-29-release-tags-are-signed-and-cannot-move.md)).
 
 ## Secrets and credentials

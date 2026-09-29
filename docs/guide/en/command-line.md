@@ -64,7 +64,7 @@ replace `python3` with `py`.
    | 1 | `"findings"` | a fault in the skill; no file is made. Please [report it](https://github.com/sayam/thai-docx-skill/issues) |
 
    `"warnings"` never stop the build, but read them: a font with no Thai letters, or a setting
-   that changed nothing.
+   the document has nothing for (it "changed nothing", or "reached no" table, number or heading).
 
    **Careful:** `build` replaces `report.docx` if it already exists, without asking. Use a new
    name to keep the old file.

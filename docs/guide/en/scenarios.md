@@ -137,6 +137,9 @@ What you can ask for:
 | smaller text in tables | "table text size 14" |
 
 Every setting: [references/settings.md](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/settings.md).
+If you name a setting without saying to what ("change the font"), the assistant asks which, in one
+line, and does not choose for you. A setting that needs no choice ("add page numbers") takes its
+default, and the assistant says which.
 Ask for something the document has nothing for, such as `--no-repeat-table-header` with no table,
 and the assistant tells you it "changed nothing". A setting that still changes the file there —
 `--table-size` or `--thai-digits` sets a style all the same — is said to have "reached no" table
@@ -160,7 +163,7 @@ or number.
 **Use it when** you are not sure what to choose and want to pick from choices (grill mode).
 
 1. Put **`thai-docx grill`** in your message — a hyphen, an underscore or a space between the first two words. The start of the message is easiest.
-   Without those words, the assistant does not ask.
+   Without those words, the assistant does not ask these questions. The one thing it may still ask, in one line, is the value of a setting you named without one, such as "change the font".
 
    ```text
    thai-docx grill Make a Word file in Thai with the schedule of our monthly team meeting
@@ -331,7 +334,7 @@ Or take something out, for this file only:
 Use the profile my-thesis, but without the table of contents
 ```
 
-A profile file can also be used straight from its path, such as `profiles/thesis.json`, without
+A profile file can also be used straight from its path, such as `my-thesis.json` in your folder, without
 importing it.
 
 To see your profiles and their settings:

@@ -4,8 +4,9 @@ Notable changes to the thai-docx skill. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). A release is tagged only
 when `metadata.version` in `SKILL.md`, the newest section here and the tag agree
-(`python3 tools/package_skill.py --tag vX.Y.Z`, which also refuses a tag whose goldens no reading
-record names), and after the checks of ADR 0012. 0.2.0 was tagged
+(`python3 tools/package_skill.py --tag vX.Y.Z`, which also refuses a tag until the reading record
+of that version names each golden's sha256 on the golden's own line), and after the checks of ADR
+0012. 0.2.0 was tagged
 before two applications were read; the exception and what is owed are in
 [its record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md). The rule is unchanged.
 
@@ -32,11 +33,13 @@ before two applications were read; the exception and what is owed are in
 - A release is built only from a tag that is annotated and signed with a key in
   `.github/allowed_signers` that the maintainer's GitHub account also lists; SECURITY.md says how to
   check a tag the same way, and that tags before v0.2.2 are unsigned
-  (`tests/test_release_is_bound_to_its_tag.py::test_a_release_tag_is_signed_with_a_key_the_account_lists`).
-- `repair` wrote XML no application opens when a run's `w:rFonts` or `w:lang` closed with an end
-  tag of its own (`<w:rFonts …></w:rFonts>`), which the schema allows, and then answered exit 1,
-  a defect not to retry; a `w:compatSetting` closed that way was not seen at all. Each attribute
-  it writes now goes into the start tag, however the element closes
+  (`tests/test_release_is_bound_to_its_tag.py::test_the_tag_passes_the_gates_a_pull_request_passes`,
+  `::test_a_release_tag_is_signed_with_a_key_the_account_lists`).
+- `repair` made XML no application opens when a run's `w:rFonts` or `w:lang` closed with an end tag
+  of its own (`<w:rFonts …></w:rFonts>`), which the schema allows; its own check refused it, so
+  nothing was written, and it answered exit 1, a defect not to retry; a `w:compatSetting` closed
+  that way was not seen at all. Each attribute it writes now goes into the start tag, however the
+  element closes
   (`tests/test_what_a_command_takes.py::test_repair_adds_to_an_element_that_closes_with_an_end_tag`).
 - `package_skill.py --tag` took a golden as read when its sha256 appeared anywhere in the version's
   reading record, so two goldens whose hashes were swapped passed. The hash must stand on the line
@@ -53,10 +56,10 @@ before two applications were read; the exception and what is owed are in
   made `profile save` and `import` write the profile wherever it pointed: 0.3.0 guarded the file,
   not the folders above it. A profile folder that is a link is refused, and nothing is written
   (`tests/test_what_a_command_takes.py::test_a_profile_is_never_written_through_a_folder_that_is_a_link`).
-- A font named with a sentence still reached the agent whole, as did a profile's unknown key or
-  setting and a compatibility mode's value. A font is shown to 31 characters, what Word itself
-  takes of a name, and the others as `check` shows any name from the file; a mode with no value
-  is said to have none, not `None`
+- A font a .docx names with a sentence still reached the agent whole in `check`'s warning, as did a
+  profile's unknown key or setting and a compatibility mode's value. `check` shows a font to 31
+  characters, what Word itself takes of a name, and the others as `check` shows any name from the
+  file; a mode with no value is said to have none, not `None`
   (`tests/test_what_a_command_takes.py::test_what_the_file_says_is_shown_as_a_name_not_as_a_sentence`).
 - `check` read the text of every run inside each run, so 4,000 runs nested in each other took 43
   seconds in Python and 6 in JavaScript. A run's text is its own now: it takes about a second

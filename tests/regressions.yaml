@@ -1267,7 +1267,7 @@
     - tests/test_build_writes_what_it_was_given.py::test_a_profile_setting_that_reached_nothing_is_not_said_either
 
 - id: C-13
-  what: where this reading of Markdown refuses what GitHub drops or bends — a comment never closed or with text after it, a table row with more cells than its header, a footnote defined twice or never referenced, <?…?>, <!DOCTYPE …>, <![CDATA[…]]> — nothing said so, and nothing held all of it
+  what: where this reading of Markdown refuses what GitHub drops or bends — a comment never closed or with text after it, a table row with more cells than its header, a footnote defined twice or never referenced, <?…?>, <!DOCTYPE …>, <![CDATA[…]]>; and a non-breaking space at a paragraph's edge, which CommonMark keeps — nothing said so, and nothing held all of it
   class: C1, C2
   found_by: review
   test:
@@ -1298,7 +1298,7 @@
     - tests/test_what_a_command_takes.py::test_a_profile_is_never_written_through_a_folder_that_is_a_link
 
 - id: V31-02
-  what: repair wrote XML no reader opens when w:rFonts or w:lang closed with an end tag, and said exit 1; a w:compatSetting closed that way was not repaired
+  what: repair made XML no reader opens when w:rFonts or w:lang closed with an end tag, refused it, wrote nothing and said exit 1; a w:compatSetting closed that way was not repaired
   class: C1
   found_by: review
   test:
