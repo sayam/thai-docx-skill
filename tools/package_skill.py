@@ -5,8 +5,9 @@ one zip, and nothing else from this repository (ADR 0018).
 
     python3 tools/package_skill.py OUT.zip          # write the archive
     python3 tools/package_skill.py --list           # the paths it would pack
-    python3 tools/package_skill.py --tag v0.1.0     # exit 1 unless every version says 0.1.0, and the
-                                                    # reading record of that version names every golden's bytes
+    python3 tools/package_skill.py --tag v0.1.0     # exit 1 unless every version says 0.1.0 — the
+                                                    # README and guides included — and the reading
+                                                    # record of that version names every golden's bytes
 
 The gates, tests and records stay in the repository, where a fork carries them. The
 archive holds the files a client loads — the folder a skill upload expects — stored,
@@ -75,6 +76,24 @@ def dates() -> dict[str, str]:
     return {k: (m.group(1) if m else "(missing)") for k, m in found.items()}
 
 
+INSTALL_PAGES = ["README.md"] + [f"docs/guide/{lang}/{page}.md" for lang in ("en", "th") for page in ("install", "command-line")]
+# the release an install page's commands fetch: the archive, its attestation bundle, the tag, the pin
+INSTALL_VERSION = re.compile(r"thai-docx-(\d+\.\d+\.\d+)\.(?:zip|intoto)|refs/tags/v(\d+\.\d+\.\d+)|--pin v(\d+\.\d+\.\d+)")
+
+
+def install_page_versions(root: pathlib.Path | None = None) -> dict[str, str]:
+    """The release each install page's commands name, per page: one version, or every one it names
+    joined by commas, or "(missing)". Written by hand at each release, so read at the tag."""
+    root = root or ROOT
+    out = {}
+    for page in INSTALL_PAGES:
+        path = root / page
+        text = path.read_text(encoding="utf-8") if path.is_file() else ""
+        found = sorted({next(g for g in m.groups() if g) for m in INSTALL_VERSION.finditer(text)})
+        out[page] = ", ".join(found) or "(missing)"
+    return out
+
+
 def unread_goldens(version: str, root: pathlib.Path = ROOT) -> list[str]:
     """The goldens whose bytes the reading record of `version` does not name. A release is tagged
     on bytes read in the office applications (ADR 0012): its `what-vX.Y.Z-was-read-in` record names
@@ -97,14 +116,14 @@ def main(argv: list[str]) -> int:
         return 0
     if len(argv) == 2 and argv[0] == "--tag":
         wanted = argv[1].removeprefix("v")
-        found, days = versions(), dates()
-        wrong = {k: v for k, v in found.items() if v != wanted}
+        found, days, pages = versions(), dates(), install_page_versions()
+        wrong = {k: v for k, v in {**found, **pages}.items() if v != wanted}
         if len(set(days.values())) != 1 or "(missing)" in days.values():
             wrong.update(days)
         unread = unread_goldens(wanted)
         if unread:
             wrong["goldens no reading record names"] = ", ".join(unread)
-        print(json.dumps({"tag": argv[1], "versions": found, "dates": days, "unread_goldens": unread, "ok": not wrong},
+        print(json.dumps({"tag": argv[1], "versions": found, "dates": days, "install pages": pages, "unread_goldens": unread, "ok": not wrong},
                          ensure_ascii=False))
         return 1 if wrong else 0
     if len(argv) == 1 and not argv[0].startswith("-"):

@@ -195,8 +195,8 @@ LibreOffice draws, with complex text read as Thai. Word 365 for Windows is the
 reference. `python3 tools/package_skill.py --tag vX.Y.Z` must pass — it refuses the tag until
 `docs/evidence/*-what-vX.Y.Z-was-read-in.md`, the record of that version, names every golden's sha256
 on the line that names its file, so a change of bytes may reach `main` before the reading, never a
-release — and the suite fails until the
-archive name in the README and the guides (`thai-docx-X.Y.Z.zip`) carries the new version.
+release — and until the commands of the README and of the install and command-line guides name
+that release only: the archive, its attestation bundle, the tag and the pin.
 Tag with `git tag -s vX.Y.Z`, annotated and signed with the key in `.github/allowed_signers`:
 `release.yml` builds nothing from a lightweight tag or one signed with a key the file or @sayam's
 account does not hold, and a pushed `v*` tag cannot be moved or deleted (SECURITY.md, *The tag*).
