@@ -138,6 +138,18 @@ def test_the_suite_runs_on_the_oldest_and_the_newest_runtimes_promised():
     assert 'python-version: "3.11"' in oldest and 'node-version: "22"' in oldest
 
 
+def test_a_coverage_file_that_cannot_be_read_fails_the_job():
+    """`coverage combine` only warns of a data file it cannot read, then drops it and its lines;
+    one test's file-size limit cut such a file at 40 KiB on every run, in CI and at home alike.
+    The gates, and so the release (above), and the command CONTRIBUTING gives make it an error."""
+    import yaml
+    tests = " ".join(str(s.get("run", "")) for s in yaml.safe_load(GATES)["jobs"]["tests"]["steps"])
+    contributing = (ROOT / ".github" / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    for where, text in (("gates.yml", tests), ("CONTRIBUTING.md", contributing)):
+        assert "coverage combine" in text, where
+        assert re.findall(r"python3 (?:-W error )?-m coverage combine", text) == ["python3 -W error -m coverage combine"], where
+
+
 def test_what_the_tools_import_the_requirements_pin():
     """tools/preflight.py reads YAML and nothing installed it: `import yaml` stopped it in the very
     environment CONTRIBUTING has a contributor build."""

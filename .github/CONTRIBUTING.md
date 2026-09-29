@@ -30,7 +30,7 @@ python3 -m pip install --require-hashes -r requirements/dev.txt
 python3 -m pytest -q tests                                      # the suite
 python3 -m ruff check skills/thai-docx/scripts tools tests      # the Python lint
 tests/js/node_modules/.bin/eslint --config tests/js/eslint.config.cjs js   # the JavaScript lint
-python3 -m coverage run -m pytest -q tests && python3 -m coverage combine -q && python3 -m coverage report
+python3 -m coverage run -m pytest -q tests && python3 -W error -m coverage combine -q && python3 -m coverage report
 ```
 
 The hashes in `requirements/dev.txt` are those of the Linux x86_64 wheels CI installs; on macOS,

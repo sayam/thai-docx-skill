@@ -140,11 +140,14 @@ def test_a_write_that_fails_halfway_leaves_the_old_file(tmp_path):
     import resource
 
     (tmp_path / "in.md").write_text("# หัวเรื่อง\n\n" + "เนื้อความ\n\n" * 3000, encoding="utf-8")  # well past 40 KiB
+    # the limit binds coverage too: its data file, cut at 40 KiB, is a malformed database that
+    # `coverage combine` then drops, so the Python end runs here without coverage following it
+    env = {k: v for k, v in os.environ.items() if not k.startswith("COVERAGE_PROCESS_")}
     answers = []
     for cli in (PY, JS):
         (tmp_path / "out.docx").write_bytes(b"the good file\n")
         done = subprocess.run(cli + ["build", "in.md", "out.docx"], cwd=tmp_path, capture_output=True, timeout=30,
-                              preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_FSIZE, (40960, 40960)))
+                              env=env, preexec_fn=lambda: resource.setrlimit(resource.RLIMIT_FSIZE, (40960, 40960)))
         answers.append((done.returncode, json.loads(done.stdout.decode("utf-8").splitlines()[0])))
         assert (tmp_path / "out.docx").read_bytes() == b"the good file\n", cli[0]
         assert not (tmp_path / "out.docx.partial").exists(), cli[0]

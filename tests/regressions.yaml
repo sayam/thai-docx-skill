@@ -1390,3 +1390,11 @@
   found_by: review
   test:
     - tests/test_js_parity.py::test_command_line_is_the_same
+
+- id: V32-03
+  what: one test's file-size limit bound coverage in the Python end it ran, so a data file was cut at 40 KiB on every run and `coverage combine` dropped it with a warning, in CI and at home
+  class: C1
+  found_by: review
+  test:
+    - tests/test_release_is_bound_to_its_tag.py::test_a_coverage_file_that_cannot_be_read_fails_the_job
+    - tests/test_what_a_command_takes.py::test_a_write_that_fails_halfway_leaves_the_old_file

@@ -35,6 +35,11 @@ before two applications were read; the exception and what is owed are in
 - A profile's `thai_language` in a document with no Thai text was said to have "reached no run",
   though a profile's other settings are said only when a flag typed after the profile names them
   (`tests/test_build_writes_what_it_was_given.py::test_a_profile_setting_that_reached_nothing_is_not_said_either`).
+- The coverage CI reports lost one run's lines on every run: a test that limits the size of the
+  file `build` writes limited coverage's data file too, and `coverage combine` dropped the broken
+  file with only a warning. The test's Python end now runs without coverage, and `combine` in the
+  gates, the release and CONTRIBUTING fails on a file it cannot read
+  (`tests/test_release_is_bound_to_its_tag.py::test_a_coverage_file_that_cannot_be_read_fails_the_job`).
 - The test of runs nested in runs held both implementations to 10 seconds, and JavaScript reading
   every nested run again took 1. Four times the runs must now take less than eight times as long
   in each implementation, timed without the time it takes to start
