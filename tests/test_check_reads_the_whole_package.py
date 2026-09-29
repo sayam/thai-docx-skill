@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import zipfile
 
-from docx_fixture import RUN_PROPS, good, pack, replaced
+from docx_fixture import REVISION, RUN_PROPS, good, pack, replaced
 from test_what_a_command_takes import _node, both  # noqa: F401  the fixture runs here too
 
 STRICT_W = "http://purl.oclc.org/ooxml/wordprocessingml/main"
@@ -102,7 +102,7 @@ def test_a_paragraph_marks_properties_are_checked(tmp_path):
     assert code == 1 and codes(result) == [("5", "word/document.xml")], result
     assert repaired(tmp_path, mark) == {"5": 1}
     backwards = replaced(good(), "word/document.xml", '<w:pStyle w:val="Heading1"/></w:pPr>',
-                         '<w:pStyle w:val="Heading1"/><w:rPr><w:cs/><w:b/><w:bCs/></w:rPr></w:pPr>')
+                         f'<w:pStyle w:val="Heading1"/><w:rPr>{REVISION}<w:b/><w:bCs/><w:cs/></w:rPr></w:pPr>')
     code, result = checked(tmp_path, backwards)
     assert code == 1 and codes(result) == [("order", "word/document.xml")], result
     assert repaired(tmp_path, backwards) == {"order": 1}

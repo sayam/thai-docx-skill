@@ -17,6 +17,13 @@ before two applications were read; the exception and what is owed are in
 - `docs/rules.md` says the same rules in plain, formal Thai: words such as "ท่ออื่น", "ออราเคิล",
   "พร็อกซี" and "ธง" are spelled out, and the English translation follows where the Thai said more.
   No rule changed in meaning.
+- `check` reports `order` in a run's or a paragraph mark's properties only when a tracked change's
+  `<w:rPrChange>` is not last, and `repair` moves only that. The schema of reference is now named,
+  ECMA-376 5th edition (2016), where those properties are a choice in any order; Word 365 for Windows
+  uses every one whatever the order ([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-29-a-runs-properties-come-in-any-order.md)).
+  A file `repair` puts right keeps the bytes it had, and no golden moves
+  (`tests/test_check.py::test_a_runs_properties_come_in_any_order`,
+  `tests/test_repair.py::test_a_runs_properties_are_left_in_the_order_they_came`).
 
 ### Fixed
 

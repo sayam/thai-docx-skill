@@ -3,11 +3,13 @@
 """What the checker and the builder both know about WordprocessingML.
 
 The data lives once, in `assets/ooxml.json`, and the JavaScript implementation
-embeds the same file (ADR 0008). Element orders are the schema's sequences
-(ECMA-376 Part 1, CT_RPr / CT_PPr / CT_Settings / CT_SectPr / CT_TblPr / CT_TrPr / CT_TcPr /
-CT_Lvl / CT_Style): Word ignores a property that stands in the wrong place without any error, so
-order is checked, not assumed. A list inside an order is one place: the schema lets those names
-come in any order among themselves.
+embeds the same file (ADR 0008). Element orders are the schema's, in ECMA-376 5th edition
+(2016), Part 1 (CT_RPr / CT_PPr / CT_Settings / CT_SectPr / CT_TblPr / CT_TrPr / CT_TcPr /
+CT_Lvl / CT_Style): a file out of a sequence the schema fixes is not a valid file, so order is
+checked, not assumed. A list inside an order is one place: the schema lets those names come in
+any order among themselves. A run's properties are such a list, with only w:rPrChange after
+them: the first edition (2006) fixed their sequence, the fifth made them a choice, and Word 365
+for Windows reads them in any order and uses every one.
 """
 
 from __future__ import annotations
@@ -21,7 +23,10 @@ _DATA = json.loads(
 
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
-RPR_ORDER: list[str] = _DATA["rpr_order"]
+RPR_ORDER: list = _DATA["rpr_order"]
+# The same names, one after another: the order Word writes them back in, and where a repair puts
+# one it adds, so a file it did not reorder keeps the bytes it always had
+RPR_NAMES: list[str] = [*RPR_ORDER[0], *RPR_ORDER[1:]]
 PPR_ORDER: list[str] = _DATA["ppr_order"]
 SETTINGS_ORDER: list[str] = _DATA["settings_order"]
 SECTPR_ORDER: list = _DATA["sectpr_order"]

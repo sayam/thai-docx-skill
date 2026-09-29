@@ -18,6 +18,8 @@ XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
 
 RUN_PROPS = '<w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>'
 BOLD_PROPS = '<w:b/><w:bCs/><w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/>'
+# a run's record of a revision: the one run property the schema places, after all the others
+REVISION = '<w:rPrChange w:id="1" w:author="a" w:date="2026-01-01T00:00:00Z"><w:rPr/></w:rPrChange>'
 
 
 def run(text: str, props: str = RUN_PROPS) -> str:

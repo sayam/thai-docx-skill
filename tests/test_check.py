@@ -14,7 +14,7 @@ import sys
 
 import pytest
 
-from docx_fixture import BOLD_PROPS, RUN_PROPS, good, pack, replaced, run
+from docx_fixture import BOLD_PROPS, REVISION, RUN_PROPS, good, pack, replaced, run
 from thai_docx import check as check_mod
 from thai_docx.check import check
 
@@ -149,8 +149,16 @@ def test_cause_5_symbol_bullet(tmp_path):
     assert codes(check(written(tmp_path, parts))) == {"5"}
 
 
-def test_order_in_run_properties(tmp_path):
+def test_a_runs_properties_come_in_any_order(tmp_path):
+    """ECMA-376 5th edition (2016) makes them a choice, and Word 365 for Windows uses every one
+    in any order (0.3.2): only w:rPrChange has a place, after them."""
     parts = replaced(good(), "word/document.xml", "<w:b/><w:bCs/><w:cs/>", "<w:cs/><w:b/><w:bCs/>")
+    assert codes(check(written(tmp_path, parts))) == set()
+
+
+def test_order_in_run_properties(tmp_path):
+    parts = replaced(good(), "word/document.xml", "<w:b/><w:bCs/><w:cs/>",
+                     f"<w:b/>{REVISION}<w:bCs/><w:cs/>")
     assert codes(check(written(tmp_path, parts))) == {"order"}
 
 

@@ -25,7 +25,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 
-from docx_fixture import good, pack, replaced
+from docx_fixture import REVISION, good, pack, replaced
 from test_what_a_command_takes import _node, both  # noqa: F401  the fixture runs here too
 from thai_docx import repair as rp
 from thai_docx.check import check
@@ -187,7 +187,7 @@ def test_putting_properties_in_order_takes_time_in_proportion_to_the_part(tmp_pa
     at 31 (the reviews of 0.3.1), and a part copied at each element would take sixteen times."""
     took = {}
     for n in (2500, 10000):
-        body(tmp_path, '<w:r><w:rPr><w:lang w:val="en-US"/><w:cs/></w:rPr><w:t xml:space="preserve">ไทย</w:t></w:r>' * n)
+        body(tmp_path, f'<w:r><w:rPr>{REVISION}<w:cs/></w:rPr><w:t xml:space="preserve">ไทย</w:t></w:r>' * n)
         (tmp_path / "out.docx").unlink(missing_ok=True)
         began = time.monotonic()
         code, result = both(["repair", "in.docx", "out.docx"], tmp_path)
@@ -199,7 +199,7 @@ def test_putting_properties_in_order_takes_time_in_proportion_to_the_part(tmp_pa
     from thai_docx import ooxml
     walked = {}
     for n in (5000, 20000):
-        xml = b"<w:body>" + b'<w:r><w:rPr><w:lang w:val="en-US"/><w:cs/></w:rPr><w:t>x</w:t></w:r>' * n + b"</w:body>"
+        xml = b"<w:body>" + f'<w:r><w:rPr>{REVISION}<w:cs/></w:rPr><w:t>x</w:t></w:r>'.encode() * n + b"</w:body>"
         began = time.perf_counter()
         assert rp.reorder(xml, b"w:rPr", ooxml.RPR_ORDER)[1] == n
         walked[n] = time.perf_counter() - began

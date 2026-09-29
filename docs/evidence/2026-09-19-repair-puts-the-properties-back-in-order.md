@@ -1,5 +1,11 @@
 # 2026-09-19 — repair puts the properties back in order
 
+> **Later (2026-09-29):** "Word ignores it" was not measured here, and for a run's properties it
+> is not so: Word 365 for Windows uses them in any order, and the 2016 schema makes them a choice.
+> From 0.3.2 `repair` leaves a run's properties in the order they came
+> ([2026-09-29](2026-09-29-a-runs-properties-come-in-any-order.md)). The example below is no
+> longer a finding.
+
 The last repair of v0.2's list. `repair` now clears five of the seven finding codes; the two it
 leaves are the two [ADR 0032](../adr/0032-repair-rewrites-attributes-never-the-text.md) says it must
 never touch, because touching them means touching the user's text.

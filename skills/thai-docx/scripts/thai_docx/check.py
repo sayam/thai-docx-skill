@@ -13,9 +13,10 @@ Findings, each with a `code`:
     4        two adjacent runs carry identical formatting (a word may be split)
     5        a complex-script twin is missing (cs font, szCs, bCs, iCs), or a bullet
              level uses the Symbol font
-    order    a property stands in the wrong place for the schema (Word ignores it): in a run's,
-             a paragraph's or a paragraph mark's properties, a section's, a table's, a row's, a
-             cell's, a style, a numbering level, the settings
+    order    a property stands where the schema (ECMA-376 5th edition, 2016) does not allow it:
+             in a paragraph's properties, a section's, a table's, a row's, a cell's, a style, a
+             numbering level, the settings; in a run's or a paragraph mark's, which may come in
+             any order, only a <w:rPrChange> that is not last
     invisible  a character a reader cannot see is in the text: a zero-width one, any other format
                character, a noncharacter
     doctype  an XML part declares a DOCTYPE — refused before parsing (ADR 0040 §9)

@@ -201,12 +201,12 @@ def _children(inner: bytes) -> list[tuple[bytes, bytes]]:
 
 
 def _insert(children: list[tuple[bytes, bytes]], name: bytes, element: bytes) -> list[tuple[bytes, bytes]]:
-    """`element` among `children`, at the place the schema puts it (ADR 0004's order table).
-    Nothing already there moves: repairing the order is a different finding."""
-    rank = ooxml.RPR_ORDER.index(name.decode()[2:])  # the run properties: no place there is shared
+    """`element` among `children`, at the place Word writes it (ooxml.RPR_NAMES). Nothing
+    already there moves: the schema lets a run's properties come in any order."""
+    rank = ooxml.RPR_NAMES.index(name.decode()[2:])
     for i, (there, _raw) in enumerate(children):
         local = there.decode()[2:]
-        if local in ooxml.RPR_ORDER and ooxml.RPR_ORDER.index(local) > rank:
+        if local in ooxml.RPR_NAMES and ooxml.RPR_NAMES.index(local) > rank:
             return children[:i] + [(name, element)] + children[i:]
     return children + [(name, element)]
 
