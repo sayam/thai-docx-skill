@@ -40,6 +40,11 @@ before two applications were read; the exception and what is owed are in
   file with only a warning. The test's Python end now runs without coverage, and `combine` in the
   gates, the release and CONTRIBUTING fails on a file it cannot read
   (`tests/test_release_is_bound_to_its_tag.py::test_a_coverage_file_that_cannot_be_read_fails_the_job`).
+- The release the README and the install and command-line guides tell a reader to download,
+  verify and pin was written by hand at each tag and read by nothing: at 0.3.1 it still said 0.3.0
+  until the documentation audit found it, and CONTRIBUTING said the suite held it. `package_skill.py
+  --tag` now refuses a tag those pages do not name alone
+  (`tests/test_package_skill.py::test_the_install_pages_name_the_release_the_changelog_names`).
 - The test of runs nested in runs held both implementations to 10 seconds, and JavaScript reading
   every nested run again took 1. Four times the runs must now take less than eight times as long
   in each implementation, timed without the time it takes to start

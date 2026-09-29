@@ -1374,6 +1374,13 @@
   test:
     - tests/test_what_a_command_takes.py::test_check_reads_runs_nested_in_runs_in_a_moment
 
+- id: V31-13
+  what: the release the README and the guides tell a reader to download, verify and pin was read by nothing at the tag, so at 0.3.1 they named 0.3.0 until an audit found it, and CONTRIBUTING said the suite held them
+  class: C1
+  found_by: review
+  test:
+    - tests/test_package_skill.py::test_the_install_pages_name_the_release_the_changelog_names
+
 - id: V32-01
   what: check reported, and repair reordered, a run's properties that the 2016 schema lets come in any order and that Word 365 for Windows uses in any order, on a sentence ("Word ignores it") no record had measured
   class: C1, C3

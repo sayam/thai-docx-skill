@@ -76,6 +76,34 @@ def test_the_citation_names_the_release_the_changelog_names(tmp_path, monkeypatc
     assert package_skill.main(["--tag", "v" + package_skill.versions()["CHANGELOG.md newest release"]]) == 1
 
 
+def test_the_install_pages_name_the_release_the_changelog_names(tmp_path, monkeypatch):
+    """The guides' commands name the archive, its bundle, the tag and the pin by hand; at 0.3.1
+    they still said 0.3.0 until the documentation audit found them (B-08). The tag check reads
+    them, and the README's."""
+    newest = package_skill.versions()["CHANGELOG.md newest release"]
+    assert set(package_skill.install_page_versions().values()) == {newest}, package_skill.install_page_versions()
+    root = tmp_path / "root"
+    for name in ["CHANGELOG.md", "CITATION.cff", *package_skill.INSTALL_PAGES]:
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(ROOT / name, root / name)
+    monkeypatch.setattr(package_skill, "ROOT", root)
+    monkeypatch.setattr(package_skill, "unread_goldens", lambda version: [])
+    assert package_skill.main(["--tag", "v" + newest]) == 0
+    page = root / "docs" / "guide" / "th" / "install.md"
+    text = page.read_text(encoding="utf-8")
+    for old, new in ((f"refs/tags/v{newest}", "refs/tags/v0.1.9"), (f"--pin v{newest}", "--pin v0.1.9"),
+                     (f"thai-docx-{newest}.intoto", "thai-docx-0.1.9.intoto")):
+        assert old in text, old
+        page.write_text(text.replace(old, new, 1), encoding="utf-8")
+        assert package_skill.install_page_versions()["docs/guide/th/install.md"] == f"0.1.9, {newest}"
+        assert package_skill.main(["--tag", "v" + newest]) == 1, old
+    page.write_text(text.replace(newest, "0.1.9"), encoding="utf-8")
+    assert package_skill.main(["--tag", "v" + newest]) == 1
+    page.unlink()
+    assert package_skill.install_page_versions()["docs/guide/th/install.md"] == "(missing)"
+    assert package_skill.main(["--tag", "v" + newest]) == 1
+
+
 def test_tag_check_refuses_a_version_nobody_states():
     done = subprocess.run(TOOL + ["--tag", "v99.0.0"], capture_output=True, text=True)
     assert done.returncode == 1 and '"ok": false' in done.stdout
