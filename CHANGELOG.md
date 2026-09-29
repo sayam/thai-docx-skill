@@ -18,6 +18,21 @@ before two applications were read; the exception and what is owed are in
   "พร็อกซี" and "ธง" are spelled out, and the English translation follows where the Thai said more.
   No rule changed in meaning.
 
+### Fixed
+
+- A font's name longer than the 31 characters Word reads — from `--font`, a profile's `font`, a
+  heading style's `font-family` or `repair --font` — reached the document whole, naming no font Word
+  uses. The first 31 are written, and a warning names the name given, the name written, and that
+  Word uses a font only if one is installed under that name. A name past 64 characters is refused
+  as before (`tests/test_what_a_command_takes.py::test_a_font_name_longer_than_word_reads_is_cut_to_what_it_reads_and_said`).
+- A profile's `thai_language` in a document with no Thai text was said to have "reached no run",
+  though a profile's other settings are said only when a flag typed after the profile names them
+  (`tests/test_build_writes_what_it_was_given.py::test_a_profile_setting_that_reached_nothing_is_not_said_either`).
+- The test of runs nested in runs held both implementations to 10 seconds, and JavaScript reading
+  every nested run again took 1. Four times the runs must now take less than eight times as long
+  in each implementation, timed without the time it takes to start
+  (`tests/test_what_a_command_takes.py::test_check_reads_runs_nested_in_runs_in_a_moment`).
+
 ## [0.3.1] - 2026-09-30
 
 No golden moves: a build writes the bytes 0.3.0 wrote, so what was read on them holds

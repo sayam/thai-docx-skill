@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 
 from . import markdown as md
-from .settings import NUMBER, half_up
+from .settings import NUMBER, font_cut, font_cut_said, half_up
 
 
 # --- heading styles from front matter (ADR 0020) ------------------------------------
@@ -90,7 +90,10 @@ def heading_styles(doc: md.Document) -> tuple[dict[int, dict], list[str]]:
                     val = val[1:-1]
                 if not val or len(val) > 64 or any(md.forbidden_char(c) for c in val) or '"' in val:
                     raise md.Unsupported(line, where + " takes a font name of 1 to 64 characters")
-                props["font"] = val
+                kept = font_cut(val)
+                if kept is not None:
+                    warnings.append("line " + str(line) + ": " + font_cut_said(where, val, kept))
+                props["font"] = val if kept is None else kept
             elif name == "font-size":
                 pm = _POINTS.fullmatch(val)
                 if pm is None or not 1 <= float(pm.group(1)) <= 400:

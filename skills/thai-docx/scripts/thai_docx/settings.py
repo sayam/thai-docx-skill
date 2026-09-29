@@ -19,6 +19,7 @@ import math
 import re
 
 from . import markdown as md
+from .check import FONT_MAX, quoted
 
 PAPER = {"a4": (11906, 16838), "letter": (12240, 15840), "f14": (12240, 18720)}  # f14: 8.5 x 13 in, folio
 PAGE_NUMBERS = ("top-right", "top-center", "bottom-center")  # the first is --page-numbers with no position
@@ -241,6 +242,21 @@ class BuildError(Exception):
         self.what = what
 
 
+def font_cut(name: str) -> str | None:
+    """The part of a font's name Word reads, when the name is longer than that; else None.
+    Windows and Word read 31 characters of it (check.py's FONT_MAX): the build writes what
+    Word reads, and says so, rather than a name that no font of Word's can carry."""
+    return name[:FONT_MAX] if len(name) > FONT_MAX else None
+
+
+def font_cut_said(what: str, name: str, kept: str) -> str:
+    """The warning for a font's name that was cut: the name given, the name written, and
+    what the user gets from it — the font only when one is installed under the name written."""
+    return (what + " '" + quoted(name) + "' is longer than the " + str(FONT_MAX) + " characters Word reads of a"
+            " font's name, so the document names '" + quoted(kept) + "': Word uses a font only if one is"
+            " installed under exactly that name, and shows another font if none is")
+
+
 def half_up(x: float) -> int:
     return int(math.floor(x + 0.5))
 
@@ -329,6 +345,9 @@ def parse_args(argv: list[str]) -> tuple[dict, list[str], list[str]]:
             opts[s["key"]] = _read(s, value)
     if len(positional) != 2:
         raise BuildError(USAGE)
+    kept = font_cut(opts["font"])
+    if kept is not None:  # said with the build's other settings warnings
+        opts["_font_given"], opts["font"] = opts["font"], kept
     for s in SETTINGS:
         needed = s.get("needs")
         if needed in DEFAULTS and opts[s["key"]] != s["default"] and opts[needed] == DEFAULTS[needed]:
@@ -380,9 +399,14 @@ def settings_warnings(opts: dict, present: set[str]) -> list[str]:
         if need in STRUCTURES and need not in present and opts[s["key"]] != s["default"] and s["key"] not in opts.get("_quiet", ()):
             missing.setdefault(need, []).append(s["flag"])
     out = [_and(flags) + " changed nothing: " + STRUCTURES[need][1] for need, flags in missing.items()]
+    # a profile's font is said too: it is not a setting that reached nothing, but a name cut
+    if "_font_given" in opts:
+        out.append(font_cut_said("--font", opts["_font_given"], opts["font"]))
     # --thai-language names the language in the styles whatever the text is, so it changed bytes
-    # and is not a flag that "changed nothing"; with no Thai text it still reached no run
-    if opts["thai_language"] and "thai text" not in present:
+    # and is not a flag that "changed nothing"; with no Thai text it still reached no run. A
+    # profile's settings in _quiet are not said: the user did not ask for them this time (B-15)
+    quiet = opts.get("_quiet", ())
+    if opts["thai_language"] and "thai_language" not in quiet and "thai text" not in present:
         out.append("--thai-language reached no run: the document has no Thai text, and only the styles name the language")
     # --toc writes its field whatever the document holds, so it too changed bytes; with no heading
     # the field lists nothing, and an application updating it may write that it found none
@@ -390,8 +414,7 @@ def settings_warnings(opts: dict, present: set[str]) -> list[str]:
         out.append("--toc has no heading to list: the document has none, so the table of contents is empty")
     # three more write bytes that nothing may use — --auto-numbering's heading levels, a page-number
     # format, a style — so they too "reached no" rather than "changed nothing"; a profile's are
-    # not said, as above (B-15)
-    quiet = opts.get("_quiet", ())
+    # not said, as above
     if opts["heading_numbers"] and "heading_numbers" not in quiet and "headings it numbers" not in present:
         out.append("--heading-numbers reached no heading: " + (
             "the document has none" if "headings" not in present else

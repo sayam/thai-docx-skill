@@ -517,6 +517,15 @@ def test_a_profile_setting_that_reached_nothing_is_not_said_either(tmp_path):
     assert code == 0 and [w for w in result["warnings"] if w["code"] == "settings"] == [], result
     code, result = both(["build", "in.md", "out.docx", "--profile", "thesis", "--indent", "1"], tmp_path)
     assert [w["message"] for w in result["warnings"] if w["code"] == "settings"] == [BODY_NONE]
+    # --thai-language "reached no run" rather than "changed nothing", and a profile's was said
+    # all the same (the review of 0.3.1, A-10 and C-02)
+    (tmp_path / "en.md").write_text("# Abstract\n\nText.\n", encoding="utf-8")
+    (tmp_path / "p.json").write_text('{"schema": 1, "settings": {"thai_language": true}}', encoding="utf-8")
+    code, result = both(["build", "en.md", "out.docx", "--profile", "p.json"], tmp_path)
+    assert code == 0 and [w for w in result["warnings"] if w["code"] == "settings"] == [], result
+    code, result = both(["build", "en.md", "out.docx", "--profile", "p.json", "--thai-language"], tmp_path)
+    assert [w["message"] for w in result["warnings"] if w["code"] == "settings"] == [
+        "--thai-language reached no run: the document has no Thai text, and only the styles name the language"]
 
 
 def test_where_this_reading_and_githubs_differ_the_build_stops_at_the_line(tmp_path):

@@ -79,7 +79,9 @@ function headingStyles(doc) {
         let bad = !val || codePointLength(val) > 64 || val.includes('"');
         for (const c of val) if (forbiddenChar(c) !== null) bad = true;
         if (bad) throw new Unsupported(line, where + " takes a font name of 1 to 64 characters");
-        props.font = val;
+        const kept = fontCut(val);
+        if (kept !== null) warnings.push("line " + line + ": " + fontCutSaid(where, val, kept));
+        props.font = kept === null ? val : kept;
       } else if (name === "font-size") {
         const pm = POINTS.exec(val);
         if (pm === null || !(Number(pm[1]) >= 1 && Number(pm[1]) <= 400)) throw new Unsupported(line, where + " takes points from 1pt to 400pt, e.g. 20pt");

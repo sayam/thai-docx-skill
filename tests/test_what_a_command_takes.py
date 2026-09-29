@@ -218,6 +218,38 @@ def test_the_font_given_to_repair_is_read_like_the_builds_and_escaped(tmp_path):
     assert not (tmp_path / "long.docx").exists()
 
 
+def test_a_font_name_longer_than_word_reads_is_cut_to_what_it_reads_and_said(tmp_path):
+    """Word reads 31 characters of a font's name, and the build took 64: a longer name reached
+    the document whole, naming no font Word uses (the review of 0.3.1, A-04 and C-08). Each way a
+    name comes in — --font, a profile's font, a heading style's font-family, repair's --font —
+    now writes the 31 characters Word reads, and says which name that is. Past 64 is refused."""
+    given = "Abcdefghij Klmnopqrst Uvwxyz Long Name"
+    kept = given[:31]
+    said = ("'" + given + "' is longer than the 31 characters Word reads of a font's name, so the document"
+            " names '" + kept + "': Word uses a font only if one is installed under exactly that name,"
+            " and shows another font if none is")
+    (tmp_path / "in.md").write_text("# หัวเรื่อง\n\nเนื้อความ\n", encoding="utf-8")
+    (tmp_path / "p.json").write_text(json.dumps({"schema": 1, "settings": {"font": given}}), encoding="utf-8")
+    for flags in (["--font", given], ["--profile", "p.json"]):
+        code, result = both(["build", "in.md", "out.docx", *flags], tmp_path)
+        assert code == 0 and result["settings"]["font"] == kept, (flags, result)
+        assert {"code": "settings", "message": "--font " + said} in result["warnings"], (flags, result)
+        with zipfile.ZipFile(tmp_path / "out.docx") as z:
+            styles = z.read("word/styles.xml").decode("utf-8")
+        assert 'w:cs="' + kept + '"' in styles and given not in styles
+    (tmp_path / "fm.md").write_text('---\nheading-1: font-family: "' + given + '"\n---\n\n# หัวเรื่อง\n', encoding="utf-8")
+    code, result = both(["build", "fm.md", "out.docx"], tmp_path)
+    assert code == 0 and {"code": "markdown", "message": "line 2: heading-1: font-family " + said} in result["warnings"], result
+    parts = replaced(good(), "word/styles.xml", ' w:cs="TH Sarabun New" w:eastAsia="TH Sarabun New"/>',
+                     ' w:eastAsia="TH Sarabun New"/>')
+    (tmp_path / "in.docx").write_bytes(pack(parts))
+    code, result = both(["repair", "in.docx", "out.docx", "--font", given], tmp_path)
+    assert result["ok"] and {"code": "font", "message": "complex-script font written where a run named none: '" + kept
+                             + "' — the font the command was given " + said} in result["warnings"], result
+    code, result = both(["build", "in.md", "long.docx", "--font", "F" * 65], tmp_path)
+    assert code == 2 and result["error"] == "--font takes a font name of 1 to 64 characters"
+
+
 def test_a_file_with_nothing_to_repair_is_an_answer_not_an_error(tmp_path):
     shutil.copy(GOLDEN / "sample-default.docx", tmp_path / "clean.docx")
     code, result = both(["repair", "clean.docx", "out.docx"], tmp_path)
@@ -794,15 +826,58 @@ def test_repair_adds_to_an_element_that_closes_with_an_end_tag(tmp_path):
         assert written in xml, (name, xml[:2000])
 
 
+# the JavaScript check timed in one process, best of three after one to warm it: how long each
+# document takes, one line of seconds per document
+TIME_JS_CHECK = """
+const api = require(process.argv[1]);
+const fs = require("fs");
+for (const file of process.argv.slice(2)) {
+  const bytes = new Uint8Array(fs.readFileSync(file));
+  api.checkDocument(bytes);
+  let best = Infinity;
+  for (let i = 0; i < 3; i++) {
+    const began = process.hrtime.bigint();
+    api.checkDocument(bytes);
+    best = Math.min(best, Number(process.hrtime.bigint() - began) / 1e9);
+  }
+  process.stdout.write(best + "\\n");
+}
+"""
+
+
 def test_check_reads_runs_nested_in_runs_in_a_moment(tmp_path):
     """Each run read the text of every run inside it, so four thousand runs nested in each other
-    took 43 seconds in Python and 6 in JavaScript. A run's text is its own w:t now."""
+    took 43 seconds in Python and 6 in JavaScript. A run's text is its own w:t now. A ceiling of
+    10 seconds on both let the JavaScript one back in (the review of 0.3.1, A-06): four times the
+    runs must now take less than eight times as long in each, where reading every run inside
+    each run takes sixteen. Each is timed in its own process, without the time it takes to start."""
+    import io
     import time
-    nested = "<w:r><w:rPr><w:cs/></w:rPr>" * 4000 + '<w:t xml:space="preserve">ไทย</w:t>' + "</w:r>" * 4000
-    (tmp_path / "in.docx").write_bytes(pack(replaced(good(), "word/document.xml", "<w:body>", "<w:body><w:p>" + nested + "</w:p>")))
-    began = time.monotonic()
-    code, result = both(["check", "in.docx"], tmp_path)
-    assert code == 0 and time.monotonic() - began < 10, (time.monotonic() - began, result)
+
+    from thai_docx import check as check_mod
+
+    def nested(n: int) -> bytes:
+        runs = "<w:r><w:rPr><w:cs/></w:rPr>" * n + '<w:t xml:space="preserve">ไทย</w:t>' + "</w:r>" * n
+        return pack(replaced(good(), "word/document.xml", "<w:body>", "<w:body><w:p>" + runs + "</w:p>"))
+
+    docs = {n: nested(n) for n in (1000, 4000)}
+    took = {}
+    for n, data in docs.items():
+        check_mod.check(io.BytesIO(data))
+        best = float("inf")
+        for _ in range(3):
+            began = time.perf_counter()
+            check_mod.check(io.BytesIO(data))
+            best = min(best, time.perf_counter() - began)
+        took[n] = best
+    assert took[4000] / took[1000] < 8, ("python", took)
+    for n, data in docs.items():
+        (tmp_path / (str(n) + ".docx")).write_bytes(data)
+    done = subprocess.run(["node", "-e", TIME_JS_CHECK, JS[1]] + [str(tmp_path / (str(n) + ".docx")) for n in docs],
+                          capture_output=True, text=True, timeout=120)
+    assert done.returncode == 0, done.stderr
+    js = dict(zip(docs, (float(s) for s in done.stdout.split()), strict=True))
+    assert js[4000] / js[1000] < 8, ("javascript", js)
 
 
 def test_what_the_file_says_is_shown_as_a_name_not_as_a_sentence(tmp_path):
