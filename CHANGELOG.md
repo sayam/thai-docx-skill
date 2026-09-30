@@ -49,6 +49,10 @@ before two applications were read; the exception and what is owed are in
   every nested run again took 1. Four times the runs must now take less than eight times as long
   in each implementation, timed without the time it takes to start
   (`tests/test_what_a_command_takes.py::test_check_reads_runs_nested_in_runs_in_a_moment`).
+- `grill` answered a request to check a .docx the user has with "build at once", and only
+  `SKILL.md` sent it to `check`, though `SKILL.md` says to obey the script's answer. The answer now
+  says that a .docx the user has goes to `check`, in both implementations
+  (`tests/test_skill_md.py::test_every_way_the_agent_is_told_asks_the_value_of_a_setting_named_without_one`).
 
 ## [0.3.1] - 2026-09-30
 
