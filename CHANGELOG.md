@@ -10,7 +10,13 @@ of that version names each golden's sha256 on the golden's own line), and after 
 before two applications were read; the exception and what is owed are in
 [its record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md). The rule is unchanged.
 
-## [Unreleased]
+## [0.3.2] - 2026-09-30
+
+No golden moves: a build writes the bytes 0.3.0 wrote, so what was read on them holds
+([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-30-what-v0.3.2-was-read-in.md)).
+What 0.3.1 carried over is fixed: a run's properties come in any order, a font's name is cut to
+what Word reads and said, `grill` sends a .docx to `check`, and the coverage and release checks
+fail where they only warned.
 
 ### Changed
 

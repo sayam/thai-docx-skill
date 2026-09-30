@@ -3,6 +3,12 @@
 What the project intends to do, and not do, from September 2026 to September 2027. It is a plan,
 not a promise; each item becomes a decision record when it is taken up.
 
+## 0.3.2
+
+What 0.3.1 left open, with no golden moved: a run's properties are read in any order, a font's
+name past what Word reads is cut and said, and a release is refused while the pages name another.
+The review of the code and the documentation audit move to 0.3.3.
+
 ## 0.3.1
 
 What the reviews of 0.3.1 found, with no golden moved: a flag that reaches nothing says so, a
