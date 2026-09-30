@@ -242,16 +242,33 @@ class BuildError(Exception):
         self.what = what
 
 
+# every space the input takes (the others are refused by forbidden_char): a font's name neither
+# begins nor ends with one
+FONT_SPACES = " \t\n\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000"
+
+
 def font_cut(name: str) -> str | None:
-    """The part of a font's name Word reads, when the name is longer than that; else None.
+    """The name the document writes, when it is not the name given; else None.
     Windows and Word read 31 characters of it (check.py's FONT_MAX): the build writes what
-    Word reads, and says so, rather than a name that no font of Word's can carry."""
-    return name[:FONT_MAX] if len(name) > FONT_MAX else None
+    Word reads, and says so, rather than a name that no font of Word's can carry. No font's
+    name begins or ends with a space, so a space there — typed, or left where the name was
+    cut — is not written: a name ending in one names no installed font."""
+    kept = name.strip(FONT_SPACES)
+    if len(kept) > FONT_MAX:
+        kept = kept[:FONT_MAX].rstrip(FONT_SPACES)
+    return kept if kept != name else None
 
 
 def font_cut_said(what: str, name: str, kept: str) -> str:
-    """The warning for a font's name that was cut: the name given, the name written, and
+    """The warning for a font's name the build changed: the name given, the name written, and
     what the user gets from it — the font only when one is installed under the name written."""
+    if len(name.strip(FONT_SPACES)) <= FONT_MAX:
+        # quoted() shows a space other than U+0020 as "?": such a space is named, or the name
+        # shown would not begin or end with the space the warning speaks of
+        ends = name[:len(name) - len(name.lstrip(FONT_SPACES))] + name[len(name.rstrip(FONT_SPACES)):]
+        named = list(dict.fromkeys("U+%04X" % ord(c) for c in ends if c != " "))
+        return (what + " '" + quoted(name) + "' begins or ends with a space" + (" (" + ", ".join(named) + ")" if named else "")
+                + ", which no font's name does, so the document names '" + quoted(kept) + "'")
     return (what + " '" + quoted(name) + "' is longer than the " + str(FONT_MAX) + " characters Word reads of a"
             " font's name, so the document names '" + quoted(kept) + "': Word uses a font only if one is"
             " installed under exactly that name, and shows another font if none is")
@@ -273,6 +290,8 @@ def _read(s: dict, value: str):
     refused = BuildError(s["flag"] + " takes " + s["takes"])
     if how[0] == "text":
         if not value or len(value) > how[1] or any(c in how[2] or md.forbidden_char(c) for c in value):
+            raise refused
+        if s["key"] == "font" and not value.strip(FONT_SPACES):  # spaces alone name no font
             raise refused
         return value
     if how[0] in ("choice", "position"):
@@ -399,7 +418,7 @@ def settings_warnings(opts: dict, present: set[str]) -> list[str]:
         if need in STRUCTURES and need not in present and opts[s["key"]] != s["default"] and s["key"] not in opts.get("_quiet", ()):
             missing.setdefault(need, []).append(s["flag"])
     out = [_and(flags) + " changed nothing: " + STRUCTURES[need][1] for need, flags in missing.items()]
-    # a profile's font is said too: it is not a setting that reached nothing, but a name cut
+    # a profile's font is said too: it is not a setting that reached nothing, but a name changed
     if "_font_given" in opts:
         out.append(font_cut_said("--font", opts["_font_given"], opts["font"]))
     # --thai-language names the language in the styles whatever the text is, so it changed bytes

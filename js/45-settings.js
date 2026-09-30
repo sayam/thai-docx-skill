@@ -120,14 +120,40 @@ class BuildError extends Error {
   }
 }
 
-// The part of a font's name Word reads, when the name is longer than that; else null
-// (settings.py says why)
+// every space the input takes (the others are refused by forbiddenChar): a font's name neither
+// begins nor ends with one
+const FONT_SPACES = " \t\n\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000";
+
+// A name without FONT_SPACES at either end, as Python's str.strip(FONT_SPACES) gives it
+function fontStripped(chars) {
+  let a = 0;
+  let b = chars.length;
+  while (a < b && FONT_SPACES.includes(chars[a])) a += 1;
+  while (b > a && FONT_SPACES.includes(chars[b - 1])) b -= 1;
+  return chars.slice(a, b);
+}
+
+// The name the document writes, when it is not the name given; else null (settings.py says why)
 function fontCut(name) {
-  const chars = [...name];
-  return chars.length > FONT_MAX ? chars.slice(0, FONT_MAX).join("") : null;
+  let kept = fontStripped([...name]);
+  if (kept.length > FONT_MAX) kept = fontStripped(kept.slice(0, FONT_MAX));
+  const written = kept.join("");
+  return written !== name ? written : null;
 }
 
 function fontCutSaid(what, name, kept) {
+  const chars = [...name];
+  if (fontStripped(chars).length <= FONT_MAX) {
+    // quoted() shows a space other than U+0020 as "?": such a space is named (settings.py says why)
+    let a = 0;
+    let b = chars.length;
+    while (a < b && FONT_SPACES.includes(chars[a])) a += 1;
+    while (b > a && FONT_SPACES.includes(chars[b - 1])) b -= 1;
+    const named = [...new Set(chars.slice(0, a).concat(chars.slice(b)).filter((c) => c !== " ")
+      .map((c) => "U+" + c.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")))];
+    return what + " '" + quoted(name) + "' begins or ends with a space" + (named.length ? " (" + named.join(", ") + ")" : "") +
+      ", which no font's name does, so the document names '" + quoted(kept) + "'";
+  }
   return what + " '" + quoted(name) + "' is longer than the " + FONT_MAX + " characters Word reads of a" +
     " font's name, so the document names '" + quoted(kept) + "': Word uses a font only if one is" +
     " installed under exactly that name, and shows another font if none is";
@@ -150,6 +176,7 @@ function readSetting(s, value) {
   if (how[0] === "text") {
     let bad = !value || codePointLength(value) > how[1];
     for (const c of value) if (how[2].includes(c) || forbiddenChar(c) !== null) bad = true;
+    if (s.key === "font" && fontStripped([...value]).length === 0) bad = true; // spaces alone name no font
     if (bad) throw refused();
     return value;
   }
@@ -283,7 +310,7 @@ function settingsWarnings(opts, present) {
     }
   }
   const out = [...missing].map(([need, flags]) => joinFlags(flags) + " changed nothing: " + STRUCTURES[need]);
-  // a profile's font is said too: it is not a setting that reached nothing, but a name cut
+  // a profile's font is said too: it is not a setting that reached nothing, but a name changed
   if (has(opts, "_font_given")) out.push(fontCutSaid("--font", opts._font_given, opts.font));
   // --thai-language changed bytes, but with no Thai text reached no run; a profile's is not said
   // (settings.py says why)

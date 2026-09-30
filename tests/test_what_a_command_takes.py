@@ -253,6 +253,66 @@ def test_a_font_name_longer_than_word_reads_is_cut_to_what_it_reads_and_said(tmp
     assert code == 2 and result["error"] == "--font takes a font name of 1 to 64 characters"
 
 
+def test_a_font_name_is_written_without_a_space_at_either_end(tmp_path):
+    """A name cut to 31 characters kept the space it was cut at — "TH Sarabun New Extra Condensed
+    Regular" wrote "TH Sarabun New Extra Condensed " — and a name typed with a space at either end
+    was written as typed, with no warning: neither names an installed font (model equivalence on
+    the 0.3.2 skill). Each way a name comes in now writes it without the space, and says so; a
+    name of spaces alone is refused, as an empty one is."""
+    cases = (("TH Sarabun New Extra Condensed Regular", "TH Sarabun New Extra Condensed",
+              "' is longer than the 31 characters Word reads of a font's name, so the document names '"
+              "TH Sarabun New Extra Condensed': Word uses a font only if one is installed under exactly"
+              " that name, and shows another font if none is"),
+             (" TH Sarabun New ", "TH Sarabun New",
+              "' begins or ends with a space, which no font's name does, so the document names 'TH Sarabun New'"))
+    (tmp_path / "in.md").write_text("# หัวเรื่อง\n\nเนื้อความ\n", encoding="utf-8")
+    parts = replaced(good(), "word/styles.xml", ' w:cs="TH Sarabun New" w:eastAsia="TH Sarabun New"/>',
+                     ' w:eastAsia="TH Sarabun New"/>')
+    (tmp_path / "in.docx").write_bytes(pack(parts))
+    for given, kept, said in cases:
+        said = "'" + given + said
+        (tmp_path / "p.json").write_text(json.dumps({"schema": 1, "settings": {"font": given}}), encoding="utf-8")
+        for flags in (["--font", given], ["--profile", "p.json"]):
+            code, result = both(["build", "in.md", "out.docx", *flags], tmp_path)
+            assert code == 0 and result["settings"]["font"] == kept, (flags, result)
+            assert {"code": "settings", "message": "--font " + said} in result["warnings"], (flags, result)
+            with zipfile.ZipFile(tmp_path / "out.docx") as z:
+                styles = z.read("word/styles.xml").decode("utf-8")
+            assert 'w:cs="' + kept + '"' in styles and 'w:cs="' + given + '"' not in styles, flags
+        (tmp_path / "fm.md").write_text('---\nheading-1: font-family: "' + given + '"\n---\n\n# หัวเรื่อง\n', encoding="utf-8")
+        code, result = both(["build", "fm.md", "out.docx"], tmp_path)
+        assert code == 0 and {"code": "markdown", "message": "line 2: heading-1: font-family " + said} in result["warnings"], result
+        with zipfile.ZipFile(tmp_path / "out.docx") as z:
+            assert 'w:cs="' + kept + '"' in z.read("word/styles.xml").decode("utf-8")
+        code, result = both(["repair", "in.docx", "out.docx", "--font", given], tmp_path)
+        assert result["ok"] and {"code": "font", "message": "complex-script font written where a run named none: '" + kept
+                                 + "' — the font the command was given " + said} in result["warnings"], result
+    code, result = both(["build", "in.md", "out.docx", "--font", "TH Sarabun New"], tmp_path)
+    assert code == 0 and not [w for w in result["warnings"] if w["code"] == "settings"], result
+    # every space the input takes is one a name is trimmed of, whichever script wrote it
+    import unicodedata
+    from thai_docx import markdown as md
+    from thai_docx import settings as st
+    taken = {c for c in map(chr, range(0x110000))
+             if (c.isspace() or unicodedata.category(c) in ("Zs", "Zl", "Zp")) and not md.forbidden_char(c)}
+    assert taken == set(st.FONT_SPACES), sorted(map(ord, taken ^ set(st.FONT_SPACES)))
+    # each one at both ends, so a space JavaScript's list lacks stops its trim and the two differ
+    code, result = both(["build", "in.md", "out.docx", "--font", st.FONT_SPACES + "Sarabun" + st.FONT_SPACES[::-1]], tmp_path)
+    assert code == 0 and result["settings"]["font"] == "Sarabun", result
+    # a space quoted() shows as "?" is named, so the warning's name visibly begins or ends with one
+    code, result = both(["build", "in.md", "out.docx", "--font", "\u00a0My\u00a0Font\t\u00a0"], tmp_path)
+    assert code == 0 and result["settings"]["font"] == "My\u00a0Font", result
+    assert {"code": "settings", "message": "--font '?My?Font??' begins or ends with a space (U+00A0, U+0009), which"
+            " no font's name does, so the document names 'My?Font'"} in result["warnings"], result
+    for args in (["build", "in.md", "blank.docx", "--font", "   "], ["repair", "in.docx", "blank.docx", "--font", " 　"]):
+        code, result = both(args, tmp_path)
+        assert code == 2 and result["error"] == "--font takes a font name of 1 to 64 characters", (args, result)
+    (tmp_path / "fm.md").write_text('---\nheading-1: font-family: "  "\n---\n\n# หัวเรื่อง\n', encoding="utf-8")
+    code, result = both(["build", "fm.md", "blank.docx"], tmp_path)
+    assert code == 2 and "heading-1: font-family takes a font name of 1 to 64 characters" in result["error"], result
+    assert not (tmp_path / "blank.docx").exists()
+
+
 def test_a_file_with_nothing_to_repair_is_an_answer_not_an_error(tmp_path):
     shutil.copy(GOLDEN / "sample-default.docx", tmp_path / "clean.docx")
     code, result = both(["repair", "clean.docx", "out.docx"], tmp_path)
