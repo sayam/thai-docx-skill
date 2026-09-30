@@ -36,7 +36,7 @@ jobs:
   # gates.yml runs on a pull request — the scans, the lints, the suite under its
   # coverage floor — not a part of them.
   release-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       TAG: ${{ github.event.inputs.tag || github.event.release.tag_name }}
@@ -95,7 +95,7 @@ jobs:
 
   release-archive:
     needs: release-check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: write

@@ -10,6 +10,14 @@ of that version names each golden's sha256 on the golden's own line), and after 
 before two applications were read; the exception and what is owed are in
 [its record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md). The rule is unchanged.
 
+## [Unreleased]
+
+### Changed
+
+- Every workflow runs on `ubuntu-24.04`, where the release zip and its attestation were proven,
+  not on `ubuntu-latest`, which GitHub moves to Ubuntu 26 on 2026-10-19
+  (`tests/test_release_is_bound_to_its_tag.py::test_every_job_runs_on_a_runner_named_by_its_version`).
+
 ## [0.3.2] - 2026-09-30
 
 No golden moves: a build writes the bytes 0.3.0 wrote, so what was read on them holds

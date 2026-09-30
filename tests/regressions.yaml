@@ -4,7 +4,8 @@
 #
 # id        the finding's name in the review that found it; V3- marks the review of 0.3.0,
 #           whose names repeat those of the review of 0.2.0; AU3- the documentation audit of 0.3.0;
-#           V31- the reviews of 0.3.1, numbered as they were triaged; V32- found while making 0.3.2
+#           V31- the reviews of 0.3.1, numbered as they were triaged; V32- found while making 0.3.2;
+#           V33- found while making 0.3.3
 # what      the fault, as a user or an agent met it
 # class     how it is held (comma-separated): C0 the wrong path no longer exists (one reader, one escape point);
 #           C1 a test that fails when it returns; C2 a rule a person or a model reads — only
@@ -1412,3 +1413,10 @@
   found_by: review
   test:
     - tests/test_skill_md.py::test_every_way_the_agent_is_told_asks_the_value_of_a_setting_named_without_one
+
+- id: V33-03
+  what: every workflow ran on `ubuntu-latest`, which GitHub moves to Ubuntu 26 on 2026-10-19, so the runner the reproducible zip and the attestation were proven on would change without a change here
+  class: C1
+  found_by: review
+  test:
+    - tests/test_release_is_bound_to_its_tag.py::test_every_job_runs_on_a_runner_named_by_its_version
