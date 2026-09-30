@@ -174,6 +174,16 @@ def test_no_checkout_leaves_its_token_behind():
                     assert (step.get("with") or {}).get("persist-credentials") is False, (path.name, name)
 
 
+def test_every_job_runs_on_a_runner_named_by_its_version():
+    """`ubuntu-latest` moves to a new Ubuntu on GitHub's date, not this project's (26 from
+    2026-10-19): the zip that is built the same byte for byte, and the attestation, were proven on
+    24.04. A job names the runner it was proven on, and moving is a change of its own."""
+    import yaml
+    for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        for name, job in yaml.safe_load(path.read_text(encoding="utf-8"))["jobs"].items():
+            assert job.get("runs-on") == "ubuntu-24.04", (path.name, name, job.get("runs-on"))
+
+
 def test_a_release_never_replaces_an_asset_it_already_has():
     """S4: `gh release upload --clobber` let a second run put other bytes under a published
     release's name. Without it, an asset already there stops the upload."""

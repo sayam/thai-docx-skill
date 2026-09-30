@@ -47,7 +47,7 @@ jobs:
   # Runs only on main (push and schedule); Scorecard refuses to publish from a fork or a
   # pull request. Not a required check: the score is a report, not a gate on merging.
   scorecard:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
