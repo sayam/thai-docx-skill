@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 
 from . import markdown as md
-from .settings import NUMBER, font_cut, font_cut_said, half_up
+from .settings import FONT_SPACES, NUMBER, font_cut, font_cut_said, half_up
 
 
 # --- heading styles from front matter (ADR 0020) ------------------------------------
@@ -88,7 +88,8 @@ def heading_styles(doc: md.Document) -> tuple[dict[int, dict], list[str]]:
             if name == "font-family":
                 if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
                     val = val[1:-1]
-                if not val or len(val) > 64 or any(md.forbidden_char(c) for c in val) or '"' in val:
+                if (not val.strip(FONT_SPACES) or len(val) > 64 or any(md.forbidden_char(c) for c in val)
+                        or '"' in val):
                     raise md.Unsupported(line, where + " takes a font name of 1 to 64 characters")
                 kept = font_cut(val)
                 if kept is not None:

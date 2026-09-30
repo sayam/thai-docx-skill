@@ -76,7 +76,7 @@ function headingStyles(doc) {
       const where = key + ": " + name;
       if (name === "font-family") {
         if (val.length >= 2 && val[0] === val[val.length - 1] && (val[0] === '"' || val[0] === "'")) val = val.slice(1, -1);
-        let bad = !val || codePointLength(val) > 64 || val.includes('"');
+        let bad = fontStripped([...val]).length === 0 || codePointLength(val) > 64 || val.includes('"');
         for (const c of val) if (forbiddenChar(c) !== null) bad = true;
         if (bad) throw new Unsupported(line, where + " takes a font name of 1 to 64 characters");
         const kept = fontCut(val);

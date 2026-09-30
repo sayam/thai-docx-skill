@@ -18,6 +18,16 @@ before two applications were read; the exception and what is owed are in
   not on `ubuntu-latest`, which GitHub moves to Ubuntu 26 on 2026-10-19
   (`tests/test_release_is_bound_to_its_tag.py::test_every_job_runs_on_a_runner_named_by_its_version`).
 
+### Fixed
+
+- A font's name cut to 31 characters kept a space where it was cut ("TH Sarabun New Extra Condensed
+  Regular" wrote "TH Sarabun New Extra Condensed "), and a name typed with a space at either end was
+  written as typed, with no warning; neither names an installed font. From each of `--font`, a
+  profile's `font`, a heading style's `font-family` and `repair --font`, the name is written without
+  those spaces, and a warning names the name given, the name written, and any space but U+0020 by its
+  code point. A name of spaces alone is refused, like an empty one
+  (`tests/test_what_a_command_takes.py::test_a_font_name_is_written_without_a_space_at_either_end`).
+
 ## [0.3.2] - 2026-09-30
 
 No golden moves: a build writes the bytes 0.3.0 wrote, so what was read on them holds

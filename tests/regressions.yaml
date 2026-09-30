@@ -1414,6 +1414,13 @@
   test:
     - tests/test_skill_md.py::test_every_way_the_agent_is_told_asks_the_value_of_a_setting_named_without_one
 
+- id: V33-01
+  what: a font's name cut to 31 characters kept the space it was cut at, and a name typed with a space at either end was written as typed with no warning, so the document named no installed font
+  class: C1
+  found_by: agent-run
+  test:
+    - tests/test_what_a_command_takes.py::test_a_font_name_is_written_without_a_space_at_either_end
+
 - id: V33-03
   what: every workflow ran on `ubuntu-latest`, which GitHub moves to Ubuntu 26 on 2026-10-19, so the runner the reproducible zip and the attestation were proven on would change without a change here
   class: C1
