@@ -1,0 +1,15 @@
+{
+  "attribution": false,
+  "hooks": {
+    "SessionStart": [
+      {"hooks": [{"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/tools/dotlocal.py\" session-start"}]}
+    ],
+    "PreToolUse": [
+      {"matcher": "Edit|Write|NotebookEdit|Bash",
+       "hooks": [{"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/tools/dotlocal.py\" lock-check"}]}
+    ],
+    "SessionEnd": [
+      {"hooks": [{"type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/tools/dotlocal.py\" session-end"}]}
+    ]
+  }
+}

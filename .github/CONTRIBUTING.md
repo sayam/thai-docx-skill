@@ -101,7 +101,8 @@ a written reason why it is not exploitable here; the reason stays on the alert.
 - `docs/templates/decision.md` — the shape of a new record
 - `SOURCES.md` — the sources the records cite, by id
 - `tools/` — verifiable-gates 0.10.0 (Apache-2.0), plus this project's
-  `bundle_js.py`, `gen_settings_docs.py`, `lint_pr_body.py`, `measure_xml_names.py`, `oracle_set.py`, `package_skill.py` and `render_libreoffice.py`
+  `bundle_js.py`, `dotlocal.py`, `gen_settings_docs.py`, `lint_pr_body.py`, `measure_xml_names.py`, `oracle_set.py`, `package_skill.py` and `render_libreoffice.py`
+- `.claude/settings.json` — the maintainer's hooks: `tools/dotlocal.py` keeps their private notes in step, encrypted, and does nothing without its passphrase, so a clone or a contribution is not touched (`docs/adr/0042`)
 
 Only `skills/thai-docx/`, the README, the licence, the changelog, `PROMPT.md` and `PROMPT.th.md` reach a user;
 the rest is marked `export-ignore` (`docs/adr/0018`).

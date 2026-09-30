@@ -9,6 +9,7 @@
 /requirements export-ignore
 /tests export-ignore
 /tools export-ignore
+/.claude export-ignore
 /.gitattributes export-ignore
 /.gitignore export-ignore
 /gates.yaml export-ignore
