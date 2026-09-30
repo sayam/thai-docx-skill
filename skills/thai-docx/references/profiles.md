@@ -27,8 +27,9 @@ search (`"skill"` or `"home"`).
 
 A build with `--profile` says nothing of a setting the profile gave that the document had no use
 for — "changed nothing" and "reached no" are said of a flag typed after the profile only, as the
-user asked for it. A profile's `font` longer than the 31 characters Word reads is said either way:
-the build writes those 31, and names them.
+user asked for it. A profile's `font` longer than the 31 characters Word reads, or beginning or
+ending with a space, is said either way: the build writes it without a space at either end and cut
+to those 31, and names what it wrote.
 
 ## What to tell the user
 

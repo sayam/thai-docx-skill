@@ -512,6 +512,22 @@ def test_skill_md_says_what_agents_missed_in_the_review_of_0_3_0():
     assert "first and the last 20,000 characters" in text
 
 
+def test_a_font_the_user_names_is_built_not_asked_about():
+    """Model equivalence on the 0.3.2 skill: one Haiku run of three asked which font when the user
+    had named one, reading "a font from TH Sarabun New, TH SarabunPSK or Sarabun, or one they
+    name" as a list to choose from. SKILL.md now says a font they name is built as named."""
+    text = " ".join(SKILL_MD.split())
+    assert "TH Sarabun New, TH SarabunPSK, Sarabun or any font they name" in text
+    assert "A font they name is built as named, whatever it is, and the build's warnings are passed on." in text
+    # and what the references say the build then writes: a name can come out shorter than 31
+    refs = SKILL / "references"
+    limits = " ".join((refs / "limits.md").read_text(encoding="utf-8").split())
+    profiles = " ".join((refs / "profiles.md").read_text(encoding="utf-8").split())
+    assert ("cut to those 31 and less a space it is cut at; a font's name that begins or ends with a space,"
+            " written without it") in limits
+    assert "writes it without a space at either end and cut to those 31, and names what it wrote" in profiles
+
+
 def test_every_way_the_agent_is_told_asks_the_value_of_a_setting_named_without_one():
     """The reviews of 0.3.1: SKILL.md said to ask which font for "change the font", while
     grill's answer said "ask nothing first", PROMPT.md "Do not ask me about fonts", and a change

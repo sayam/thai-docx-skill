@@ -280,7 +280,7 @@ one no longer runs off the page.
 **Warned — the file is written, and the warning must be passed to the user:** a flag that changed
 nothing; `--toc` beside `<!-- toc -->`, which gives two tables of contents; `--toc` in a document
 with no heading, whose table of contents is empty; a font not known to
-carry Thai; a font's name longer than the 31 characters Word reads, of which those 31 are written; `![]` with nothing between the brackets; a heading level skipped; a link definition
+carry Thai; a font's name longer than the 31 characters Word reads, cut to those 31 and less a space it is cut at; a font's name that begins or ends with a space, written without it; `![]` with nothing between the brackets; a heading level skipped; a link definition
 nobody refers to; `ำ` typed the long way (`ํ` + `า`), which is left exactly as typed and which a
 search for `ำ` will not find; a Thai mark with no letter before it, a letter with two tone
 marks, or a letter with two marks that stand in one place, each left as typed; a `Table:` or `Figure:` line in a place where it is not a caption;

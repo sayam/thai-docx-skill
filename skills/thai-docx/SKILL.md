@@ -81,8 +81,9 @@ When the user asks for a change ("ขอฟอนต์ Sarabun ขนาด 14"
 again with every flag of the last build plus the flags for what they now ask (nothing built
 yet: the defaults plus those), and report the new settings; a setting they ask to remove goes back to its default. Add a flag only for what
 the user asked for; a setting nobody has mentioned keeps its default. When they ask to change a
-setting but not to what ("change the font"), do not choose it: ask which, in one line — a font
-from TH Sarabun New, TH SarabunPSK or Sarabun, or one they name. Ask that one value only: a
+setting but not to what ("change the font"), do not choose it: ask which, in one line — TH
+Sarabun New, TH SarabunPSK, Sarabun or any font they name. A font they name is built as named,
+whatever it is, and the build's warnings are passed on. Ask that one value only: a
 setting asked for without a choice ("add page numbers") takes its default, and you say which. A font without Thai glyphs, or a flag the
 document gives nothing to act on, is a warning, not an error.
 
