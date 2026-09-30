@@ -14,7 +14,8 @@ the rules and memory Claude Code reads — into `.local.asc/`, a clone of the pr
     python3 tools/dotlocal.py take --force    # take the lock from the other side (typed in a terminal)
     python3 tools/dotlocal.py install         # the git pre-push hook, if none is there
 
-The hooks of `.claude/settings.json` call `session-start`, `lock-check` and `session-end`.
+The hooks of `.claude/settings.json` call `session-start` and `lock-check`. The lock is given up only by
+`release`: Claude Code cancels a hook still running when a session ends, and a sync takes seconds.
 **Without a passphrase every command does nothing and exits 0**: a clone of this public repository
 is not touched. The passphrase is `DOTLOCAL_PASSPHRASE`, or `~/.config/dotlocal/<branch>.passphrase`
 (mode 600); `DOTLOCAL_REMOTE` and `DOTLOCAL_BRANCH` default to `origin` with the repository name
@@ -527,7 +528,7 @@ def main(argv: list[str]) -> int:
         place = Place()
         passphrase = place.passphrase()
     except Fault as fault:
-        if command in ("lock-check", "session-end"):
+        if command == "lock-check":
             return 0
         print(f"dotlocal: {fault}", file=sys.stderr)
         return 1 if command != "session-start" else 0
@@ -555,10 +556,6 @@ def main(argv: list[str]) -> int:
                            "until it runs release, or `take --force` is typed in a terminal")
             if place.side == "cloud" or "--print-rules" in argv:
                 out.append(rules_and_memory(place))
-        elif command == "session-end":
-            if not branch_is_pushed(place):
-                push(place, passphrase, out)
-                unlock(place)
         elif command == "release":
             problems = branch_is_pushed(place)
             if problems:
@@ -588,10 +585,10 @@ def main(argv: list[str]) -> int:
     except Unreachable as fault:
         print(f"dotlocal: {fault}. In a cloud session, attach the dotlocal repository to the session; "
               ".local/ was not synced.")
-        return 0 if command in ("session-start", "session-end") or "--from-hook" in argv else 1
+        return 0 if command == "session-start" or "--from-hook" in argv else 1
     except (Fault, subprocess.TimeoutExpired, OSError, ValueError) as fault:
         text = f"dotlocal {command}: {fault}"
-        if command in ("session-start", "session-end"):
+        if command == "session-start":
             print(text)  # into the session's context, so the agent knows .local/ is not in step
             return 0
         print(text, file=sys.stderr)

@@ -362,3 +362,18 @@ def test_an_unreachable_repository_is_said_plainly(world, tmp_path):
     assert done.returncode == 0 and "attach the dotlocal repository" in done.stdout
     done = a.dl("pull", env=env)
     assert done.returncode == 1 and "cannot reach" in done.stdout
+
+
+def test_the_hooks_call_only_what_the_tool_has(world):
+    """`.claude/settings.json` calls commands the tool answers, and has no SessionEnd hook: Claude Code
+    cancelled it when a session ended, before its push and release could finish (ADR 0042, Later)."""
+    settings = json.loads((ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))
+    assert "SessionEnd" not in settings["hooks"] and settings["attribution"] is False
+    a = world("a")
+    for event, entries in settings["hooks"].items():
+        for entry in entries:
+            for hook in entry["hooks"]:
+                command = hook["command"].split("dotlocal.py\" ", 1)[1]
+                done = a.dl(command, stdin=json.dumps({"tool_name": "Read", "tool_input": {}}))
+                assert "unknown command" not in done.stdout + done.stderr, (event, command, done)
+    assert "unknown command" in a.dl("session-end").stderr

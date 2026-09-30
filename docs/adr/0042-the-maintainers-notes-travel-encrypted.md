@@ -26,6 +26,10 @@ it is settled. `.local.asc/` is reset to the remote, never merged.
   it clones: `.claude/settings.json` pulls at `SessionStart`, checks the lock at `PreToolUse`, and
   releases at `SessionEnd`; `git push` pushes, through a `pre-push` hook it installs only where
   none is.
+
+  > **Later (2026-10-01):** there is no `SessionEnd` hook. Claude Code cancelled it when a session
+  > ended, before its push and release could finish, and said it failed; the lock is given up only
+  > by `tools/dotlocal.py release`.
 - **Without a passphrase it does nothing and exits 0.** A clone or a fork of this repository, and
   anyone who contributes to it, is not touched; its hooks pass every tool call.
 - **What travels is an allow-list**: text files of at most 1 MB under `.local/`, but for `secrets/`,
