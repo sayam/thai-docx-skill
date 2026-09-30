@@ -47,3 +47,4 @@ file that is gone, a repeated number or a gap in the numbering is red.
 | 0039 | [A run is marked complex script where its text is complex script, not everywhere](0039-complex-script-is-marked-where-it-is.md) | 2026-09-22 | accepted |
 | 0040 | [Bundled scripts run with the agent's rights: the limits, restated with what the review of 0.2.0 found](0040-script-limits-restated-after-the-review-of-0-2-0.md) | 2026-09-26 | accepted |
 | 0041 | [A finding is closed by a control, not by a fix](0041-a-finding-is-closed-by-a-control.md) | 2026-09-26 | accepted |
+| 0042 | [The maintainer's working notes travel encrypted, and do nothing in anyone else's clone](0042-the-maintainers-notes-travel-encrypted.md) | 2026-09-30 | accepted |
