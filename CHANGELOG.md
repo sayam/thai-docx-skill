@@ -14,6 +14,10 @@ before two applications were read; the exception and what is owed are in
 
 ### Changed
 
+- `SKILL.md` says a font the user names is built as named, whatever it is, and the build's warnings
+  passed on: one Haiku run in three had asked which font when the user had named one, reading the
+  three fonts offered for "change the font" as the only ones
+  (`tests/test_skill_md.py::test_a_font_the_user_names_is_built_not_asked_about`).
 - Every workflow runs on `ubuntu-24.04`, where the release zip and its attestation were proven,
   not on `ubuntu-latest`, which GitHub moves to Ubuntu 26 on 2026-10-19
   (`tests/test_release_is_bound_to_its_tag.py::test_every_job_runs_on_a_runner_named_by_its_version`).
