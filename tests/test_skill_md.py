@@ -528,4 +528,5 @@ def test_every_way_the_agent_is_told_asks_the_value_of_a_setting_named_without_o
                 ["node", str(ROOT / "skills" / "thai-docx" / "scripts" / "thai_docx.js")]):
         said = json.loads(subprocess.run(cli + ["grill", "--said", "change the font and add page numbers"],
                                          capture_output=True, check=True).stdout)
-        assert said["mode"] == "build" and said["next"].endswith("but the value of a setting named without one; a .docx the user has goes to check"), said
+        assert said["mode"] == "build" and said["next"].endswith(
+            "but the value of a setting named without one; a .docx the user has goes to check"), said
