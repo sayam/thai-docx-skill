@@ -528,6 +528,16 @@ def test_a_font_the_user_names_is_built_not_asked_about():
     assert "writes it without a space at either end and cut to those 31, and names what it wrote" in profiles
 
 
+def test_a_repaired_file_stays_beside_the_users():
+    """Model equivalence on the 0.3.3 skill: two Haiku runs of three moved the file `repair` wrote
+    over the user's own (the harness asked, so it did not happen), and one then told the user their
+    file was fixed. `repair` never writes over the file it is given (ADR 0037); SKILL.md now says
+    the agent does not either, and names the new file."""
+    text = " ".join(SKILL_MD.split())
+    assert ("OUT.docx is theirs to keep beside the file they gave: never move, rename or copy it over theirs,"
+            " and name it in your answer.") in text
+
+
 def test_every_way_the_agent_is_told_asks_the_value_of_a_setting_named_without_one():
     """The reviews of 0.3.1: SKILL.md said to ask which font for "change the font", while
     grill's answer said "ask nothing first", PROMPT.md "Do not ask me about fonts", and a change

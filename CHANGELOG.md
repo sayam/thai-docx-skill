@@ -18,6 +18,10 @@ before two applications were read; the exception and what is owed are in
   passed on: one Haiku run in three had asked which font when the user had named one, reading the
   three fonts offered for "change the font" as the only ones
   (`tests/test_skill_md.py::test_a_font_the_user_names_is_built_not_asked_about`).
+- `SKILL.md` says the file `repair` writes stays beside the user's own, never moved, renamed or
+  copied over it, and is named in the answer: two Haiku runs in three had moved it over the file the
+  user gave, and one had told the user their file was fixed
+  (`tests/test_skill_md.py::test_a_repaired_file_stays_beside_the_users`).
 - Every workflow runs on `ubuntu-24.04`, where the release zip and its attestation were proven,
   not on `ubuntu-latest`, which GitHub moves to Ubuntu 26 on 2026-10-19
   (`tests/test_release_is_bound_to_its_tag.py::test_every_job_runs_on_a_runner_named_by_its_version`).
