@@ -81,3 +81,6 @@ again US$0.33.
   this change; recorded, not closed.
 - **Sonnet and Opus ran *vague* and *vaguefirst* on the SKILL.md without the last sentence.** The
   two texts differ in that sentence only.
+
+> **Later (2026-09-30):** Sonnet and Opus ran every case on the SKILL.md with that sentence, and
+> *repair* was run again, in [the record of 0.3.2](2026-09-30-model-equivalence-on-the-0.3.2-skill.md).
