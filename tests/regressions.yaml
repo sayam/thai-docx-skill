@@ -1405,3 +1405,10 @@
   test:
     - tests/test_release_is_bound_to_its_tag.py::test_a_coverage_file_that_cannot_be_read_fails_the_job
     - tests/test_what_a_command_takes.py::test_a_write_that_fails_halfway_leaves_the_old_file
+
+- id: V32-04
+  what: grill answered a request to check a .docx the user has with "build at once", and only SKILL.md sent it to check, though SKILL.md tells the agent to obey the script's answer
+  class: C1
+  found_by: review
+  test:
+    - tests/test_skill_md.py::test_every_way_the_agent_is_told_asks_the_value_of_a_setting_named_without_one

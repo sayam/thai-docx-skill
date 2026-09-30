@@ -204,7 +204,7 @@ function grillRun(argv) {
   message = grillMode(head) === "grill" ? head : tail && grillMode(tail) === "grill" ? tail : null;
   if (message === null) {
     const answer = { ok: true, mode: "build",
-                     next: "build at once with the announced defaults; ask nothing first but the value of a setting named without one" };
+                     next: "build at once with the announced defaults; ask nothing first but the value of a setting named without one; a .docx the user has goes to check" };
     if (between) {
       answer.warnings = ["the message was read to its first " + GRILL_MAX_CHARS + " and its last " + GRILL_MAX_CHARS +
         " characters; " + between + " between them were not read, and the phrase may be among them"];
