@@ -198,6 +198,16 @@ gates:
     kind: job
     severity: blocking
     enforced_by: {job: tests}
+  - id: every-mutant-is-killed
+    title: Every row of tools/mutants.yaml — one change to one tracked file, made in a copy — is killed by the test it names, on every pull request and at the tag, so a C1 test is shown to fail on every change and not once by hand (ADR 0041)
+    kind: job
+    severity: blocking
+    enforced_by: {job: tests}
+  - id: mutant-list-proven-two-way
+    title: Every row of the mutant list names a file there is, a change found in it exactly once, a test there is and a control there is; and the runner names a mutant that survives, a change found nowhere or twice, one that does not compile, a test that is not there or did not run, and a control that is not there, each on a planted tree
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_mutants.py]}
   - id: skill-md-tells-the-truth
     title: SKILL.md passes the Agent Skills validator from the downloaded archive, stays under its ceiling, and every default, flag, finding code, command and sandbox snippet it gives is the one the skill has, run as written, and every reference it has is linked; the user guides' examples read as they say and name only real flags, their links reach pages and headings that exist in both languages, their commands and the README's run as written from the archive, and the archive they name is this version (ADR 0007, 0014, 0028, 0029)
     kind: test

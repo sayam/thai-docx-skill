@@ -1448,3 +1448,11 @@
   found_by: review
   test:
     - tests/test_commit_authors.py::test_a_commit_written_under_an_address_that_did_not_sign_is_named
+
+- id: V33-06
+  what: a C1 test was shown to fail once, by hand, when its fix was made, and nothing showed it again, so a test weakened later or code moved from under it passed every gate green
+  class: C1
+  found_by: review
+  test:
+    - tests/test_mutants.py::test_every_row_of_the_list_is_well_formed
+    - tests/test_mutants.py::test_the_list_runs_on_every_pull_request_and_at_the_tag

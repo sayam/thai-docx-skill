@@ -76,6 +76,9 @@ jobs:
       # and a data file combine cannot read fails the job, not a warning that loses its lines
       - run: python3 -m coverage run -m pytest -q tests
       - run: python3 -W error -m coverage combine -q && python3 -m coverage report
+      # every mutant in tools/mutants.yaml is killed by the test it names (ADR 0041): a C1 test is
+      # shown to fail here on every change, not once by hand when the fix was made
+      - run: python3 tools/run_mutants.py
 
   # And on the newest the skill promises: the docs say Python 3.11 or later and Node 22 or later,
   # and a newer runtime's expat, zlib or Unicode tables are where the two ends part (ADR 0017).

@@ -1,0 +1,528 @@
+# The mutants: each row plants one defect in one tracked file and names the test that must then
+# fail. tools/run_mutants.py plants every row in a copy of the tree on every pull request and at
+# the tag; a mutant the test lets through is a C1 control that no longer holds (ADR 0041), and
+# the run fails. tests/test_mutants.py holds every row to this shape, and the runner to its verdicts.
+#
+# id        the mutant's name: what the defect is, as the code would then behave
+# file      the tracked file the change is made in — never in place, always in a copy
+# find      the text as it stands, which must be in the file exactly once
+# replace   the text it becomes; the file must still compile (a .py, the bundle, JSON, YAML)
+# test      the pytest node ids, `file::function`, that fail on the mutant: exit 1 and no other
+# holds     the ledger row in tests/regressions.yaml, or the gate in gates.yaml, this mutant holds
+#
+# The list began with the mutants the reviews of 0.2.0 planted by hand — the limits, the checker's
+# causes, the build's fidelity check, the bundle, the licence lines, the citation — and with one
+# mutant for each ledger row of 0.3.1, 0.3.2 and 0.3.3 whose test does not hold repair. Every
+# ledger row from here on comes with its mutant. A limit that both implementations state has a
+# mutant on each side.
+
+# --- the limits, at their values, on both sides (check-holds-its-limits-at-their-values) --------
+
+- id: total-cap-doubled
+  file: skills/thai-docx/scripts/thai_docx/check.py
+  find: |-
+    MAX_TOTAL = 64 * 1024 * 1024
+  replace: |-
+    MAX_TOTAL = 128 * 1024 * 1024
+  test:
+    - tests/test_check_holds_its_limits.py::test_the_size_caps_hold_at_their_values
+  holds:
+    - F-02
+
+- id: javascript-total-cap-doubled
+  file: js/30-check.js
+  find: |-
+    const MAX_TOTAL = 64 * 1024 * 1024;
+  replace: |-
+    const MAX_TOTAL = 128 * 1024 * 1024;
+  test:
+    - tests/test_check_holds_its_limits.py::test_the_size_caps_hold_at_their_values
+  holds:
+    - F-02
+
+- id: part-cap-doubled
+  file: skills/thai-docx/scripts/thai_docx/check.py
+  find: |-
+    MAX_PART = 32 * 1024 * 1024
+  replace: |-
+    MAX_PART = 64 * 1024 * 1024
+  test:
+    - tests/test_check_holds_its_limits.py::test_the_size_caps_hold_at_their_values
+  holds:
+    - D-09
+
+- id: javascript-part-cap-doubled
+  file: js/30-check.js
+  find: |-
+    const MAX_PART = 32 * 1024 * 1024;
+  replace: |-
+    const MAX_PART = 64 * 1024 * 1024;
+  test:
+    - tests/test_check_holds_its_limits.py::test_the_size_caps_hold_at_their_values
+  holds:
+    - D-09
+
+- id: link-cap-raised
+  file: skills/thai-docx/scripts/thai_docx/build.py
+  find: |-
+    MAX_LINKS = 40
+  replace: |-
+    MAX_LINKS = 4000
+  test:
+    - tests/test_check_holds_its_limits.py::test_forty_links_are_followed_and_the_forty_first_is_not
+  holds:
+    - D-09
+    - D-09a
+
+- id: javascript-link-cap-raised
+  file: js/90-entry.js
+  find: |-
+    const MAX_LINKS = 40;
+  replace: |-
+    const MAX_LINKS = 4000;
+  test:
+    - tests/test_check_holds_its_limits.py::test_forty_links_are_followed_and_the_forty_first_is_not
+  holds:
+    - D-09
+    - D-09a
+
+- id: file-cap-raised
+  file: skills/thai-docx/scripts/thai_docx/package.py
+  find: |-
+    MAX_FILE = 64 * 1024 * 1024
+  replace: |-
+    MAX_FILE = 1024 * 1024 * 1024
+  test:
+    - tests/test_check_holds_its_limits.py::test_each_limit_is_the_value_both_implementations_state
+  holds:
+    - D-09
+
+- id: javascript-file-cap-raised
+  file: js/30-check.js
+  find: |-
+    const MAX_FILE = 64 * 1024 * 1024;
+  replace: |-
+    const MAX_FILE = 1024 * 1024 * 1024;
+  test:
+    - tests/test_check_holds_its_limits.py::test_each_limit_is_the_value_both_implementations_state
+  holds:
+    - D-09
+
+- id: markdown-depth-raised
+  file: skills/thai-docx/scripts/thai_docx/markdown.py
+  find: |-
+    MAX_DEPTH = 100
+  replace: |-
+    MAX_DEPTH = 150
+  test:
+    - tests/test_check_holds_its_limits.py::test_each_limit_is_the_value_both_implementations_state
+  holds:
+    - D-09
+
+- id: javascript-markdown-depth-raised
+  file: js/40-markdown.js
+  find: |-
+    const MAX_DEPTH = 100;
+  replace: |-
+    const MAX_DEPTH = 150;
+  test:
+    - tests/test_check_holds_its_limits.py::test_each_limit_is_the_value_both_implementations_state
+  holds:
+    - D-09
+
+- id: profile-ceiling-raised
+  file: skills/thai-docx/scripts/thai_docx/profiles.py
+  find: |-
+    MAX_BYTES = 64 * 1024  #
+  replace: |-
+    MAX_BYTES = 64 * 1024 * 1024  #
+  test:
+    - tests/test_check_holds_its_limits.py::test_each_limit_is_the_value_both_implementations_state
+  holds:
+    - check-holds-its-limits-at-their-values
+
+- id: javascript-profile-ceiling-raised
+  file: js/55-profiles.js
+  find: |-
+    const PROFILE_MAX_BYTES = 64 * 1024;
+  replace: |-
+    const PROFILE_MAX_BYTES = 64 * 1024 * 1024;
+  test:
+    - tests/test_check_holds_its_limits.py::test_each_limit_is_the_value_both_implementations_state
+  holds:
+    - check-holds-its-limits-at-their-values
+
+# --- what the checker refuses and finds (docx-checker-proven-two-way) --------------------------
+
+- id: doctype-regex-misspelt
+  file: skills/thai-docx/scripts/thai_docx/check.py
+  find: |-
+    DOCTYPE = re.compile(rb"<!DOCTYPE", re.IGNORECASE)
+  replace: |-
+    DOCTYPE = re.compile(rb"<!DOCTYPES", re.IGNORECASE)
+  test:
+    - tests/test_check.py::test_doctype_is_refused_before_parsing
+  holds:
+    - docx-checker-proven-two-way
+
+- id: compatibility-mode-14-accepted
+  file: skills/thai-docx/scripts/thai_docx/check.py
+  find: |-
+    if modes != ["15"]:
+  replace: |-
+    if modes not in (["15"], ["14"]):
+  test:
+    - tests/test_check.py::test_cause_1_compat_mode_missing
+  holds:
+    - docx-checker-proven-two-way
+
+- id: finding-2-in-the-body-only
+  file: skills/thai-docx/scripts/thai_docx/check.py
+  find: |-
+    _check_text_part(name, trees[name], report, roles)
+  replace: |-
+    _check_text_part(name, trees[name], report, roles) if name == document else None
+  test:
+    - tests/test_check.py::test_footnotes_are_checked_too
+  holds:
+    - docx-checker-proven-two-way
+
+- id: soft-hyphen-not-a-format-character
+  file: skills/thai-docx/assets/ooxml.json
+  find: |-
+    173,
+       173
+  replace: |-
+    173,
+       172
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_every_format_character_and_noncharacter_is_refused_by_name
+  holds:
+    - B-03
+
+- id: repeated-entry-name-accepted
+  file: skills/thai-docx/scripts/thai_docx/check.py
+  find: |-
+    if info.name in seen:
+  replace: |-
+    if info.name in ():
+  test:
+    - tests/test_js_parity.py::test_check_gives_the_same_report
+  holds:
+    - javascript-matches-python
+
+- id: encryption-bit-ignored
+  file: skills/thai-docx/scripts/thai_docx/check.py
+  find: |-
+    if info.method not in (0, 8) or info.flags & 0x1:
+  replace: |-
+    if info.method not in (0, 8):
+  test:
+    - tests/test_what_a_command_takes.py::test_an_entry_encrypted_anywhere_in_the_package_is_refused
+  holds:
+    - D-14
+
+# --- what the build writes, in both implementations ---------------------------------------------
+
+- id: fidelity-check-skipped
+  file: skills/thai-docx/scripts/thai_docx/build.py
+  find: |-
+    if expected != actual:
+  replace: |-
+    if False and expected != actual:
+  test:
+    - tests/test_build.py::test_a_writer_that_drops_a_character_is_refused
+  holds:
+    - build-faithful-and-byte-stable
+
+- id: thai-language-on-every-run
+  file: skills/thai-docx/scripts/thai_docx/writer.py
+  find: |-
+    self.cs = CS_THAI if opts["thai_language"] else CS
+  replace: |-
+    self.cs = CS_THAI
+  test:
+    - tests/test_build.py::test_sample_matches_golden_bytes
+  holds:
+    - build-faithful-and-byte-stable
+
+- id: theme-font-lang-bidi-by-default
+  file: skills/thai-docx/scripts/thai_docx/parts.py
+  find: |-
+    '<w:themeFontLang w:val="en-US"' + (' w:bidi="th-TH"' if self.opts["thai_language"] else "") + "/>"
+  replace: |-
+    '<w:themeFontLang w:val="en-US"' + ' w:bidi="th-TH"' + "/>"
+  test:
+    - tests/test_build.py::test_sample_matches_golden_bytes
+  holds:
+    - build-faithful-and-byte-stable
+
+- id: every-picture-path-is-inside
+  file: skills/thai-docx/scripts/thai_docx/build.py
+  find: |-
+    return path == directory or path.startswith(directory if directory.endswith(os.sep) else directory + os.sep)
+  replace: |-
+    return True
+  test:
+    - tests/test_build.py::test_image_outside_the_markdown_directory_is_refused_unless_allowed
+  holds:
+    - build-faithful-and-byte-stable
+
+- id: javascript-cs-with-a-space
+  file: js/50-writer.js
+  find: |-
+    const CS = "<w:cs/>";
+  replace: |-
+    const CS = "<w:cs />";
+  test:
+    - tests/test_js_parity.py::test_build_gives_the_same_result_and_bytes
+  holds:
+    - javascript-matches-python
+
+- id: javascript-size-default-15
+  file: js/45-settings.js
+  find: |-
+    { key: "size", flag: "--size", kind: "value", default: 16,
+  replace: |-
+    { key: "size", flag: "--size", kind: "value", default: 15,
+  test:
+    - tests/test_settings.py::test_both_implementations_hold_the_same_entries
+  holds:
+    - settings-in-one-registry
+
+# --- the records, the licence lines, the release ------------------------------------------------
+
+- id: spdx-dropped-from-a-test-helper
+  file: tests/oracle.py
+  find: |-
+    # SPDX-License-Identifier: MIT
+  replace: |-
+    # License: MIT
+  test:
+    - tests/test_licensing.py::test_every_source_file_opens_with_its_copyright_and_licence
+  holds:
+    - sources-name-their-licence
+
+- id: citation-version-read-from-the-changelog
+  file: tools/package_skill.py
+  find: |-
+    "CITATION.cff version": re.search(r"^version: ['\"]?([^'\"\s]+)", text(ROOT / "CITATION.cff"), re.M),
+  replace: |-
+    "CITATION.cff version": re.search(r"^## \[(\d[^\]]*)\]", text(ROOT / "CHANGELOG.md"), re.M),
+  test:
+    - tests/test_package_skill.py::test_the_citation_names_the_release_the_changelog_names
+  holds:
+    - F-05
+
+# --- the ledger rows of 0.3.1, 0.3.2 and 0.3.3, one mutant each ---------------------------------
+
+- id: profile-folder-link-followed
+  file: skills/thai-docx/scripts/thai_docx/profiles.py
+  find: |-
+    if folder.is_symlink():
+  replace: |-
+    if False:
+  test:
+    - tests/test_what_a_command_takes.py::test_a_profile_is_never_written_through_a_folder_that_is_a_link
+  holds:
+    - V31-01
+
+- id: nested-runs-read-again-in-each-run
+  file: skills/thai-docx/scripts/thai_docx/check.py
+  find: |-
+    texts = [t for t in run if t.tag in (w("t"), w("delText"))]
+  replace: |-
+    texts = [t for t in run.iter() if t.tag in (w("t"), w("delText"))]
+  test:
+    - tests/test_what_a_command_takes.py::test_check_reads_runs_nested_in_runs_in_a_moment
+  holds:
+    - V31-03
+
+- id: quoted-name-ten-times-longer
+  file: skills/thai-docx/scripts/thai_docx/check.py
+  find: |-
+    QUOTED_MAX = 64
+  replace: |-
+    QUOTED_MAX = 640
+  test:
+    - tests/test_what_a_command_takes.py::test_what_the_file_says_is_shown_as_a_name_not_as_a_sentence
+  holds:
+    - V31-04
+
+- id: endnotes-not-a-text-part
+  file: skills/thai-docx/scripts/thai_docx/check.py
+  find: |-
+    (document|comments|footnotes|endnotes|header[0-9]*|footer[0-9]*)
+  replace: |-
+    (document|comments|footnotes|header[0-9]*|footer[0-9]*)
+  test:
+    - tests/test_check.py::test_every_part_the_gate_names_is_checked_in_both
+  holds:
+    - V31-05
+
+- id: golden-hash-read-anywhere-in-the-record
+  file: tools/package_skill.py
+  find: |-
+    if not any(g.name in line and hashlib.sha256(g.read_bytes()).hexdigest() in line for line in lines)]
+  replace: |-
+    if not any(hashlib.sha256(g.read_bytes()).hexdigest() in line for line in lines)]
+  test:
+    - tests/test_rules.py::test_the_newest_release_record_names_the_bytes_it_read
+  holds:
+    - V31-06
+
+- id: skill-md-asks-which-value
+  file: skills/thai-docx/SKILL.md
+  find: |-
+    Ask that one value only: a
+  replace: |-
+    Ask which value they prefer: a
+  test:
+    - tests/test_skill_md.py::test_every_way_the_agent_is_told_asks_the_value_of_a_setting_named_without_one
+  holds:
+    - V31-08
+
+- id: skill-md-sends-a-docx-to-the-build
+  file: skills/thai-docx/SKILL.md
+  find: |-
+    goes to *Check an existing .docx*
+  replace: |-
+    goes to the build
+  test:
+    - tests/test_skill_md.py::test_every_way_the_agent_is_told_asks_the_value_of_a_setting_named_without_one
+  holds:
+    - V31-09
+
+- id: profile-thai-language-said-to-reach-nothing
+  file: skills/thai-docx/scripts/thai_docx/settings.py
+  find: |-
+    if opts["thai_language"] and "thai_language" not in quiet and "thai text" not in present:
+  replace: |-
+    if opts["thai_language"] and "thai text" not in present:
+  test:
+    - tests/test_build_writes_what_it_was_given.py::test_a_profile_setting_that_reached_nothing_is_not_said_either
+  holds:
+    - V31-10
+
+- id: font-name-kept-past-31
+  file: skills/thai-docx/scripts/thai_docx/check.py
+  find: |-
+    FONT_MAX = 31
+  replace: |-
+    FONT_MAX = 64
+  test:
+    - tests/test_what_a_command_takes.py::test_a_font_name_longer_than_word_reads_is_cut_to_what_it_reads_and_said
+  holds:
+    - V31-11
+
+- id: install-page-pin-not-read
+  file: tools/package_skill.py
+  find: |-
+    |--pin v(\d+\.\d+\.\d+)")
+  replace: |-
+    ")
+  test:
+    - tests/test_package_skill.py::test_the_install_pages_name_the_release_the_changelog_names
+  holds:
+    - V31-13
+
+- id: run-properties-ranked-one-by-one
+  file: skills/thai-docx/scripts/thai_docx/ooxml.py
+  find: |-
+    return {name: i for i, entry in enumerate(order) for name in ([entry] if isinstance(entry, str) else entry)}
+  replace: |-
+    return {name: i for i, name in enumerate(n for entry in order for n in ([entry] if isinstance(entry, str) else entry))}
+  test:
+    - tests/test_check.py::test_a_runs_properties_come_in_any_order
+  holds:
+    - V32-01
+
+- id: out-of-order-package-holds-nothing
+  file: tests/test_js_parity.py
+  find: |-
+    b'<w:rPr><w:b/><w:bCs/><w:cs/></w:rPr>',
+  replace: |-
+    b'<w:rPr><w:b/><w:bCs/><w:cs/><w:x/></w:rPr>',
+  test:
+    - tests/test_js_parity.py::test_command_line_is_the_same
+  holds:
+    - V32-02
+
+- id: coverage-combine-only-warns
+  file: .github/workflows/gates.yml
+  find: |-
+    python3 -W error -m coverage combine -q
+  replace: |-
+    python3 -m coverage combine -q
+  test:
+    - tests/test_release_is_bound_to_its_tag.py::test_a_coverage_file_that_cannot_be_read_fails_the_job
+  holds:
+    - V32-03
+
+- id: grill-answer-sends-no-docx-to-check
+  file: skills/thai-docx/scripts/thai_docx/grill.py
+  find: |-
+    " setting named without one; a .docx the user has goes to check"}
+  replace: |-
+    " setting named without one"}
+  test:
+    - tests/test_skill_md.py::test_every_way_the_agent_is_told_asks_the_value_of_a_setting_named_without_one
+  holds:
+    - V32-04
+
+- id: font-name-keeps-its-end-spaces
+  file: skills/thai-docx/scripts/thai_docx/settings.py
+  find: |-
+    kept = name.strip(FONT_SPACES)
+  replace: |-
+    kept = name
+  test:
+    - tests/test_what_a_command_takes.py::test_a_font_name_is_written_without_a_space_at_either_end
+  holds:
+    - V33-01
+
+- id: skill-md-reads-the-font-list-as-a-menu
+  file: skills/thai-docx/SKILL.md
+  find: |-
+    A font they name is built as named,
+  replace: |-
+    A font they name is one choice among these,
+  test:
+    - tests/test_skill_md.py::test_a_font_the_user_names_is_built_not_asked_about
+  holds:
+    - V33-02
+
+- id: tests-run-on-ubuntu-latest
+  file: .github/workflows/gates.yml
+  find: |-
+    tests:
+        runs-on: ubuntu-24.04
+  replace: |-
+    tests:
+        runs-on: ubuntu-latest
+  test:
+    - tests/test_release_is_bound_to_its_tag.py::test_every_job_runs_on_a_runner_named_by_its_version
+  holds:
+    - V33-03
+
+- id: skill-md-lets-the-repaired-file-replace-the-users
+  file: skills/thai-docx/SKILL.md
+  find: |-
+    never move, rename or copy it over theirs,
+  replace: |-
+    move it over theirs when they ask,
+  test:
+    - tests/test_skill_md.py::test_a_repaired_file_stays_beside_the_users
+  holds:
+    - V33-04
+
+- id: author-passes-when-anyone-signed
+  file: tools/lint_commit_authors.py
+  find: |-
+    if address and address.lower() in {s.lower() for s in signed}:
+  replace: |-
+    if signed:
+  test:
+    - tests/test_commit_authors.py::test_a_commit_written_under_an_address_that_did_not_sign_is_named
+  holds:
+    - V33-05
