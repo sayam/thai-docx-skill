@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decided: 2026-09-26
+- Amended by: [0042](0042-a-c1-test-is-shown-to-fail-on-every-change.md) (how a C1 test is shown to fail: on every change, not once by hand)
 
 ## Where it came from
 
