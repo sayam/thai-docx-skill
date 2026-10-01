@@ -101,7 +101,7 @@ a written reason why it is not exploitable here; the reason stays on the alert.
 - `docs/templates/decision.md` — the shape of a new record
 - `SOURCES.md` — the sources the records cite, by id
 - `tools/` — verifiable-gates 0.10.0 (Apache-2.0), plus this project's
-  `bundle_js.py`, `gen_settings_docs.py`, `lint_pr_body.py`, `measure_xml_names.py`, `oracle_set.py`, `package_skill.py` and `render_libreoffice.py`
+  `bundle_js.py`, `gen_settings_docs.py`, `lint_commit_authors.py`, `lint_pr_body.py`, `measure_xml_names.py`, `oracle_set.py`, `package_skill.py` and `render_libreoffice.py`
 
 Only `skills/thai-docx/`, the README, the licence, the changelog, `PROMPT.md` and `PROMPT.th.md` reach a user;
 the rest is marked `export-ignore` (`docs/adr/0018`).
@@ -210,6 +210,13 @@ Conventional Commits, a subject of at most 72 characters, signed off with `git c
 (DCO 1.1), and no assistant trailers such as `Co-Authored-By` (`docs/adr/0013`). Check a
 branch with `python3 tools/lint_commits.py --range main..HEAD`. Pull requests are merged by
 rebase, so each commit should stand on its own.
+
+**A commit is written under an address that signed it.** The address in its author field is the
+address of one of its `Signed-off-by:` lines: the author a history shows is a person who certified
+the change. The committer is not held to this, and neither is a merge commit. A commit made under
+another address is put right, by the person who wrote it, with
+`git commit --amend --reset-author -s`. Check a branch with
+`python3 tools/lint_commit_authors.py --range main..HEAD`.
 
 **A pull request's description is held to the same rule.** It credits nobody who did not sign: no
 line opens with `Co-authored-by:` or `Claude-Session:`, with an assistant's "Generated with …"

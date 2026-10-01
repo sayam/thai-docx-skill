@@ -26,7 +26,8 @@ jobs:
       - run: python3 tools/gates_doctor.py
 
   # Every commit a push or pull request adds is a Conventional Commit, signed off, with no
-  # assistant trailers (ADR 0013). A fork never ran a hook of ours; this is where it is held.
+  # assistant trailers, written under an address that signed it (ADR 0013). A fork never ran a
+  # hook of ours; this is where it is held.
   commits:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -51,6 +52,7 @@ jobs:
             range="$BASE..$HEAD_SHA"
           fi
           python3 tools/lint_commits.py --range "$range"
+          python3 tools/lint_commit_authors.py --range "$range"
 
   # Runs the suite on the oldest Python the skill promises (ADR 0008).
   tests:
