@@ -31,6 +31,16 @@ gates:
     kind: job
     severity: blocking
     enforced_by: {job: commits}
+  - id: commit-author-signed-it
+    title: Every commit a push or pull request adds is written under an address that signed it off (ADR 0013)
+    kind: job
+    severity: blocking
+    enforced_by: {job: commits}
+  - id: commit-author-checker-proven-two-way
+    title: The author checker names a commit written under an address that did not sign it in a branch the message check passes, passes the signer's own commits and a second signer's, leaves the committer and merge commits alone, and gives no verdict on a history it cannot read (ADR 0013)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_commit_authors.py]}
   - id: pr-description-credits-the-signer
     title: A pull request's description opens no line with an assistant's trailer, its "Generated with" footer or a link to its session, and reaches the checker through the environment, never a script (ADR 0013)
     kind: job
