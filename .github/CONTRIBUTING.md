@@ -31,6 +31,7 @@ python3 -m pytest -q tests                                      # the suite
 python3 -m ruff check skills/thai-docx/scripts tools tests      # the Python lint
 tests/js/node_modules/.bin/eslint --config tests/js/eslint.config.cjs js   # the JavaScript lint
 python3 -m coverage run -m pytest -q tests && python3 -W error -m coverage combine -q && python3 -m coverage report
+python3 tools/run_mutants.py                                    # every mutant in tools/mutants.yaml killed
 ```
 
 The hashes in `requirements/dev.txt` are those of the Linux x86_64 wheels CI installs; on macOS,
@@ -101,7 +102,8 @@ a written reason why it is not exploitable here; the reason stays on the alert.
 - `docs/templates/decision.md` — the shape of a new record
 - `SOURCES.md` — the sources the records cite, by id
 - `tools/` — verifiable-gates 0.10.0 (Apache-2.0), plus this project's
-  `bundle_js.py`, `gen_settings_docs.py`, `lint_commit_authors.py`, `lint_pr_body.py`, `measure_xml_names.py`, `oracle_set.py`, `package_skill.py` and `render_libreoffice.py`
+  `bundle_js.py`, `gen_settings_docs.py`, `lint_commit_authors.py`, `lint_pr_body.py`, `measure_xml_names.py`, `oracle_set.py`, `package_skill.py`,
+  `render_libreoffice.py` and `run_mutants.py`, and `mutants.yaml`, the mutants it runs
 
 Only `skills/thai-docx/`, the README, the licence, the changelog, `PROMPT.md` and `PROMPT.th.md` reach a user;
 the rest is marked `export-ignore` (`docs/adr/0018`).
@@ -114,7 +116,11 @@ the rest is marked `export-ignore` (`docs/adr/0018`).
   case for what you change, with the value where the two runtimes' types differ (a whole
   float, a path not in normal form).
 - **A test that fails without the change.** Plant the defect your change prevents and watch
-  the test go red before you call it held.
+  the test go red before you call it held — then write that defect down as a row of
+  `tools/mutants.yaml` (the file, the text to find there once, the text to put in its place, the
+  test, and the ledger row or gate it holds), so it is planted and goes red again on every pull
+  request and at the tag (`docs/adr/0042`). `python3 tools/run_mutants.py` runs the list,
+  `--only ID` the row you are writing.
 - **A fixed finding is a row, and a `Fixed` line names its test.** Add the finding to
   `tests/regressions.yaml` with its class and its test, and name the test in the changelog's
   `### Fixed` line as `tests/<file>.py::<test>` — a fault is closed by what holds it closed, not
@@ -151,7 +157,7 @@ review looks at:
 1. **The claim.** The description says what changes for a user and why; a design change links
    its ADR.
 2. **The test that went red.** A new or changed test fails without the change — the pull request
-   says how that was seen — and passes with it.
+   says how that was seen, and a row of `tools/mutants.yaml` shows it again — and passes with it.
 3. **Both implementations.** Python and `js/` change together; the bundle is regenerated; parity
    holds.
 4. **The goldens.** Unchanged, or changed on purpose with the parts named and a request to open the
