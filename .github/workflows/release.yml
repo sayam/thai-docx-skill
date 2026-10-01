@@ -86,6 +86,8 @@ jobs:
       # and a data file combine cannot read fails the job, not a warning that loses its lines
       - run: python3 -m coverage run -m pytest -q tests
       - run: python3 -W error -m coverage combine -q && python3 -m coverage report
+      # every mutant in tools/mutants.yaml is killed by the test it names, at the tag as on a pull request
+      - run: python3 tools/run_mutants.py
       # no release while a development dependency has a known vulnerability (CONTRIBUTING, Dependencies)
       - name: osv-scanner
         uses: docker://ghcr.io/google/osv-scanner-action@sha256:71ad04ab2f8798be47870f9b18817ad317c2f8f2f97aa6726ba10d5578bc174a # v2.6.0

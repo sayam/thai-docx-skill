@@ -121,6 +121,7 @@ def test_a_release_that_skips_its_gates_is_named():
         "permissions:\n  contents: read\n": "permissions:\n  contents: write\n",
         '            echo "a tampered archive verified — the verifier reads nothing"; exit 1': '            echo "x"; exit 0',
         "      - run: python3 -m coverage run -m pytest -q tests\n": "      # - run: python3 -m coverage run -m pytest -q tests\n",
+        "      - run: python3 tools/run_mutants.py\n": "      # - run: python3 tools/run_mutants.py\n",
         '      - name: the run is on the tag it builds\n': '      - name: the run is on the tag it builds\n        if: false\n',
         '      - name: the tag is annotated and signed with a key the account lists\n':
             '      - name: the tag is annotated and signed with a key the account lists\n        if: false\n',
