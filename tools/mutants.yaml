@@ -537,3 +537,14 @@
     - tests/test_js_parity.py::test_a_difference_between_the_two_is_named_and_not_written_out
   holds:
     - V33-07
+
+- id: mutant-past-its-limit-waited-for
+  file: tools/run_mutants.py
+  find: |-
+    except subprocess.TimeoutExpired:
+  replace: |-
+    except KeyError:
+  test:
+    - tests/test_mutants.py::test_a_row_that_runs_past_its_limit_is_stopped_and_named
+  holds:
+    - V33-08

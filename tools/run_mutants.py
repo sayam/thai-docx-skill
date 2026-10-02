@@ -23,9 +23,10 @@ read.
 
 pytest exit 1 is a kill. Exit 0 is a mutant that survived — the test no longer bites — and the
 run fails. Any other exit (a collection error, a usage error, no test collected), and a test that
-only skipped, is a broken row, and the run fails. A `find` found nowhere or twice, a test or a
-control that does not exist, is a broken row too, named before anything runs. The last line
-counts all of it: total = killed + survived + broken.
+only skipped, is a broken row, and the run fails. So is a row whose compiling or whose tests run
+past TIMEOUT_SECONDS: it is stopped and named, where a job that ran into its own limit would name
+nothing. A `find` found nowhere or twice, a test or a control that does not exist, is a broken row
+too, named before anything runs. The last line counts all of it: total = killed + survived + broken.
 
 Role: decider — exit 0 only when every row is killed.
 """
@@ -62,8 +63,9 @@ NODE_MODULES = pathlib.Path("tests") / "js" / "node_modules"
 NODE = re.compile(r"(tests/[\w/]+\.py)::(test_\w+)")
 SCHEMA = Seq(Map({"id": Str(), "file": Str(), "find": Str(), "replace": Str(), "test": Seq(Str()), "holds": Seq(Str())}))
 PYTEST = [sys.executable, "-B", "-m", "pytest", "-q", "-x", "-p", "no:cacheprovider"]
-# one row's tests, and one rebuild of the bundle; a row that hangs must not eat the job's budget
-TIMEOUT_SECONDS = 600
+# one row's tests, and one rebuild of the bundle: the slowest row takes a minute on a slow machine,
+# and a row that hangs is stopped and named long before the job's own limit
+TIMEOUT_SECONDS = 180
 
 
 @dataclasses.dataclass
@@ -192,13 +194,17 @@ def run(root: pathlib.Path, listed: list[dict], only: str | None = None, say=pri
                     say(f"{outcome.status:<9} {outcome.id:<44} {outcome.seconds:5.1f} s  {row['file']}\n          {outcome.why}")
                     continue
                 path.write_text(path.read_text(encoding="utf-8").replace(row["find"], row["replace"], 1), encoding="utf-8")
-                why = _compiles(copy, row["file"])
-                if why is not None:
-                    outcome = Outcome(row["id"], "broken", time.perf_counter() - began, why)
-                else:
-                    done = subprocess.run(PYTEST + row["test"], cwd=copy, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
-                    status, why = _verdict(done)
-                    outcome = Outcome(row["id"], status, time.perf_counter() - began, why)
+                try:
+                    why = _compiles(copy, row["file"])
+                    if why is not None:
+                        outcome = Outcome(row["id"], "broken", time.perf_counter() - began, why)
+                    else:
+                        done = subprocess.run(PYTEST + row["test"], cwd=copy, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
+                        status, why = _verdict(done)
+                        outcome = Outcome(row["id"], status, time.perf_counter() - began, why)
+                except subprocess.TimeoutExpired:
+                    outcome = Outcome(row["id"], "broken", time.perf_counter() - began,
+                                      f"ran past {TIMEOUT_SECONDS} s and was stopped: a test that does not end shows nothing")
             finally:
                 shutil.rmtree(copy, ignore_errors=True)
         out.append(outcome)
