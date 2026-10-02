@@ -16,7 +16,7 @@ heading-2: font-family: "TH SarabunPSK"; text-decoration: underline double; marg
 
 | property | values |
 |---|---|
-| `font-family` | a font name |
+| `font-family` | a font name, 1 to 64 characters; one longer than the 31 Word reads is cut to those, and a space at either end is left out, with a warning |
 | `font-size` | `1pt`–`400pt` |
 | `color` | `#RRGGBB` |
 | `font-weight` | `bold`, `normal` |

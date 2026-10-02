@@ -143,9 +143,12 @@ The file is written; pass the warnings on. An image with nothing between the bra
 a heading level skipped; a link definition nobody uses; `ำ` typed as `ํ` + `า`; a paragraph that
 opens with `ตาราง:` or `รูป:` where a caption would go — the prefix is `Table:` or `Figure:`, in
 English, in every language; a `Table:` or `Figure:` line where no caption can go; a region comment
-inside a list, quotation or footnote; a font not known to carry Thai; `--toc` beside `<!-- toc -->`;
+inside a list, quotation or footnote; a font not known to carry Thai; a font's name longer than the
+31 characters Word reads, cut to those 31 and less a space it is cut at; a font's name that begins
+or ends with a space, written without it; `--toc` beside `<!-- toc -->`;
 `--toc` with no heading to list; `$…$` math, kept as literal LaTeX; a `--caption-hanging-indent` that leaves a caption boxed by `--caption-matches-object` less than an inch, whose caption then takes the text width; a flag whose
-structure the document has not got; `--thai-language` with no Thai text to reach; and a Thai mark
+structure the document has not got; `--thai-language`, `--table-size`, `--thai-digits` or
+`--heading-numbers` with nothing in the document to reach; and a Thai mark
 with no letter before it, a letter with two tone marks, or two marks that stand in one place.
 
 ## Writing Thai

@@ -1,5 +1,11 @@
 # 2026-09-15 — the checker goes red on legacy generators, and on 16 planted defects
 
+> **Later (2026-10-02):** "a property Word may ignore without error" was not measured, and for a
+> run's properties (`szCs` after `lang`) it is not so: the 2016 schema makes them a choice in any
+> order and Word 365 for Windows uses every one
+> ([record](2026-09-29-a-runs-properties-come-in-any-order.md)). The settings part's order is
+> still a sequence.
+
 What this proves: `thai_docx check` reports the causes of ADR 0004 on files that
 generators without this skill produce (gate `gates-carry-red-evidence`), and each
 of its checks is held by a test that fails when that check is broken (practice

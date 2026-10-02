@@ -23,7 +23,7 @@ Find what you see in the left column.
 
 | you see | why | what to do |
 |---|---|---|
-| a **warning** | the file is made, but something needs a look: a font with no Thai letters, or a setting the document has nothing for ("changed nothing", "reached no table") | read it and change the request if needed |
+| a **warning** | the file is made, but something needs a look: a font with no Thai letters, a font's name longer than 31 characters or with a space at either end (it is cut or trimmed), or a setting the document has nothing for ("changed nothing", "reached no table") | read it and change the request if needed |
 | an **error on line …** | that line of the Markdown has something the skill does not take, such as an HTML tag; no file is made | fix that line and ask again |
 | **findings** | a fault in the skill itself; no file is made | please report it on [Issues](https://github.com/sayam/thai-docx-skill/issues) |
 | an image is refused | it is not PNG or JPEG, it is on the internet, or it is outside the Markdown file's folder | use a PNG or JPEG in that folder, or say which folder it is in |
@@ -39,7 +39,7 @@ Find what you see in the left column.
 
 | you see | why | what to do |
 |---|---|---|
-| Thai text in an odd font | the computer does not have the font in the file | install that font, or ask for a font you have |
+| Thai text in an odd font | the computer does not have the font in the file, or the font's name was longer than 31 characters and the file holds the cut name (the build's warning says so) | install that font, or ask for a font you have; for a long name, ask for the font by the shorter name it is installed under |
 | the table of contents or lists have no page numbers | the fields have not been updated | Word: Ctrl+A, then F9; LibreOffice: Ctrl+Shift+F9; WPS: **References > Update** |
 | in WPS Writer, บทที่ or ภาคผนวก numbers look garbled | seen once on 19 September 2026; it did not happen again on 23 September 2026, and the cause is not known | please [open an issue](https://github.com/sayam/thai-docx-skill/issues) with a screenshot; meanwhile open the file in Word |
 | in WPS Writer, ำ sits over the wrong letter | the file was made with `--thai-language`, and WPS mishandles the Thai language mark it writes | make it again without that flag — then Word takes the language from the machine, which every machine that types Thai has (LibreOffice uses its own setting instead; see below) |

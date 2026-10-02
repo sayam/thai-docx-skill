@@ -68,7 +68,7 @@ Claude จะสร้างไฟล์ให้ กดดาวน์โหล
 - อย่าวางใจว่าไฟล์จะอยู่หลังจบแชต เก็บไฟล์โปรไฟล์ `.json` ที่ผู้ช่วยให้มาไว้เอง
 - ถ้าอัปโหลดไม่ได้ ผู้ดูแลองค์กรอาจปิดสกิลที่ผู้ใช้สร้างเองไว้
 - แพ็กเกจ Team และ Enterprise แบ่งสกิลให้คนอื่นได้ ที่เมนู **⋯ > Share** ของสกิล
-- ที่มา: [Using skills in Claude](https://support.claude.com/en/articles/12512180-using-skills-in-claude),
+- ที่มา: [Using skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude),
   [Create and edit files with Claude](https://support.claude.com/en/articles/12111783-create-and-edit-files-with-claude)
 
 ## Claude Code
@@ -265,7 +265,7 @@ Gemini API key แบบเสียเงิน หรือสิทธิ์�
 
 - cloud agent ทำงานในสำเนาใหม่ของ repository ทุกครั้ง จึงไม่เก็บโปรไฟล์ ยังไม่ได้ลอง
 - ที่มา: [About agent skills](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills),
-  [Agent skills in VS Code](https://code.visualstudio.com/docs/copilot/customization/agent-skills),
+  [Agent skills in VS Code](https://code.visualstudio.com/docs/agent-customization/agent-skills),
   [gh skill install](https://cli.github.com/manual/gh_skill_install)
 
 ## Cursor
@@ -282,7 +282,7 @@ Gemini API key แบบเสียเงิน หรือสิทธิ์�
 **ข้อควรรู้**
 
 - Cloud Agents และการทำงานผ่าน SSH มองไม่เห็นสกิลที่อยู่เฉพาะในเครื่อง
-- ที่มา: [Cursor skills](https://cursor.com/docs/context/skills)
+- ที่มา: [Cursor skills](https://cursor.com/docs/skills)
 
 ## เอเจนต์เขียนโค้ดอื่น ๆ
 
@@ -316,7 +316,7 @@ npx skills add sayam/thai-docx-skill --skill thai-docx -g
 [Goose](https://goose-docs.ai/docs/guides/context-engineering/using-skills/),
 [Amp](https://ampcode.com/docs/customize/skills), [Kiro](https://kiro.dev/docs/skills/),
 [Roo Code](https://roocodeinc.github.io/Roo-Code/features/skills),
-[Cline](https://docs.cline.bot/features/skills),
+[Cline](https://docs.cline.bot/customization/skills),
 [Junie](https://junie.jetbrains.com/docs/agent-skills.html),
 [Devin](https://docs.devin.ai/cli/extensibility/skills/overview),
 [Mistral Vibe](https://docs.mistral.ai/vibe/code/cli/skills)

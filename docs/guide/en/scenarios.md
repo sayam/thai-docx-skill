@@ -142,8 +142,9 @@ line, and does not choose for you. A setting that needs no choice ("add page num
 default, and the assistant says which.
 Ask for something the document has nothing for, such as `--no-repeat-table-header` with no table,
 and the assistant tells you it "changed nothing". A setting that still changes the file there —
-`--table-size` or `--thai-digits` sets a style all the same — is said to have "reached no" table
-or number.
+`--table-size`, `--thai-digits`, `--heading-numbers` or `--thai-language` still writes something
+all the same: a style, a page-number format, a numbering or a language in the styles — is said to
+have "reached no" table, number, heading or run.
 
 ## Scenario 4: give the settings in your first message
 
@@ -438,8 +439,9 @@ does not work.
 
 The skill can repair most of the faults with `repair` at the command line, including the marks
 every Thai run needs, and the compatibility mode when the file declares one; a split word and
-invisible characters are reported instead, because fixing either would change your text. If you have the content, making a new file with scenario 1
-or 2 fixes everything.
+invisible characters are reported instead, because fixing either would change your text. A repair
+is written as a new file beside yours, and the assistant tells you its name; the file you gave is
+never changed. If you have the content, making a new file with scenario 1 or 2 fixes everything.
 
 ## Scenario 14: you have an example already, and want one like it
 

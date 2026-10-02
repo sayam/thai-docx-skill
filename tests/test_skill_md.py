@@ -525,7 +525,8 @@ def test_a_font_the_user_names_is_built_not_asked_about():
     profiles = " ".join((refs / "profiles.md").read_text(encoding="utf-8").split())
     assert ("cut to those 31 and less a space it is cut at; a font's name that begins or ends with a space,"
             " written without it") in limits
-    assert "writes it without a space at either end and cut to those 31, and names what it wrote" in profiles
+    assert ("writes it without a space at either end and cut to those 31, and names, under `--font`,"
+            " the name given and the name it wrote") in profiles
 
 
 def test_a_repaired_file_stays_beside_the_users():
