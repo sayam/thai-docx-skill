@@ -8,6 +8,7 @@ file. The committed bundle is the one the sources build.
 
 from __future__ import annotations
 
+import ast
 import base64
 import os
 import pathlib
@@ -43,6 +44,35 @@ def _first_difference(py: list, js: list, inputs: list) -> str:
         if a != b:
             return f"case {i}: input {inputs[i]!r:.300}\n python: {str(a):.600}\n     js: {str(b):.600}"
     return f"lengths differ: {len(py)} and {len(js)}"
+
+
+def _same(py: list, js: list, inputs: list) -> None:
+    """Fail on the first case that differs, by name. Not `assert py == js`: where CI is set pytest
+    writes out the whole difference of the two lists — hundreds of packages in base64 — and one
+    failure of the build's parity took eight minutes on a runner, past the job's limit, before a
+    word of it was shown."""
+    if py != js:
+        pytest.fail(_first_difference(py, js, inputs))
+
+
+def test_a_difference_between_the_two_is_named_and_not_written_out():
+    """`_same` names the first case that differs and passes two lists that are equal, and it is
+    the one place a list of results from both implementations is compared: a test that asserts
+    the two lists equal hands pytest both of them to write out."""
+    package = base64.b64encode(bytes(range(256)) * 400).decode()
+    py = [{"n": i, "bytes": package} for i in range(40)]
+    js = [dict(row) for row in py]
+    _same(py, js, list(range(40)))
+    js[3]["n"] = -1
+    with pytest.raises(pytest.fail.Exception, match=r"^case 3: input 3\n python: \{'n': 3, .*\n     js: \{'n': -1, ") as caught:
+        _same(py, js, list(range(40)))
+    assert len(str(caught.value)) < 1500
+    with pytest.raises(pytest.fail.Exception, match=r"^lengths differ: 40 and 39$"):
+        _same(py, py[:39], list(range(40)))
+    tree = ast.parse(pathlib.Path(__file__).read_text(encoding="utf-8"))
+    callers = [f.name for f in tree.body if isinstance(f, ast.FunctionDef)
+               for node in ast.walk(f) if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "_first_difference"]
+    assert callers == ["_same"], "a list of results is compared through _same, which names one case"
 
 
 # --- the bundle ------------------------------------------------------------------
@@ -95,14 +125,14 @@ def test_markdown_is_read_the_same():
     texts = parity.markdown_texts(0, 1500)  # CommonMark, GFM and wide-Unicode text
     js = parity.run_js({"op": "ast", "texts": texts})
     py = [parity.py_ast(t) for t in texts]
-    assert py == js, _first_difference(py, js, texts)
+    _same(py, js, texts)
 
 
 def test_build_gives_the_same_result_and_bytes():
     cases = parity.build_cases(0, 400)
     js = parity.run_js(parity.js_build_request(cases))
     py = [parity.py_build(c) for c in cases]
-    assert py == js, _first_difference(py, js, cases)
+    _same(py, js, cases)
     assert sum(1 for r in py if r["bytes"]) > 150, "too few cases got as far as writing a package"
 
 
@@ -110,7 +140,7 @@ def test_check_gives_the_same_report():
     corpus = parity.package_corpus(0, 1500)
     js = parity.run_js({"op": "check", "packages": [base64.b64encode(p).decode() for p in corpus]})
     py = [parity.py_check(p) for p in corpus]
-    assert py == js, _first_difference(py, js, [p[:80] for p in corpus])
+    _same(py, js, [p[:80] for p in corpus])
     messages = {f["message"] for r in py for f in r["findings"][:1]}
     for expected in ("not a zip package", "entry cannot be read (corrupt data or checksum)", "entry name appears more than once",
                      "XML is not well-formed", "XML part is not UTF-8"):
@@ -141,7 +171,7 @@ def test_sara_am_written_the_long_way_is_read_the_same():
     ]
     js = parity.run_js({"op": "ast", "texts": texts})
     py = [parity.py_ast(t) for t in texts]
-    assert py == js, _first_difference(py, js, texts)
+    _same(py, js, texts)
     # the last two are a ํ with no letter before it, which is named since B-10
     assert [len(r["warnings"]) for r in py] == [1, 0, 1, 3, 1, 1, 1, 1]
 
@@ -161,12 +191,12 @@ def test_deep_nesting_is_read_or_refused_the_same_way():
         ]
     js = parity.run_js({"op": "ast", "texts": texts})
     py = [parity.py_ast(t) for t in texts]
-    assert py == js, _first_difference(py, js, texts)
+    _same(py, js, texts)
     assert {r.get("error", "read") for r in py} == {"read", f"blocks nested more than {limit} deep are not supported",
                                                     f"inline formatting nested more than {limit} deep is not supported"}
     cases = [{"text": t, "args": []} for t in texts]
     built = parity.run_js(parity.js_build_request(cases))
-    assert [parity.py_build(c) for c in cases] == built
+    _same([parity.py_build(c) for c in cases], built, cases)
 
 
 # --- the command line ----------------------------------------------------------------
