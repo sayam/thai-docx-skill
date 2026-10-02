@@ -1477,3 +1477,17 @@
   found_by: review
   test:
     - tests/test_what_a_command_takes.py::test_a_tab_or_a_line_break_in_repairs_font_is_read_back_as_given
+
+- id: V33-10
+  what: the warning for a font's name cut to 31 characters showed the name given whole, to 64, so a sentence in a profile's font or a heading style's font-family reached the reader of the JSON
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_the_name_given_is_shown_no_longer_than_a_fonts_name_is
+
+- id: V33-11
+  what: on a font's name longer than 31 characters, a space other than U+0020 taken off either end or off the end the name was cut at was shown as "?" or not at all, and not named by its code point
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_space_taken_off_a_long_font_name_is_named_by_its_code_point

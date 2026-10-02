@@ -35,6 +35,15 @@ before two applications were read; the exception and what is owed are in
   those spaces, and a warning names the name given, the name written, and any space but U+0020 by its
   code point. A name of spaces alone is refused, like an empty one
   (`tests/test_what_a_command_takes.py::test_a_font_name_is_written_without_a_space_at_either_end`).
+- The warning for a font's name cut to 31 characters showed the name given whole, to 64 characters:
+  a sentence put in a profile's `font` or in a heading style's `font-family` reached whoever reads
+  the JSON, where `check` shows 31 characters of a name it reads from a file. The name given is now
+  shown as far as a font's name goes, then `…`
+  (`tests/test_what_a_command_takes.py::test_the_name_given_is_shown_no_longer_than_a_fonts_name_is`).
+- On a font's name longer than 31 characters, a space other than U+0020 taken off either end, or
+  off the end the name was cut at, was shown as `?` or not at all. The warning names it by its code
+  point, as it does on a shorter name
+  (`tests/test_what_a_command_takes.py::test_a_space_taken_off_a_long_font_name_is_named_by_its_code_point`).
 - `repair --font` wrote a tab and a line break in the name as they are, which a reader of XML hands
   back as spaces, so the name read from the repaired file was not the name given; the build writes
   `&#9;` and `&#10;`. `repair` now escapes the name with what escapes the build's

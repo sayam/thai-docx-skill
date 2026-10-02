@@ -262,16 +262,25 @@ def font_cut(name: str) -> str | None:
 def font_cut_said(what: str, name: str, kept: str) -> str:
     """The warning for a font's name the build changed: the name given, the name written, and
     what the user gets from it — the font only when one is installed under the name written."""
-    if len(name.strip(FONT_SPACES)) <= FONT_MAX:
-        # quoted() shows a space other than U+0020 as "?": such a space is named, or the name
-        # shown would not begin or end with the space the warning speaks of
-        ends = name[:len(name) - len(name.lstrip(FONT_SPACES))] + name[len(name.rstrip(FONT_SPACES)):]
-        named = list(dict.fromkeys("U+%04X" % ord(c) for c in ends if c != " "))
-        return (what + " '" + quoted(name) + "' begins or ends with a space" + (" (" + ", ".join(named) + ")" if named else "")
+    # quoted() shows a space other than U+0020 as "?": such a space is named where one was taken
+    # off, or the name shown would not begin or end with the space the warning speaks of
+    def named(spaces: str) -> str:
+        codes = list(dict.fromkeys("U+%04X" % ord(c) for c in spaces if c != " "))
+        return " (" + ", ".join(codes) + ")" if codes else ""
+    ends = name[:len(name) - len(name.lstrip(FONT_SPACES))] + name[len(name.rstrip(FONT_SPACES)):]
+    inner = name.strip(FONT_SPACES)
+    if len(inner) <= FONT_MAX:
+        return (what + " '" + quoted(name) + "' begins or ends with a space" + named(ends)
                 + ", which no font's name does, so the document names '" + quoted(kept) + "'")
-    return (what + " '" + quoted(name) + "' is longer than the " + str(FONT_MAX) + " characters Word reads of a"
-            " font's name, so the document names '" + quoted(kept) + "': Word uses a font only if one is"
-            " installed under exactly that name, and shows another font if none is")
+    # the name given is shown as far as a font's name goes, like one check reads from a file: a
+    # sentence put in a profile's font does not reach the reader of the JSON whole (V31-04)
+    # the spaces taken off: at either end of the name given, and at the end of the 31 kept
+    cut = inner[:FONT_MAX]
+    off = named(ends + cut[len(cut.rstrip(FONT_SPACES)):])
+    return (what + " '" + quoted(name, FONT_MAX) + "' is longer than the " + str(FONT_MAX) + " characters Word reads of a"
+            " font's name, so the document names '" + quoted(kept) + "'"
+            + (", without a space" + off + " at either end" if off else "")
+            + ": Word uses a font only if one is installed under exactly that name, and shows another font if none is")
 
 
 def half_up(x: float) -> int:
