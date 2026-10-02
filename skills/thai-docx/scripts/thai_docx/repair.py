@@ -37,7 +37,7 @@ from . import package
 from . import settings as st
 from .ooxml import is_complex, is_thai
 from .fidelity import paragraphs
-from .writer import script_runs
+from .writer import attr, script_runs
 
 USAGE = ('usage: thai_docx repair IN.docx OUT.docx [--font "TH Sarabun New"] [--thai-language]'
          " [--force-cs-whole-doc]")
@@ -530,11 +530,11 @@ def complex_script_font(parts: dict[str, bytes], asked: str | None) -> tuple[byt
         # what Word reads of the name, as the build writes it — said where it is written
         kept = st.font_cut(asked)
         why = "the font the command was given" if kept is None else st.font_cut_said("the font the command was given", asked, kept)
-        # an attribute value, escaped where it is written; a font found in the document below
-        # is taken from an attribute already
+        # an attribute value, escaped where it is written and by what escapes the build's — a tab
+        # or a line break written as it is comes back from a reader of XML as a space; a font
+        # found in the document below is taken from an attribute already
         asked = asked if kept is None else kept
-        escaped = asked.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
-        return escaped.encode("utf-8"), why
+        return attr(asked)[1:-1].encode("utf-8"), why
     counted: dict[bytes, int] = {}
     for name, xml in parts.items():
         # the XML parts only: an image or a font holds no run properties, and reading one as

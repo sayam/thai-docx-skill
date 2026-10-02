@@ -55,6 +55,9 @@ Left out on purpose:
   mutant is written on `repair`; `V31-12` was a fault in a test's own ceiling, and the test now
   measures a ratio, which no change to the code can show.
 
+  > **Later (2026-10-02):** a mutant is written on `repair` too, from `V33-09` on: a fix there is
+  > shown red again like any other. `V31-02` and `V31-07` have none yet.
+
 ## Why
 
 ADR 0041 puts a test above a rule because the suite reads the test on every change. A test shown

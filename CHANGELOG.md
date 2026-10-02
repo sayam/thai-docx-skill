@@ -35,6 +35,10 @@ before two applications were read; the exception and what is owed are in
   those spaces, and a warning names the name given, the name written, and any space but U+0020 by its
   code point. A name of spaces alone is refused, like an empty one
   (`tests/test_what_a_command_takes.py::test_a_font_name_is_written_without_a_space_at_either_end`).
+- `repair --font` wrote a tab and a line break in the name as they are, which a reader of XML hands
+  back as spaces, so the name read from the repaired file was not the name given; the build writes
+  `&#9;` and `&#10;`. `repair` now escapes the name with what escapes the build's
+  (`tests/test_what_a_command_takes.py::test_a_tab_or_a_line_break_in_repairs_font_is_read_back_as_given`).
 
 ## [0.3.2] - 2026-09-30
 
