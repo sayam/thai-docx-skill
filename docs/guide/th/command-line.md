@@ -63,7 +63,9 @@
    | 1 | `"findings"` | ข้อบกพร่องของสกิลเอง ยังไม่สร้างไฟล์ โปรด[แจ้งที่หน้า Issues](https://github.com/sayam/thai-docx-skill/issues) |
 
    `"warnings"` (คำเตือน) ไม่หยุดการสร้างไฟล์ แต่ควรอ่าน เช่น ฟอนต์ไม่มีตัวอักษรไทย
-   หรือการตั้งค่าที่เอกสารไม่มีอะไรให้ใช้ ("changed nothing" หรือ "reached no" ตาราง เลข หัวข้อ)
+   ชื่อฟอนต์ที่ Word ใช้ตามที่พิมพ์ไม่ได้ (Word อ่านชื่อฟอนต์ 31 ตัวอักษร และไม่รับช่องว่างหน้าหรือหลังชื่อ
+   ไฟล์จึงเขียนชื่อที่ตัดแล้ว และคำเตือนบอกว่าให้ชื่ออะไรมา เขียนลงไฟล์ว่าอะไร)
+   หรือการตั้งค่าที่เอกสารไม่มีอะไรให้ใช้ ("changed nothing" หรือ "reached no" ตาราง เลข หัวข้อ หรือ run)
 
    **ระวัง:** `build` เขียนทับ `report.docx` ที่มีอยู่แล้วโดยไม่ถาม หากต้องการเก็บไฟล์เดิม ให้ใช้ชื่อใหม่
 
@@ -148,7 +150,7 @@ python3 thai-docx/scripts/thai_docx check report.docx
 exit code 0: ไม่มีปัญหา 1: มีปัญหา อยู่ใน `"findings"` เป็นรหัส 2: ไม่ใช่ไฟล์ Word ที่อ่านได้ หรือไม่ปลอดภัย
 ความหมายของแต่ละรหัส:
 [references/check.md](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/check.md)
-คำสั่งนี้รายงานอย่างเดียว หากต้องการซ่อมไฟล์ที่ไม่มีเนื้อหาต้นฉบับแล้ว
+คำสั่งนี้รายงานอย่างเดียว หากต้องการซ่อมไฟล์ที่ไม่มีเนื้อหาต้นฉบับให้สร้างใหม่ ใช้คำสั่งนี้
 
 ```text
 python3 thai-docx/scripts/thai_docx repair theirs.docx theirs-fixed.docx
@@ -158,7 +160,7 @@ python3 thai-docx/scripts/thai_docx repair theirs.docx theirs-fixed.docx
 คุณสมบัติคู่สำหรับอักษรซับซ้อน (complex script) ลำดับคุณสมบัติที่ผิด และโหมดความเข้ากันได้ในกรณีที่ไฟล์ประกาศโหมดไว้
 ไฟล์ที่ไม่ได้ประกาศโหมดจะถูกปล่อยไว้ตามเดิม และโหมดจะยังอยู่ใน `"remaining"` ส่วนคำที่ถูกแยกเป็นสองช่วง
 กับอักขระที่มองไม่เห็น ก็แจ้งไว้ในนั้นเช่นกัน เพราะการแก้สองข้อนั้นต้องแตะข้อความ
-รายงานจะบอกด้วยว่าเขียนฟอนต์อะไรลงไปในที่ที่ไม่ได้ระบุไว้ หากต้องการเลือกเอง ใช้ `--font "Sarabun"`
+รายงานจะบอกด้วยว่าเขียนฟอนต์อะไรลงไปในที่ที่ไม่ได้ระบุไว้ หากต้องการเลือกเอง ใส่ `--font "Sarabun"` ต่อท้ายชื่อไฟล์สองชื่อ
 
 การตั้งโหมดความเข้ากันได้ทำให้เอกสารจัดหน้าใหม่ ตัวแบ่งหน้าอาจเลื่อน ตรวจดูก่อนส่งต่อ
 ไฟล์ใหม่จะมีขนาดใกล้เคียงไฟล์เดิม ถ้ามีไฟล์ Markdown ต้นฉบับ การสร้างใหม่แก้ได้ครบกว่า
@@ -177,6 +179,7 @@ python3 thai-docx/scripts/thai_docx grill --said "thai-docx grill ช่วย�
 ## ในหน้าเว็บหรือ sandbox
 
 `thai-docx/scripts/thai_docx.js` รันได้แม้ไม่มี Node.js ใน sandbox JavaScript ที่มี `TextEncoder` และ `TextDecoder`
-`ThaiDocx.buildDocument(markdown, flags, images)` คืน `{ result, bytes }` โดย `bytes` คือไฟล์ Word
+`ThaiDocx.buildDocument(markdown, flags, images)` (`flags` เป็นอาร์เรย์ เช่น `["--toc"]` และ `images` เป็นอ็อบเจ็กต์จากที่อยู่ไฟล์ไปเป็นไบต์)
+คืน `{ result, bytes }` โดย `bytes` คือไฟล์ Word
 หรือเป็น `null` ถ้าสร้างไม่ได้
 ดู [references/sandbox.md](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/sandbox.md)

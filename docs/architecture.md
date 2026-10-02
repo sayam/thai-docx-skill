@@ -38,10 +38,10 @@ else in the repository is needed at run time ([ADR 0002](adr/0002-one-public-rep
 | file system | the Markdown file's tree, `--allow-dir` directories, `~/.thai-docx/profiles/`, `./.thai-docx/profiles/`, the output path |
 | office application (Word, LibreOffice, Google Docs, WPS) | opens the .docx; updates fields when the reader asks |
 | contributor and maintainer | propose, review and merge changes through pull requests held to the gates (`scans`, `commits`, `tests`, `lint`, `deps`, `pr-description`, `tests-newest`, and CodeQL's code-scanning results) |
-| CI (`gates.yml`) | runs scans, commit lint, the suite under coverage, lint and the dependency check (`deps`, OSV-Scanner) on every push and pull request, and the suite again on the newest runtimes promised (`tests-newest`) |
+| CI (`gates.yml`) | runs scans, commit lint (the message and the author), the suite under coverage and then every mutant of `tools/mutants.yaml`, lint and the dependency check (`deps`, OSV-Scanner) on every push and pull request, and the suite again on the newest runtimes promised (`tests-newest`) |
 | code scanning (`codeql.yml`) | CodeQL's security-extended queries for Python, JavaScript and workflows, on every pull request, every push to `main` and weekly |
 | project score (`scorecard.yml`) | OpenSSF Scorecard on `main`, published for the README badge |
-| release workflow (`release.yml`) | re-checks the tag, packs the skill folder, attests it with GitHub's OIDC identity (Sigstore), verifies, attaches |
+| release workflow (`release.yml`) | re-checks the tag and runs the gates and the mutants on it, packs the skill folder, attests it with GitHub's OIDC identity (Sigstore), verifies, attaches |
 | Zenodo | archives the source of each release and assigns a DOI |
 
 The JavaScript file `scripts/thai_docx.js` is generated but committed: clients load the skill folder

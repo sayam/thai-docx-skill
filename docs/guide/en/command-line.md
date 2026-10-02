@@ -63,8 +63,11 @@ replace `python3` with `py`.
    | 2 | `"error"`, often with `"line"` | the Markdown has something the build does not take, on that line; no file is made |
    | 1 | `"findings"` | a fault in the skill; no file is made. Please [report it](https://github.com/sayam/thai-docx-skill/issues) |
 
-   `"warnings"` never stop the build, but read them: a font with no Thai letters, or a setting
-   the document has nothing for (it "changed nothing", or "reached no" table, number or heading).
+   `"warnings"` never stop the build, but read them: a font with no Thai letters; a font's name
+   Word cannot use as typed (Word reads 31 characters and no space at either end, so the file
+   names the cut name, and the warning says what you gave and what was written); or a setting
+   the document has nothing for (it "changed nothing", or "reached no" table, number, heading or
+   run).
 
    **Careful:** `build` replaces `report.docx` if it already exists, without asking. Use a new
    name to keep the old file.
@@ -163,7 +166,7 @@ every Thai run needs, proofing switched off, the complex-script twins, propertie
 order, and the compatibility mode when the file declares one. A file that declares no mode is
 left so, and the mode stays under `"remaining"`. A word split across two runs and invisible
 characters are listed there too, because fixing either would change the text. The report also names the font it wrote where a run named none;
-`--font "Sarabun"` chooses it yourself.
+add `--font "Sarabun"` after the two file names to choose it yourself.
 
 Setting the compatibility mode reflows the document, so page breaks can move: look through it
 before you send it on. The new file is about the size of the old one. When you have the Markdown, rebuilding fixes
@@ -183,6 +186,7 @@ can pass those flags straight to `build`.
 ## In a web page or a sandbox
 
 `thai-docx/scripts/thai_docx.js` also runs with no Node.js, in a JavaScript sandbox that has
-`TextEncoder` and `TextDecoder`: `ThaiDocx.buildDocument(markdown, flags, images)` returns
+`TextEncoder` and `TextDecoder`: `ThaiDocx.buildDocument(markdown, flags, images)`, where `flags`
+is an array such as `["--toc"]` and `images` an object from path to bytes, returns
 `{ result, bytes }`, where `bytes` is the Word file, or `null` when the build refused.
 See [references/sandbox.md](https://github.com/sayam/thai-docx-skill/blob/main/skills/thai-docx/references/sandbox.md).

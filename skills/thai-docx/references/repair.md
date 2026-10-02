@@ -35,7 +35,9 @@ is left as it came, with a `left` warning, and its findings stay in `remaining`.
 written under a prefix other than `w:` is refused.
 
 **The font.** A run whose `w:rFonts` names a Latin font and no complex-script one is given one,
-and so is a Symbol bullet: what `--font` says, else the complex-script font the document already
+and so is a Symbol bullet: what `--font` says — without a space at either end and cut to the 31
+characters Word reads, as the build writes it, which the `font` warning then says — else the
+complex-script font the document already
 uses most — counting only fonts known to carry Thai — else this skill's own default. When one was
 written, the choice comes back in `warnings` as `font`; read it out to the user. A second `font` warning is the checker's, on the file as written: a complex-script font there that is not known to carry Thai glyphs — read that out too, as it says. A run with no
 `w:rFonts` is given none.

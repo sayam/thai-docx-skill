@@ -29,7 +29,7 @@ A build with `--profile` says nothing of a setting the profile gave that the doc
 for — "changed nothing" and "reached no" are said of a flag typed after the profile only, as the
 user asked for it. A profile's `font` longer than the 31 characters Word reads, or beginning or
 ending with a space, is said either way: the build writes it without a space at either end and cut
-to those 31, and names what it wrote.
+to those 31, and names, under `--font`, the name given and the name it wrote.
 
 ## What to tell the user
 

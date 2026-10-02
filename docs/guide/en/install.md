@@ -72,7 +72,7 @@ Claude makes the file. Download it from the chat.
 - Do not count on files lasting after the chat. Keep any profile `.json` file the assistant gives you.
 - If you cannot upload, an owner of your organization may have turned off skills you make yourself.
 - On Team and Enterprise, you can share the skill with others: **⋯ > Share** on the skill.
-- Sources: [Using skills in Claude](https://support.claude.com/en/articles/12512180-using-skills-in-claude),
+- Sources: [Using skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude),
   [Create and edit files with Claude](https://support.claude.com/en/articles/12111783-create-and-edit-files-with-claude).
 
 ## Claude Code
@@ -277,7 +277,7 @@ Copilot asks.
 - The cloud agent works in a fresh copy of your repository each time, so profiles are not kept.
   Not tried yet.
 - Sources: [About agent skills](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills),
-  [Agent skills in VS Code](https://code.visualstudio.com/docs/copilot/customization/agent-skills),
+  [Agent skills in VS Code](https://code.visualstudio.com/docs/agent-customization/agent-skills),
   [gh skill install](https://cli.github.com/manual/gh_skill_install).
 
 ## Cursor
@@ -294,7 +294,7 @@ In Agent, type a request, or start it with `/thai-docx`. Allow the terminal comm
 **Good to know**
 
 - Cloud Agents and remote (SSH) sessions do not see skills that exist only on your computer.
-- Source: [Cursor skills](https://cursor.com/docs/context/skills).
+- Source: [Cursor skills](https://cursor.com/docs/skills).
 
 ## Other coding agents
 
@@ -328,7 +328,7 @@ Sources: [agentskills.io clients](https://agentskills.io/clients),
 [Goose](https://goose-docs.ai/docs/guides/context-engineering/using-skills/),
 [Amp](https://ampcode.com/docs/customize/skills), [Kiro](https://kiro.dev/docs/skills/),
 [Roo Code](https://roocodeinc.github.io/Roo-Code/features/skills),
-[Cline](https://docs.cline.bot/features/skills),
+[Cline](https://docs.cline.bot/customization/skills),
 [Junie](https://junie.jetbrains.com/docs/agent-skills.html),
 [Devin](https://docs.devin.ai/cli/extensibility/skills/overview),
 [Mistral Vibe](https://docs.mistral.ai/vibe/code/cli/skills).
