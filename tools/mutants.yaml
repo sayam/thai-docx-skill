@@ -526,3 +526,14 @@
     - tests/test_commit_authors.py::test_a_commit_written_under_an_address_that_did_not_sign_is_named
   holds:
     - V33-05
+
+- id: parity-lists-asserted-equal
+  file: tests/test_js_parity.py
+  find: |-
+    _same(py, js, cases)
+  replace: |-
+    assert py == js, _first_difference(py, js, cases)
+  test:
+    - tests/test_js_parity.py::test_a_difference_between_the_two_is_named_and_not_written_out
+  holds:
+    - V33-07

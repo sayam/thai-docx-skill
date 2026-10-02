@@ -1456,3 +1456,10 @@
   test:
     - tests/test_mutants.py::test_every_row_of_the_list_is_well_formed
     - tests/test_mutants.py::test_the_list_runs_on_every_pull_request_and_at_the_tag
+
+- id: V33-07
+  what: where CI is set, a difference between the two implementations was not shown — the test asserted two lists of 400 builds equal, pytest wrote out the whole difference of both, and eight minutes later the job ran into its limit with no case named
+  class: C1
+  found_by: planted-input
+  test:
+    - tests/test_js_parity.py::test_a_difference_between_the_two_is_named_and_not_written_out
