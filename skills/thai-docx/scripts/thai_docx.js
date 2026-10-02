@@ -4075,20 +4075,27 @@ function fontCut(name) {
 
 function fontCutSaid(what, name, kept) {
   const chars = [...name];
-  if (fontStripped(chars).length <= FONT_MAX) {
-    // quoted() shows a space other than U+0020 as "?": such a space is named (settings.py says why)
-    let a = 0;
-    let b = chars.length;
-    while (a < b && FONT_SPACES.includes(chars[a])) a += 1;
-    while (b > a && FONT_SPACES.includes(chars[b - 1])) b -= 1;
-    const named = [...new Set(chars.slice(0, a).concat(chars.slice(b)).filter((c) => c !== " ")
+  // quoted() shows a space other than U+0020 as "?": such a space is named (settings.py says why)
+  const named = (spaces) => {
+    const codes = [...new Set(spaces.filter((c) => c !== " ")
       .map((c) => "U+" + c.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")))];
-    return what + " '" + quoted(name) + "' begins or ends with a space" + (named.length ? " (" + named.join(", ") + ")" : "") +
+    return codes.length ? " (" + codes.join(", ") + ")" : "";
+  };
+  let a = 0;
+  let b = chars.length;
+  while (a < b && FONT_SPACES.includes(chars[a])) a += 1;
+  while (b > a && FONT_SPACES.includes(chars[b - 1])) b -= 1;
+  if (b - a <= FONT_MAX) {
+    return what + " '" + quoted(name) + "' begins or ends with a space" + named(chars.slice(0, a).concat(chars.slice(b))) +
       ", which no font's name does, so the document names '" + quoted(kept) + "'";
   }
-  return what + " '" + quoted(name) + "' is longer than the " + FONT_MAX + " characters Word reads of a" +
-    " font's name, so the document names '" + quoted(kept) + "': Word uses a font only if one is" +
-    " installed under exactly that name, and shows another font if none is";
+  // the name given is shown as far as a font's name goes (settings.py says why)
+  const cut = chars.slice(a, a + FONT_MAX);
+  const off = named(chars.slice(0, a).concat(chars.slice(b), cut.slice(fontStripped(cut).length)));
+  return what + " '" + quotedTo(name, FONT_MAX) + "' is longer than the " + FONT_MAX + " characters Word reads of a" +
+    " font's name, so the document names '" + quoted(kept) + "'" +
+    (off ? ", without a space" + off + " at either end" : "") +
+    ": Word uses a font only if one is installed under exactly that name, and shows another font if none is";
 }
 
 function halfUp(x) {

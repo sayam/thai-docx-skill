@@ -559,3 +559,25 @@
     - tests/test_what_a_command_takes.py::test_a_tab_or_a_line_break_in_repairs_font_is_read_back_as_given
   holds:
     - V33-09
+
+- id: font-warning-shows-the-name-given-whole
+  file: skills/thai-docx/scripts/thai_docx/settings.py
+  find: |-
+    quoted(name, FONT_MAX) + "' is longer than the "
+  replace: |-
+    quoted(name) + "' is longer than the "
+  test:
+    - tests/test_what_a_command_takes.py::test_the_name_given_is_shown_no_longer_than_a_fonts_name_is
+  holds:
+    - V33-10
+
+- id: long-font-name-leaves-its-space-unnamed
+  file: skills/thai-docx/scripts/thai_docx/settings.py
+  find: |-
+    off = named(ends + cut[len(cut.rstrip(FONT_SPACES)):])
+  replace: |-
+    off = ""
+  test:
+    - tests/test_what_a_command_takes.py::test_a_space_taken_off_a_long_font_name_is_named_by_its_code_point
+  holds:
+    - V33-11
