@@ -221,6 +221,34 @@ def test_the_font_given_to_repair_is_read_like_the_builds_and_escaped(tmp_path):
     assert not (tmp_path / "long.docx").exists()
 
 
+def test_a_tab_or_a_line_break_in_repairs_font_is_read_back_as_given(tmp_path):
+    """repair escaped `& < > "` of the font it was given and wrote a tab and a line break as they
+    are, which a reader of XML hands back as spaces: "A<tab>B<line break>C" was read back as
+    "A B C", where the build writes `&#9;` and `&#10;` and is read back as given (the review of
+    0.3.3, D-01). repair now escapes the name with what escapes the build's."""
+    from xml.etree import ElementTree as ET
+    given = "A\tB\nC"
+    cs = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}cs"
+    parts = replaced(good(), "word/styles.xml", ' w:cs="TH Sarabun New" w:eastAsia="TH Sarabun New"/>',
+                     ' w:eastAsia="TH Sarabun New"/>')
+    (tmp_path / "in.docx").write_bytes(pack(parts))
+    (tmp_path / "in.md").write_text("# หัวเรื่อง\n\nเนื้อความ\n", encoding="utf-8")
+    written = {}
+    for name, cli in (("python", PY), ("js", JS)):
+        for command, source in (("repair", "in.docx"), ("build", "in.md")):
+            out = name + "-" + command + ".docx"
+            code, result = one(cli, [command, source, out, "--font", given], tmp_path)
+            assert code == 0 and result["ok"], (name, command, result)
+            with zipfile.ZipFile(tmp_path / out) as z:
+                styles = z.read("word/styles.xml").decode("utf-8")
+            assert 'w:cs="A&#9;B&#10;C"' in styles, (name, command)
+            read = {e.get(cs) for e in ET.fromstring(styles).iter() if e.get(cs, "").startswith("A")}
+            assert read == {given}, (name, command, read)
+            written[name, command] = (tmp_path / out).read_bytes()
+    assert written["python", "repair"] == written["js", "repair"]
+    assert written["python", "build"] == written["js", "build"]
+
+
 def test_a_font_name_longer_than_word_reads_is_cut_to_what_it_reads_and_said(tmp_path):
     """Word reads 31 characters of a font's name, and the build took 64: a longer name reached
     the document whole, naming no font Word uses (the review of 0.3.1, A-04 and C-08). Each way a

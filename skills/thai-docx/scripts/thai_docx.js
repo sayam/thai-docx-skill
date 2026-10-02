@@ -6731,10 +6731,10 @@ function complexScriptFont(parts, asked) {
     // what Word reads of the name, as the build writes it — said where it is written
     const kept = fontCut(asked);
     const why = kept === null ? "the font the command was given" : fontCutSaid("the font the command was given", asked, kept);
-    // an attribute value, escaped where it is written; a font found in the document below is
-    // taken from an attribute already
+    // an attribute value, escaped where it is written and by what escapes the build's
+    // (repair.py says why); a font found in the document below is taken from an attribute already
     if (kept !== null) asked = kept;
-    return [asked.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"), why];
+    return [attr(asked).slice(1, -1), why];
   }
   const counted = new Map();
   for (const [name, bytes] of parts) {
