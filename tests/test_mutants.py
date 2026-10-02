@@ -8,8 +8,8 @@ under it, passed every gate green. `tools/mutants.yaml` writes each showing down
 `tools/run_mutants.py` makes it on every pull request and at the tag. This holds the list to its
 shape before that run reads it, holds the two workflows to running it, and plants on a small tree
 each defect the runner must name: a mutant that survives, a change found nowhere or twice, one that
-does not compile, a test that is not there or did not run, a control that is not there, a file git
-does not track.
+does not compile, a test that is not there or did not run, a test that does not end, a control
+that is not there, a file git does not track.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from __future__ import annotations
 import pathlib
 import subprocess
 import sys
+import time
 
 import yaml
 
@@ -71,7 +72,8 @@ def tree(tmp_path: pathlib.Path) -> pathlib.Path:
         "def test_cap():\n    assert limits.CAP == 40\n\n"
         "def test_other():\n    assert limits.OTHER == 1\n\n"
         "def test_data():\n    assert json.loads((pathlib.Path(__file__).parent.parent / 'pkg' / 'data.json').read_text())['cap'] == 40\n\n"
-        "def test_skipped():\n    pytest.skip('not here')\n",
+        "def test_skipped():\n    pytest.skip('not here')\n\n"
+        "def test_ends():\n    import time\n    time.sleep(0 if limits.CAP == 40 else 60)\n",
         encoding="utf-8")
     (root / "tests" / "regressions.yaml").write_text(
         "- id: L-1\n  what: x\n  class: C1\n  found_by: review\n  test:\n    - tests/test_limits.py::test_cap\n", encoding="utf-8")
@@ -136,6 +138,19 @@ def test_each_defect_of_a_row_or_of_the_runner_is_named(tmp_path):
     assert (root / "pkg" / "limits.py").read_text(encoding="utf-8") == "CAP = 40\nOTHER = 1\nOTHER = 1\n"
     status = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True, text=True, check=True).stdout
     assert status.splitlines() and all(line.startswith(("A  ", "?? ")) for line in status.splitlines()), status
+
+
+def test_a_row_that_runs_past_its_limit_is_stopped_and_named(tmp_path, monkeypatch):
+    """A test that does not end on the mutant is not a kill, and waiting for it names nothing: on a
+    runner one row took eight minutes, the job ran into its limit, and no line said which row. The
+    row is stopped at the runner's own limit and named, and the rows after it still run."""
+    root = tree(tmp_path)
+    monkeypatch.setattr(rm, "TIMEOUT_SECONDS", 10)
+    began = time.perf_counter()
+    outcomes = rm.run(root, [row("never-ends", test="tests/test_limits.py::test_ends"), row("killed")], say=lambda line: None)
+    assert [(o.id, o.status) for o in outcomes] == [("never-ends", "broken"), ("killed", "killed")]
+    assert outcomes[0].why == "ran past 10 s and was stopped: a test that does not end shows nothing"
+    assert time.perf_counter() - began < 45, "the row was waited for, not stopped"
 
 
 def test_the_command_counts_everything_and_passes_only_when_every_mutant_is_killed(tmp_path, capsys):

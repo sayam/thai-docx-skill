@@ -24,8 +24,8 @@ written as the text to find — in that file exactly once — and the text to pu
 test that must fail on it, and the ledger row or gate the mutant holds. `tools/run_mutants.py`
 copies the tracked files, makes one row's change in the copy, compiles what it changed, runs the
 named test there and counts: a kill is pytest's exit 1 and nothing else; a mutant that survives,
-a change found nowhere or twice, a change that does not compile, a test that is not there or did
-not run, are each named, and each fails the run. The `tests` job runs it on every pull request,
+a change found nowhere or twice, a change that does not compile, a test that is not there, did
+not run or did not end, are each named, and each fails the run. The `tests` job runs it on every pull request,
 after the coverage report, and `release-check` runs it at the tag — so a mutant that survives is
 seen before a tag, which cannot be moved (`.github/workflows/gates.yml`, `release.yml`;
 `tests/test_mutants.py` holds the list to its shape and the runner to its verdicts).

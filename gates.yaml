@@ -204,7 +204,7 @@ gates:
     severity: blocking
     enforced_by: {job: tests}
   - id: mutant-list-proven-two-way
-    title: Every row of the mutant list names a file there is, a change found in it exactly once, a test there is and a control there is; and the runner names a mutant that survives, a change found nowhere or twice, one that does not compile, a test that is not there or did not run, and a control that is not there, each on a planted tree
+    title: Every row of the mutant list names a file there is, a change found in it exactly once, a test there is and a control there is; and the runner names a mutant that survives, a change found nowhere or twice, one that does not compile, a test that is not there, did not run or did not end, and a control that is not there, each on a planted tree
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_mutants.py]}

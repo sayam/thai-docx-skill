@@ -1463,3 +1463,10 @@
   found_by: planted-input
   test:
     - tests/test_js_parity.py::test_a_difference_between_the_two_is_named_and_not_written_out
+
+- id: V33-08
+  what: a mutant whose test did not end was waited on for ten minutes and then ended the run in a traceback, or the job ran into its own limit first, and neither named the row
+  class: C1
+  found_by: planted-input
+  test:
+    - tests/test_mutants.py::test_a_row_that_runs_past_its_limit_is_stopped_and_named
