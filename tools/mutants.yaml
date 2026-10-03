@@ -375,9 +375,9 @@
 - id: skill-md-asks-which-value
   file: skills/thai-docx/SKILL.md
   find: |-
-    Ask that one value only: a
+    Ask that one value, and nothing else in
   replace: |-
-    Ask which value they prefer: a
+    Ask which values they prefer, both, in
   test:
     - tests/test_skill_md.py::test_every_way_the_agent_is_told_asks_the_value_of_a_setting_named_without_one
   holds:
@@ -626,3 +626,30 @@
     - tests/test_what_a_command_takes.py::test_profile_list_shows_at_most_a_hundred_rows_of_a_place_and_counts_the_rest
   holds:
     - V34-02
+
+- id: skill-md-lets-repairs-warning-be-paraphrased
+  file: skills/thai-docx/SKILL.md
+  find: |-
+    and that
+    page breaks can move (its `layout` warning — say that, การแบ่งหน้าอาจเลื่อน in Thai, never page size
+    or page numbers).
+  replace: |-
+    and that
+    the layout can change (its `layout` warning, in your own words).
+  test:
+    - tests/test_skill_md.py::test_skill_md_says_the_two_things_haiku_still_missed_on_0_3_3
+  holds:
+    - V34-03
+
+- id: skill-md-leaves-the-page-number-default-unnamed
+  file: skills/thai-docx/SKILL.md
+  find: |-
+    is never asked about and
+    its choices never offered — it takes its default, and you say which (page numbers: top-right).
+  replace: |-
+    takes its default, and
+    you say which.
+  test:
+    - tests/test_skill_md.py::test_skill_md_says_the_two_things_haiku_still_missed_on_0_3_3
+  holds:
+    - V34-04
