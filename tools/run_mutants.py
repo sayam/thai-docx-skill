@@ -10,7 +10,7 @@ A C1 test is one shown to fail — on the code before the fix, or on a mutant of
 a test weakened later, or code moved from under it, passed green on every pull request. A row of
 tools/mutants.yaml is that showing written down — one change to one tracked file, found exactly
 once, and the test that must fail on it — and this runs every row on every pull request and at
-the tag.
+the tag (ADR 0042).
 
 For each row the tracked files (`git ls-files`; never `git archive`, whose export-ignore leaves
 js/, tests/ and CITATION.cff out) are copied to a directory of their own, tests/js/node_modules is

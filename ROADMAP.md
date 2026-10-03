@@ -3,6 +3,15 @@
 What the project intends to do, and not do, from September 2026 to September 2027. It is a plan,
 not a promise; each item becomes a decision record when it is taken up.
 
+## 0.3.3
+
+What the review of the code and the documentation audit found, with no golden moved: a font's
+name is written without a space at either end and said as it was given, `repair --font` writes a
+tab or a line break so it is read back, every job runs on `ubuntu-24.04`, a commit is written
+under an address that signed it, every C1 test is shown red again by a mutant on every pull
+request and at the tag, and SKILL.md says that a font the user names is built as named and that
+the file `repair` writes stays beside the user's own.
+
 ## 0.3.2
 
 What 0.3.1 left open, with no golden moved: a run's properties are read in any order, a font's

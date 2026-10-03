@@ -1,7 +1,8 @@
 # The mutants: each row plants one defect in one tracked file and names the test that must then
 # fail. tools/run_mutants.py plants every row in a copy of the tree on every pull request and at
-# the tag; a mutant the test lets through is a C1 control that no longer holds (ADR 0041), and
-# the run fails. tests/test_mutants.py holds every row to this shape, and the runner to its verdicts.
+# the tag (ADR 0042); a mutant the test lets through is a C1 control that no longer holds
+# (ADR 0041), and the run fails. tests/test_mutants.py holds every row to this shape, and the
+# runner to its verdicts.
 #
 # id        the mutant's name: what the defect is, as the code would then behave
 # file      the tracked file the change is made in — never in place, always in a copy
@@ -526,6 +527,17 @@
     - tests/test_commit_authors.py::test_a_commit_written_under_an_address_that_did_not_sign_is_named
   holds:
     - V33-05
+
+- id: mutants-run-one-row-on-a-pull-request
+  file: .github/workflows/gates.yml
+  find: |-
+    - run: python3 tools/run_mutants.py
+  replace: |-
+    - run: python3 tools/run_mutants.py --only total-cap-doubled
+  test:
+    - tests/test_mutants.py::test_the_list_runs_on_every_pull_request_and_at_the_tag
+  holds:
+    - V33-06
 
 - id: parity-lists-asserted-equal
   file: tests/test_js_parity.py

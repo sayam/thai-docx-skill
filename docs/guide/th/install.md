@@ -221,7 +221,7 @@ Claude จะสร้างไฟล์ให้ กดดาวน์โหล
   จึงอาจอัปโหลดไม่ผ่าน ถ้าไม่ผ่าน ให้ zip **ของข้างใน** โฟลเดอร์ `thai-docx` แล้วลองใหม่
 - ยังไม่ได้ลอง และคู่มือของ Google ไม่ได้บอกว่าดาวน์โหลดไฟล์ Word ได้หรือไม่ ช่วย
   [แจ้งที่หน้า Issues](https://github.com/sayam/thai-docx-skill/issues) ว่าเจออะไร
-- ที่มา: [Create & manage skills for Gemini Apps](https://support.google.com/gemini/answer/17094296) (อ่านเมื่อ 2026-09-28)
+- ที่มา: [Create & manage skills for Gemini Apps](https://support.google.com/gemini/answer/17094296) (อ่านเมื่อ 28 กันยายน 2569)
 
 ### Antigravity และ Gemini CLI
 

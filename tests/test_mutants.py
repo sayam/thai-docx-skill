@@ -5,8 +5,9 @@
 A C1 test is one shown to fail on a mutant of the code (ADR 0041). The showing was made once, by
 hand, when each fix was made, and nothing made it again: a test weakened later, or code moved from
 under it, passed every gate green. `tools/mutants.yaml` writes each showing down and
-`tools/run_mutants.py` makes it on every pull request and at the tag. This holds the list to its
-shape before that run reads it, holds the two workflows to running it, and plants on a small tree
+`tools/run_mutants.py` makes it on every pull request and at the tag (ADR 0042). This holds the
+list to its shape before that run reads it, holds the two workflows to running it, and plants on
+a small tree
 each defect the runner must name: a mutant that survives, a change found nowhere or twice, one that
 does not compile, a test that is not there or did not run, a test that does not end, a control
 that is not there, a file git does not track.

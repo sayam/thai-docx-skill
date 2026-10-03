@@ -26,6 +26,12 @@ in the gate registry and CI together with the other gates.
 Left out on purpose: crediting assistants in the history. A tool that helped
 write a change is not an author under the DCO.
 
+> **Later (2026-10-03):** the address in a commit's author field is the
+> address of one of its sign-offs, compared without regard to case; the
+> committer and merge commits are not held to it.
+> `tools/lint_commit_authors.py` enforces it in the `commits` job as the gate
+> `commit-author-signed-it`.
+
 ## Why
 
 A sign-off certifies the right to submit the change, and only the person who

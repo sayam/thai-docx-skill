@@ -1429,14 +1429,14 @@
     - tests/test_skill_md.py::test_a_font_the_user_names_is_built_not_asked_about
 
 - id: V33-03
-  what: every workflow ran on `ubuntu-latest`, which GitHub moves to Ubuntu 26 on 2026-10-19, so the runner the reproducible zip and the attestation were proven on would change without a change here
+  what: every workflow ran on `ubuntu-latest`, which GitHub moves to Ubuntu 26 from 2026-10-19 [S41], so the runner the reproducible zip and the attestation were proven on would change without a change here
   class: C1
   found_by: review
   test:
     - tests/test_release_is_bound_to_its_tag.py::test_every_job_runs_on_a_runner_named_by_its_version
 
 - id: V33-04
-  what: after a repair, two Haiku runs of three moved the file repair wrote over the user's own, one asking leave and one telling the user their file was fixed, where SKILL.md said only that repair writes a new file
+  what: after a repair, two Haiku runs of three tried to move the file repair wrote over the user's own, which the harness did not allow; one then asked leave to write over it and one told the user their file was fixed, where SKILL.md said only that repair writes a new file
   class: C1, C2
   found_by: agent-run
   test:
