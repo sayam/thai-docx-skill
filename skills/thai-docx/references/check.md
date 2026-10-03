@@ -21,9 +21,10 @@ not a damaged document. Explain each finding by its code, in the user's language
 | `order` | formatting properties in an order the schema (ECMA-376, 2016) does not allow: a paragraph's, a section's, a table's, a row's or a cell's, a style's, a numbering level's, the settings'; in a run's or a paragraph mark's, which may come in any order, only a tracked change's `w:rPrChange` that is not last | a file outside the schema |
 | `package`, `doctype`, `size` | the file is damaged, not a Word document, saved as Strict Open XML (ask the user to save it again as Word Document), holds an entry encrypted or compressed other than stored or deflate, a part is not UTF-8 (a part in UTF-16 is refused before it is read), a part refers to a relationship its own relationships do not hold, or refused as unsafe (exit 2) | the file may not open at all |
 
-`warnings` never fail the check (exit 0 with warnings is a pass): today there is one, a
-complex-script font the checker does not know to carry Thai glyphs. Pass it on — the Thai may
-show in a substitute.
+`warnings` never fail the check (exit 0 with warnings is a pass): today there are two, both
+`font` — a complex-script font the checker does not know to carry Thai glyphs, and a font's
+name that begins or ends with a space, which names no installed font (the build never writes
+one). Pass them on — the text may show in a substitute.
 
 At most 20 findings and 20 warnings of each code are listed; the rest are counted in
 `findings_omitted` and `warnings_omitted` (`[{"code": "2", "count": 80}]`), present only when

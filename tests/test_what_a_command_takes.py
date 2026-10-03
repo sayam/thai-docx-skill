@@ -1043,6 +1043,26 @@ def test_what_the_file_says_is_shown_as_a_name_not_as_a_sentence(tmp_path):
     assert code == 2 and 'unknown setting "size?? rm"' in result["error"], result
 
 
+def test_check_says_a_font_name_begins_or_ends_with_a_space_once_a_place(tmp_path):
+    """A .docx naming 'Tahoma ' was told its font is not known to carry Thai glyphs — the space
+    was what was wrong, and the build takes it off a name it is given (0.3.3). check now says so,
+    as a warning: the name in any of ascii, hAnsi, eastAsia and cs, once for one name in one place;
+    a space other than U+0020 by its code, as quoted() shows it as `?`."""
+    parts = good()
+    thai = '<w:r><w:rPr><w:cs/><w:lang w:val="en-US" w:bidi="th-TH"/></w:rPr><w:t xml:space="preserve">ข้อความทดสอบ </w:t></w:r>'
+    for fonts, said in (
+        ('w:ascii="Tahoma " w:hAnsi="Tahoma " w:eastAsia="Tahoma " w:cs="Tahoma "', ["font 'Tahoma ' begins or ends with a space"]),
+        ('w:ascii=" Arial" w:cs="TH Sarabun New"', ["font '?Arial' begins or ends with a space (U+00A0)"]),
+        ('w:ascii="Arial" w:cs="Tahoma"', []),
+    ):
+        (tmp_path / "font.docx").write_bytes(pack(replaced(parts, "word/document.xml", thai,
+                                                           thai.replace("<w:cs/>", "<w:rFonts " + fonts + "/><w:cs/>"))))
+        code, result = both(["check", "font.docx"], tmp_path)
+        assert code == 0, result
+        assert [w["message"] for w in result["warnings"] if w["code"] == "font"] == [
+            "in a run, " + s + ", which no font's name does, so it may name no font installed" for s in said], result
+
+
 # --- the review of 0.3.3: what `profile list` shows -----------------------------------------------
 
 

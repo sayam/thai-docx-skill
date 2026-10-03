@@ -697,3 +697,36 @@
     - tests/test_skill_md.py::test_skill_md_says_the_two_things_haiku_still_missed_on_0_3_3
   holds:
     - V34-04
+
+- id: check-says-nothing-of-a-space-in-a-font-name
+  file: skills/thai-docx/scripts/thai_docx/check.py
+  find: |-
+    if name is not None and name != name.strip(FONT_SPACES):
+  replace: |-
+    if False:
+  test:
+    - tests/test_what_a_command_takes.py::test_check_says_a_font_name_begins_or_ends_with_a_space_once_a_place
+  holds:
+    - V34-05
+
+- id: check-looks-up-a-spaced-font-name-as-it-is
+  file: skills/thai-docx/scripts/thai_docx/check.py
+  find: |-
+    cs.strip(FONT_SPACES).lower() not in THAI_FONTS
+  replace: |-
+    cs.lower() not in THAI_FONTS
+  test:
+    - tests/test_what_a_command_takes.py::test_check_says_a_font_name_begins_or_ends_with_a_space_once_a_place
+  holds:
+    - V34-05
+
+- id: javascript-check-says-nothing-of-a-space-in-a-font-name
+  file: js/30-check.js
+  find: |-
+    if (kept.length === chars.length) continue;
+  replace: |-
+    continue;
+  test:
+    - tests/test_what_a_command_takes.py::test_check_says_a_font_name_begins_or_ends_with_a_space_once_a_place
+  holds:
+    - V34-05
