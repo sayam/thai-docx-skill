@@ -14,6 +14,11 @@ before two applications were read; the exception and what is owed are in
 
 ### Changed
 
+- The install guide and troubleshooting, in English and Thai, say what the Gemini app did on
+  4 October 2026: it read the skill's instructions, but the skill's scripts did not reach the place
+  where it runs code, so it wrote the Word file its own way with python-docx, and `check` finds
+  faults in that file. The guide had said thai-docx's Python works there; its table now says the
+  Gemini app cannot make or check a file with the skill.
 - `references/numbering.md` says what Word for the web did on 4 October 2026 to the list of figures
   of an `--auto-numbering` document: its Update Table of Contents rewrote the list as the table of
   contents, where it had been seen empty before; Word 365 for Windows updates the same file's list
