@@ -104,6 +104,28 @@ def test_the_install_pages_name_the_release_the_changelog_names(tmp_path, monkey
     assert package_skill.main(["--tag", "v" + newest]) == 1
 
 
+def test_the_tag_check_reads_the_release_the_thai_prompt_page_names(tmp_path, monkeypatch):
+    """PROMPT.th.md names the archive to attach (`thai-docx-0.3.2.zip`) by hand, and the tag
+    check did not read it: a copy of 0.3.3 with every page moved but that one passed (the
+    documentation audit of 0.3.3, B-01). The release PR changed it by hand. It is read with the
+    install pages."""
+    newest = package_skill.versions()["CHANGELOG.md newest release"]
+    assert package_skill.install_page_versions()["PROMPT.th.md"] == newest
+    root = tmp_path / "root"
+    for name in ["CHANGELOG.md", "CITATION.cff", *package_skill.INSTALL_PAGES]:
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(ROOT / name, root / name)
+    monkeypatch.setattr(package_skill, "ROOT", root)
+    monkeypatch.setattr(package_skill, "unread_goldens", lambda version: [])
+    assert package_skill.main(["--tag", "v" + newest]) == 0
+    page = root / "PROMPT.th.md"
+    text = page.read_text(encoding="utf-8")
+    assert f"thai-docx-{newest}.zip" in text
+    page.write_text(text.replace(f"thai-docx-{newest}.zip", "thai-docx-0.1.9.zip"), encoding="utf-8")
+    assert package_skill.install_page_versions()["PROMPT.th.md"] == "0.1.9"
+    assert package_skill.main(["--tag", "v" + newest]) == 1
+
+
 def test_tag_check_refuses_a_version_nobody_states():
     done = subprocess.run(TOOL + ["--tag", "v99.0.0"], capture_output=True, text=True)
     assert done.returncode == 1 and '"ok": false' in done.stdout
