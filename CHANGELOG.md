@@ -14,6 +14,10 @@ before two applications were read; the exception and what is owed are in
 
 ### Changed
 
+- `references/numbering.md` says what Word for the web did on 4 October 2026 to the list of figures
+  of an `--auto-numbering` document: its Update Table of Contents rewrote the list as the table of
+  contents, where it had been seen empty before; Word 365 for Windows updates the same file's list
+  correctly. No byte of a build moves; the mode is not covered in Word for the web.
 - `SKILL.md` says the answer after a repair names three things — the new file, the font `repair`
   chose, and that page breaks can move, with the Thai words for it — and that a setting asked for
   without a value ("add page numbers") is never asked about nor its choices offered: it takes its
