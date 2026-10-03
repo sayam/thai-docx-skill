@@ -120,10 +120,6 @@ class BuildError extends Error {
   }
 }
 
-// every space the input takes (the others are refused by forbiddenChar): a font's name neither
-// begins nor ends with one
-const FONT_SPACES = " \t\n\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000";
-
 // A name without FONT_SPACES at either end, as Python's str.strip(FONT_SPACES) gives it
 function fontStripped(chars) {
   let a = 0;
@@ -143,12 +139,7 @@ function fontCut(name) {
 
 function fontCutSaid(what, name, kept) {
   const chars = [...name];
-  // quoted() shows a space other than U+0020 as "?": such a space is named (settings.py says why)
-  const named = (spaces) => {
-    const codes = [...new Set(spaces.filter((c) => c !== " ")
-      .map((c) => "U+" + c.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")))];
-    return codes.length ? " (" + codes.join(", ") + ")" : "";
-  };
+  const named = spacesNamed; // a space other than U+0020 is named (check.py says why)
   let a = 0;
   let b = chars.length;
   while (a < b && FONT_SPACES.includes(chars[a])) a += 1;

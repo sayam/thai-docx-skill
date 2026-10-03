@@ -29,8 +29,10 @@ its headers, footers, notes, comments, styles, numbering and settings by the doc
 part is not known by its file name (a first-page header may be `headerFirst.xml`). A switch
 such as `<w:cs w:val="0"/>` is read as the off it says. Deleted text is text.
 
-Warnings never fail the check; today there is one: a complex-script font the
-checker does not know to carry Thai glyphs (ADR 0020).
+Warnings never fail the check; today there are two, both `font`: a complex-script
+font the checker does not know to carry Thai glyphs (ADR 0020), and a font's name in
+any of w:ascii, w:hAnsi, w:eastAsia and w:cs that begins or ends with a space, which
+the build never writes.
 
 Role: decider — exit 0 when there are no findings, 1 when there are, 2 when the
 file could not be examined at all. The output is one JSON line, and never carries
@@ -99,6 +101,9 @@ QUOTED_MAX = 64
 # end), so a longer one names no font Word uses, and a sentence planted there is cut before it
 # says much (the reviews of 0.3.1)
 FONT_MAX = 31
+# every space the input takes (the others are refused by forbidden_char): a font's name neither
+# begins nor ends with one
+FONT_SPACES = " \t\n                 　"
 _PLAIN = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_./()[]+&,")
 
 
@@ -107,6 +112,13 @@ def quoted(value: str, most: int = QUOTED_MAX) -> str:
     `-_./()[]+&,` — each other character `?` — and at most `most` characters."""
     shown = "".join(c if c in _PLAIN or "\u0e00" <= c <= "\u0e7f" else "?" for c in value)
     return shown if len(shown) <= most else shown[:most - 1] + "…"
+
+
+def spaces_named(spaces: str) -> str:
+    """The spaces other than U+0020 among `spaces`, by code: quoted() shows such a space as `?`,
+    so a name said to begin or end with a space would not be seen to."""
+    codes = list(dict.fromkeys("U+%04X" % ord(c) for c in spaces if c != " "))
+    return " (" + ", ".join(codes) + ")" if codes else ""
 
 
 def listed(items: list[dict]) -> tuple[list[dict], list[dict]]:
@@ -381,11 +393,19 @@ def _check_rpr_twins(rpr: ET.Element, part: str, report: Report, what: str, thai
     is only worth raising then — a □ in Arial needs no Thai glyphs."""
     fonts = rpr.find(w("rFonts"))
     if fonts is not None:
+        # a name the build would not write: a space at either end names no installed font, and
+        # is what is wrong with 'Tahoma ', not the Thai it carries (one name is one warning: warn's set)
+        for a in ("ascii", "hAnsi", "eastAsia", "cs"):
+            name = fonts.get(w(a))
+            if name is not None and name != name.strip(FONT_SPACES):
+                ends = name[:len(name) - len(name.lstrip(FONT_SPACES))] + name[len(name.rstrip(FONT_SPACES)):]
+                report.warn("font", part, "in " + what + ", font '" + quoted(name, FONT_MAX) + "' begins or ends with a space"
+                            + spaces_named(ends) + ", which no font's name does, so it may name no font installed")
         latin = any(fonts.get(w(a)) for a in ("ascii", "hAnsi", "asciiTheme", "hAnsiTheme"))
         cs = fonts.get(w("cs")) or fonts.get(w("cstheme"))
         if latin and not cs:
             report.find("5", part, f"in {what}, w:rFonts names a Latin font but no w:cs font")
-        elif thai and cs and not fonts.get(w("cstheme")) and cs.lower() not in THAI_FONTS:
+        elif thai and cs and not fonts.get(w("cstheme")) and cs.strip(FONT_SPACES).lower() not in THAI_FONTS:
             report.warn("font", part, "in " + what + ", complex-script font '" + quoted(cs, FONT_MAX) + "' is not known to carry Thai glyphs")
     for latin, twin in (("sz", "szCs"), ("b", "bCs"), ("i", "iCs")):
         if rpr.find(w(latin)) is not None and rpr.find(w(twin)) is None:

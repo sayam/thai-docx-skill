@@ -44,6 +44,14 @@ before two applications were read; the exception and what is owed are in
   counted under `omitted` and not read (ADR 0040 §8;
   `tests/test_what_a_command_takes.py::test_profile_list_shows_a_name_and_a_title_as_names_from_a_file_are_shown`,
   `…::test_profile_list_shows_at_most_a_hundred_rows_of_a_place_and_counts_the_rest`).
+- `check` told a .docx naming `Tahoma ` that its complex-script font is not known to carry
+  Thai glyphs, and said nothing of `Arial ` as a Latin font: the space at the end is what names
+  no installed font, and the build has taken it off a name since 0.3.3. A font's name in any of
+  `w:ascii`, `w:hAnsi`, `w:eastAsia` and `w:cs` that begins or ends with a space is now a `font`
+  warning, once for one name in one place, a space other than U+0020 named by its code point;
+  the name is looked up without it, so `Tahoma ` is not also called a font without Thai. A
+  warning never fails the check
+  (`tests/test_what_a_command_takes.py::test_check_says_a_font_name_begins_or_ends_with_a_space_once_a_place`).
 
 ## [0.3.3] - 2026-10-03
 

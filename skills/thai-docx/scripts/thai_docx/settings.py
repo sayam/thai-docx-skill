@@ -19,7 +19,7 @@ import math
 import re
 
 from . import markdown as md
-from .check import FONT_MAX, quoted
+from .check import FONT_MAX, FONT_SPACES, quoted, spaces_named
 
 PAPER = {"a4": (11906, 16838), "letter": (12240, 15840), "f14": (12240, 18720)}  # f14: 8.5 x 13 in, folio
 PAGE_NUMBERS = ("top-right", "top-center", "bottom-center")  # the first is --page-numbers with no position
@@ -242,11 +242,6 @@ class BuildError(Exception):
         self.what = what
 
 
-# every space the input takes (the others are refused by forbidden_char): a font's name neither
-# begins nor ends with one
-FONT_SPACES = " \t\n\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000"
-
-
 def font_cut(name: str) -> str | None:
     """The name the document writes, when it is not the name given; else None.
     Windows and Word read 31 characters of it (check.py's FONT_MAX): the build writes what
@@ -262,11 +257,8 @@ def font_cut(name: str) -> str | None:
 def font_cut_said(what: str, name: str, kept: str) -> str:
     """The warning for a font's name the build changed: the name given, the name written, and
     what the user gets from it — the font only when one is installed under the name written."""
-    # quoted() shows a space other than U+0020 as "?": such a space is named where one was taken
-    # off, or the name shown would not begin or end with the space the warning speaks of
-    def named(spaces: str) -> str:
-        codes = list(dict.fromkeys("U+%04X" % ord(c) for c in spaces if c != " "))
-        return " (" + ", ".join(codes) + ")" if codes else ""
+    # a space other than U+0020 is named where one was taken off (check.spaces_named says why)
+    named = spaces_named
     ends = name[:len(name) - len(name.lstrip(FONT_SPACES))] + name[len(name.rstrip(FONT_SPACES)):]
     inner = name.strip(FONT_SPACES)
     if len(inner) <= FONT_MAX:

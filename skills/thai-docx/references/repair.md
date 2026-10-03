@@ -39,7 +39,7 @@ and so is a Symbol bullet: what `--font` says — without a space at either end 
 characters Word reads, as the build writes it, which the `font` warning then says — else the
 complex-script font the document already
 uses most — counting only fonts known to carry Thai — else this skill's own default. When one was
-written, the choice comes back in `warnings` as `font`; read it out to the user. A second `font` warning is the checker's, on the file as written: a complex-script font there that is not known to carry Thai glyphs — read that out too, as it says. A run with no
+written, the choice comes back in `warnings` as `font`; read it out to the user. A second `font` warning is the checker's, on the file as written: a complex-script font there that is not known to carry Thai glyphs, or a font's name there that begins or ends with a space — read that out too, as it says. A run with no
 `w:rFonts` is given none.
 
 **The file is about the size it was.** The parts this rewrites are compressed again, by a

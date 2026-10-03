@@ -124,6 +124,9 @@ function unseenIn(text) {
 const LISTED = 20;
 const QUOTED_MAX = 64;
 const FONT_MAX = 31; // a font's name: 31 characters in Windows and Word (check.py says why)
+// every space the input takes (the others are refused by forbiddenChar): a font's name neither
+// begins nor ends with one
+const FONT_SPACES = " \t\n\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000";
 const PLAIN = new Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_./()[]+&,");
 
 // one argument only: it is handed to map(), which would pass the index as a second
@@ -136,6 +139,13 @@ function quotedTo(value, most) {
   for (const c of value) shown += PLAIN.has(c) || (c >= "\u0e00" && c <= "\u0e7f") ? c : "?";
   const chars = [...shown];
   return chars.length <= most ? shown : chars.slice(0, most - 1).join("") + "…";
+}
+
+// The spaces other than U+0020 among an array of characters, by code (check.py says why)
+function spacesNamed(spaces) {
+  const codes = [...new Set(spaces.filter((c) => c !== " ")
+    .map((c) => "U+" + c.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")))];
+  return codes.length ? " (" + codes.join(", ") + ")" : "";
 }
 
 // At most LISTED items of each code, in order, and how many of each code were left out.
@@ -430,10 +440,22 @@ function checkStructure(root, part, report) {
 function checkRprTwins(rpr, part, report, what, thai) {
   const fonts = rpr.find(w("rFonts"));
   if (fonts !== null) {
+    // a name the build would not write; one name is one warning (check.py says why)
+    for (const a of ["ascii", "hAnsi", "eastAsia", "cs"]) {
+      const name = fonts.get(w(a));
+      if (name === null) continue;
+      const chars = [...name];
+      const kept = fontStripped(chars);
+      if (kept.length === chars.length) continue;
+      let s = 0;
+      while (FONT_SPACES.includes(chars[s])) s += 1;
+      report.warn("font", part, "in " + what + ", font '" + quotedTo(name, FONT_MAX) + "' begins or ends with a space" +
+        spacesNamed(chars.slice(0, s).concat(chars.slice(s + kept.length))) + ", which no font's name does, so it may name no font installed");
+    }
     const latin = ["ascii", "hAnsi", "asciiTheme", "hAnsiTheme"].some((a) => !!fonts.get(w(a)));
     const cs = fonts.get(w("cs")) || fonts.get(w("cstheme"));
     if (latin && !cs) report.find("5", part, "in " + what + ", w:rFonts names a Latin font but no w:cs font");
-    else if (thai && cs && !fonts.get(w("cstheme")) && !THAI_FONTS.has(cs.toLowerCase())) {
+    else if (thai && cs && !fonts.get(w("cstheme")) && !THAI_FONTS.has(fontStripped([...cs]).join("").toLowerCase())) {
       report.warn("font", part, "in " + what + ", complex-script font '" + quotedTo(cs, FONT_MAX) + "' is not known to carry Thai glyphs");
     }
   }

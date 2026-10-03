@@ -1519,3 +1519,10 @@
   found_by: agent-run
   test:
     - tests/test_skill_md.py::test_skill_md_says_the_two_things_haiku_still_missed_on_0_3_3
+
+- id: V34-05
+  what: check told a .docx naming 'Tahoma ' that its complex-script font is not known to carry Thai glyphs, and said nothing of 'Arial ' as a Latin font, where the space at the end is what names no installed font and the build takes it off a name it is given
+  class: C1
+  found_by: planted-input
+  test:
+    - tests/test_what_a_command_takes.py::test_check_says_a_font_name_begins_or_ends_with_a_space_once_a_place
