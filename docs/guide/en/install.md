@@ -15,7 +15,7 @@ documentation, as read on 17 September 2026; if something there does not work, p
 
 | | Claude apps | Claude Code | ChatGPT | Codex | Gemini app | coding agents | no AI |
 |---|---|---|---|---|---|---|---|
-| installed | yes | yes | not yet | not yet | not yet | not yet | yes |
+| installed | yes | yes | yes | not yet | yes | not yet | yes |
 | made a file | yes | yes | not yet | not yet | not yet | not yet | yes |
 | make a file (scenarios 1–4, 6, 7) | yes | yes | yes | yes | yes | yes | yes |
 | questions first (5, 11) | as a message | click choices | depends on the app | depends on the app | depends on the app | depends on the app | — |
@@ -141,6 +141,10 @@ How you use thai-docx depends on your plan.
 3. Select **Create**, then **Upload from your computer**, and choose the zip file.
 4. ChatGPT checks the upload. If it says **Needs Review** or **Blocked**, ask your workspace admin.
    An admin may also need to allow skills and skill uploads for your workspace.
+5. The skill appears under **Installed** and **Created by me** as "thai docx". ChatGPT writes its own
+   one-line description for the list ("Easily create or verify Word documents…"), not the one in
+   `SKILL.md`; the instructions themselves are unchanged. If the skill shows with no icon, reload
+   the page. (Tried on 3 October 2026 with 0.3.3.)
 
 **Start**
 
@@ -216,9 +220,14 @@ Codex.
 
 Skills work in Gemini Spark, for Google AI Pro and Ultra on a personal account.
 
-1. Open Gemini Spark, then **Skills**, then **Upload**.
-2. Choose `thai-docx-<version>.zip`.
-3. In Spark, type a request, or type `/` and pick thai-docx.
+1. Download `thai-docx-<version>.zip` and unzip it: you get a folder `thai-docx`.
+2. Zip the **contents** of that folder — open it, select everything in it and compress — so that
+   `SKILL.md` is at the top of the new zip, not inside a folder. The downloaded zip itself is
+   refused: Gemini says **The uploaded file did not pass the security scan**, because it wants
+   `SKILL.md` in the zip's main folder.
+3. Open Gemini Spark, then **Skills**, then **Upload**, and choose the zip you made. Gemini shows
+   the skill's name, its description and its instructions.
+4. In Spark, type a request, or type `/` and pick thai-docx.
 
 Good to know:
 
@@ -226,10 +235,10 @@ Good to know:
   (not a work or school one), with a Google AI Pro or Ultra subscription and Keep Activity on;
   skills live in Gemini Spark, and are not offered in the EEA, the UK, Switzerland or Nigeria.
 - The Gemini app runs `.py` and `.sh` scripts from a skill; thai-docx's Python works, its `.js` file
-  is not used. Google's page asks for `SKILL.md` in the main folder of the zip, and thai-docx's zip
-  has a folder inside it, so the upload may be refused. If it is, zip the **contents** of the
-  `thai-docx` folder and try again.
-- Not tried yet, and Google's page does not say whether a Word file can be downloaded. Please
+  is not used, and it does not stop the upload: the zip of the folder's contents was accepted with
+  the `.js` file in it (0.3.3, 3 October 2026).
+- The upload was tried on 3 October 2026 with 0.3.3; a document has not been built there yet, and
+  Google's page does not say whether a Word file can be downloaded. Please
   [open an issue](https://github.com/sayam/thai-docx-skill/issues) with what you see.
 - Source: [Create & manage skills for Gemini Apps](https://support.google.com/gemini/answer/17094296) (read 2026-09-28).
 

@@ -12,6 +12,15 @@ before two applications were read; the exception and what is owed are in
 
 ## [Unreleased]
 
+### Changed
+
+- The install guides say what the uploads to ChatGPT and the Gemini app showed on 3 October 2026
+  with 0.3.3: the Gemini app refuses the downloaded zip ("The uploaded file did not pass the
+  security scan") because `SKILL.md` sits inside the `thai-docx` folder, and takes a zip of that
+  folder's contents, the `.js` file included; ChatGPT takes the downloaded zip and writes its own
+  one-line description for its list. Both apps move to "installed" in the table; neither has built
+  a document yet.
+
 ### Fixed
 
 - `profile list` handed the agent the stem, the path and the title of every file in a profile
