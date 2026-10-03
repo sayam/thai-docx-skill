@@ -752,3 +752,14 @@
     - tests/test_what_a_command_takes.py::test_repairs_font_warning_shows_the_name_as_check_shows_a_font_name
   holds:
     - V34-06
+
+- id: tag-check-reads-no-prompt-page
+  file: tools/package_skill.py
+  find: |-
+    INSTALL_PAGES = ["README.md", "PROMPT.th.md"]
+  replace: |-
+    INSTALL_PAGES = ["README.md"]
+  test:
+    - tests/test_package_skill.py::test_the_tag_check_reads_the_release_the_thai_prompt_page_names
+  holds:
+    - V34-07

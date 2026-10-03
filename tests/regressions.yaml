@@ -1533,3 +1533,10 @@
   found_by: review
   test:
     - tests/test_what_a_command_takes.py::test_repairs_font_warning_shows_the_name_as_check_shows_a_font_name
+
+- id: V34-07
+  what: the tag check read the release README.md and the install and command-line guides name, not PROMPT.th.md, which names the archive by hand, so a copy of 0.3.3 with every page moved but that one, still naming thai-docx-0.3.2.zip, passed
+  class: C1
+  found_by: review
+  test:
+    - tests/test_package_skill.py::test_the_tag_check_reads_the_release_the_thai_prompt_page_names

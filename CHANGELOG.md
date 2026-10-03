@@ -58,6 +58,12 @@ before two applications were read; the exception and what is owed are in
   is as before
   (`tests/test_what_a_command_takes.py::test_repairs_font_warning_shows_the_name_as_check_shows_a_font_name`).
 
+- `tools/package_skill.py --tag` read the release that `README.md` and the install and
+  command-line guides name, not `PROMPT.th.md`, which names the archive to attach by hand: a copy of
+  0.3.3 with every page moved but that one, still naming `thai-docx-0.3.2.zip`, passed the check,
+  and the release PR changed the page by hand. The page is now read with the others
+  (`tests/test_package_skill.py::test_the_tag_check_reads_the_release_the_thai_prompt_page_names`).
+
 ## [0.3.3] - 2026-10-03
 
 No golden moves: a build writes the bytes 0.3.0 wrote, so what was read on them holds

@@ -76,7 +76,8 @@ def dates() -> dict[str, str]:
     return {k: (m.group(1) if m else "(missing)") for k, m in found.items()}
 
 
-INSTALL_PAGES = ["README.md"] + [f"docs/guide/{lang}/{page}.md" for lang in ("en", "th") for page in ("install", "command-line")]
+# PROMPT.th.md names the archive by hand too; PROMPT.md names no release, so it is not read here
+INSTALL_PAGES = ["README.md", "PROMPT.th.md"] + [f"docs/guide/{lang}/{page}.md" for lang in ("en", "th") for page in ("install", "command-line")]
 # the release an install page's commands fetch: the archive, its attestation bundle, the tag, the pin
 INSTALL_VERSION = re.compile(r"thai-docx-(\d+\.\d+\.\d+)\.(?:zip|intoto)|refs/tags/v(\d+\.\d+\.\d+)|--pin v(\d+\.\d+\.\d+)")
 
