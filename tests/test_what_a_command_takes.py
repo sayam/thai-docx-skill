@@ -249,6 +249,24 @@ def test_a_tab_or_a_line_break_in_repairs_font_is_read_back_as_given(tmp_path):
     assert written["python", "build"] == written["js", "build"]
 
 
+def test_repairs_font_warning_shows_the_name_as_check_shows_a_font_name(tmp_path):
+    """repair's `font` warning showed the bytes it escaped for the attribute, not the name:
+    `A &amp; B` and `A&lt;B` since 0.3.1, `A&#9;B&#10;C` since V33-09, beside a warning of the
+    same run that showed it through quoted() (the documentation audit of 0.3.3, C-01). It now
+    shows the name, through quoted(), as every other name from a command or a file is shown."""
+    parts = replaced(good(), "word/styles.xml", ' w:cs="TH Sarabun New" w:eastAsia="TH Sarabun New"/>',
+                     ' w:eastAsia="TH Sarabun New"/>')
+    (tmp_path / "in.docx").write_bytes(pack(parts))
+    for given, shown in (("A\tB\nC", "A?B?C"), ("A & B", "A & B"), ("A<B", "A?B")):
+        for name, cli in (("python", PY), ("js", JS)):
+            code, result = one(cli, ["repair", "in.docx", name + ".docx", "--font", given], tmp_path)
+            assert code == 0 and result["ok"], (name, given, result)
+            said = [w["message"] for w in result["warnings"] if w["code"] == "font"]
+            assert ("complex-script font written where a run named none: '" + shown
+                    + "' — the font the command was given") in said, (name, given, said)
+            assert not any("&" in m and ";" in m for m in said), (name, given, said)
+
+
 def test_a_font_name_longer_than_word_reads_is_cut_to_what_it_reads_and_said(tmp_path):
     """Word reads 31 characters of a font's name, and the build took 64: a longer name reached
     the document whole, naming no font Word uses (the review of 0.3.1, A-04 and C-08). Each way a

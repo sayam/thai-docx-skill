@@ -505,8 +505,9 @@ function fixNumbering(xml, font) {
   return [out + xml.slice(pos), five];
 }
 
-// The font a run that names none is given, and why (ADR 0037): what the user asked for, else
-// the complex-script font this document already uses most, else the skill's default.
+// The font a run that names none is given — as written into the attribute, and as its name — and
+// why (ADR 0037): what the user asked for, else the complex-script font this document already
+// uses most, else the skill's default.
 function complexScriptFont(parts, asked) {
   if (asked) {
     // what Word reads of the name, as the build writes it — said where it is written
@@ -515,7 +516,7 @@ function complexScriptFont(parts, asked) {
     // an attribute value, escaped where it is written and by what escapes the build's
     // (repair.py says why); a font found in the document below is taken from an attribute already
     if (kept !== null) asked = kept;
-    return [attr(asked).slice(1, -1), why];
+    return [attr(asked).slice(1, -1), asked, why];
   }
   const counted = new Map();
   for (const [name, bytes] of parts) {
@@ -534,9 +535,10 @@ function complexScriptFont(parts, asked) {
     for (const name of [...counted.keys()].sort()) {
       if (best === null || counted.get(name) > counted.get(best)) best = name;
     }
-    return [best, "the complex-script font this document uses most"];
+    // a name the checker accepts holds nothing an attribute escapes
+    return [best, best, "the complex-script font this document uses most"];
   }
-  return [DEFAULTS.font, "this skill's default, as the document names none"];
+  return [DEFAULTS.font, DEFAULTS.font, "this skill's default, as the document names none"];
 }
 
 // How deep an element may stand in elements of its own name for repair to edit it (repair.py
@@ -649,7 +651,7 @@ function repairParts(allParts, findings, font, thaiLanguage, csAll) {
   // not a finding, so nothing in `codes` would ask for this pass, and taking it off is the
   // repair (ADR 0039). Asked to mark every run instead, this is the work it always was.
   if (codes.has("2") || codes.has("5") || thaiLanguage || !csAll) {
-    const [csFont, why] = complexScriptFont(parts, font);
+    const [csFont, csName, why] = complexScriptFont(parts, font);
     const text = new Set(roles.text); // a set: a search of a list per part was quadratic (D-13)
     for (const [name, bytes] of parts) {
       if (!text.has(name)) continue;
@@ -674,16 +676,16 @@ function repairParts(allParts, findings, font, thaiLanguage, csAll) {
         repaired["5"] = (repaired["5"] || 0) + n;
       }
     }
-    // said only where it was written (repair.py says why)
-    const quoted = '"' + csFont + '"';
-    const count = (text) => text.split(quoted).length - 1;
+    // said only where it was written (repair.py says why), by its name as check shows one
+    const written = '"' + csFont + '"';
+    const count = (text) => text.split(written).length - 1;
     let after = 0, before = 0;
     for (const [name, bytes] of replace) {
       after += count(fromUtf8(bytes));
       if (parts.has(name)) before += count(fromUtf8(parts.get(name)));
     }
     if (after > before) {
-      chosen = { code: "font", message: "complex-script font written where a run named none: '" + csFont + "' — " + why };
+      chosen = { code: "font", message: "complex-script font written where a run named none: '" + quoted(csName) + "' — " + why };
     }
   }
   return [replace, repaired, chosen, left];
