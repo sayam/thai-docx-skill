@@ -1,5 +1,8 @@
 # 2026-09-30 — model equivalence on the skill of 0.3.3
 
+> **Later (2026-10-03):** in the first set, Haiku's *repair* passed one run of three; two
+> missed. The sentence below reads either way.
+
 What this proves: the text 0.3.3 changed where an agent reads it (SKILL.md's sentence on a font
 the user names, its sentence on the file `repair` writes, and two reference pages) still leads
 three models to the file each request of [the last record](2026-09-30-model-equivalence-on-the-0.3.2-skill.md)

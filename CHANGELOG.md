@@ -19,12 +19,20 @@ before two applications were read; the exception and what is owed are in
   three fonts offered for "change the font" as the only ones
   (`tests/test_skill_md.py::test_a_font_the_user_names_is_built_not_asked_about`).
 - `SKILL.md` says the file `repair` writes stays beside the user's own, never moved, renamed or
-  copied over it, and is named in the answer: two Haiku runs in three had moved it over the file the
-  user gave, and one had told the user their file was fixed
+  copied over it, and is named in the answer: two Haiku runs in three had tried to move it over
+  the file the user gave (the harness asked leave, so neither was moved), and one had told the
+  user their file was fixed
   (`tests/test_skill_md.py::test_a_repaired_file_stays_beside_the_users`).
 - Every workflow runs on `ubuntu-24.04`, where the release zip and its attestation were proven,
-  not on `ubuntu-latest`, which GitHub moves to Ubuntu 26 on 2026-10-19
+  not on `ubuntu-latest`, which GitHub moves to Ubuntu 26 from 2026-10-19
   (`tests/test_release_is_bound_to_its_tag.py::test_every_job_runs_on_a_runner_named_by_its_version`).
+- Every C1 test is shown to fail on every pull request and at the tag: `tools/run_mutants.py` makes
+  one change to a copy of the tree for each row of `tools/mutants.yaml` and the test the row names
+  must fail on it; a mutant that survives, a row that finds nothing or runs past 180 seconds, fails
+  the `tests` job and `release-check`, and the row is named (ADR 0042;
+  `tests/test_mutants.py::test_the_list_runs_on_every_pull_request_and_at_the_tag`,
+  `tests/test_mutants.py::test_a_row_that_runs_past_its_limit_is_stopped_and_named`,
+  `tests/test_js_parity.py::test_a_difference_between_the_two_is_named_and_not_written_out`).
 
 ### Fixed
 
@@ -48,6 +56,10 @@ before two applications were read; the exception and what is owed are in
   back as spaces, so the name read from the repaired file was not the name given; the build writes
   `&#9;` and `&#10;`. `repair` now escapes the name with what escapes the build's
   (`tests/test_what_a_command_takes.py::test_a_tab_or_a_line_break_in_repairs_font_is_read_back_as_given`).
+- A commit written under an address that did not sign it passed the commit gate once its message
+  carried another person's sign-off, so the history could name as author an address that certified
+  nothing. `tools/lint_commit_authors.py` now names it; the committer is not held to it
+  (`tests/test_commit_authors.py::test_a_commit_written_under_an_address_that_did_not_sign_is_named`).
 
 ## [0.3.2] - 2026-09-30
 

@@ -1,5 +1,8 @@
 # 2026-09-30 — model equivalence on the skill of 0.3.2
 
+> **Later (2026-10-03):** the three fonts are those SKILL.md named for "change the font";
+> `references/settings.md` names one.
+
 What this proves: the text 0.3.2 changed where an agent reads it (`grill`'s answer and four
 reference pages; SKILL.md is the text of 0.3.1) still leads three models to the file each request
 of [the last record](2026-09-29-model-equivalence-on-the-0.3.1-skill-md.md) asks for; a request to
