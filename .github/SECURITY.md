@@ -15,6 +15,16 @@ channel; no address is published here.
   **90 days** after the report unless we agree otherwise with you.
 - Credit in the release notes and the advisory, if you want it.
 
+A confirmed vulnerability is fixed or mitigated in a release within a time set by its severity,
+scored with CVSS v4 and counted from the day it is confirmed:
+
+| Severity | Fixed or mitigated in a release |
+|---|---|
+| Critical | within 7 days |
+| High | within 14 days |
+| Medium | within 30 days |
+| Low | within 90 days, and never after the disclosure date |
+
 ## Security contact
 
 Sayam Sriphua ([@sayam](https://github.com/sayam)), the maintainer, receives every private report.
