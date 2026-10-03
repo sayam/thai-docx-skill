@@ -33,10 +33,10 @@ BUNDLE = JS[1]
 def test_each_limit_is_the_value_both_implementations_state():
     python = {"MAX_PART": check.MAX_PART, "MAX_TOTAL": check.MAX_TOTAL, "MAX_FILE": package.MAX_FILE,
               "MAX_LINKS": build.MAX_LINKS, "MAX_MARKDOWN": build.MAX_MARKDOWN, "MAX_IMAGE": build.MAX_IMAGE,
-              "MAX_DEPTH": md.MAX_DEPTH, "PROFILE_MAX_BYTES": profiles.MAX_BYTES,
+              "MAX_DEPTH": md.MAX_DEPTH, "PROFILE_MAX_BYTES": profiles.MAX_BYTES, "PROFILE_LISTED": profiles.LISTED,
               "MAX_ELEMENTS": check.MAX_ELEMENTS, "MAX_NESTING": repair.MAX_NESTING}
     assert python == {"MAX_PART": 32 * MiB, "MAX_TOTAL": 64 * MiB, "MAX_FILE": 64 * MiB, "MAX_LINKS": 40,
-                      "MAX_MARKDOWN": 16 * MiB, "MAX_IMAGE": 32 * MiB, "MAX_DEPTH": 100, "PROFILE_MAX_BYTES": 64 * 1024,
+                      "MAX_MARKDOWN": 16 * MiB, "MAX_IMAGE": 32 * MiB, "MAX_DEPTH": 100, "PROFILE_MAX_BYTES": 64 * 1024, "PROFILE_LISTED": 100,
                       "MAX_ELEMENTS": 3_000_000, "MAX_NESTING": 100}
     source = open(BUNDLE, encoding="utf-8").read()
     for name, value in python.items():

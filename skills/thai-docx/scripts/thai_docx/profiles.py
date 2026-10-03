@@ -35,6 +35,7 @@ KEYS = ("schema", "id", "title", "description", "version", "source", "maintainer
 TEXT_KEYS = ("id", "version", "source", "maintainer")
 MAX_TEXT = 200
 MAX_BYTES = 64 * 1024  # a profile is settings; anything larger is not one (ADR 0040)
+LISTED = 100  # rows of `profile list` in each place; a folder of thousands is not an answer (ADR 0040 §8)
 # setting → how it is written as a flag, from the registry (ADR 0028); "switch" flags say the value that turns them on
 FLAGS: dict[str, tuple[str, str]] = {s["key"]: (s["kind"], s["flag"]) for s in st.SETTINGS}
 
@@ -269,22 +270,39 @@ def target(name: str, project: bool) -> pathlib.Path:
     return directory / (name + ".json")
 
 
-def listing() -> list[dict]:
-    """Every profile found, in search order; a name found twice says which one a build uses."""
-    out, seen = [], set()
+def listing() -> tuple[list[dict], list[dict]]:
+    """Every profile found, in search order; a name found twice says which one a build uses.
+
+    What a row shows, an agent reads (ADR 0040 §8, the review of 0.3.3): a file whose stem is not
+    a name is not read, and its row shows the stem through `quoted` with an error, since no command
+    takes that name; a title is shown through `quoted`. At most LISTED rows of each place, in the
+    order of the names' code points — the same order in both implementations — and how many were
+    left out, unread, under `omitted`."""
+    out, omitted, seen = [], [], set()
     for where, directory in directories():
-        for path in sorted(directory.glob("*.json")) if directory.is_dir() else []:
-            name = path.stem
+        names = sorted((p.name for p in directory.glob("*.json")), key=lambda n: n.encode("utf-8")) if directory.is_dir() else []
+        if len(names) > LISTED:
+            omitted.append({"where": where, "count": len(names) - LISTED})
+        for file_name in names[:LISTED]:
+            name = file_name[:-len(".json")]
+            try:
+                check_name(name)
+            except ProfileError:
+                shown = check_mod.quoted(name)
+                out.append({"name": shown, "where": where, "path": str(directory / (shown + ".json")),
+                            "error": "is not a name; use letters, digits, - or _", "used": False})
+                continue
+            path = directory / file_name
             try:
                 data = read(path)
-                title = data.get("title", {})
+                title = {key: check_mod.quoted(text) for key, text in data.get("title", {}).items()}
                 row = {"name": name, "where": where, "path": str(path), "title": title, "settings": len(data["settings"])}
             except ProfileError as exc:
                 row = {"name": name, "where": where, "path": str(path), "error": exc.what}
             row["used"] = name not in seen
             seen.add(name)
             out.append(row)
-    return out
+    return out, omitted
 
 
 # --- the command ----------------------------------------------------------------------
@@ -373,7 +391,8 @@ def run(argv: list[str]) -> dict:
     if rest and rest[0].startswith("-"):
         raise ProfileError(USAGE)  # `save --help` is a question, not a name
     if command == "list" and not rest:
-        return {"ok": True, "profiles": listing()}
+        profiles, omitted = listing()
+        return {"ok": True, "profiles": profiles, **({"omitted": omitted} if omitted else {})}
     if command == "show" and len(rest) == 1:
         data, where, path = load(rest[0])
         opts, _, _ = b.parse_args(as_flags(data["settings"]) + ["in.md", "out.docx"])

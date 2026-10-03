@@ -23,7 +23,10 @@ or read, the `"settings"` and the `"sha256"` — the same profile gives the same
 runtimes — and `"replaced"`, with a `"warnings"` line, when the file took the place of one;
 `"shadows"`, with a `"warnings"` line, when it now hides a profile of that name further down the
 search (`"skill"` or `"home"`).
-`list` gives `"profiles"`; `export` gives the `"path"` written and `"share"`.
+`list` gives `"profiles"` — at most 100 rows of each place, by name, and `"omitted"` with the count
+of each place that had more; a file whose stem is not a name is listed with an `"error"` and not
+read, and a title is shown as a name from a file is (letters, digits, spaces and `-_./()[]+&,`,
+others `?`, at most 64 characters). `export` gives the `"path"` written and `"share"`.
 
 A build with `--profile` says nothing of a setting the profile gave that the document had no use
 for — "changed nothing" and "reached no" are said of a flag typed after the profile only, as the

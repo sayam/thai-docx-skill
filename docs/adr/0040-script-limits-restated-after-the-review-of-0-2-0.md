@@ -104,6 +104,11 @@ unchanged.
    > is document text an agent reads; it is shown with letters, digits, spaces and `-_./()[]+&,`
    > only, others as `?`, at most 64 characters (D-10). And at most 20 findings and 20 warnings
    > of a code are listed, the rest counted, so a file cannot make its answer megabytes long (D-11).
+
+   > **Later (2026-10-03, the review of 0.3.3):** a file in a profile folder supplies a name too.
+   > `profile list` shows a stem that is not a name — one no command takes — as above, with an
+   > error, and does not read the file; a title is shown as above; at most 100 rows of each place
+   > are listed, in the order of the names' code points, the rest counted and not read.
 9. Before parsing a .docx it did not write, the checker refuses XML carrying a DOCTYPE and caps the
    decompressed size. `repair` never writes a file its checker finds a fault in that the input did
    not have; a part whose finding lies inside a comment or CDATA is left as it came, and the finding
