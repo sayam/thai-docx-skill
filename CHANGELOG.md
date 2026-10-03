@@ -29,6 +29,8 @@ before two applications were read; the exception and what is owed are in
   folder's contents, the `.js` file included; ChatGPT takes the downloaded zip and writes its own
   one-line description for its list. Both apps move to "installed" in the table; neither has built
   a document yet.
+- `tools/mutants.yaml` holds the two rows of 0.3.1 that were left without a mutant because their
+  tests hold `repair` alone, `V31-02` and `V31-07`, each in Python and in JavaScript (ADR 0042).
 
 ### Fixed
 
