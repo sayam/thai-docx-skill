@@ -14,6 +14,15 @@ before two applications were read; the exception and what is owed are in
 
 ### Changed
 
+- `SKILL.md` says the answer after a repair names three things — the new file, the font `repair`
+  chose, and that page breaks can move, with the Thai words for it — and that a setting asked for
+  without a value ("add page numbers") is never asked about nor its choices offered: it takes its
+  default, which is named (top-right). One Haiku run in three had said the compatibility mode
+  "may change where letters and lines fall", and one in three had asked where the page numbers go
+  after asking the font, as in the records before. On the new sentences Haiku named the page
+  breaks in ten runs of twelve and asked the font alone in five of six; Sonnet and Opus passed
+  every case ([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-10-03-model-equivalence-on-the-0.3.4-skill.md);
+  `tests/test_skill_md.py::test_skill_md_says_the_two_things_haiku_still_missed_on_0_3_3`).
 - The install guides say what the uploads to ChatGPT and the Gemini app showed on 3 October 2026
   with 0.3.3: the Gemini app refuses the downloaded zip ("The uploaded file did not pass the
   security scan") because `SKILL.md` sits inside the `thai-docx` folder, and takes a zip of that
