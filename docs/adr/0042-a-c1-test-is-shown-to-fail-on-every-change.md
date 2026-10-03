@@ -58,6 +58,11 @@ Left out on purpose:
   > **Later (2026-10-02):** a mutant is written on `repair` too, from `V33-09` on: a fix there is
   > shown red again like any other. `V31-02` and `V31-07` have none yet.
 
+  > **Later (2026-10-03):** they have, on each side: `repair` that cuts the close of an element
+  > to add an attribute (`V31-02`), and one that copies the whole part at every element it puts
+  > in order (`V31-07`). The Python copy fails the test's ratio; the JavaScript one runs past the
+  > test's 30 seconds for a command and fails there. `V31-12` stays as above.
+
 ## Why
 
 ADR 0041 puts a test above a rule because the suite reads the test on every change. A test shown

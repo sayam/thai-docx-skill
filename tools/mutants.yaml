@@ -13,9 +13,9 @@
 #
 # The list began with the mutants the reviews of 0.2.0 planted by hand — the limits, the checker's
 # causes, the build's fidelity check, the bundle, the licence lines, the citation — and with one
-# mutant for each ledger row of 0.3.1, 0.3.2 and 0.3.3 whose test does not hold repair. Every
-# ledger row from here on comes with its mutant — from V33-09 on, a row of repair's too. A limit that both implementations state has a
-# mutant on each side.
+# mutant for each ledger row of 0.3.1, 0.3.2 and 0.3.3 but V31-12, the rows of repair's among
+# them since 0.3.4. Every ledger row from here on comes with its mutant. A limit that both implementations
+# state has a mutant on each side, and so has a defect repair could have in either.
 
 # --- the limits, at their values, on both sides (check-holds-its-limits-at-their-values) --------
 
@@ -328,6 +328,28 @@
   holds:
     - V31-01
 
+- id: repair-cuts-the-close-to-add-an-attribute
+  file: skills/thai-docx/scripts/thai_docx/repair.py
+  find: |-
+    return raw[:at].rstrip() + b" " + attribute + raw[at:]
+  replace: |-
+    return raw[:-2].rstrip() + b" " + attribute + b"/>"
+  test:
+    - tests/test_what_a_command_takes.py::test_repair_adds_to_an_element_that_closes_with_an_end_tag
+  holds:
+    - V31-02
+
+- id: javascript-repair-cuts-the-close-to-add-an-attribute
+  file: js/54-repair.js
+  find: |-
+    return raw.slice(0, at).replace(/\s+$/, "") + " " + attribute + raw.slice(at);
+  replace: |-
+    return raw.slice(0, -2).replace(/\s+$/, "") + " " + attribute + "/>";
+  test:
+    - tests/test_what_a_command_takes.py::test_repair_adds_to_an_element_that_closes_with_an_end_tag
+  holds:
+    - V31-02
+
 - id: nested-runs-read-again-in-each-run
   file: skills/thai-docx/scripts/thai_docx/check.py
   find: |-
@@ -371,6 +393,28 @@
     - tests/test_rules.py::test_the_newest_release_record_names_the_bytes_it_read
   holds:
     - V31-06
+
+- id: reorder-copies-the-part-at-every-element
+  file: skills/thai-docx/scripts/thai_docx/repair.py
+  find: |-
+    inner = b"".join(raw for _n, raw in children)
+  replace: |-
+    inner = b"".join(raw for _n, raw in children) + bytes(bytearray(xml))[:0]
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_putting_properties_in_order_takes_time_in_proportion_to_the_part
+  holds:
+    - V31-07
+
+- id: javascript-reorder-copies-the-part-at-every-element
+  file: js/54-repair.js
+  find: |-
+    inner = children.map(([, raw]) => raw).join("");
+  replace: |-
+    inner = children.map(([, raw]) => raw).join("") + new TextEncoder().encode(text).subarray(0, 0).join("");
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_putting_properties_in_order_takes_time_in_proportion_to_the_part
+  holds:
+    - V31-07
 
 - id: skill-md-asks-which-value
   file: skills/thai-docx/SKILL.md
