@@ -593,3 +593,36 @@
     - tests/test_what_a_command_takes.py::test_a_space_taken_off_a_long_font_name_is_named_by_its_code_point
   holds:
     - V33-11
+
+- id: profile-list-shows-a-stem-that-is-not-a-name-as-it-is
+  file: skills/thai-docx/scripts/thai_docx/profiles.py
+  find: |-
+    shown = check_mod.quoted(name)
+  replace: |-
+    shown = name
+  test:
+    - tests/test_what_a_command_takes.py::test_profile_list_shows_a_name_and_a_title_as_names_from_a_file_are_shown
+  holds:
+    - V34-01
+
+- id: profile-list-cap-tenfold
+  file: skills/thai-docx/scripts/thai_docx/profiles.py
+  find: |-
+    LISTED = 100
+  replace: |-
+    LISTED = 1000
+  test:
+    - tests/test_what_a_command_takes.py::test_profile_list_shows_at_most_a_hundred_rows_of_a_place_and_counts_the_rest
+  holds:
+    - V34-02
+
+- id: javascript-profile-list-cap-tenfold
+  file: js/55-profiles.js
+  find: |-
+    const PROFILE_LISTED = 100;
+  replace: |-
+    const PROFILE_LISTED = 1000;
+  test:
+    - tests/test_what_a_command_takes.py::test_profile_list_shows_at_most_a_hundred_rows_of_a_place_and_counts_the_rest
+  holds:
+    - V34-02

@@ -6927,6 +6927,7 @@ const PROFILE_KEYS = ["schema", "id", "title", "description", "version", "source
 const PROFILE_TEXT_KEYS = ["id", "version", "source", "maintainer"];
 const PROFILE_MAX_TEXT = 200;
 const PROFILE_MAX_BYTES = 64 * 1024; // a profile is settings; anything larger is not one (ADR 0040)
+const PROFILE_LISTED = 100; // rows of `profile list` in each place (profiles.py says why)
 // setting → how it is written as a flag, from the registry (ADR 0028); "switch" flags say the value that turns them on
 const PROFILE_FLAGS = Object.fromEntries(SETTINGS.map((s) => [s.key, [s.kind, s.flag]]));
 const FLOAT_SETTINGS = SETTINGS.filter((s) => s.read && (s.read[0] === "number" || s.read[0] === "numbers")).map((s) => s.key); // Python writes these as floats
@@ -7330,26 +7331,51 @@ function profileTarget(name, project) {
   return path.join(directory, name + ".json");
 }
 
-// Every profile found, in search order; a name found twice says which one a build uses.
+// The order Python sorts names in: by code point, not by UTF-16 unit as sort() alone would.
+function byCodePoints(a, b) {
+  const x = [...a], y = [...b];
+  for (let i = 0; i < x.length && i < y.length; i++) {
+    const d = x[i].codePointAt(0) - y[i].codePointAt(0);
+    if (d) return d;
+  }
+  return x.length - y.length;
+}
+
+// Every profile found, in search order; a name found twice says which one a build uses. What a
+// row shows, an agent reads — listing() in thai_docx/profiles.py says what: a stem that is not a
+// name is not read and is shown through quoted() with an error; a title through quoted(); at most
+// PROFILE_LISTED rows of each place, in the order of the names' code points, the rest counted.
 function profileListing() {
   const fs = require("fs");
   const path = require("path");
   const out = [];
+  const omitted = [];
   const seen = new Set();
   for (const [where, directory] of profileDirectories()) {
     let names;
     try {
-      names = fs.readdirSync(directory).filter((n) => n.endsWith(".json")).sort();
+      names = fs.readdirSync(directory).filter((n) => n.endsWith(".json")).sort(byCodePoints);
     } catch {
       names = [];
     }
-    for (const file of names) {
-      const p = path.join(directory, file);
+    if (names.length > PROFILE_LISTED) omitted.push({ where, count: names.length - PROFILE_LISTED });
+    for (const file of names.slice(0, PROFILE_LISTED)) {
       const name = file.slice(0, -5);
+      try {
+        profileCheckName(name);
+      } catch (e) {
+        if (!(e instanceof ProfileError)) throw e;
+        const shown = quoted(name);
+        out.push({ name: shown, where, path: path.join(directory, shown + ".json"), error: "is not a name; use letters, digits, - or _", used: false });
+        continue;
+      }
+      const p = path.join(directory, file);
       let row;
       try {
         const data = profileRead(p);
-        row = { name, where, path: p, title: Object.prototype.hasOwnProperty.call(data, "title") ? data.title : {}, settings: Object.keys(data.settings).length };
+        const title = {};
+        if (Object.prototype.hasOwnProperty.call(data, "title")) for (const key of Object.keys(data.title)) title[key] = quoted(data.title[key]);
+        row = { name, where, path: p, title, settings: Object.keys(data.settings).length };
       } catch (e) {
         if (!(e instanceof ProfileError)) throw e;
         row = { name, where, path: p, error: e.what };
@@ -7359,7 +7385,7 @@ function profileListing() {
       out.push(row);
     }
   }
-  return out;
+  return [out, omitted];
 }
 
 const PROFILE_USAGE = "usage: thai_docx profile list | show NAME | save NAME [--from NAME [--default SETTING[,SETTING]]] [--project] [build flags] | " +
@@ -7450,7 +7476,10 @@ function profileRun(argv) {
   const command = argv[0];
   let rest = argv.slice(1);
   if (rest.length && rest[0].startsWith("-")) throw new ProfileError(PROFILE_USAGE); // `save --help` is a question, not a name
-  if (command === "list" && !rest.length) return { ok: true, profiles: profileListing() };
+  if (command === "list" && !rest.length) {
+    const [profiles, omitted] = profileListing();
+    return omitted.length ? { ok: true, profiles, omitted } : { ok: true, profiles };
+  }
   if (command === "show" && rest.length === 1) {
     const [where, p] = profileFind(rest[0]);
     const data = profileRead(p);

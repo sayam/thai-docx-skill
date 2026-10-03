@@ -345,7 +345,10 @@ about the layout of a document somebody else made; it is measured only by its ow
 - **It never reaches the network, installs nothing, and reads only the Markdown's own directory
   tree (or an `--allow-dir`, never `/` or an empty one) and the profile locations** — only regular
   files, each to a ceiling — writing only the output path and the one profile file it was asked to
-  save, that one whole or not at all.
+  save, that one whole or not at all. What those folders say reaches the assistant as names, not
+  as sentences: `profile list` shows a file's stem that is not a name, and every title, with
+  letters, digits, spaces and `-_./()[]+&,` only (others `?`, at most 64), reads no file under a
+  stem that is not a name, and lists at most 100 rows of each place, counting the rest.
 - **It is made for Thai.** A run of Lao, Khmer, Arabic, Devanagari or another script on the
   skill's list — Hebrew to the Arabic extensions, the Indic blocks to Sinhala, Thai, Lao, Tibetan,
   Myanmar, Khmer (ADR 0039) — is marked as complex script and takes the complex-script font. A
