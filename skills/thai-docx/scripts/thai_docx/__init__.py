@@ -2,4 +2,4 @@
 # SPDX-License-Identifier: MIT
 """thai-docx: Thai-correct .docx from Markdown, standard library only."""
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"

@@ -10,7 +10,15 @@ of that version names each golden's sha256 on the golden's own line), and after 
 before two applications were read; the exception and what is owed are in
 [its record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md). The rule is unchanged.
 
-## [Unreleased]
+## [0.3.3] - 2026-10-03
+
+No golden moves: a build writes the bytes 0.3.0 wrote, so what was read on them holds
+([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-10-03-what-v0.3.3-was-read-in.md)).
+What the review of the code and the documentation audit found is fixed: a font's name is
+written without a space at either end and said as given, `repair --font` is read back as given,
+every job runs on `ubuntu-24.04`, a commit is written under an address that signed it, every C1
+test is shown to fail by a mutant on every pull request and at the tag, and `SKILL.md` says a
+font the user names is built as named and the file `repair` writes stays beside the user's own.
 
 ### Changed
 

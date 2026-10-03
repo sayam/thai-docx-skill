@@ -89,13 +89,13 @@ Claude makes the file. Download it from the chat.
 
    ```sh
    mkdir -p ~/.claude/skills
-   unzip thai-docx-0.3.2.zip -d ~/.claude/skills
+   unzip thai-docx-0.3.3.zip -d ~/.claude/skills
    ```
 
    On Windows, in PowerShell:
 
    ```powershell
-   Expand-Archive thai-docx-0.3.2.zip -DestinationPath $HOME\.claude\skills
+   Expand-Archive thai-docx-0.3.3.zip -DestinationPath $HOME\.claude\skills
    ```
 
 3. Check that the file `~/.claude/skills/thai-docx/SKILL.md` exists.
@@ -186,7 +186,7 @@ Codex.
 
    ```sh
    mkdir -p ~/.agents/skills
-   unzip thai-docx-0.3.2.zip -d ~/.agents/skills
+   unzip thai-docx-0.3.3.zip -d ~/.agents/skills
    ```
 
    For one project only, unzip it into that project's `.agents/skills` folder.
@@ -356,8 +356,8 @@ Optional. If you have the [GitHub CLI](https://cli.github.com/), check that the 
 project's release workflow built:
 
 ```sh
-gh attestation verify thai-docx-0.3.2.zip --repo sayam/thai-docx-skill \
-  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.3.2
+gh attestation verify thai-docx-0.3.3.zip --repo sayam/thai-docx-skill \
+  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.3.3
 ```
 
 It says the verification succeeded, or fails for any other file, and for the right file built
@@ -366,12 +366,12 @@ rebuild the archive and compare, is in
 [SECURITY.md](https://github.com/sayam/thai-docx-skill/blob/main/.github/SECURITY.md#the-tag).
 
 That asks GitHub for the proof, so you need to be signed in with `gh auth login`. If the release
-page also carries `thai-docx-0.3.2.intoto.jsonl`, download it beside the zip and check against it
+page also carries `thai-docx-0.3.3.intoto.jsonl`, download it beside the zip and check against it
 instead — no account, though it still fetches Sigstore's trusted root over the network:
 
 ```sh
-gh attestation verify thai-docx-0.3.2.zip --bundle thai-docx-0.3.2.intoto.jsonl --repo sayam/thai-docx-skill \
-  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.3.2
+gh attestation verify thai-docx-0.3.3.zip --bundle thai-docx-0.3.3.intoto.jsonl --repo sayam/thai-docx-skill \
+  --signer-workflow sayam/thai-docx-skill/.github/workflows/release.yml --source-ref refs/tags/v0.3.3
 ```
 
 With no network at all, run `gh attestation trusted-root > trusted_root.jsonl` on a machine that
@@ -409,7 +409,7 @@ it.
 |---|---|---|
 | where the files come from | the **latest tagged release** | the default branch, **`main`** |
 | so you get | the version the release page names | whatever has been merged since |
-| an exact version | `gh skill install … --pin v0.3.2` | — |
+| an exact version | `gh skill install … --pin v0.3.3` | — |
 | look before installing | `gh skill preview sayam/thai-docx-skill thai-docx` | — |
 | the files | the same ones the release archive holds | the same ones |
 | SKILL.md | **rewritten**: the keys sorted, `metadata` flattened, quotes dropped, and four keys added that say where it came from (`github-repo`, `github-ref`, `github-path`, `github-tree-sha`) | copied as it is |
