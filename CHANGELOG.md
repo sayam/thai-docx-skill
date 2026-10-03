@@ -52,6 +52,11 @@ before two applications were read; the exception and what is owed are in
   the name is looked up without it, so `Tahoma ` is not also called a font without Thai. A
   warning never fails the check
   (`tests/test_what_a_command_takes.py::test_check_says_a_font_name_begins_or_ends_with_a_space_once_a_place`).
+- `repair`'s `font` warning showed the font it chose as escaped for the XML, not as its name:
+  `A &amp; B` and `A&lt;B` since 0.3.1, `A&#9;B&#10;C` since 0.3.3, next to a warning of the same
+  run that showed `A?B?C`. It now shows the name as `check` shows a font's name; the file written
+  is as before
+  (`tests/test_what_a_command_takes.py::test_repairs_font_warning_shows_the_name_as_check_shows_a_font_name`).
 
 ## [0.3.3] - 2026-10-03
 

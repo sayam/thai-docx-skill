@@ -523,9 +523,10 @@ def fix_numbering(xml: bytes, font: bytes) -> tuple[bytes, int]:
     return bytes(out) + xml[pos:], five
 
 
-def complex_script_font(parts: dict[str, bytes], asked: str | None) -> tuple[bytes, str]:
-    """The font a run that names none is given, and why (ADR 0037): what the user asked for,
-    else the complex-script font this document already uses most, else the skill's default."""
+def complex_script_font(parts: dict[str, bytes], asked: str | None) -> tuple[bytes, str, str]:
+    """The font a run that names none is given — as written into the attribute, and as its name
+    — and why (ADR 0037): what the user asked for, else the complex-script font this document
+    already uses most, else the skill's default."""
     if asked:
         # what Word reads of the name, as the build writes it — said where it is written
         kept = st.font_cut(asked)
@@ -534,7 +535,7 @@ def complex_script_font(parts: dict[str, bytes], asked: str | None) -> tuple[byt
         # or a line break written as it is comes back from a reader of XML as a space; a font
         # found in the document below is taken from an attribute already
         asked = asked if kept is None else kept
-        return attr(asked)[1:-1].encode("utf-8"), why
+        return attr(asked)[1:-1].encode("utf-8"), asked, why
     counted: dict[bytes, int] = {}
     for name, xml in parts.items():
         # the XML parts only: an image or a font holds no run properties, and reading one as
@@ -547,8 +548,9 @@ def complex_script_font(parts: dict[str, bytes], asked: str | None) -> tuple[byt
                     counted[found] = counted.get(found, 0) + 1
     if counted:
         best = max(sorted(counted), key=lambda f: counted[f])
-        return best, "the complex-script font this document uses most"
-    return st.DEFAULTS["font"].encode("utf-8"), "this skill's default, as the document names none"
+        # a name the checker accepts holds nothing an attribute escapes
+        return best, best.decode("utf-8"), "the complex-script font this document uses most"
+    return st.DEFAULTS["font"].encode("utf-8"), st.DEFAULTS["font"], "this skill's default, as the document names none"
 
 
 # How deep an element may stand in elements of its own name for `repair` to edit it: its passes
@@ -651,7 +653,7 @@ def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None
     # is not a finding, so nothing in `codes` would ask for this pass, and taking it off is the
     # repair (ADR 0039). Asked to mark every run instead, this is the work it always was.
     if codes & {"2", "5"} or thai_language or not cs_all:
-        cs_font, why = complex_script_font(parts, font)
+        cs_font, cs_name, why = complex_script_font(parts, font)
         text = set(roles["text"])  # a set: a search of a list per part took 44 s for 60,000 parts (D-13)
         for name, xml in parts.items():
             if name not in text:
@@ -676,10 +678,11 @@ def repair_parts(parts: dict[str, bytes], findings: list[dict], font: str | None
                 repaired["5"] = repaired.get("5", 0) + n
         # said only where it was written — into an rFonts that named a Latin font alone, or
         # over a Symbol bullet — not whenever a mark or a twin was
-        quoted = b'"' + cs_font + b'"'
-        if sum(x.count(quoted) for x in replace.values()) > sum(parts[n].count(quoted) for n in replace if n in parts):
+        # the name, not the bytes escaped for the attribute, and shown as check shows a font's name
+        written = b'"' + cs_font + b'"'
+        if sum(x.count(written) for x in replace.values()) > sum(parts[n].count(written) for n in replace if n in parts):
             chosen = {"code": "font", "message": "complex-script font written where a run named none: '"
-                      + cs_font.decode("utf-8") + "' — " + why}
+                      + check_mod.quoted(cs_name) + "' — " + why}
     return replace, repaired, chosen, left
 
 
