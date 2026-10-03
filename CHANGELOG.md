@@ -18,9 +18,11 @@ before two applications were read; the exception and what is owed are in
   of an `--auto-numbering` document: its Update Table of Contents rewrote the list as the table of
   contents, where it had been seen empty before; Word 365 for Windows updates the same file's list
   correctly. No byte of a build moves; the mode is not covered in Word for the web.
-- `SECURITY.md` sets a time to fix a confirmed vulnerability by its CVSS v4 severity, counted from
-  the day it is confirmed: critical within 7 days, high within 14, medium within 30, low within 90
-  and never after the disclosure date.
+- `SECURITY.md` sets a time to fix a confirmed vulnerability, reported or found by the project
+  itself, by its CVSS v4 severity, counted from the day it is confirmed: critical within 7 days,
+  high within 14, medium within 30, low within 90 and never after the disclosure date.
+  `CONTRIBUTING.md` holds a vulnerability in a dependency to the same times, where high had been
+  7 days with critical and low had waited for the next update.
 - `SKILL.md` says the answer after a repair names three things — the new file, the font `repair`
   chose, and that page breaks can move, with the Thai words for it — and that a setting asked for
   without a value ("add page numbers") is never asked about nor its choices offered: it takes its

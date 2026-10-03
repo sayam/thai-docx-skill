@@ -15,8 +15,9 @@ channel; no address is published here.
   **90 days** after the report unless we agree otherwise with you.
 - Credit in the release notes and the advisory, if you want it.
 
-A confirmed vulnerability is fixed or mitigated in a release within a time set by its severity,
-scored with CVSS v4 and counted from the day it is confirmed:
+A confirmed vulnerability, whether reported or found by the project itself, is fixed or mitigated
+in a release within a time set by its severity, scored with CVSS v4 and counted from the day it
+is confirmed:
 
 | Severity | Fixed or mitigated in a release |
 |---|---|
