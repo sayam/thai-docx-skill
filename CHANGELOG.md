@@ -14,6 +14,10 @@ before two applications were read; the exception and what is owed are in
 
 ### Changed
 
+- `references/repair.md` and `limits.md` §10 say two things `repair` reads from a part's bytes
+  rather than its tags, so the text can sway them. The font the document uses most misses one
+  named in single quotes and counts `w:cs="…"` typed as text; a WordprocessingML declaration under
+  another prefix typed as text refuses the file. Both stay as they are in this version.
 - `references/repair.md` says what `repair` keeps: every part it did not rewrite, byte for byte,
   but not the notes a ZIP can carry beside the parts — the archive's comment, and an entry's
   comment and extra field, which come back empty. It had said everything else stays exactly as it

@@ -329,7 +329,11 @@ nothing written; a mark on a run that is not complex script is something to repa
 
 **What follows from it:** compatibility mode 15 **reflows the document, and page breaks can move**
 — say so before the user sends the file to anyone. The complex-script font it writes where a run
-names none is a decision it made: it is in `warnings`, so read it out. `repair` promises nothing
+names none is a decision it made: it is in `warnings`, so read it out. This version reads two
+things from a part's bytes rather than its tags, so the text can sway them: the font the document
+uses most (a name in single quotes is missed; `w:cs="…"` typed as text is counted), and a
+namespace declaration (`xmlns:x="…/wordprocessingml/2006/main"` typed as text refuses the file as
+written under another prefix). `repair` promises nothing
 about the layout of a document somebody else made; it is measured only by its own contract.
 **Rebuilding from Markdown is better whenever the content exists.**
 
