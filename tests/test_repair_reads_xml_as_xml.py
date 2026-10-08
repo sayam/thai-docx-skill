@@ -18,6 +18,7 @@ repairs, since a correct repair never reaches them.
 from __future__ import annotations
 
 import io
+import pathlib
 import re
 import time
 import zipfile
@@ -30,6 +31,7 @@ from test_what_a_command_takes import _node, both  # noqa: F401  the fixture run
 from thai_docx import repair as rp
 from thai_docx.check import check
 
+REFERENCES = pathlib.Path(__file__).resolve().parents[1] / "skills" / "thai-docx" / "references"
 W_URI = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W = "{" + W_URI + "}"
 BARE = '<w:r><w:t xml:space="preserve">ข้อความไทย</w:t></w:r>'  # finding 2: Thai without <w:cs/>
@@ -256,3 +258,43 @@ def test_a_second_fault_of_a_code_a_part_already_had_is_one_the_repair_made(tmp_
     code, result = both(["repair", "in.docx", "out.docx"], tmp_path)
     assert code == 1 and result["error"] == (rp.MADE_WORSE + " (4 in word/document.xml); nothing was written"), result
     assert not (tmp_path / "out.docx").exists()
+
+
+def no_complex_script_font() -> dict:
+    """good(), with no complex-script font named anywhere, so the font a repair picks is the one
+    the case under test puts there."""
+    return {k: (re.sub(r' w:cs="[^"]*"', "", v) if isinstance(v, str) else v) for k, v in good().items()}
+
+
+LATIN_ONLY = '<w:r><w:rPr><w:rFonts w:ascii="Arial"/><w:cs/></w:rPr><w:t xml:space="preserve">ไทย</w:t></w:r>'
+
+
+@pytest.mark.parametrize("runs, chosen", [
+    ("<w:r><w:rPr><w:rFonts w:ascii='Tahoma' w:cs='Tahoma'/><w:cs/></w:rPr><w:t xml:space=\"preserve\">ไทย</w:t></w:r>",
+     "'TH Sarabun New' — this skill's default, as the document names none"),
+    ('<w:r><w:rPr><w:cs/></w:rPr><w:t xml:space="preserve">ตัวอย่าง w:cs="Tahoma"</w:t></w:r>',
+     "'Tahoma' — the complex-script font this document uses most"),
+], ids=["single-quoted-font-missed", "font-typed-as-text-counted"])
+def test_the_font_a_document_uses_most_is_counted_in_the_parts_bytes(tmp_path, runs, chosen):
+    """0.3.4 D-03, recorded, not fixed: the count reads `w:cs="…"` in a part's bytes, not in its
+    tags. `references/repair.md` and `limits.md` §10 say so; when a later version reads tags,
+    this fails, and they change with it."""
+    body(tmp_path, runs + LATIN_ONLY, parts=no_complex_script_font())
+    code, result = both(["repair", "in.docx", "out.docx"], tmp_path)
+    assert code == 0 and [w["message"] for w in result["warnings"] if w["code"] == "font"] == [
+        "complex-script font written where a run named none: " + chosen], result
+    for ref in ("repair.md", "limits.md"):
+        said = " ".join((REFERENCES / ref).read_text(encoding="utf-8").split())
+        assert "a font named in single quotes" in said or "a name in single quotes is missed" in said, ref
+
+
+def test_a_declaration_typed_as_text_refuses_the_file(tmp_path):
+    """0.3.4 D-05, recorded, not fixed: the prefix guard reads a part's bytes, so a page about
+    Word's XML is refused as if it were written under another prefix — fail-safe, nothing written."""
+    body(tmp_path, '<w:r><w:rPr><w:cs/></w:rPr><w:t xml:space="preserve">ตัวอย่าง xmlns:x="' + W_URI + '"</w:t></w:r>')
+    code, result = both(["repair", "in.docx", "out.docx"], tmp_path)
+    assert code == 2 and "under a prefix other than w:" in result["error"], result
+    assert not (tmp_path / "out.docx").exists()
+    for ref in ("repair.md", "limits.md"):
+        said = " ".join((REFERENCES / ref).read_text(encoding="utf-8").split())
+        assert 'xmlns:x="…/wordprocessingml/2006/main"' in said, ref
