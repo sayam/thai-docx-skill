@@ -37,6 +37,16 @@ before two applications were read; the exception and what is owed are in
   breaks in ten runs of twelve and asked the font alone in five of six; Sonnet and Opus passed
   every case ([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-10-03-model-equivalence-on-the-0.3.4-skill.md);
   `tests/test_skill_md.py::test_skill_md_says_the_two_things_haiku_still_missed_on_0_3_3`).
+- `SKILL.md` says the answer after a repair passes on each of its `font` and `layout` warnings
+  that `repair` gives, where it had said the answer names three things, the font and the page
+  breaks among them: `repair` gives the first only when it wrote a complex-script font and the
+  second only when it set compatibility mode 15. On files that give one of the two, Haiku said a
+  warning `repair` had not given in one run of twelve on the old sentence and in none of the
+  eleven that repaired on the new (the twelfth asked where the file was). On the new, one run did
+  not name the font and one said "page positions" for the page breaks, misses of another kind the
+  old sentence had in none of its twelve; on the file that gives both, six of six passed. Six runs
+  to a cell show no direction ([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-10-08-model-equivalence-on-the-warnings-a-repair-gives.md);
+  `tests/test_skill_md.py::test_the_answer_after_a_repair_passes_on_the_warnings_repair_gives`).
 - The install guides say what the uploads to ChatGPT and the Gemini app showed on 3 October 2026
   with 0.3.3: the Gemini app refuses the downloaded zip ("The uploaded file did not pass the
   security scan") because `SKILL.md` sits inside the `thai-docx` folder, and takes a zip of that

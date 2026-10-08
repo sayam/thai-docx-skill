@@ -909,6 +909,22 @@ def test_a_repair_that_sets_compatibility_mode_says_the_pages_may_move(tmp_path)
         "compatibility mode 15 reflows the document: page breaks can move — say so before the file is sent to anyone")} in result["warnings"], result
 
 
+def test_repair_gives_its_font_and_layout_warnings_each_on_its_own(tmp_path):
+    """E-01 (the release review of 0.3.4): SKILL.md told the agent to name the font `repair` chose
+    and that page breaks can move after every repair. Each is a warning `repair` gives only when
+    it did that thing: a file already in compatibility mode 15 is not reflowed, and a file whose
+    Thai runs name a complex-script font has none written. SKILL.md passes on the warnings given."""
+    mode = 'w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="1'
+    with zipfile.ZipFile(FIXTURES / "legacy-python-docx-default.docx") as z:
+        legacy = {n: z.read(n) for n in z.namelist()}
+    legacy["word/settings.xml"] = legacy["word/settings.xml"].replace((mode + '4"').encode(), (mode + '5"').encode(), 1)
+    (tmp_path / "no-layout.docx").write_bytes(pack(legacy))
+    (tmp_path / "no-font.docx").write_bytes(pack(replaced(good(), "word/settings.xml", mode + '5"', mode + '2"')))
+    for name, given, not_given in (("no-layout", "font", "layout"), ("no-font", "layout", "font")):
+        code, result = both(["repair", name + ".docx", "out.docx"], tmp_path, setup=lambda: (tmp_path / "out.docx").unlink(missing_ok=True))
+        codes = [w["code"] for w in result.get("warnings", [])]
+        assert (tmp_path / "out.docx").exists() and given in codes and not_given not in codes, (name, result)
+
 def test_repair_prints_the_same_line_in_both(tmp_path):
     """C-02 (the review of 0.3.0): `repaired` holds codes that are numbers and codes that are
     words; JavaScript puts the numbers first whatever the order they were added in, Python kept

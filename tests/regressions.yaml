@@ -1575,3 +1575,11 @@
   found_by: review
   test:
     - tests/test_repair_reads_xml_as_xml.py::test_a_second_fault_of_a_code_a_part_already_had_is_one_the_repair_made
+
+- id: V34-13
+  what: SKILL.md said the answer after a repair names three things, the font repair chose and that page breaks can move among them, where repair gives the font warning only when it wrote a complex-script font and the layout warning only when it set compatibility mode 15, so an agent doing as it read could pass on a warning repair had not given
+  class: C1, C2
+  found_by: review
+  test:
+    - tests/test_skill_md.py::test_the_answer_after_a_repair_passes_on_the_warnings_repair_gives
+    - tests/test_what_a_command_takes.py::test_repair_gives_its_font_and_layout_warnings_each_on_its_own

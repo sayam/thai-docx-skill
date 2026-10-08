@@ -1,5 +1,9 @@
 # 2026-10-03 — model equivalence on the skill of 0.3.4
 
+> **Later (2026-10-08):** the repair sentence quoted below now passes on each warning `repair`
+> gives, where it named three things; the layout warning keeps its words
+> ([record](2026-10-08-model-equivalence-on-the-warnings-a-repair-gives.md)).
+
 What this proves: the two sentences 0.3.4 changed in SKILL.md — what the answer after a repair
 names, and that a setting asked for without a value is never asked about — still lead three
 models to the file each request of [the last record](2026-09-30-model-equivalence-on-the-0.3.3-skill.md)
