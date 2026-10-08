@@ -532,7 +532,7 @@ function complexScriptFont(parts, asked) {
   }
   if (counted.size) {
     let best = null;
-    for (const name of [...counted.keys()].sort()) {
+    for (const name of [...counted.keys()].sort(byCodePoints)) {
       if (best === null || counted.get(name) > counted.get(best)) best = name;
     }
     // a name the checker accepts holds nothing an attribute escapes
@@ -586,7 +586,7 @@ function holdsWhatIsNotMarkup(xml) {
 // The first part that writes WordprocessingML under a prefix other than `w`, or binds `w` to
 // something else: every pattern here spells `w:`, and would read such a part wrongly.
 function foreignPrefix(parts) {
-  for (const name of [...parts.keys()].sort()) {
+  for (const name of [...parts.keys()].sort(byCodePoints)) {
     if (!isXmlPart(name)) continue;
     for (const m of fromUtf8(parts.get(name)).matchAll(RE_XMLNS)) {
       const uri = m[2] !== undefined ? m[2] : m[3];
@@ -607,7 +607,7 @@ function repairParts(allParts, findings, font, thaiLanguage, csAll) {
   const { styles, numbering, settings } = roles;
   const mine = new Set([...roles.text, styles, numbering, settings].filter((n) => n !== null));
   const ours = (n) => isXmlPart(n) || mine.has(n);
-  const left = [...allParts.keys()].filter((n) => ours(n) && holdsWhatIsNotMarkup(fromUtf8(allParts.get(n)))).sort();
+  const left = [...allParts.keys()].filter((n) => ours(n) && holdsWhatIsNotMarkup(fromUtf8(allParts.get(n)))).sort(byCodePoints);
   const parts = new Map([...allParts].filter(([n]) => ours(n) && !left.includes(n)));
   const codes = new Set(findings.map((f) => f.code));
   const replace = new Map();

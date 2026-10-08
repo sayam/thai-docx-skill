@@ -314,7 +314,9 @@ function profileIsPath(name) {
 // the name back inside a command; never a leading -, which is a flag.
 function profileCheckName(name) {
   if (!name || codePointLength(name) > 64 || name.startsWith("-") || !/^[\p{L}\p{M}\p{N}_-]+$/u.test(name)) {
-    throw new ProfileError("profile name '" + name + "' is not a name; use letters, digits, - or _");
+    // the name can come from a file (an import's id, a folder's file name): shown as check
+    // shows a name from a file (ADR 0040 §8)
+    throw new ProfileError("profile name '" + quoted(name) + "' is not a name; use letters, digits, - or _");
   }
   return name;
 }
@@ -413,16 +415,6 @@ function profileTarget(name, project) {
   const where = project ? "project" : "home";
   const directory = profileDirectories().find(([w]) => w === where)[1];
   return path.join(directory, name + ".json");
-}
-
-// The order Python sorts names in: by code point, not by UTF-16 unit as sort() alone would.
-function byCodePoints(a, b) {
-  const x = [...a], y = [...b];
-  for (let i = 0; i < x.length && i < y.length; i++) {
-    const d = x[i].codePointAt(0) - y[i].codePointAt(0);
-    if (d) return d;
-  }
-  return x.length - y.length;
 }
 
 // Every profile found, in search order; a name found twice says which one a build uses. What a

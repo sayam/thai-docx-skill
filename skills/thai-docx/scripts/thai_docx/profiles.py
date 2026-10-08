@@ -192,7 +192,9 @@ def check_name(name: str) -> str:
     fine = bool(name) and len(name) <= 64 and not name.startswith("-") and all(
         c in "-_" or unicodedata.category(c)[0] in "LMN" for c in name)
     if not fine:
-        raise ProfileError("profile name '" + name + "' is not a name; use letters, digits, - or _")
+        # the name can come from a file (an import's id, a folder's file name): shown as check
+        # shows a name from a file (ADR 0040 §8)
+        raise ProfileError("profile name '" + check_mod.quoted(name) + "' is not a name; use letters, digits, - or _")
     return name
 
 
@@ -270,6 +272,15 @@ def target(name: str, project: bool) -> pathlib.Path:
     return directory / (name + ".json")
 
 
+def as_utf8_reads(name: str) -> str:
+    """A file name as UTF-8 reads it, as Node reads one: a byte that is not UTF-8 is U+FFFD, not
+    the surrogate Python keeps it as, which neither sorts nor prints (the review of 0.3.4)."""
+    try:
+        return name.encode("utf-8", "surrogateescape").decode("utf-8", "replace")
+    except UnicodeEncodeError:  # a lone surrogate, which a name on Windows can hold
+        return "".join("\ufffd" if "\ud800" <= c <= "\udfff" else c for c in name)
+
+
 def listing() -> tuple[list[dict], list[dict]]:
     """Every profile found, in search order; a name found twice says which one a build uses.
 
@@ -280,7 +291,7 @@ def listing() -> tuple[list[dict], list[dict]]:
     left out, unread, under `omitted`."""
     out, omitted, seen = [], [], set()
     for where, directory in directories():
-        names = sorted((p.name for p in directory.glob("*.json")), key=lambda n: n.encode("utf-8")) if directory.is_dir() else []
+        names = sorted((as_utf8_reads(p.name) for p in directory.glob("*.json")), key=lambda n: n.encode("utf-8")) if directory.is_dir() else []
         if len(names) > LISTED:
             omitted.append({"where": where, "count": len(names) - LISTED})
         for file_name in names[:LISTED]:

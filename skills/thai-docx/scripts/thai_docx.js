@@ -1183,6 +1183,16 @@ const FONT_MAX = 31; // a font's name: 31 characters in Windows and Word (check.
 const FONT_SPACES = " \t\n\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000";
 const PLAIN = new Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_./()[]+&,");
 
+// The order Python sorts names in: by code point, not by UTF-16 unit as sort() alone would.
+function byCodePoints(a, b) {
+  const x = [...a], y = [...b];
+  for (let i = 0; i < x.length && i < y.length; i++) {
+    const d = x[i].codePointAt(0) - y[i].codePointAt(0);
+    if (d) return d;
+  }
+  return x.length - y.length;
+}
+
 // one argument only: it is handed to map(), which would pass the index as a second
 function quoted(value) {
   return quotedTo(value, QUOTED_MAX);
@@ -6118,7 +6128,7 @@ function docxText(parts, footnoteCount) {
 // paragraph as fidelity reads it, the parts in name order (package_text() in repair.py).
 function packageText(parts) {
   const out = [];
-  for (const name of [...partRolesOf(parts).text].sort()) paragraphsInto(parseXml(fromUtf8(parts.get(name))), out);
+  for (const name of [...partRolesOf(parts).text].sort(byCodePoints)) paragraphsInto(parseXml(fromUtf8(parts.get(name))), out);
   return out;
 }
 
@@ -6771,7 +6781,7 @@ function complexScriptFont(parts, asked) {
   }
   if (counted.size) {
     let best = null;
-    for (const name of [...counted.keys()].sort()) {
+    for (const name of [...counted.keys()].sort(byCodePoints)) {
       if (best === null || counted.get(name) > counted.get(best)) best = name;
     }
     // a name the checker accepts holds nothing an attribute escapes
@@ -6825,7 +6835,7 @@ function holdsWhatIsNotMarkup(xml) {
 // The first part that writes WordprocessingML under a prefix other than `w`, or binds `w` to
 // something else: every pattern here spells `w:`, and would read such a part wrongly.
 function foreignPrefix(parts) {
-  for (const name of [...parts.keys()].sort()) {
+  for (const name of [...parts.keys()].sort(byCodePoints)) {
     if (!isXmlPart(name)) continue;
     for (const m of fromUtf8(parts.get(name)).matchAll(RE_XMLNS)) {
       const uri = m[2] !== undefined ? m[2] : m[3];
@@ -6846,7 +6856,7 @@ function repairParts(allParts, findings, font, thaiLanguage, csAll) {
   const { styles, numbering, settings } = roles;
   const mine = new Set([...roles.text, styles, numbering, settings].filter((n) => n !== null));
   const ours = (n) => isXmlPart(n) || mine.has(n);
-  const left = [...allParts.keys()].filter((n) => ours(n) && holdsWhatIsNotMarkup(fromUtf8(allParts.get(n)))).sort();
+  const left = [...allParts.keys()].filter((n) => ours(n) && holdsWhatIsNotMarkup(fromUtf8(allParts.get(n)))).sort(byCodePoints);
   const parts = new Map([...allParts].filter(([n]) => ours(n) && !left.includes(n)));
   const codes = new Set(findings.map((f) => f.code));
   const replace = new Map();
@@ -7245,7 +7255,9 @@ function profileIsPath(name) {
 // the name back inside a command; never a leading -, which is a flag.
 function profileCheckName(name) {
   if (!name || codePointLength(name) > 64 || name.startsWith("-") || !/^[\p{L}\p{M}\p{N}_-]+$/u.test(name)) {
-    throw new ProfileError("profile name '" + name + "' is not a name; use letters, digits, - or _");
+    // the name can come from a file (an import's id, a folder's file name): shown as check
+    // shows a name from a file (ADR 0040 §8)
+    throw new ProfileError("profile name '" + quoted(name) + "' is not a name; use letters, digits, - or _");
   }
   return name;
 }
@@ -7344,16 +7356,6 @@ function profileTarget(name, project) {
   const where = project ? "project" : "home";
   const directory = profileDirectories().find(([w]) => w === where)[1];
   return path.join(directory, name + ".json");
-}
-
-// The order Python sorts names in: by code point, not by UTF-16 unit as sort() alone would.
-function byCodePoints(a, b) {
-  const x = [...a], y = [...b];
-  for (let i = 0; i < x.length && i < y.length; i++) {
-    const d = x[i].codePointAt(0) - y[i].codePointAt(0);
-    if (d) return d;
-  }
-  return x.length - y.length;
 }
 
 // Every profile found, in search order; a name found twice says which one a build uses. What a
@@ -8183,12 +8185,12 @@ function nodeRepair(argv) {
     process.stdout.write(pyDumps(result) + "\n");
     return 2;
   }
-  for (const name of [...parts.keys()].sort()) {
+  for (const name of [...parts.keys()].sort(byCodePoints)) {
     const xml = fromUtf8(parts.get(name));
     if (holdsWhatIsNotMarkup(xml)) continue; // left as it came, never edited
     const [tag, depth] = deepestNesting(xml);
     if (depth > MAX_NESTING) {
-      result.error = quoted(name) + " nests <" + tag + "> " + depth + " deep in itself; this version repairs to a depth of " +
+      result.error = quoted(name) + " nests <" + quoted(tag) + "> " + depth + " deep in itself; this version repairs to a depth of " +
         MAX_NESTING + ", so nothing was written";
       process.stdout.write(pyDumps(result) + "\n");
       return 2;
