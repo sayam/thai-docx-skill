@@ -761,10 +761,18 @@ def repair(in_path: str, out_path: str, font: str | None = None, thai_language: 
     out = package.repack(data, ents, replace)
 
     # a repair answers for the file it writes: a fault its own checker finds there that the
-    # input did not have is this version's, and nothing is written (exit 1)
+    # input did not have is this version's, and nothing is written (exit 1) — counted, as a second
+    # fault of a code a part already had is one the input did not have (the review of 0.3.4, D-01)
     after = check_mod.check(io.BytesIO(out))
-    had = {(f["code"], f.get("part")) for f in before.findings}
-    made = [f for f in after.findings if (f["code"], f.get("part")) not in had]
+    had: dict[tuple, int] = {}
+    for f in before.findings:
+        had[(f["code"], f.get("part"))] = had.get((f["code"], f.get("part")), 0) + 1
+    made = []
+    for f in after.findings:
+        key = (f["code"], f.get("part"))
+        had[key] = had.get(key, 0) - 1
+        if had[key] < 0:
+            made.append(f)
     if made:
         result["error"] = MADE_WORSE + " (" + made[0]["code"] + " in " + str(made[0].get("part")) + "); nothing was written"
         return result
