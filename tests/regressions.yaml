@@ -1568,3 +1568,10 @@
   found_by: review
   test:
     - tests/test_check_holds_its_limits.py::test_both_implementations_name_the_same_part_of_two_that_are_refused
+
+- id: V34-12
+  what: repair's guard against a file made worse compared the codes of each part as a set, so a part with one code 4 before the repair and two after it was written, exit 1, with nothing saying the repair had made a fault
+  class: C1
+  found_by: review
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_a_second_fault_of_a_code_a_part_already_had_is_one_the_repair_made

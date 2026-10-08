@@ -829,3 +829,25 @@
     - tests/test_check_holds_its_limits.py::test_both_implementations_name_the_same_part_of_two_that_are_refused
   holds:
     - V34-11
+
+- id: repair-made-worse-compares-a-set
+  file: skills/thai-docx/scripts/thai_docx/repair.py
+  find: |-
+    if had[key] < 0:
+  replace: |-
+    if had[key] < 0 and had[key] + 1 == 0 and key not in {(g["code"], g.get("part")) for g in before.findings}:
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_a_second_fault_of_a_code_a_part_already_had_is_one_the_repair_made
+  holds:
+    - V34-12
+
+- id: javascript-repair-made-worse-compares-a-set
+  file: js/90-entry.js
+  find: |-
+    if (had.get(key) < 0) made.push(f);
+  replace: |-
+    if (had.get(key) < 0 && !before.findings.some((g) => g.code + "\u0000" + g.part === key)) made.push(f);
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_a_second_fault_of_a_code_a_part_already_had_is_one_the_repair_made
+  holds:
+    - V34-12

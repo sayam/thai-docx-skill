@@ -25,7 +25,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 
-from docx_fixture import REVISION, good, pack, replaced
+from docx_fixture import REVISION, RUN_PROPS, good, pack, replaced, run
 from test_what_a_command_takes import _node, both  # noqa: F401  the fixture runs here too
 from thai_docx import repair as rp
 from thai_docx.check import check
@@ -242,3 +242,17 @@ def test_a_repair_that_breaks_the_package_writes_nothing_and_is_this_versions_fa
     monkeypatch.setattr(rp, "fix_text_part", lambda xml, *a, **k: (real(xml, *a, **k)[0] + b"<w:r>", {"2": 1}))
     assert rp.main([str(src), str(tmp_path / "out.docx")]) == 1
     assert capsys.readouterr().out.count(rp.MADE_WORSE) == 1 and not (tmp_path / "out.docx").exists()
+
+
+def test_a_second_fault_of_a_code_a_part_already_had_is_one_the_repair_made(tmp_path):
+    """D-01 (the review of 0.3.4): the guard compared the codes of a part as a set, so a part with
+    one code 4 before and two after — a <w:noProof/> taken out made two runs alike — was written,
+    exit 1, as if nothing were worse. It counts: one more of a code in a part writes nothing."""
+    parts = replaced(good(), "word/document.xml", run("ข้อความทดสอบ "), run("ข้อความ") + run("ทดสอบ "))
+    parts = replaced(parts, "word/document.xml", run("รายการ"), run("ราย", "<w:noProof/>" + RUN_PROPS) + run("การ"))
+    (tmp_path / "in.docx").write_bytes(pack(parts))
+    code, before = both(["check", "in.docx"], tmp_path)
+    assert sorted(f["code"] for f in before["findings"]) == ["3", "4"], before
+    code, result = both(["repair", "in.docx", "out.docx"], tmp_path)
+    assert code == 1 and result["error"] == (rp.MADE_WORSE + " (4 in word/document.xml); nothing was written"), result
+    assert not (tmp_path / "out.docx").exists()

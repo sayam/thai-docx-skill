@@ -121,6 +121,10 @@ unchanged.
    not have; a part whose finding lies inside a comment or CDATA is left as it came, and the finding
    stays under `remaining` with a warning saying why.
 
+   > **Later (2026-10-08, the review of 0.3.4):** "a fault the input did not have" is counted: one
+   > more finding of a code in a part than the input had is one, though the part had that code
+   > before. The guard compared the codes of each part as a set (D-01).
+
    > **Later (2026-09-27, the review of 0.3.0):** the caps counted bytes only, and 100 KB of zip
    > held 13 million empty elements under all of them, which ran Node out of memory with no JSON.
    > More than 3,000,000 elements in the XML read — counted on the bytes, the same count in both

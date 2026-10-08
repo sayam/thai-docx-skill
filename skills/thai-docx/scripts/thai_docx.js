@@ -8220,10 +8220,16 @@ function nodeRepair(argv) {
   }
   const out = repackZip(data, ents, Object.fromEntries(replace));
   // a repair answers for the file it writes: a fault its own checker finds there that the input
-  // did not have is this version's, and nothing is written (exit 1)
+  // did not have is this version's, and nothing is written (exit 1) — counted (repair.py says why)
   const after = checkBytes(out, outPath);
-  const had = new Set(before.findings.map((f) => f.code + "\u0000" + f.part));
-  const made = after.findings.filter((f) => !had.has(f.code + "\u0000" + f.part));
+  const had = new Map();
+  for (const f of before.findings) had.set(f.code + "\u0000" + f.part, (had.get(f.code + "\u0000" + f.part) || 0) + 1);
+  const made = [];
+  for (const f of after.findings) {
+    const key = f.code + "\u0000" + f.part;
+    had.set(key, (had.get(key) || 0) - 1);
+    if (had.get(key) < 0) made.push(f);
+  }
   if (made.length) {
     result.error = MADE_WORSE + " (" + made[0].code + " in " + made[0].part + "); nothing was written";
     process.stdout.write(pyDumps(result) + "\n");

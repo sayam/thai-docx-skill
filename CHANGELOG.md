@@ -48,6 +48,10 @@ before two applications were read; the exception and what is owed are in
 
 ### Fixed
 
+- `repair` writes nothing when its own checker finds one more fault of a code in a part than the
+  input had. It compared the codes of each part as a set: a part with one run-merge finding (code
+  `4`) before the repair and two after it was written, exit 1, with nothing saying the repair had
+  made a fault (`tests/test_repair_reads_xml_as_xml.py::test_a_second_fault_of_a_code_a_part_already_had_is_one_the_repair_made`).
 - A name a file supplies reaches the agent as `check` shows a name, in three more places (ADR 0040
   §8): `profile import` without `--name` showed an id that is not a name whole in its error, up to
   200 characters with `;` and `|`; `repair` showed an element it refuses as nested too deep as the
