@@ -1583,3 +1583,10 @@
   test:
     - tests/test_skill_md.py::test_the_answer_after_a_repair_passes_on_the_warnings_repair_gives
     - tests/test_what_a_command_takes.py::test_repair_gives_its_font_and_layout_warnings_each_on_its_own
+
+- id: V34-14
+  what: references/repair.md said repair leaves everything but what it rewrites exactly as it was, where the packer writes the archive's comment and each entry's comment and extra field empty
+  class: C1
+  found_by: review
+  test:
+    - tests/test_repack.py::test_the_notes_a_zip_carries_beside_the_parts_are_not_kept

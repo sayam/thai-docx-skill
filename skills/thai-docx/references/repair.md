@@ -51,8 +51,9 @@ make it smaller.
 
 - **It changes no character of the text.** The output's text is compared with the input's, and
   a difference of one character writes nothing (ADR 0023, 0037).
-- **It leaves everything else exactly as it was** — every part it did not rewrite keeps its
-  bytes, still compressed, with its dates.
+- **It leaves every part it did not rewrite as it was** — its bytes, still compressed, with its
+  dates. The notes a ZIP can carry beside the parts are not kept: the archive's comment, and an
+  entry's comment and extra field. None of them is part of the document.
 - It does not merge runs (code `4`) or remove invisible characters. Beyond the table above it
   does not touch fonts, styles, layout, tracked changes or document properties.
 - A part where an element stands more than 100 deep in elements of its own name — which Word

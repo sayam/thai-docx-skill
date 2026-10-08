@@ -14,6 +14,10 @@ before two applications were read; the exception and what is owed are in
 
 ### Changed
 
+- `references/repair.md` says what `repair` keeps: every part it did not rewrite, byte for byte,
+  but not the notes a ZIP can carry beside the parts — the archive's comment, and an entry's
+  comment and extra field, which come back empty. It had said everything else stays exactly as it
+  was. ADR 0037 carries a Later note. No byte of a built or repaired file changes.
 - The install guide and troubleshooting, in English and Thai, say what the Gemini app did on
   4 October 2026: it read the skill's instructions, but the skill's scripts did not reach the place
   where it runs code, so it wrote the Word file its own way with python-docx, and `check` finds
