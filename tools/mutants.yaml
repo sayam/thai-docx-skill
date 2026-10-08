@@ -674,16 +674,27 @@
 - id: skill-md-lets-repairs-warning-be-paraphrased
   file: skills/thai-docx/SKILL.md
   find: |-
-    and that
-    page breaks can move (its `layout` warning — say that, การแบ่งหน้าอาจเลื่อน in Thai, never page size
-    or page numbers).
+    `layout`, that page breaks can move (say that, การแบ่งหน้าอาจเลื่อน in Thai, never page size or
+    page numbers).
   replace: |-
-    and that
-    the layout can change (its `layout` warning, in your own words).
+    `layout`, that the layout can change (in your own words).
   test:
     - tests/test_skill_md.py::test_skill_md_says_the_two_things_haiku_still_missed_on_0_3_3
   holds:
     - V34-03
+
+- id: skill-md-names-repairs-warnings-whether-given-or-not
+  file: skills/thai-docx/SKILL.md
+  find: |-
+    answer names the new file, and passes on each of these warnings it gives: `font`, the font it
+    chose;
+  replace: |-
+    answer names three things: the new file; `font`, the font it
+    chose;
+  test:
+    - tests/test_skill_md.py::test_the_answer_after_a_repair_passes_on_the_warnings_repair_gives
+  holds:
+    - V34-13
 
 - id: skill-md-leaves-the-page-number-default-unnamed
   file: skills/thai-docx/SKILL.md
