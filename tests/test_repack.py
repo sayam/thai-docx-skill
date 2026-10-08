@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Sayam Sriphua
 # SPDX-License-Identifier: MIT
 """Writing a package back the way it came, so a repair can change one part and leave
-everything else exactly as the user handed it over (ADR 0037; gate
+every other part exactly as the user handed it over (ADR 0037; gate
 `repack-keeps-what-it-did-not-write`).
 """
 
@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import io
 import pathlib
+import struct
 import zipfile
 
 import pytest
@@ -103,3 +104,36 @@ def test_both_implementations_write_the_same_package(path):
     }]})[0]
     assert "crash" not in theirs, theirs
     assert base64.b64decode(theirs["bytes"]) == mine
+
+
+def test_the_notes_a_zip_carries_beside_the_parts_are_not_kept():
+    """0.3.4 D-02: every part comes back, its content unchanged, but the archive's comment and
+    an entry's comment and extra field come back empty, in both implementations alike;
+    `references/repair.md` says so (ADR 0037, Later)."""
+    src = zipfile.ZipFile(ROOT / "tests" / "golden" / "sample-default.docx")
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.comment = b"archive note"
+        for i in src.infolist():
+            info = zipfile.ZipInfo(i.filename, i.date_time)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            if i.filename == "word/document.xml":
+                info.comment = b"entry note"
+                info.extra = struct.pack("<HH", 0xCAFE, 4) + b"abcd"
+            z.writestr(info, src.read(i.filename))
+    b = buf.getvalue()
+    with zipfile.ZipFile(io.BytesIO(b)) as z:
+        assert z.comment and z.getinfo("word/document.xml").comment, "the notes are there to lose"
+
+    mine = pk.repack(b, pk.entries(b), {})
+    theirs = run_js({"op": "repack", "cases": [{"package": base64.b64encode(b).decode(), "replace": {}}]})[0]
+    assert "crash" not in theirs, theirs
+    assert base64.b64decode(theirs["bytes"]) == mine
+    with zipfile.ZipFile(io.BytesIO(mine)) as z:
+        assert z.testzip() is None
+        assert z.comment == b""
+        assert all(i.comment == b"" and i.extra == b"" for i in z.infolist())
+        assert {n: z.read(n) for n in z.namelist()} == {n: src.read(n) for n in src.namelist()}
+    said = " ".join((ROOT / "skills" / "thai-docx" / "references" / "repair.md").read_text(encoding="utf-8").split())
+    assert ("The notes a ZIP can carry beside the parts are not kept: the archive's comment, and an "
+            "entry's comment and extra field.") in said

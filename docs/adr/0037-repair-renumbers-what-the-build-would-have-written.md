@@ -78,6 +78,11 @@ majority there is nothing to bring it to.
 - both implementations write the same bytes, and repairing a repaired file changes nothing;
 - untouched parts come through byte for byte.
 
+> **Later (2026-10-08):** what comes through byte for byte is each untouched part's compressed bytes,
+> with its method, checksum and date. The notes a ZIP can carry beside the parts do not: the packer
+> writes the archive's comment, and each entry's comment and extra field, empty. None of them is part
+> of the document, and [`references/repair.md`](../../skills/thai-docx/references/repair.md) says so.
+
 **The report says every number it changed, with the paragraph it was in and what it was before.**
 A user must be able to read back what the skill did to their document without opening it.
 
