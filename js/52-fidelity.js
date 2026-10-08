@@ -53,7 +53,7 @@ function docxText(parts, footnoteCount) {
 // paragraph as fidelity reads it, the parts in name order (package_text() in repair.py).
 function packageText(parts) {
   const out = [];
-  for (const name of [...partRolesOf(parts).text].sort()) paragraphsInto(parseXml(fromUtf8(parts.get(name))), out);
+  for (const name of [...partRolesOf(parts).text].sort(byCodePoints)) paragraphsInto(parseXml(fromUtf8(parts.get(name))), out);
   return out;
 }
 

@@ -1540,3 +1540,31 @@
   found_by: review
   test:
     - tests/test_package_skill.py::test_the_tag_check_reads_the_release_the_thai_prompt_page_names
+
+- id: V34-08
+  what: one file in a profile folder named in bytes that are not UTF-8 ended Python's profile list in exit 1, a defect the agent is told not to retry, past the hundredth row as well, while Node listed the rest with the name shown as '?'
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_profile_list_shows_a_file_name_that_is_not_utf8_as_any_name_that_is_not_one
+
+- id: V34-09
+  what: profile import without --name took the file's id, and an id that is not a name came back in the error as the file wrote it, up to 200 characters with ; and | in them, where a name from a file is shown through quoted()
+  class: C1
+  found_by: review
+  test:
+    - tests/test_what_a_command_takes.py::test_a_profile_imported_under_its_id_names_the_id_as_check_shows_a_name
+
+- id: V34-10
+  what: repair's refusal of an element nested past 100 named the element as the file spelled it, a 256-character name with a colon in it reaching the agent whole, where a name from a file is shown through quoted()
+  class: C1
+  found_by: review
+  test:
+    - tests/test_check_holds_its_limits.py::test_the_name_of_an_element_nested_too_deep_is_shown_as_check_shows_a_name
+
+- id: V34-11
+  what: repair in JavaScript sorted part names by UTF-16 unit and Python by code point, so of two parts refused alike, one named with a character past the BMP, each implementation named a different one
+  class: C1
+  found_by: review
+  test:
+    - tests/test_check_holds_its_limits.py::test_both_implementations_name_the_same_part_of_two_that_are_refused

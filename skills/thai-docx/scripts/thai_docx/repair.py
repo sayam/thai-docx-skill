@@ -734,7 +734,7 @@ def repair(in_path: str, out_path: str, font: str | None = None, thai_language: 
             continue  # left as it came, never edited
         tag, depth = deepest_nesting(parts[name])
         if depth > MAX_NESTING:
-            result["error"] = (check_mod.quoted(name) + " nests <" + tag + "> " + str(depth)
+            result["error"] = (check_mod.quoted(name) + " nests <" + check_mod.quoted(tag) + "> " + str(depth)
                                + " deep in itself; this version repairs to a depth of " + str(MAX_NESTING)
                                + ", so nothing was written")
             return result

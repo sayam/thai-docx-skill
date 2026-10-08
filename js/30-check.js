@@ -129,6 +129,16 @@ const FONT_MAX = 31; // a font's name: 31 characters in Windows and Word (check.
 const FONT_SPACES = " \t\n\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000";
 const PLAIN = new Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_./()[]+&,");
 
+// The order Python sorts names in: by code point, not by UTF-16 unit as sort() alone would.
+function byCodePoints(a, b) {
+  const x = [...a], y = [...b];
+  for (let i = 0; i < x.length && i < y.length; i++) {
+    const d = x[i].codePointAt(0) - y[i].codePointAt(0);
+    if (d) return d;
+  }
+  return x.length - y.length;
+}
+
 // one argument only: it is handed to map(), which would pass the index as a second
 function quoted(value) {
   return quotedTo(value, QUOTED_MAX);

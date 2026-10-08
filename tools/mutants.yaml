@@ -763,3 +763,69 @@
     - tests/test_package_skill.py::test_the_tag_check_reads_the_release_the_thai_prompt_page_names
   holds:
     - V34-07
+
+- id: profile-list-reads-a-file-name-as-python-keeps-it
+  file: skills/thai-docx/scripts/thai_docx/profiles.py
+  find: |-
+    names = sorted((as_utf8_reads(p.name) for p
+  replace: |-
+    names = sorted((p.name for p
+  test:
+    - tests/test_what_a_command_takes.py::test_profile_list_shows_a_file_name_that_is_not_utf8_as_any_name_that_is_not_one
+  holds:
+    - V34-08
+
+- id: a-name-that-is-not-one-is-shown-as-given
+  file: skills/thai-docx/scripts/thai_docx/profiles.py
+  find: |-
+    raise ProfileError("profile name '" + check_mod.quoted(name) + "' is not a name
+  replace: |-
+    raise ProfileError("profile name '" + name + "' is not a name
+  test:
+    - tests/test_what_a_command_takes.py::test_a_profile_imported_under_its_id_names_the_id_as_check_shows_a_name
+  holds:
+    - V34-09
+
+- id: javascript-a-name-that-is-not-one-is-shown-as-given
+  file: js/55-profiles.js
+  find: |-
+    throw new ProfileError("profile name '" + quoted(name) + "' is not a name
+  replace: |-
+    throw new ProfileError("profile name '" + name + "' is not a name
+  test:
+    - tests/test_what_a_command_takes.py::test_a_profile_imported_under_its_id_names_the_id_as_check_shows_a_name
+  holds:
+    - V34-09
+
+- id: repair-names-a-nested-element-as-the-file-spells-it
+  file: skills/thai-docx/scripts/thai_docx/repair.py
+  find: |-
+    " nests <" + check_mod.quoted(tag) + "> "
+  replace: |-
+    " nests <" + tag + "> "
+  test:
+    - tests/test_check_holds_its_limits.py::test_the_name_of_an_element_nested_too_deep_is_shown_as_check_shows_a_name
+  holds:
+    - V34-10
+
+- id: javascript-repair-names-a-nested-element-as-the-file-spells-it
+  file: js/90-entry.js
+  find: |-
+    " nests <" + quoted(tag) + "> "
+  replace: |-
+    " nests <" + tag + "> "
+  test:
+    - tests/test_check_holds_its_limits.py::test_the_name_of_an_element_nested_too_deep_is_shown_as_check_shows_a_name
+  holds:
+    - V34-10
+
+- id: javascript-repair-sorts-part-names-by-utf16-unit
+  file: js/54-repair.js
+  find: |-
+    for (const name of [...parts.keys()].sort(byCodePoints)) {
+  replace: |-
+    for (const name of [...parts.keys()].sort()) {
+  test:
+    - tests/test_check_holds_its_limits.py::test_both_implementations_name_the_same_part_of_two_that_are_refused
+  holds:
+    - V34-11

@@ -109,6 +109,13 @@ unchanged.
    > `profile list` shows a stem that is not a name — one no command takes — as above, with an
    > error, and does not read the file; a title is shown as above; at most 100 rows of each place
    > are listed, in the order of the names' code points, the rest counted and not read.
+
+   > **Later (2026-10-08, the review of 0.3.4):** three more names came from a file whole: an
+   > import's id that is not a name, in the error that refuses it; an element `repair` refuses as
+   > nested too deep; and a profile file named in bytes that are not UTF-8, which Python could not
+   > sort and Node showed as `?`. Each is shown as above, a file name read as UTF-8 reads it
+   > (U+FFFD), and every list of names both implementations sort — a folder's files, a package's
+   > parts — is in the order of their code points.
 9. Before parsing a .docx it did not write, the checker refuses XML carrying a DOCTYPE and caps the
    decompressed size. `repair` never writes a file its checker finds a fault in that the input did
    not have; a part whose finding lies inside a comment or CDATA is left as it came, and the finding
