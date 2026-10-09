@@ -3,6 +3,15 @@
 What the project intends to do, and not do, from September 2026 to September 2027. It is a plan,
 not a promise; each item becomes a decision record when it is taken up.
 
+## 0.3.4
+
+What the reviews of the code and the documentation audit found, with no golden moved: `repair`
+counts the faults it would write, not their kinds; `check`, `repair` and `profile list` show a
+name a file supplies as `check` shows one, and `profile list` lists at most a hundred rows of a
+place; `check` says a font's name with a space at either end; the tag check reads every page that
+names the archive; and SKILL.md says that a setting asked for without a value takes its default
+and that the answer after a repair passes on the warnings `repair` gives.
+
 ## 0.3.3
 
 What the review of the code and the documentation audit found, with no golden moved: a font's
