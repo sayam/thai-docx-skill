@@ -49,7 +49,7 @@ skill นี้ไม่ใช่ Word ไม่ใช่โปรแกรม�
 ## 3. แก้ปัญหาที่รับผิดชอบให้จบ และแก้ปัญหาที่เราก่อขึ้นเอง
 
 สร้างไฟล์ให้ถูกต้องตั้งแต่แรก และตรวจก่อนเขียนไฟล์
-ข้อความในไฟล์ต้องตรงกับต้นฉบับทุกตัวอักษร
+ข้อความในไฟล์ต้องตรงกับต้นฉบับทุกตัวอักษร ยกเว้นลำดับสระและวรรณยุกต์บนอักษรไทยตัวเดียวกัน ซึ่งจัดตามรูปมาตรฐานของ Unicode (NFC)
 ซ่อมด้วยการแก้ค่าคุณสมบัติ (attribute) ในไฟล์ ไม่แก้ถ้อยคำ ไม่ลบอักขระที่มองไม่เห็น และไม่เรียงคำใหม่เพื่อให้ผ่านการตรวจ
 วิธีแก้ปัญหาต้องไม่ขัดกับข้อ 2
 ถ้าการแก้ปัญหาต้องเปลี่ยนข้อความของผู้ใช้ หรือต้องให้ผู้ใช้ทำงานในแอปด้วยวิธีที่ต่างไปจากเดิม ให้ไม่ทำ และแจ้งเหตุผล
@@ -159,7 +159,7 @@ skill นี้ไม่ใช่ Word ไม่ใช่โปรแกรม�
 | 2.1 | แก้ปัญหานี้แล้ว ไปก่อปัญหาใหม่ในแอปใด หรือในขั้นตอนที่นำไฟล์ไปใช้ต่อหรือไม่ |
 | 2.2 | ผู้ใช้ต้องเรียนรู้วิธีจัดหน้าแบบใหม่หรือไม่ |
 | 2.3 | เรากำลังทำหน้าที่แทน Word อยู่หรือไม่ |
-| 3 | เราแตะตัวอักษรของผู้ใช้หรือไม่ และถ้าเป็น `repair` เราเขียนทับต้นฉบับหรือไม่ |
+| 3 | เราเปลี่ยนถ้อยคำของผู้ใช้หรือไม่ และถ้าเป็น `repair` เราเขียนทับต้นฉบับหรือไม่ |
 | 4 | เมื่อเกิดความผิดพลาด เรายังเขียนไฟล์ออกไปอยู่หรือไม่ |
 | 6 | ข้อจำกัดถูกเขียนไว้ในตำแหน่งที่ผู้ใช้จะพบหรือไม่ |
 
@@ -226,7 +226,8 @@ something works before it has been measured.
 
 **3. Finish the problem we answer for, and close the holes we open ourselves.** Build it right
 from the start and check before writing the file. The text in the file matches the source
-character for character. Repair with attributes: do not change words, do not delete invisible
+character for character, but for the order of marks on one Thai letter, put in Unicode's composed
+form (NFC). Repair with attributes: do not change words, do not delete invisible
 characters, do not rearrange words to make something pass. A way of closing a hole must not break
 rule 2. If closing it would mean changing the user's text, or making the user work differently in
 their application — do not do it, and say why.
@@ -307,6 +308,6 @@ bytes change; and the proxy passing in CI is not the oracle applications passing
 | 2.1 | Does fixing this cause a new problem in any application, or in a step the file is taken on to? |
 | 2.2 | Must the user learn a new way of laying out pages? |
 | 2.3 | Are we doing Word's job? |
-| 3 | Do we touch the user's characters, and, for `repair`, do we overwrite the original? |
+| 3 | Do we change the user's words, and, for `repair`, do we overwrite the original? |
 | 4 | When something goes wrong, do we still write a file? |
 | 6 | Is the limitation written where the user will find it? |

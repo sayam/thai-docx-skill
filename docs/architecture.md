@@ -91,7 +91,7 @@ Markdown ──parse──▶ blocks ──lay out──▶ sections, numbering 
 5. **Pack** a zip with stored entries and fixed metadata, so the bytes never vary
    ([0017](adr/0017-files-read-by-stated-rules.md)).
 6. **Check** the package with the same checker users run, and **compare** its text with the
-   Markdown character for character. Only a package that passes both is written.
+   Markdown, its Thai in NFC, character for character. Only a package that passes both is written.
 
 ## Properties the design holds
 
@@ -99,7 +99,7 @@ Markdown ──parse──▶ blocks ──lay out──▶ sections, numbering 
 |---|---|
 | Same bytes everywhere: same input → same sha256 on every run, machine and runtime of the same Unicode version | no clock, host or user name in any part; stored zip entries; goldens in `tests/golden`; parity tests on the oldest and the newest runtimes promised ([0008](adr/0008-two-zero-dependency-implementations-byte-identical.md), amended by [0040](adr/0040-script-limits-restated-after-the-review-of-0-2-0.md)) |
 | Zero run-time dependencies | Python standard library; one JS file needing only `TextEncoder`/`TextDecoder` |
-| The user's text is never changed | the fidelity check on every build |
+| The user's text is never changed, but for the order of marks on one Thai letter (NFC) | the fidelity check on every build |
 | Limited reach | no network, subprocess or eval; writes only named paths; bounded reads ([0040](adr/0040-script-limits-restated-after-the-review-of-0-2-0.md)) — see the [assurance case](assurance-case.md) |
 | The script, not the agent, decides the interview | `grill --said` reads the user's words ([0029](adr/0029-grill-from-a-profile-save-as-another.md)) |
 | Documentation matches the code | tests run SKILL.md's commands, the generated settings reference and the user guides |

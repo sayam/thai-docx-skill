@@ -6,7 +6,9 @@ Nothing here is a surprise to be found later; every line is measured or refused,
 
 ## 1. The one promise
 
-**The text of the document is the user's Markdown, character for character.** Not a space is added
+**The text of the document is the user's Markdown, character for character, but for the order
+of marks on one Thai letter**, which the build puts in Unicode's composed form (NFC,
+[markdown.md](markdown.md)). Not a space is added
 between Thai words, not an invisible character is inserted, nothing is re-worded to make a page
 look better. Where the skill cannot do that, it writes no file and says which line stopped it
 (ADR 0023).

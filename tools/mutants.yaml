@@ -862,3 +862,16 @@
     - tests/test_repair_reads_xml_as_xml.py::test_a_second_fault_of_a_code_a_part_already_had_is_one_the_repair_made
   holds:
     - V34-12
+
+- id: repair-reference-says-zips-notes-are-kept
+  file: skills/thai-docx/references/repair.md
+  find: |-
+    dates. The notes a ZIP can carry beside the parts are not kept: the archive's comment, and an
+      entry's comment and extra field. None of them is part of the document.
+  replace: |-
+    dates. It leaves every part it did not rewrite exactly as it was, including the archive's
+      comment and each entry's comment and extra field.
+  test:
+    - tests/test_repack.py::test_the_notes_a_zip_carries_beside_the_parts_are_not_kept
+  holds:
+    - V34-14

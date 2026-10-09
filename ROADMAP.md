@@ -178,9 +178,10 @@ reading, which the Markdown reference already states.
 
 **Reach more users**
 
-- Try the skill in the applications the user guide lists as "not tried yet" — ChatGPT, Codex, the
-  Gemini app, Copilot, Cursor — and mark each as tried or record what fails. The Claude apps were
-  done on 2026-09-18, install and build.
+- Try the skill in the applications the user guide lists as "not yet" — making a file in ChatGPT,
+  installing and making a file in Codex and the other coding agents (Copilot, Cursor) — and mark
+  each as tried or record what fails. The Claude apps were done on 2026-09-18, install and build;
+  the Gemini app on 2026-10-04, where it reads the instructions and cannot run the skill's scripts.
 - Keep the release archive installable by the common installers (`npx skills add`, `gh skill install`),
   held by a test from 0.2.0.
 - Submit the skill to curated skill lists by hand (ADR 0014).

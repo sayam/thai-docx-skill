@@ -2,7 +2,8 @@
 
 thai-docx makes Word (.docx) files with Thai text that look right: no red squiggles under every
 Thai word, lines that break in the right places, and bold and bullets that work. It never changes
-a character of your text.
+a word of your text: Thai marks typed out of order on one letter are put in order, which
+looks the same.
 
 [ภาษาไทย](th.md)
 

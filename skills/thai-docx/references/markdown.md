@@ -13,7 +13,7 @@ footnotes.
 - **Links** lead to `http`, `https` or `mailto`, in any case; a link with no scheme (`#top`,
   `other.docx`) is written as it is. Any other scheme (`javascript:`, `file:`, `ftp:`) stops the
   build with its line number. A link's target is written percent-encoded, as Word writes one; its
-  text is unchanged. Parentheses nest in a link's destination 32 deep, as cmark reads them.
+  text is not. Parentheses nest in a link's destination 32 deep, as cmark reads them.
 - **Bare addresses** become links as GitHub finds them: `www.…` and `http(s)://…`, a Thai
   domain too (`www.ตัวอย่าง.ไทย`); an email; `mailto:…`, the prefix included. `ftp://` and
   `xmpp:` stay text. A footnote's label matches in any case, as a link's does.
@@ -45,7 +45,8 @@ of a word), **a letter with two tone marks**, **a letter with two marks that sta
 in English, in every language. Entities (`&nbsp;`, `&amp;`) are resolved by CommonMark, so
 `&nbsp;` becomes one non-breaking space in the document, not seven characters.
 
-The text itself is never altered, only reported: `ํ` + `า` looks exactly like `ำ` and is left as
+Apart from the order of marks on one Thai letter (the next paragraph), the text itself is never
+altered, only reported: `ํ` + `า` looks exactly like `ำ` and is left as
 the two characters it is, because no Unicode normalisation joins them — NFKC takes `ำ` apart into
 these two, never the other way. Replace them yourself if you meant `ำ`; a reader's search for `ำ`
 will not find the long form.

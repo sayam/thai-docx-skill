@@ -10,7 +10,7 @@ output must be, what the skill must never introduce, the compatibility contract 
 applications are held to, and the limitations that must be said out loud. In short — a file that
 leaves the skill is usable straight away in Word 365 for Windows; the skill repairs Thai rendering
 and introduces no new document standard, no new way of working and no new problem; the user's text
-is never changed; in doubt no file is written; and every limitation is stated where the user meets
+is never changed, but for the order of marks on one Thai letter (NFC); in doubt no file is written; and every limitation is stated where the user meets
 it. Against a rule means the change is not made, and the reason is written down.
 
 The Thai in that file is the rule, in the maintainer's own words; the English below it is a
