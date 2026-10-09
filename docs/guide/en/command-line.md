@@ -21,10 +21,10 @@ the Word file. Every command on this page was run as written.
    folder. You get a folder `thai-docx`.
 
    ```sh
-   unzip thai-docx-0.3.3.zip
+   unzip thai-docx-0.3.4.zip
    ```
 
-   On Windows, in PowerShell: `Expand-Archive thai-docx-0.3.3.zip -DestinationPath .`
+   On Windows, in PowerShell: `Expand-Archive thai-docx-0.3.4.zip -DestinationPath .`
 
 Nothing else is installed, and nothing uses the internet.
 

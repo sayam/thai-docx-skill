@@ -10,7 +10,16 @@ of that version names each golden's sha256 on the golden's own line), and after 
 before two applications were read; the exception and what is owed are in
 [its record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md). The rule is unchanged.
 
-## [Unreleased]
+## [0.3.4] - 2026-10-09
+
+No golden moves: a build writes the bytes 0.3.0 wrote, so what was read on them holds
+([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-10-09-what-v0.3.4-was-read-in.md)).
+What the reviews of the code and the documentation audit found is fixed: `repair` counts the
+faults it would write, not their kinds; `check`, `repair` and `profile list` show a name a file
+supplies as `check` shows one, and `profile list` lists at most a hundred rows of a place;
+`check` says a font's name that begins or ends with a space; the tag check reads `PROMPT.th.md`;
+and `SKILL.md` says a setting asked for without a value takes its default and the answer after a
+repair passes on the warnings `repair` gives.
 
 ### Changed
 
@@ -106,7 +115,6 @@ before two applications were read; the exception and what is owed are in
   run that showed `A?B?C`. It now shows the name as `check` shows a font's name; the file written
   is as before
   (`tests/test_what_a_command_takes.py::test_repairs_font_warning_shows_the_name_as_check_shows_a_font_name`).
-
 - `tools/package_skill.py --tag` read the release that `README.md` and the install and
   command-line guides name, not `PROMPT.th.md`, which names the archive to attach by hand: a copy of
   0.3.3 with every page moved but that one, still naming `thai-docx-0.3.2.zip`, passed the check,
