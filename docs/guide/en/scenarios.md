@@ -6,8 +6,9 @@ app; where an app differs, the scenario says so. Install the skill first:
 
 [Guide home](../en.md) · [ภาษาไทย](../th/scenarios.md)
 
-In a chat app (Claude on the web, ChatGPT, Gemini), "put the file in your folder" means
-**attach it to the chat**, and you **download** the Word file from the chat.
+In a chat app (Claude on the web, ChatGPT), "put the file in your folder" means **attach it to
+the chat**, and you **download** the Word file from the chat. The Gemini app cannot make or check
+a file with the skill ([Gemini app](install.md#gemini-app)).
 
 ---
 
@@ -49,7 +50,7 @@ The defaults, when you ask for nothing else:
    Turn report.md into a Word file called report.docx
    ```
 
-3. The assistant uses your file exactly as written and makes `report.docx`.
+3. The assistant uses your file as written, without changing a word, and makes `report.docx`.
 
 What Markdown can hold:
 
@@ -290,7 +291,7 @@ Full rules: [references/chapters.md](https://github.com/sayam/thai-docx-skill/bl
 (for all your projects) or c (this project only), and give a name.
 
 ```text
-1c 9b name it myreport
+1c 9b=myreport
 ```
 
 **Way 2: say it.**
@@ -304,7 +305,7 @@ Where the profile goes:
 - **On your computer** (Claude Code, Codex, Copilot, Cursor and other coding agents):
   `~/.thai-docx/profiles/NAME.json`, for all your projects. Say "save it in this project" to keep it
   in the project's `.thai-docx/profiles/` instead.
-- **In a chat app** (Claude on the web, ChatGPT, Gemini): you get a `.json` file. **Keep it**, and
+- **In a chat app** (Claude on the web, ChatGPT): you get a `.json` file. **Keep it**, and
   attach it next time.
 
 A profile name uses letters of any script — Thai included — digits, `-` or `_`, with no spaces.

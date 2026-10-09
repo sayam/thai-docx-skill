@@ -16,7 +16,7 @@ and the rest follow their makers' documentation ([what works where](https://gith
 Word files with Thai made the usual way go wrong: a red squiggle under every Thai word, lines
 that break only at spaces, bold that is not bold, bullets that do not show. With thai-docx, your
 AI assistant writes the content as Markdown and one bundled command builds the Word file, with
-none of those faults and without changing a character of your text. It is for anyone who writes
+none of those faults and without changing a word of your text. It is for anyone who writes
 Thai documents with an AI assistant, and it also works on its own at the command line.
 
 **Do you need this?** If you type Thai in Word yourself, Word marks it as Thai while you type and

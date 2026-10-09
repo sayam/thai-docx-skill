@@ -36,24 +36,25 @@ before two applications were read; the exception and what is owed are in
   high within 14, medium within 30, low within 90 and never after the disclosure date.
   `CONTRIBUTING.md` holds a vulnerability in a dependency to the same times, where high had been
   7 days with critical and low had waited for the next update.
-- `SKILL.md` says the answer after a repair names three things — the new file, the font `repair`
-  chose, and that page breaks can move, with the Thai words for it — and that a setting asked for
-  without a value ("add page numbers") is never asked about nor its choices offered: it takes its
-  default, which is named (top-right). One Haiku run in three had said the compatibility mode
-  "may change where letters and lines fall", and one in three had asked where the page numbers go
-  after asking the font, as in the records before. On the new sentences Haiku named the page
-  breaks in ten runs of twelve and asked the font alone in five of six; Sonnet and Opus passed
-  every case ([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-10-03-model-equivalence-on-the-0.3.4-skill.md);
+- `SKILL.md` says a setting asked for without a value ("add page numbers") is never asked about
+  nor its choices offered: it takes its default, which is named (top-right). One Haiku run in
+  three had asked where the page numbers go after asking the font, as in the records before; on
+  the new sentence Haiku asked the font alone in five of six, and Sonnet and Opus passed every
+  case ([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-10-03-model-equivalence-on-the-0.3.4-skill.md);
   `tests/test_skill_md.py::test_skill_md_says_the_two_things_haiku_still_missed_on_0_3_3`).
-- `SKILL.md` says the answer after a repair passes on each of its `font` and `layout` warnings
-  that `repair` gives, where it had said the answer names three things, the font and the page
-  breaks among them: `repair` gives the first only when it wrote a complex-script font and the
-  second only when it set compatibility mode 15. On files that give one of the two, Haiku said a
-  warning `repair` had not given in one run of twelve on the old sentence and in none of the
-  eleven that repaired on the new (the twelfth asked where the file was). On the new, one run did
-  not name the font and one said "page positions" for the page breaks, misses of another kind the
-  old sentence had in none of its twelve; on the file that gives both, six of six passed. Six runs
-  to a cell show no direction ([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-10-08-model-equivalence-on-the-warnings-a-repair-gives.md);
+- `SKILL.md` says the answer after a repair names the new file and passes on each of its `font`
+  and `layout` warnings that `repair` gives — the font it chose, and that page breaks can move,
+  with the Thai words for it — where it had said to pass on every warning: `repair` gives the
+  first only when it wrote a complex-script font and the second only when it set compatibility
+  mode 15. A sentence between the two, never released, had the answer name the font and the page
+  breaks always: one Haiku run in three had said the compatibility mode "may change where letters
+  and lines fall", and on that sentence Haiku named the page breaks in ten runs of twelve
+  ([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-10-03-model-equivalence-on-the-0.3.4-skill.md)). On files that give one of the two
+  warnings, Haiku said a warning `repair` had not given in one run of twelve on that sentence and
+  in none of the eleven that repaired on the new (the twelfth asked where the file was). On the
+  new, one run did not name the font and one said "page positions" for the page breaks, misses of
+  another kind that sentence had in none of its twelve; on the file that gives both, six of six
+  passed. Six runs to a cell show no direction ([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-10-08-model-equivalence-on-the-warnings-a-repair-gives.md);
   `tests/test_skill_md.py::test_the_answer_after_a_repair_passes_on_the_warnings_repair_gives`).
 - The install guides say what the uploads to ChatGPT and the Gemini app showed on 3 October 2026
   with 0.3.3: the Gemini app refuses the downloaded zip ("The uploaded file did not pass the

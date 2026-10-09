@@ -155,5 +155,6 @@ with no letter before it, a letter with two tone marks, or two marks that stand 
 
 Do not put spaces between Thai words to force a line break: the build marks Thai as complex script so
 the application breaks inside words by itself, and a space would be wrong in the text. Wrapping a long
-Thai line in the Markdown is safe. The text in the file is the user's, character for character —
-the build refuses to write a document whose text differs from the Markdown by one character.
+Thai line in the Markdown is safe. The text in the file is the user's, character for character, but
+for the order of marks on one Thai letter, put in NFC ([markdown.md](markdown.md)) — the build
+refuses to write a document whose text differs from the Markdown so read by one character.

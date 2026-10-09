@@ -77,8 +77,8 @@ skill promises) on every pull request; `main` takes a change only when all seven
   database for known vulnerabilities and malicious packages, and a finding fails it. `deps` is
   required before merge.
 - **Thresholds:** a known vulnerability in a dependency is fixed in the times `SECURITY.md` sets
-  for its severity: critical within 7 days, high within 14, medium within 30, low within 90. A
-  licence finding is fixed by removing the dependency.
+  for its severity: critical within 7 days, high within 14, medium within 30, low within 90, and
+  never after the disclosure date. A licence finding is fixed by removing the dependency.
 - **No release** is made while a finding is open: the release workflow runs the same check on
   the tag.
 
