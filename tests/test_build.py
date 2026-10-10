@@ -1240,11 +1240,25 @@ def test_line_spacing_sets_body_spacing_and_leaves_code_and_footnotes_single(tmp
         styles = zipfile.ZipFile(out).read("word/styles.xml").decode()
         assert result["ok"] and result["settings"]["line_spacing"] == opts["line_spacing"]
         assert '<w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="' + line + '" w:lineRule="auto"/>' in styles
-        single = 3 if line == "240" else 2  # the document itself, when it is single, and always CodeBlock and FootnoteText
+        single = 4 if line == "240" else 2  # the defaults and Normal, when single, and always CodeBlock and FootnoteText
         assert styles.count('w:line="240"') == single, "Code Block and footnote text stay single"
     for bad in (["--line-spacing", "0.9"], ["--line-spacing", "3.5"], ["--line-spacing", "1,5"], ["--line-spacing"]):
         with pytest.raises(b.BuildError, match="line-spacing"):
             b.parse_args(bad + ["in.md", "out.docx"])
+
+
+def test_normal_repeats_the_paragraph_defaults_as_it_repeats_the_run_defaults(tmp_path):
+    """An application that reads styles but not w:docDefaults takes a paragraph's spacing and
+    alignment from Normal, so Normal carries what w:pPrDefault says, as it already carried the
+    font and size of w:rPrDefault (0.3.5 B3)."""
+    for flags in ([], ["--align", "thai"], ["--line-spacing", "1.5"], ["--align", "thai", "--line-spacing", "2"]):
+        opts, _, _ = b.parse_args(flags + ["in.md", "out.docx"])
+        result, out = build(tmp_path, "ก\n", **opts)
+        styles = zipfile.ZipFile(out).read("word/styles.xml").decode()
+        defaults = styles.split("<w:pPrDefault><w:pPr>", 1)[1].split("</w:pPr>", 1)[0]
+        normal = styles.split('w:styleId="Normal"', 1)[1].split("</w:style>", 1)[0]
+        assert result["ok"] and ("thaiDistribute" in defaults) is ("thai" in flags)
+        assert "<w:qFormat/><w:pPr>" + defaults + "</w:pPr><w:rPr>" in normal, flags
 
 
 def test_unknown_font_is_a_warning_and_still_builds(tmp_path):

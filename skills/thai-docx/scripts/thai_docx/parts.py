@@ -159,6 +159,7 @@ class Package(Writer):
             return str(half_up(pt * 2))
 
         jc = '<w:jc w:val="thaiDistribute"/>' if self.opts["align"] == "thai" else ""
+        ppr = '<w:spacing w:after="120" w:line="' + str(half_up(self.opts["line_spacing"] * 240)) + '" w:lineRule="auto"/>' + jc
 
         def heading(n: int) -> str:
             """The built-in look, with what the front matter's heading-n changes (ADR 0020)."""
@@ -224,11 +225,12 @@ class Package(Writer):
             '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/><w:lang w:val="en-US" w:eastAsia="en-US"'
             + (' w:bidi="th-TH"' if self.opts["thai_language"] else "") + "/>"
             "</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr>"
-            '<w:spacing w:after="120" w:line="' + str(half_up(self.opts["line_spacing"] * 240)) + '" w:lineRule="auto"/>' + jc
-            + "</w:pPr></w:pPrDefault></w:docDefaults>"
+            + ppr + "</w:pPr></w:pPrDefault></w:docDefaults>"
             # Normal repeats what the defaults above already say: an application that reads
-            # styles but not w:docDefaults (WPS numbers one) then still has the font and size
-            '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:rPr>'
+            # styles but not w:docDefaults (WPS numbers one) then still has the spacing, the
+            # alignment, the font and the size
+            '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/>'
+            "<w:pPr>" + ppr + "</w:pPr><w:rPr>"
             "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>"
             '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + self.style_lang + "</w:rPr></w:style>"
             + "".join(heading(n) for n in range(1, 7))

@@ -875,3 +875,12 @@
     - tests/test_repack.py::test_the_notes_a_zip_carries_beside_the_parts_are_not_kept
   holds:
     - V34-14
+
+- id: normal-leaves-the-paragraph-defaults-out
+  file: skills/thai-docx/scripts/thai_docx/parts.py
+  find: '"<w:pPr>" + ppr + "</w:pPr><w:rPr>"'
+  replace: '"<w:rPr>"'
+  test:
+    - tests/test_build.py::test_normal_repeats_the_paragraph_defaults_as_it_repeats_the_run_defaults
+  holds:
+    - V35-01

@@ -1590,3 +1590,10 @@
   found_by: review
   test:
     - tests/test_repack.py::test_the_notes_a_zip_carries_beside_the_parts_are_not_kept
+
+- id: V35-01
+  what: the Normal style repeated the font and size of w:rPrDefault for an application that reads styles but not w:docDefaults, and not the spacing and alignment of w:pPrDefault, so such an application gave a paragraph neither
+  class: C1
+  found_by: review
+  test:
+    - tests/test_build.py::test_normal_repeats_the_paragraph_defaults_as_it_repeats_the_run_defaults
