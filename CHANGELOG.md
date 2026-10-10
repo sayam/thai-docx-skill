@@ -80,6 +80,27 @@ repair passes on the warnings `repair` gives.
   input had. It compared the codes of each part as a set: a part with one run-merge finding (code
   `4`) before the repair and two after it was written, exit 1, with nothing saying the repair had
   made a fault (`tests/test_repair_reads_xml_as_xml.py::test_a_second_fault_of_a_code_a_part_already_had_is_one_the_repair_made`).
+- `check` told a .docx naming `Tahoma ` that its complex-script font is not known to carry
+  Thai glyphs, and said nothing of `Arial ` as a Latin font: the space at the end is what names
+  no installed font, and the build has taken it off a name since 0.3.3. A font's name in any of
+  `w:ascii`, `w:hAnsi`, `w:eastAsia` and `w:cs` that begins or ends with a space is now a `font`
+  warning, once for one name in one place, a space other than U+0020 named by its code point;
+  the name is looked up without it, so `Tahoma ` is not also called a font without Thai. A
+  warning never fails the check
+  (`tests/test_what_a_command_takes.py::test_check_says_a_font_name_begins_or_ends_with_a_space_once_a_place`).
+- `repair`'s `font` warning showed the font it chose as escaped for the XML, not as its name:
+  `A &amp; B` and `A&lt;B` since 0.3.1, `A&#9;B&#10;C` since 0.3.3, next to a warning of the same
+  run that showed `A?B?C`. It now shows the name as `check` shows a font's name; the file written
+  is as before
+  (`tests/test_what_a_command_takes.py::test_repairs_font_warning_shows_the_name_as_check_shows_a_font_name`).
+- `tools/package_skill.py --tag` read the release that `README.md` and the install and
+  command-line guides name, not `PROMPT.th.md`, which names the archive to attach by hand: a copy of
+  0.3.3 with every page moved but that one, still naming `thai-docx-0.3.2.zip`, passed the check,
+  and the release PR changed the page by hand. The page is now read with the others
+  (`tests/test_package_skill.py::test_the_tag_check_reads_the_release_the_thai_prompt_page_names`).
+
+### Security
+
 - A name a file supplies reaches the agent as `check` shows a name, in three more places (ADR 0040
   §8): `profile import` without `--name` showed an id that is not a name whole in its error, up to
   200 characters with `;` and `|`; `repair` showed an element it refuses as nested too deep as the
@@ -102,24 +123,6 @@ repair passes on the warnings `repair` gives.
   counted under `omitted` and not read (ADR 0040 §8;
   `tests/test_what_a_command_takes.py::test_profile_list_shows_a_name_and_a_title_as_names_from_a_file_are_shown`,
   `…::test_profile_list_shows_at_most_a_hundred_rows_of_a_place_and_counts_the_rest`).
-- `check` told a .docx naming `Tahoma ` that its complex-script font is not known to carry
-  Thai glyphs, and said nothing of `Arial ` as a Latin font: the space at the end is what names
-  no installed font, and the build has taken it off a name since 0.3.3. A font's name in any of
-  `w:ascii`, `w:hAnsi`, `w:eastAsia` and `w:cs` that begins or ends with a space is now a `font`
-  warning, once for one name in one place, a space other than U+0020 named by its code point;
-  the name is looked up without it, so `Tahoma ` is not also called a font without Thai. A
-  warning never fails the check
-  (`tests/test_what_a_command_takes.py::test_check_says_a_font_name_begins_or_ends_with_a_space_once_a_place`).
-- `repair`'s `font` warning showed the font it chose as escaped for the XML, not as its name:
-  `A &amp; B` and `A&lt;B` since 0.3.1, `A&#9;B&#10;C` since 0.3.3, next to a warning of the same
-  run that showed `A?B?C`. It now shows the name as `check` shows a font's name; the file written
-  is as before
-  (`tests/test_what_a_command_takes.py::test_repairs_font_warning_shows_the_name_as_check_shows_a_font_name`).
-- `tools/package_skill.py --tag` read the release that `README.md` and the install and
-  command-line guides name, not `PROMPT.th.md`, which names the archive to attach by hand: a copy of
-  0.3.3 with every page moved but that one, still naming `thai-docx-0.3.2.zip`, passed the check,
-  and the release PR changed the page by hand. The page is now read with the others
-  (`tests/test_package_skill.py::test_the_tag_check_reads_the_release_the_thai_prompt_page_names`).
 
 ## [0.3.3] - 2026-10-03
 
