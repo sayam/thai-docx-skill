@@ -1605,3 +1605,17 @@
   test:
     - tests/test_markdown.py::test_a_soft_break_after_a_dot_closing_thai_adds_nothing_before_thai
     - tests/test_markdown.py::test_a_dot_closing_thai_in_another_run_still_joins
+
+- id: V35-03
+  what: repair counted the complex-script font a document uses most as each w:cs="…" in a part's bytes, so a font named in single quotes was missed and the same characters typed in the text were counted
+  class: C1
+  found_by: review
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_the_font_a_document_uses_most_is_read_from_its_tags
+
+- id: V35-04
+  what: repair looked for a WordprocessingML declaration under another prefix in a part's bytes, so a page whose text held one as words was refused as written under another prefix
+  class: C1
+  found_by: review
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_a_declaration_typed_as_text_is_text

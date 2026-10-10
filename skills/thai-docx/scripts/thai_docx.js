@@ -6302,7 +6302,18 @@ const RE_NO_PROOF = new RegExp("<w:noProof" + ATTRS + "(?:\\/>|>\\s*<\\/w:noProo
 const RE_COMPAT_SETTING = new RegExp("<w:compatSetting" + ATTRS + "(?:\\/>|>\\s*<\\/w:compatSetting\\s*>)", "g"); // either close
 const RE_ATTR = /([\w:]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 const VALUE = "\\s*=\\s*(?:\"[^\"]*\"|'[^']*')";
-const RE_XMLNS = /xmlns(?::([\w.-]+))?\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+// What a part says in its tags, and only there (repair.py says why: D-03, D-05)
+const RE_NOT_MARKUP = /<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<\?[\s\S]*?\?>/g;
+const RE_START_TAG = /<([A-Za-z_][\w.:-]*)((?:\s+[^\s=/>]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*\/?>/g;
+const RE_ATTRIBUTE = /([^\s=/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+
+// Each start tag's name and its attributes, as [name, value] in the order written, whichever
+// quote holds the value.
+function* startTags(xml) {
+  for (const m of xml.replace(RE_NOT_MARKUP, "").matchAll(RE_START_TAG)) {
+    yield [m[1], [...m[2].matchAll(RE_ATTRIBUTE)].map((a) => [a[1], a[2] !== undefined ? a[2] : a[3]])];
+  }
+}
 
 // `raw` with one more attribute in its start tag, however the element closes — _with_attribute()
 // in thai_docx/repair.py says why
@@ -6793,11 +6804,14 @@ function complexScriptFont(parts, asked) {
     // the XML parts only: an image or a font holds no run properties, and reading one as text
     // is how the two implementations came apart (a picture is not valid UTF-8)
     if (!name.startsWith("word/") || !name.endsWith(".xml")) continue;
-    for (const m of fromUtf8(bytes).matchAll(/w:cs\s*=\s*"([^"]+)"/g)) {
-      // only a font the checker itself would accept: writing one it warns about would trade
-      // a finding for a warning, which is not a repair
-      if (!THAI_FONTS.has(m[1].toLowerCase())) continue;
-      counted.set(m[1], (counted.get(m[1]) || 0) + 1);
+    for (const [tag, attributes] of startTags(fromUtf8(bytes))) {
+      if (tag !== "w:rFonts") continue;
+      for (const [key, found] of attributes) {
+        // only a font the checker itself would accept: writing one it warns about would trade
+        // a finding for a warning, which is not a repair
+        if (key !== "w:cs" || !THAI_FONTS.has(found.toLowerCase())) continue;
+        counted.set(found, (counted.get(found) || 0) + 1);
+      }
     }
   }
   if (counted.size) {
@@ -6858,9 +6872,10 @@ function holdsWhatIsNotMarkup(xml) {
 function foreignPrefix(parts) {
   for (const name of [...parts.keys()].sort(byCodePoints)) {
     if (!isXmlPart(name)) continue;
-    for (const m of fromUtf8(parts.get(name)).matchAll(RE_XMLNS)) {
-      const uri = m[2] !== undefined ? m[2] : m[3];
-      if ((uri === W) !== (m[1] === "w")) return name;
+    for (const [, attributes] of startTags(fromUtf8(parts.get(name)))) {
+      for (const [key, uri] of attributes) {
+        if ((key === "xmlns" || key.startsWith("xmlns:")) && (uri === W) !== (key === "xmlns:w")) return name;
+      }
     }
   }
   return null;

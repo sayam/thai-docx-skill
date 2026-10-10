@@ -18,7 +18,6 @@ repairs, since a correct repair never reaches them.
 from __future__ import annotations
 
 import io
-import pathlib
 import re
 import time
 import zipfile
@@ -31,7 +30,6 @@ from test_what_a_command_takes import _node, both  # noqa: F401  the fixture run
 from thai_docx import repair as rp
 from thai_docx.check import check
 
-REFERENCES = pathlib.Path(__file__).resolve().parents[1] / "skills" / "thai-docx" / "references"
 W_URI = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 W = "{" + W_URI + "}"
 BARE = '<w:r><w:t xml:space="preserve">ข้อความไทย</w:t></w:r>'  # finding 2: Thai without <w:cs/>
@@ -271,30 +269,32 @@ LATIN_ONLY = '<w:r><w:rPr><w:rFonts w:ascii="Arial"/><w:cs/></w:rPr><w:t xml:spa
 
 @pytest.mark.parametrize("runs, chosen", [
     ("<w:r><w:rPr><w:rFonts w:ascii='Tahoma' w:cs='Tahoma'/><w:cs/></w:rPr><w:t xml:space=\"preserve\">ไทย</w:t></w:r>",
-     "'TH Sarabun New' — this skill's default, as the document names none"),
-    ('<w:r><w:rPr><w:cs/></w:rPr><w:t xml:space="preserve">ตัวอย่าง w:cs="Tahoma"</w:t></w:r>',
      "'Tahoma' — the complex-script font this document uses most"),
-], ids=["single-quoted-font-missed", "font-typed-as-text-counted"])
-def test_the_font_a_document_uses_most_is_counted_in_the_parts_bytes(tmp_path, runs, chosen):
-    """0.3.4 D-03, recorded, not fixed: the count reads `w:cs="…"` in a part's bytes, not in its
-    tags. `references/repair.md` and `limits.md` §10 say so; when a later version reads tags,
-    this fails, and they change with it."""
+    ('<w:r><w:rPr><w:cs/></w:rPr><w:t xml:space="preserve">ตัวอย่าง &lt;w:rFonts w:cs="Tahoma"/&gt;</w:t></w:r>',
+     "'TH Sarabun New' — this skill's default, as the document names none"),
+    ('<w:r><w:rPr><w:lang w:cs="Tahoma"/><w:cs/></w:rPr><w:t xml:space="preserve">ไทย</w:t></w:r>',
+     "'TH Sarabun New' — this skill's default, as the document names none"),
+], ids=["single-quoted-font-counted", "font-typed-as-text-not-counted", "only-w-rFonts-names-a-font"])
+def test_the_font_a_document_uses_most_is_read_from_its_tags(tmp_path, runs, chosen):
+    """0.3.5 D-03: the count reads `w:cs` on `w:rFonts` start tags, whichever quote holds it, and
+    not the same characters typed in the text."""
     body(tmp_path, runs + LATIN_ONLY, parts=no_complex_script_font())
     code, result = both(["repair", "in.docx", "out.docx"], tmp_path)
     assert code == 0 and [w["message"] for w in result["warnings"] if w["code"] == "font"] == [
         "complex-script font written where a run named none: " + chosen], result
-    for ref in ("repair.md", "limits.md"):
-        said = " ".join((REFERENCES / ref).read_text(encoding="utf-8").split())
-        assert "a font named in single quotes" in said or "a name in single quotes is missed" in said, ref
 
 
-def test_a_declaration_typed_as_text_refuses_the_file(tmp_path):
-    """0.3.4 D-05, recorded, not fixed: the prefix guard reads a part's bytes, so a page about
-    Word's XML is refused as if it were written under another prefix — fail-safe, nothing written."""
-    body(tmp_path, '<w:r><w:rPr><w:cs/></w:rPr><w:t xml:space="preserve">ตัวอย่าง xmlns:x="' + W_URI + '"</w:t></w:r>')
+def test_a_declaration_typed_as_text_is_text(tmp_path):
+    """0.3.5 D-05: the prefix guard reads declarations in start tags, so a page about Word's XML
+    is repaired, and a declaration in a tag under another prefix is still refused."""
+    body(tmp_path, '<w:r><w:t xml:space="preserve">ตัวอย่าง xmlns:x="' + W_URI + '"</w:t></w:r>')
     code, result = both(["repair", "in.docx", "out.docx"], tmp_path)
-    assert code == 2 and "under a prefix other than w:" in result["error"], result
-    assert not (tmp_path / "out.docx").exists()
-    for ref in ("repair.md", "limits.md"):
-        said = " ".join((REFERENCES / ref).read_text(encoding="utf-8").split())
-        assert 'xmlns:x="…/wordprocessingml/2006/main"' in said, ref
+    assert code == 0 and (tmp_path / "out.docx").exists(), result
+    for tag in ("<w:p xmlns:x='" + W_URI + "'>", '<w:p xmlns:w="urn:other">'):
+        (tmp_path / "out.docx").unlink(missing_ok=True)
+        parts = good()
+        parts["word/document.xml"] = parts["word/document.xml"].replace("<w:p>", tag, 1)
+        (tmp_path / "in.docx").write_bytes(pack(parts))
+        code, result = both(["repair", "in.docx", "out.docx"], tmp_path)
+        assert code == 2 and "under a prefix other than w:" in result["error"], (tag, result)
+        assert not (tmp_path / "out.docx").exists()

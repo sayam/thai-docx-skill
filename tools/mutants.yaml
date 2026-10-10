@@ -894,3 +894,25 @@
     - tests/test_markdown.py::test_a_dot_closing_thai_in_another_run_still_joins
   holds:
     - V35-02
+
+- id: repair-misses-a-single-quoted-font
+  file: skills/thai-docx/scripts/thai_docx/repair.py
+  find: |-
+    ATTRIBUTE = re.compile(rb"""([^\s=/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)')""")
+  replace: |-
+    ATTRIBUTE = re.compile(rb"""([^\s=/>]+)\s*=\s*(?:"([^"]*)"|"([^']*)")""")
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_the_font_a_document_uses_most_is_read_from_its_tags
+  holds:
+    - V35-03
+
+- id: repair-reads-a-declaration-in-the-bytes
+  file: skills/thai-docx/scripts/thai_docx/repair.py
+  find: |-
+    for _tag, attributes in start_tags(parts[name]):
+  replace: |-
+    for _tag, attributes in [(b"", [(b"xmlns" + (b":" + p if p else b""), a or b) for p, a, b in re.findall(rb"""xmlns(?::([\w.-]+))?\s*=\s*(?:"([^"]*)"|'([^']*)')""", parts[name])])]:
+  test:
+    - tests/test_repair_reads_xml_as_xml.py::test_a_declaration_typed_as_text_is_text
+  holds:
+    - V35-04
