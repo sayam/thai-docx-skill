@@ -35,7 +35,9 @@ footnotes.
   other shape (lists, nesting) is read as ordinary Markdown text.
 
 A line break inside a paragraph between two Thai characters joins them with no
-space, so wrapping long Thai lines in the Markdown is safe.
+space, so wrapping long Thai lines in the Markdown is safe. So does one after a `.` that closes a
+Thai character, before a Thai character: `พ.` and `ศ.` on two lines are `พ.ศ.`. After a comma
+the space stays.
 
 What the build warns about rather than refuses: an image with nothing between the brackets
 of `![]`, a heading level skipped, a link definition nobody refers to, **ำ written the long way

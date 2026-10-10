@@ -2079,8 +2079,8 @@ def _inlines(bp: BlockParser, block: Node, doc: Document) -> list[dict]:
                 nxt = _neighbour(out, i, 1)  # a neighbouring soft break is not Thai
                 if nxt is None or prev is None:
                     s = ""  # nothing is rendered after it (or before it) in this paragraph
-                elif prev and nxt and is_thai(prev) and is_thai(nxt):
-                    s = ""
+                elif nxt and is_thai(nxt) and (is_thai(prev) or _thai_then_dot(_before(out, i, 2))):
+                    s = ""  # Thai, or a `.` closing Thai as in พ.ศ., meets Thai
                 else:
                     s = " "
             flags, link, tags_now = item[2], item[3], item[4]
@@ -2098,6 +2098,23 @@ def _inlines(bp: BlockParser, block: Node, doc: Document) -> list[dict]:
         elif kind == "fn":
             result.append({"t": "footnote_ref", "label": item[1], "id": item[2]})
     return _merge(result)
+
+
+def _before(out: list, i: int, count: int) -> str:
+    """Up to `count` characters of the rendered text just before item `i`, across text items
+    and no further than anything that is not text."""
+    s = ""
+    j = i - 1
+    while j >= 0 and out[j][0] == "text" and len(s) < count:
+        s = out[j][1] + s
+        j -= 1
+    return s[-count:]
+
+
+def _thai_then_dot(s: str) -> bool:
+    """A Thai character and then `.`: the end of พ. in พ.ศ. A comma keeps its space, as Thai
+    writes one after it."""
+    return len(s) == 2 and is_thai(s[0]) and s[1] == "."
 
 
 def _neighbour(out: list, i: int, step: int) -> str | None:

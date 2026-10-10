@@ -884,3 +884,13 @@
     - tests/test_build.py::test_normal_repeats_the_paragraph_defaults_as_it_repeats_the_run_defaults
   holds:
     - V35-01
+
+- id: a-dot-closing-thai-keeps-the-space
+  file: skills/thai-docx/scripts/thai_docx/markdown.py
+  find: 'return len(s) == 2 and is_thai(s[0]) and s[1] == "."'
+  replace: 'return False'
+  test:
+    - tests/test_markdown.py::test_a_soft_break_after_a_dot_closing_thai_adds_nothing_before_thai
+    - tests/test_markdown.py::test_a_dot_closing_thai_in_another_run_still_joins
+  holds:
+    - V35-02

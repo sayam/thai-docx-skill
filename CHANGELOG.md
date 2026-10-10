@@ -19,6 +19,11 @@ before two applications were read; the exception and what is owed are in
   An application that reads styles but not `w:docDefaults` gave a paragraph none of them. Every
   golden moves in `word/styles.xml`, in the `Normal` style only, and is read again before the
   release (`tests/test_build.py::test_normal_repeats_the_paragraph_defaults_as_it_repeats_the_run_defaults`).
+- A line break in the Markdown after a `.` that closes a Thai character, before a Thai
+  character, joins the two with no space: `พ.` and `ศ.` on two lines were `พ. ศ.` in the
+  document and are `พ.ศ.` (ADR 0043, amending transformation 1 of ADR 0023). A comma keeps its
+  space. No golden holds the case, so no golden moves
+  (`tests/test_markdown.py::test_a_soft_break_after_a_dot_closing_thai_adds_nothing_before_thai`).
 
 ## [0.3.4] - 2026-10-09
 

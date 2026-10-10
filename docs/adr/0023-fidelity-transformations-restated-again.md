@@ -3,6 +3,7 @@
 - Status: accepted
 - Decided: 2026-09-16
 - Supersedes: 0016
+- Amended by: [0043](0043-a-dot-closing-thai-is-thai-to-a-soft-break.md) (transformation 1: a `.` closing a Thai character)
 
 ## Where it came from
 
@@ -23,6 +24,9 @@ and its footnotes, with exactly these transformations:
    paragraph becomes nothing, and so does one between two Thai characters. Any other
    becomes one space. The neighbour is the adjacent text (empty text is skipped); an
    image, a hard break or another soft break is not a Thai character.
+
+   > **Later (2026-10-10):** since [ADR 0043](0043-a-dot-closing-thai-is-thai-to-a-soft-break.md),
+   > one between a Thai character followed by `.` and a Thai character becomes nothing too.
 2. **Task markers.** `[ ]` and `[x]`, with the spaces after them, become ☐ (U+2610) or ☑
    (U+2611) and one space.
 3. **HTML comments** are removed. The region and list comments of 0021 leave no text:

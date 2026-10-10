@@ -17,7 +17,7 @@ citation makes the record say something it did not.
 | S5 | SkillsMP FAQ — "How do I submit my skill?" (auto-indexing, daily sync, topics) | https://skillsmp.com/docs/faq | 2026-09-14 | 0002, 0011, 0014 |
 | S6 | Awesome Claude Skills (awesome-skills.com), curated by Ocean Path Ventures — no submission form on the site | https://awesome-skills.com | 2026-09-14 | 0002, 0014 |
 | S7 | ECMA-376 Office Open XML File Formats, 5th edition, Part 1 (WordprocessingML) | https://ecma-international.org/publications-and-standards/standards/ecma-376/ | 2026-09-15 | 0004, 0021 |
-| S8 | CommonMark Spec 0.31.2 — soft line breaks; Unicode punctuation (P and S categories) | https://spec.commonmark.org/0.31.2/ | 2026-09-15 | 0005, 0010, 0015, 0016, 0020, 0022, 0023 |
+| S8 | CommonMark Spec 0.31.2 — soft line breaks; Unicode punctuation (P and S categories) | https://spec.commonmark.org/0.31.2/ | 2026-09-15 | 0005, 0010, 0015, 0016, 0020, 0022, 0023, 0043 |
 | S9 | GitHub Flavored Markdown Spec, version 0.29-gfm (2019-04-06) | https://github.github.com/gfm/ | 2026-09-15 | 0010, 0015, 0022 |
 | S10 | GitHub Docs — basic writing and formatting syntax, footnotes | https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax | 2026-09-15 | 0010, 0022 |
 | S11 | Claude Help Center — create and edit files with Claude (code execution, network egress settings) | https://support.claude.com/en/articles/12111783-create-and-edit-files-with-claude | 2026-09-14 | 0008 |

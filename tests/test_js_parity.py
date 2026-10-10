@@ -160,6 +160,16 @@ def test_check_decides_each_named_rule_the_same():
         assert py == from_js, f"{what}:\n python: {py}\n     js: {from_js}"
 
 
+def test_a_soft_break_after_a_dot_is_read_the_same():
+    """ADR 0043: the generated corpus rarely puts a Thai dot before a line break, so the cases of
+    the rule are put to both implementations here."""
+    texts = ["พ.\nศ. 2569", "ปี พ.ศ.\n๒๕๖๙", "**พ**.\nศ.", "ครับ.\nต่อไป", "พ.ศ.\n2569", "Mr.\nสมชาย",
+             "สวัสดี,\nชาวโลก", "ก..\nข", "_พ_.\nศ.", "พ.\n**ศ**.", "พ.  \nศ.", "พ.<!-- x -->\nศ.", "𝐀.\nศ."]
+    js = parity.run_js({"op": "ast", "texts": texts})
+    py = [parity.py_ast(t) for t in texts]
+    _same(py, js, texts)
+
+
 def test_sara_am_written_the_long_way_is_read_the_same():
     """ADR 0034: the generated corpus never writes ำ the long way, so the two characters
     that look like it are put to both implementations here — same text out, same warning."""
