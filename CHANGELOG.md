@@ -24,6 +24,14 @@ before two applications were read; the exception and what is owed are in
   document and are `พ.ศ.` (ADR 0043, amending transformation 1 of ADR 0023). A comma keeps its
   space. No golden holds the case, so no golden moves
   (`tests/test_markdown.py::test_a_soft_break_after_a_dot_closing_thai_adds_nothing_before_thai`).
+- `repair` reads the font a document uses most and its namespace declarations from its tags,
+  not from a part's bytes. A complex-script font named in single quotes, `w:cs='Tahoma'`, was not
+  counted, and `w:cs="Tahoma"` typed in the text was; a declaration typed in the text,
+  `xmlns:x="…/wordprocessingml/2006/main"` in a page about Word's XML, refused the file as written
+  under another prefix. Both were recorded in 0.3.4 and are fixed; the sentences that recorded them
+  in `references/repair.md` and `limits.md` §10 are gone
+  (`tests/test_repair_reads_xml_as_xml.py::test_the_font_a_document_uses_most_is_read_from_its_tags`,
+  `tests/test_repair_reads_xml_as_xml.py::test_a_declaration_typed_as_text_is_text`).
 
 ## [0.3.4] - 2026-10-09
 

@@ -64,7 +64,20 @@ ATTR = re.compile(rb"""([\w:]+)\s*=\s*(?:"([^"]*)"|'([^']*)')""")
 VALUE = rb"""\s*=\s*(?:"[^"]*"|'[^']*')"""
 MODE, URI = b"compatibilityMode", check_mod.COMPAT_URI.encode()
 W_URI = ooxml.W.encode()
-XMLNS = re.compile(rb"""xmlns(?::([\w.-]+))?\s*=\s*(?:"([^"]*)"|'([^']*)')""")
+# What a part says in its tags, and only there: a comment, a CDATA section or a processing
+# instruction is not markup, and text cannot hold a tag (its `<` is escaped), so a declaration or a
+# font typed in a page about Word's XML is not read as one (the review of 0.3.4, D-03, D-05)
+NOT_MARKUP = re.compile(rb"<!--.*?-->|<!\[CDATA\[.*?\]\]>|<\?.*?\?>", re.S)
+START_TAG = re.compile(rb"""<([A-Za-z_][\w.:-]*)((?:\s+[^\s=/>]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*/?>""")
+ATTRIBUTE = re.compile(rb"""([^\s=/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)')""")
+
+
+def start_tags(xml: bytes):
+    """Each start tag's name and its attributes, as (name, value) in the order written, whichever
+    quote holds the value."""
+    for m in START_TAG.finditer(NOT_MARKUP.sub(b"", xml)):
+        yield m.group(1), [(a.group(1), a.group(2) if a.group(2) is not None else a.group(3))
+                           for a in ATTRIBUTE.finditer(m.group(2))]
 
 
 def _attrs(tag: bytes) -> dict[bytes, bytes]:
@@ -541,11 +554,14 @@ def complex_script_font(parts: dict[str, bytes], asked: str | None) -> tuple[byt
         # the XML parts only: an image or a font holds no run properties, and reading one as
         # text is how the two implementations came apart (a picture is not valid UTF-8)
         if name.startswith("word/") and name.endswith(".xml"):
-            for found in re.findall(rb'w:cs\s*=\s*"([^"]+)"', xml):
-                # only a font the checker itself would accept: writing one it warns about
-                # would trade a finding for a warning, which is not a repair
-                if found.decode("utf-8", "replace").lower() in ooxml.THAI_FONTS:
-                    counted[found] = counted.get(found, 0) + 1
+            for tag, attributes in start_tags(xml):
+                if tag != b"w:rFonts":
+                    continue
+                for key, found in attributes:
+                    # only a font the checker itself would accept: writing one it warns about
+                    # would trade a finding for a warning, which is not a repair
+                    if key == b"w:cs" and found.decode("utf-8", "replace").lower() in ooxml.THAI_FONTS:
+                        counted[found] = counted.get(found, 0) + 1
     if counted:
         best = max(sorted(counted), key=lambda f: counted[f])
         # a name the checker accepts holds nothing an attribute escapes
@@ -598,10 +614,11 @@ def foreign_prefix(parts: dict[str, bytes]) -> str | None:
     for name in sorted(parts):
         if not _is_xml(name):
             continue
-        for prefix, a, b in XMLNS.findall(parts[name]):
-            uri = a or b
-            if (uri == W_URI) != (prefix == b"w"):
-                return name
+        for _tag, attributes in start_tags(parts[name]):
+            for key, uri in attributes:
+                if key == b"xmlns" or key.startswith(b"xmlns:"):
+                    if (uri == W_URI) != (key == b"xmlns:w"):
+                        return name
     return None
 
 

@@ -32,17 +32,15 @@ an application drops that space, and a cut would bring it back.
 
 A part holding an XML comment, a CDATA section or a processing instruction — Word writes none —
 is left as it came, with a `left` warning, and its findings stay in `remaining`. A document
-written under a prefix other than `w:` is refused — and so, this version, is one whose text
-holds such a declaration as words, `xmlns:x="…/wordprocessingml/2006/main"` in a page about
-Word's XML: the declaration is looked for in the part's bytes, not only in its tags.
+written under a prefix other than `w:` is refused; a declaration is read in a tag, so the same
+words in the text, in a page about Word's XML, are text.
 
 **The font.** A run whose `w:rFonts` names a Latin font and no complex-script one is given one,
 and so is a Symbol bullet: what `--font` says — without a space at either end and cut to the 31
 characters Word reads, as the build writes it, which the `font` warning then says — else the
 complex-script font the document already
-uses most — counting only fonts known to carry Thai — else this skill's own default. This version
-counts each `w:cs="…"` in the part's bytes: a font named in single quotes, `w:cs='Tahoma'`, is not
-counted, and the same characters typed in the text are. When one was
+uses most — counting only fonts known to carry Thai, named by `w:cs` on a `w:rFonts` tag in either
+quote, not the same words in the text — else this skill's own default. When one was
 written, the choice comes back in `warnings` as `font`; read it out to the user. A second `font` warning is the checker's, on the file as written: a complex-script font there that is not known to carry Thai glyphs, or a font's name there that begins or ends with a space — read that out too, as it says. A run with no
 `w:rFonts` is given none.
 
