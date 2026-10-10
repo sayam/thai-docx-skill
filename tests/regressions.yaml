@@ -1619,3 +1619,17 @@
   found_by: review
   test:
     - tests/test_repair_reads_xml_as_xml.py::test_a_declaration_typed_as_text_is_text
+
+- id: V35-05
+  what: SKILL.md said how to run the build and nothing of a command that cannot be found, so an agent whose place to run code did not hold the skill's scripts, the Gemini app's, wrote the Word file its own way, a file check finds faults in
+  class: C1, C2
+  found_by: agent-run
+  test:
+    - tests/test_skill_md.py::test_an_agent_that_cannot_find_the_command_stops_and_makes_no_file
+
+- id: V35-06
+  what: SKILL.md said repair says which complex-script font it wrote, which reads as always, where repair gives the font warning only when it wrote one
+  class: C1, C2
+  found_by: review
+  test:
+    - tests/test_skill_md.py::test_the_font_repair_wrote_is_said_only_where_repair_gives_it

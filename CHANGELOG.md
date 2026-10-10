@@ -32,6 +32,18 @@ before two applications were read; the exception and what is owed are in
   in `references/repair.md` and `limits.md` §10 are gone
   (`tests/test_repair_reads_xml_as_xml.py::test_the_font_a_document_uses_most_is_read_from_its_tags`,
   `tests/test_repair_reads_xml_as_xml.py::test_a_declaration_typed_as_text_is_text`).
+- `SKILL.md` says to stop when the command cannot be found and to make no file another way. On
+  4 October 2026 the Gemini app read the skill's instructions while its scripts did not reach the
+  place where it runs code, and wrote the Word file itself with python-docx, a file `check` finds
+  faults in. With the scripts taken out, Haiku made no file another way and said they were missing
+  in six runs of six before the sentence and six of six after, and offered python-docx in two of
+  six on each; the sentence is not shown to change what it does there
+  ([record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-10-10-model-equivalence-on-a-skill-whose-scripts-are-missing.md);
+  `tests/test_skill_md.py::test_an_agent_that_cannot_find_the_command_stops_and_makes_no_file`).
+- `SKILL.md` no longer says `repair` "says which complex-script font it wrote", which read as
+  always; the sentence after it passes on the `font` warning when `repair` gives one. On a file
+  that gives only the layout warning, no run of six said `repair` chose a font
+  (`tests/test_skill_md.py::test_the_font_repair_wrote_is_said_only_where_repair_gives_it`).
 
 ## [0.3.4] - 2026-10-09
 

@@ -587,3 +587,21 @@ def test_the_answer_after_a_repair_passes_on_the_warnings_repair_gives():
     assert ("After a repair, your answer names the new file, and passes on each of these warnings it gives:"
             " `font`, the font it chose; `layout`,") in text
     assert "names three things" not in text
+
+
+def test_an_agent_that_cannot_find_the_command_stops_and_makes_no_file():
+    """G2 (0.3.5): the Gemini app read the skill's instructions, but its scripts did not reach the
+    place where it runs code, and it wrote the Word file its own way with python-docx, a file
+    `check` finds faults in. SKILL.md says to stop, where it says how to run the build."""
+    text = " ".join(SKILL_MD.split())
+    run = text.split("**Run the build**", 1)[1].split("**Read the one JSON line", 1)[0]
+    assert "If the command cannot be found, say so and stop; make no file another way." in run
+
+
+def test_the_font_repair_wrote_is_said_only_where_repair_gives_it():
+    """C-02 (the documentation audit of 0.3.4): SKILL.md said `repair` "says which complex-script
+    font it wrote", which reads as always, where the `font` warning comes only when it wrote one;
+    the sentence after it, which passes on each warning `repair` gives, says it."""
+    text = " ".join(SKILL_MD.split())
+    assert "it says which complex-script font it wrote" not in text
+    assert "passes on each of these warnings it gives: `font`, the font it chose;" in text

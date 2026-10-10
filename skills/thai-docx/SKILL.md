@@ -46,7 +46,8 @@ bundled command writes every attribute Thai needs. Your part is the Markdown.
 
    Both give the same file, byte for byte, and every command below runs the same with
    `node <skill>/scripts/thai_docx.js` in place of `python3 <skill>/scripts/thai_docx`. With no
-   shell: [references/sandbox.md](references/sandbox.md).
+   shell: [references/sandbox.md](references/sandbox.md). If the command cannot be found, say so
+   and stop; make no file another way.
 3. **Read the one JSON line it prints**, and the exit code — these are `build`'s:
 
    | exit | JSON | what to do |
@@ -179,7 +180,7 @@ and `repair` exits 1 when it wrote the file and findings remain: that is the ans
 file, not a defect. If the user has the content, rebuilding from Markdown with this skill fixes
 everything. If they do not, `repair IN.docx OUT.docx` writes a new file with every finding gone
 but a split word, invisible characters and a compatibility mode the file never declared, which it
-reports; it says which complex-script font it wrote, and a file with nothing to repair is answered
+reports, and a file with nothing to repair is answered
 `ok` with nothing written: [references/repair.md](references/repair.md). After a repair, your
 answer names the new file, and passes on each of these warnings it gives: `font`, the font it
 chose; `layout`, that page breaks can move (say that, การแบ่งหน้าอาจเลื่อน in Thai, never page size or

@@ -916,3 +916,26 @@
     - tests/test_repair_reads_xml_as_xml.py::test_a_declaration_typed_as_text_is_text
   holds:
     - V35-04
+
+- id: skill-md-says-nothing-of-a-missing-command
+  file: skills/thai-docx/SKILL.md
+  find: |-
+    shell: [references/sandbox.md](references/sandbox.md). If the command cannot be found, say so
+       and stop; make no file another way.
+  replace: |-
+    shell: [references/sandbox.md](references/sandbox.md).
+  test:
+    - tests/test_skill_md.py::test_an_agent_that_cannot_find_the_command_stops_and_makes_no_file
+  holds:
+    - V35-05
+
+- id: skill-md-says-repair-always-names-its-font
+  file: skills/thai-docx/SKILL.md
+  find: |-
+    reports, and a file with nothing to repair is answered
+  replace: |-
+    reports; it says which complex-script font it wrote, and a file with nothing to repair is answered
+  test:
+    - tests/test_skill_md.py::test_the_font_repair_wrote_is_said_only_where_repair_gives_it
+  holds:
+    - V35-06
