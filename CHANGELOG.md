@@ -10,6 +10,16 @@ of that version names each golden's sha256 on the golden's own line), and after 
 before two applications were read; the exception and what is owed are in
 [its record](https://github.com/sayam/thai-docx-skill/blob/main/docs/evidence/2026-09-24-what-v0.2.0-was-read-in.md). The rule is unchanged.
 
+## [Unreleased]
+
+### Fixed
+
+- The `Normal` style repeats the paragraph defaults — the spacing after a paragraph, the line
+  spacing and, with `--align thai`, Thai distributed — as it already repeated the font and size.
+  An application that reads styles but not `w:docDefaults` gave a paragraph none of them. Every
+  golden moves in `word/styles.xml`, in the `Normal` style only, and is read again before the
+  release (`tests/test_build.py::test_normal_repeats_the_paragraph_defaults_as_it_repeats_the_run_defaults`).
+
 ## [0.3.4] - 2026-10-09
 
 No golden moves: a build writes the bytes 0.3.0 wrote, so what was read on them holds

@@ -150,6 +150,7 @@ class Package extends Writer {
     const small = Math.max(size - 3, 1);
     const hp = (pt) => String(halfUp(pt * 2));
     const jc = this.opts.align === "thai" ? '<w:jc w:val="thaiDistribute"/>' : "";
+    const ppr = '<w:spacing w:after="120" w:line="' + halfUp(this.opts.line_spacing * 240) + '" w:lineRule="auto"/>' + jc;
     // The built-in look, with what the front matter's heading-n changes (ADR 0020).
     const heading = (n) => {
       const p = this.headingProps.get(n) || {};
@@ -208,11 +209,12 @@ class Package extends Writer {
       "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>" +
       '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/><w:lang w:val="en-US" w:eastAsia="en-US"' + (this.opts.thai_language ? ' w:bidi="th-TH"' : "") + "/>" +
       "</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr>" +
-      '<w:spacing w:after="120" w:line="' + halfUp(this.opts.line_spacing * 240) + '" w:lineRule="auto"/>' + jc +
-      "</w:pPr></w:pPrDefault></w:docDefaults>" +
+      ppr + "</w:pPr></w:pPrDefault></w:docDefaults>" +
       // Normal repeats what the defaults above already say: an application that reads styles
-      // but not w:docDefaults (WPS numbers one) then still has the font and size
-      '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:rPr>' +
+      // but not w:docDefaults (WPS numbers one) then still has the spacing, the alignment, the
+      // font and the size
+      '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/>' +
+      "<w:pPr>" + ppr + "</w:pPr><w:rPr>" +
       "<w:rFonts w:ascii=" + font + " w:hAnsi=" + font + " w:cs=" + font + " w:eastAsia=" + font + "/>" +
       '<w:sz w:val="' + hp(size) + '"/><w:szCs w:val="' + hp(size) + '"/>' + this.styleLang + "</w:rPr></w:style>" +
       [1, 2, 3, 4, 5, 6].map((n) => heading(n)).join("") +
