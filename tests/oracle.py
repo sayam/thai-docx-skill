@@ -15,7 +15,8 @@ references read CommonMark differently this parser follows commonmark.js, and
 known_divergence() names each such case. Test-only: nothing here ships.
 
 What the reduction deliberately normalizes, each tied to a decision:
-- a soft break between two Thai characters is nothing, any other is a space (ADR 0023 §1)
+- a soft break between two Thai characters, or after a `.` closing a Thai character before a
+  Thai character, is nothing, any other is a space (ADR 0023 §1, amended by ADR 0043)
 - a task marker is its own item and the one space after it is consumed (ADR 0023 §2)
 - link destinations are compared after markdown-it's own normalization on both sides,
   and a link with an empty destination is plain text: a Word hyperlink needs a target
@@ -60,7 +61,12 @@ def _resolve(items: list[tuple]) -> tuple:
             else:
                 p = prev[1][-1] if prev[0] == "t" and prev[1] else ""
                 n = nxt[1][0] if nxt[0] == "t" and nxt[1] else ""
-                it = ("t", "" if p and n and is_thai(p) and is_thai(n) else " ", it[2], it[3])
+                tail, j = "", i - 1
+                while j >= 0 and items[j][0] == "t" and len(tail) < 2:
+                    tail, j = items[j][1] + tail, j - 1
+                tail = tail[-2:]
+                dot = len(tail) == 2 and is_thai(tail[0]) and tail[1] == "."
+                it = ("t", "" if n and is_thai(n) and ((p and is_thai(p)) or dot) else " ", it[2], it[3])
         if it[0] == "t" and not it[1]:
             continue
         if it[0] == "t" and out and out[-1][0] == "t" and out[-1][2:] == it[2:]:

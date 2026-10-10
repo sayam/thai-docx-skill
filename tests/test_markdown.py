@@ -42,6 +42,28 @@ def test_other_soft_breaks_are_one_space(text, expected):
     assert inl(text) == [(expected, "", None)]
 
 
+# ADR 0043 amends transformation 1: a `.` closing a Thai character is Thai to the break after it
+DOT_CASES = [
+    ("พ.\nศ. 2569", "พ.ศ. 2569"),
+    ("ปี พ.ศ.\n๒๕๖๙", "ปี พ.ศ.๒๕๖๙"),  # Thai digits are Thai characters
+    ("**พ**.\nศ.", None),  # the dot and the letter before it are in different runs
+    ("ครับ.\nต่อไป", "ครับ.ต่อไป"),
+    ("พ.ศ.\n2569", "พ.ศ. 2569"),  # a Latin digit after it is not Thai
+    ("Mr.\nสมชาย", "Mr. สมชาย"),  # nor a Latin letter before the dot
+    ("สวัสดี,\nชาวโลก", "สวัสดี, ชาวโลก"),  # a comma keeps its space
+    ("ก..\nข", "ก.. ข"),  # nor a dot before the dot
+]
+
+
+@pytest.mark.parametrize("text,expected", [c for c in DOT_CASES if c[1]])
+def test_a_soft_break_after_a_dot_closing_thai_adds_nothing_before_thai(text, expected):
+    assert inl(text) == [(expected, "", None)]
+
+
+def test_a_dot_closing_thai_in_another_run_still_joins():
+    assert "".join(n[0] for n in inl("**พ**.\nศ.") if len(n) == 3) == "พ.ศ."
+
+
 @pytest.mark.parametrize("text", ["ก  \nข", "ก\\\nข", "ก<br>ข", "ก<br/>ข"])
 def test_hard_breaks(text):
     assert inl(text) == [("ก", "", None), ("hardbreak",), ("ข", "", None)]

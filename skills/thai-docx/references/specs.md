@@ -69,7 +69,7 @@ That block builds with no warning. Everything below says what else is possible.
 | | how |
 |---|---|
 | heading, six levels | `#` … `######` |
-| paragraph | a line, or lines; a break between two Thai characters joins them with no space |
+| paragraph | a line, or lines; a break between two Thai characters, or after a `.` closing Thai before Thai, joins them with no space |
 | line break inside a paragraph | two spaces at the end of the line, or `<br>` |
 | bullet list, nested | `-` and two spaces per level |
 | numbered list | `1.` `2.` — the number you write is where it starts |

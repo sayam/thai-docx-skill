@@ -1597,3 +1597,11 @@
   found_by: review
   test:
     - tests/test_build.py::test_normal_repeats_the_paragraph_defaults_as_it_repeats_the_run_defaults
+
+- id: V35-02
+  what: a soft line break after a dot closing a Thai character, before a Thai character, became a space, so a Thai abbreviation wrapped at its dot, พ. then ศ., was พ. ศ. in the document
+  class: C1
+  found_by: review
+  test:
+    - tests/test_markdown.py::test_a_soft_break_after_a_dot_closing_thai_adds_nothing_before_thai
+    - tests/test_markdown.py::test_a_dot_closing_thai_in_another_run_still_joins

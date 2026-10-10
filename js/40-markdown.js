@@ -1976,7 +1976,7 @@ function toInlines(bp, block, doc) {
         const prev = neighbour(out, i, -1);
         const nxt = neighbour(out, i, 1);
         if (nxt === null || prev === null) s = "";
-        else if (prev && nxt && isThai(prev) && isThai(nxt)) s = "";
+        else if (nxt && isThai(nxt) && (isThai(prev) || thaiThenDot(before(out, i, 2)))) s = ""; // Thai, or a `.` closing Thai as in พ.ศ., meets Thai
         else s = " ";
       }
       const flags = item[2];
@@ -1997,6 +1997,25 @@ function toInlines(bp, block, doc) {
     }
   }
   return mergeInlines(result);
+}
+
+// Up to `count` characters of the rendered text just before item `i`, across text items and
+// no further than anything that is not text.
+function before(out, i, count) {
+  let s = "";
+  let j = i - 1;
+  while (j >= 0 && out[j][0] === "text" && Array.from(s).length < count) {
+    s = out[j][1] + s;
+    j--;
+  }
+  return Array.from(s).slice(-count).join("");
+}
+
+// A Thai character and then `.`: the end of พ. in พ.ศ. A comma keeps its space, as Thai writes
+// one after it.
+function thaiThenDot(s) {
+  const cps = Array.from(s);
+  return cps.length === 2 && isThai(cps[0]) && cps[1] === ".";
 }
 
 function neighbour(out, i, step) {
