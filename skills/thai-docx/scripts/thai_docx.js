@@ -6303,15 +6303,15 @@ const RE_COMPAT_SETTING = new RegExp("<w:compatSetting" + ATTRS + "(?:\\/>|>\\s*
 const RE_ATTR = /([\w:]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 const VALUE = "\\s*=\\s*(?:\"[^\"]*\"|'[^']*')";
 // What a part says in its tags, and only there (repair.py says why: D-03, D-05)
-const RE_NOT_MARKUP = /<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<\?[\s\S]*?\?>/g;
-const RE_START_TAG = /<([A-Za-z_][\w.:-]*)((?:\s+[^\s=/>]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*\/?>/g;
+// one pass from the left: what is not markup is stepped over whole, so nothing inside it is read
+const RE_START_TAG = /(<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<\?[\s\S]*?\?>)|<([A-Za-z_][\w.:-]*)((?:\s+[^\s=/>]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*\/?>/g;
 const RE_ATTRIBUTE = /([^\s=/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 
 // Each start tag's name and its attributes, as [name, value] in the order written, whichever
 // quote holds the value.
 function* startTags(xml) {
-  for (const m of xml.replace(RE_NOT_MARKUP, "").matchAll(RE_START_TAG)) {
-    yield [m[1], [...m[2].matchAll(RE_ATTRIBUTE)].map((a) => [a[1], a[2] !== undefined ? a[2] : a[3]])];
+  for (const m of xml.matchAll(RE_START_TAG)) {
+    if (m[1] === undefined) yield [m[2], [...m[3].matchAll(RE_ATTRIBUTE)].map((a) => [a[1], a[2] !== undefined ? a[2] : a[3]])];
   }
 }
 

@@ -67,17 +67,19 @@ W_URI = ooxml.W.encode()
 # What a part says in its tags, and only there: a comment, a CDATA section or a processing
 # instruction is not markup, and text cannot hold a tag (its `<` is escaped), so a declaration or a
 # font typed in a page about Word's XML is not read as one (the review of 0.3.4, D-03, D-05)
-NOT_MARKUP = re.compile(rb"<!--.*?-->|<!\[CDATA\[.*?\]\]>|<\?.*?\?>", re.S)
-START_TAG = re.compile(rb"""<([A-Za-z_][\w.:-]*)((?:\s+[^\s=/>]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*/?>""")
+# one pass from the left: what is not markup is stepped over whole, so nothing inside it is read
+START_TAG = re.compile(rb"""(<!--.*?-->|<!\[CDATA\[.*?\]\]>|<\?.*?\?>)"""
+                       rb"""|<([A-Za-z_][\w.:-]*)((?:\s+[^\s=/>]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*/?>""", re.S)
 ATTRIBUTE = re.compile(rb"""([^\s=/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)')""")
 
 
 def start_tags(xml: bytes):
     """Each start tag's name and its attributes, as (name, value) in the order written, whichever
     quote holds the value."""
-    for m in START_TAG.finditer(NOT_MARKUP.sub(b"", xml)):
-        yield m.group(1), [(a.group(1), a.group(2) if a.group(2) is not None else a.group(3))
-                           for a in ATTRIBUTE.finditer(m.group(2))]
+    for m in START_TAG.finditer(xml):
+        if m.group(1) is None:
+            yield m.group(2), [(a.group(1), a.group(2) if a.group(2) is not None else a.group(3))
+                               for a in ATTRIBUTE.finditer(m.group(3))]
 
 
 def _attrs(tag: bytes) -> dict[bytes, bytes]:
