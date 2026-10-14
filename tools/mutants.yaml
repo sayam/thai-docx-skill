@@ -939,3 +939,75 @@
     - tests/test_skill_md.py::test_the_font_repair_wrote_is_said_only_where_repair_gives_it
   holds:
     - V35-06
+
+# --- credit lines and workflows, held by the repository's own tests (V35-07, V35-08) ------------
+
+- id: credit-verbs-without-created
+  file: tools/lint_credit_lines.py
+  find: |-
+    "generated", "co-authored", "coauthored", "authored", "written", "drafted", "created", "made",
+  replace: |-
+    "generated", "co-authored", "coauthored", "authored", "written", "drafted", "made",
+  test:
+    - tests/test_credit_lines.py::test_a_credit_is_refused_by_its_shape_whatever_the_tool_is_called
+  holds:
+    - V35-07
+
+- id: credit-keys-are-two-names-again
+  file: tools/lint_credit_lines.py
+  find: |-
+    return lower.endswith(("-by", "-with")) or any(word in lower for word in ("session", "generated", "assisted", "co-author", "coauthor"))
+  replace: |-
+    return lower in ("co-authored-by", "claude-session")
+  test:
+    - tests/test_credit_lines.py::test_a_credit_is_refused_by_its_shape_whatever_the_tool_is_called
+  holds:
+    - V35-07
+
+- id: commits-job-skips-the-credit-check
+  file: .github/workflows/gates.yml
+  find: |-
+    python3 tools/lint_commit_authors.py --range "$range"
+              python3 tools/lint_credit_lines.py --range "$range"
+  replace: |-
+    python3 tools/lint_commit_authors.py --range "$range"
+  test:
+    - tests/test_credit_lines.py::test_the_commits_job_and_the_description_check_run_the_checker
+  holds:
+    - V35-07
+
+- id: workflow-token-may-write
+  file: .github/workflows/gates.yml
+  find: |-
+    permissions:
+      contents: read
+  replace: |-
+    permissions:
+      contents: write
+  test:
+    - tests/test_workflows_are_hardened.py::test_every_workflow_runs_with_least_privilege_and_a_bound
+  holds:
+    - V35-08
+
+- id: tests-job-has-no-bound
+  file: .github/workflows/gates.yml
+  find: |-
+    ubuntu-24.04
+        timeout-minutes: 15
+  replace: |-
+    ubuntu-24.04
+  test:
+    - tests/test_workflows_are_hardened.py::test_every_workflow_runs_with_least_privilege_and_a_bound
+  holds:
+    - V35-08
+
+- id: checkout-keeps-the-token
+  file: .github/workflows/pr-description.yml
+  find: |-
+    persist-credentials: false
+  replace: |-
+    persist-credentials: true
+  test:
+    - tests/test_workflows_are_hardened.py::test_every_workflow_runs_with_least_privilege_and_a_bound
+  holds:
+    - V35-08

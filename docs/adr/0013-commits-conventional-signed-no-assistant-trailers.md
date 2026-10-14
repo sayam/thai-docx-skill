@@ -32,6 +32,13 @@ write a change is not an author under the DCO.
 > `tools/lint_commit_authors.py` enforces it in the `commits` job as the gate
 > `commit-author-signed-it`.
 
+> **Later (2026-10-14):** a trailer and a footer are refused by their shape — a
+> key that ends in `-by` or `-with` or names a session, a credit verb before a
+> name, a link alone to a session — in every commit message and in the pull
+> request's description, not by a list of names: a footer naming a tool the list
+> did not know had passed. `tools/lint_credit_lines.py` enforces it in the
+> `commits` job as the gate `credit-lines-read-by-shape`.
+
 ## Why
 
 A sign-off certifies the right to submit the change, and only the person who

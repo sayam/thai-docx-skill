@@ -1633,3 +1633,18 @@
   found_by: review
   test:
     - tests/test_skill_md.py::test_the_font_repair_wrote_is_said_only_where_repair_gives_it
+
+- id: V35-07
+  what: the credit checks knew credits by name — two trailer keys in a commit message, nine tools after "Generated with" in a pull request's description — so a footer naming a tenth tool passed both
+  class: C1
+  found_by: planted-input
+  test:
+    - tests/test_credit_lines.py::test_a_credit_is_refused_by_its_shape_whatever_the_tool_is_called
+    - tests/test_credit_lines.py::test_the_commits_job_and_the_description_check_run_the_checker
+
+- id: V35-08
+  what: no test held a workflow to contents read at the top or a timeout-minutes on every job, so taking either out of gates.yml left the doctor and the suite green
+  class: C1
+  found_by: planted-input
+  test:
+    - tests/test_workflows_are_hardened.py::test_every_workflow_runs_with_least_privilege_and_a_bound

@@ -51,6 +51,21 @@ gates:
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_pr_body.py]}
+  - id: credit-lines-read-by-shape
+    title: Every commit a push or pull request adds carries no line that credits a tool for the change — a trailer whose key is a credit, a credit verb with "with" or "by" before a name, a link alone to a session — read by the line's shape and not by a list of names (ADR 0013)
+    kind: job
+    severity: blocking
+    enforced_by: {job: commits}
+  - id: credit-line-checker-proven-two-way
+    title: The credit-line checker refuses a footer, a trailer and a session link by their shape under a name it was never given, passes a mention, a path and the signer's own line, names the commit and the line on a planted branch, gives no verdict on a history it cannot read, and the commits job and the description check both run it (ADR 0013)
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_credit_lines.py]}
+  - id: workflows-are-least-privilege-and-bounded
+    title: Every workflow grants contents read and nothing more at the top, every job has a timeout-minutes, a job's own permissions are named scopes, every checkout keeps no token, and no workflow runs on pull_request_target — each shown on a planted workflow
+    kind: test
+    severity: blocking
+    enforced_by: {job: tests, tests: [tests/test_workflows_are_hardened.py]}
   - id: docx-checker-proven-two-way
     title: The checker names each of the five causes (ADR 0004), invisible text and misordered properties on a planted violation in any part that holds text a reader sees — body, comments, footnotes, endnotes, headers, footers — passes a clean package, and refuses DOCTYPE and oversized packages
     kind: test

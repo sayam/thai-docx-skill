@@ -23,6 +23,7 @@ TOOL = ROOT / "tools" / "lint_pr_body.py"
 WORKFLOW = ROOT / ".github" / "workflows" / "pr-description.yml"
 sys.path.insert(0, str(ROOT / "tools"))
 import lint_commits  # noqa: E402
+import lint_credit_lines  # noqa: E402
 import lint_pr_body  # noqa: E402
 
 # the footer an assistant appends by default: a credit, a blank line, a link to its session
@@ -48,6 +49,12 @@ def test_an_assistant_s_default_footer_is_refused_line_by_line():
     "https://claude.ai/code/session_0000000000000000",
     "<https://claude.ai/share/abc>",
     "https://chatgpt.com/share/abc-def",
+    # a tool the checker was never told of: the shape is what is read (V35-07)
+    "Generated with Some Tool",
+    "✨ Created by [Another Assistant](https://example.invalid)",
+    "Assisted-by: Another Assistant <bot@example.invalid>",
+    "Another-Session-URL: https://example.invalid/s/1",
+    "https://example.invalid/share/abc",
 ])
 def test_a_line_that_opens_with_an_assistant_s_credit_is_refused(line):
     assert [n for n, _ in lint_pr_body.check_body("body\n" + line + "\nmore")] == [2], line
@@ -71,11 +78,13 @@ def test_a_description_that_credits_no_assistant_passes(body):
     assert lint_pr_body.check_body(body) == []
 
 
-def test_the_trailer_keys_are_the_commit_linter_s_own():
-    """One list: a key the commit linter learns to refuse is refused in a description too."""
-    assert lint_pr_body.FORBIDDEN_TRAILERS is lint_commits.FORBIDDEN_TRAILERS
+def test_the_keys_the_commit_linter_refuses_are_a_subset_of_the_shape():
+    """The commit linter's two keys are credits by shape, and so is a key it never heard of; the
+    description check reads the one shape the commits job reads."""
     for key in lint_commits.FORBIDDEN_TRAILERS:
-        assert lint_pr_body.check_body(key + ": x"), key
+        assert lint_credit_lines.is_credit_key(key) and lint_pr_body.check_body(key + ": x"), key
+    assert lint_pr_body.check_body("Assisted-by: a tool nobody listed")
+    assert lint_pr_body.check_body("Generated with Some Tool") == lint_credit_lines.check_text("Generated with Some Tool")
 
 
 def _run(args: list[str], body: str | None) -> subprocess.CompletedProcess:
