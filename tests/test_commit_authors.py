@@ -178,5 +178,6 @@ def test_the_workflow_reads_the_authors_of_the_commits_it_lints():
     text = WORKFLOW.read_text(encoding="utf-8")
     commits = text.split("\n  commits:\n", 1)[1].split("\n  tests:\n", 1)[0]
     runs = [line.strip() for line in commits.split("\n") if line.strip().startswith("python3 tools/")]
-    assert runs == ['python3 tools/lint_commits.py --range "$range"', 'python3 tools/lint_commit_authors.py --range "$range"']
+    assert runs == ['python3 tools/lint_commits.py --range "$range"', 'python3 tools/lint_commit_authors.py --range "$range"',
+                    'python3 tools/lint_credit_lines.py --range "$range"']
     assert "fetch-depth: 0" in commits and "continue-on-error" not in commits

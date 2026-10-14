@@ -44,6 +44,22 @@ before two applications were read; the exception and what is owed are in
   always; the sentence after it passes on the `font` warning when `repair` gives one. On a file
   that gives only the layout warning, no run of six said `repair` chose a font
   (`tests/test_skill_md.py::test_the_font_repair_wrote_is_said_only_where_repair_gives_it`).
+- A line that credits a tool for a change is refused by its shape — a trailer whose key is a
+  credit, a line that opens with a credit verb and `with` or `by` before a name, a link alone on
+  its line to a session — in every commit message the `commits` job reads and in a pull request's
+  description, and no longer by a list of names: the commit check knew two trailer keys and the
+  description check nine tools, so a footer naming a tenth tool passed both. A mention inside a
+  sentence, a path, and the signer's own line pass as before
+  (`tests/test_credit_lines.py::test_a_credit_is_refused_by_its_shape_whatever_the_tool_is_called`,
+  `tests/test_credit_lines.py::test_the_commits_job_and_the_description_check_run_the_checker`).
+
+### Security
+
+- Every workflow is held to `permissions: contents: read` at the top, a `timeout-minutes` on
+  every job, a job's own permissions as named scopes, a checkout that keeps no token, and no
+  `pull_request_target`. The workflows already did all of it; taking the first two out of
+  `gates.yml` had left every check green, so the rule was words
+  (`tests/test_workflows_are_hardened.py::test_every_workflow_runs_with_least_privilege_and_a_bound`).
 
 ## [0.3.4] - 2026-10-09
 

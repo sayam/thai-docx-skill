@@ -217,6 +217,12 @@ Conventional Commits, a subject of at most 72 characters, signed off with `git c
 branch with `python3 tools/lint_commits.py --range main..HEAD`. Pull requests are merged by
 rebase, so each commit should stand on its own.
 
+**No line of a commit message credits a tool for the change.** What is refused is the line's
+shape, not a list of tools: a trailer whose key is a credit (`Co-authored-by:`, `Generated-by:`,
+`Assisted-by:`, any `*-Session:`), a line that opens with a credit verb and `with` or `by` before a
+name ("Generated with …", "Created by …"), or a link alone on its line to a session. Check a
+branch with `python3 tools/lint_credit_lines.py --range main..HEAD`.
+
 **A commit is written under an address that signed it.** The address in its author field is the
 address of one of its `Signed-off-by:` lines: the author a history shows is a person who certified
 the change. The committer is not held to this, and neither is a merge commit. A commit made under
@@ -225,8 +231,8 @@ another address is put right, by the person who wrote it, with
 `python3 tools/lint_commit_authors.py --range main..HEAD`.
 
 **A pull request's description is held to the same rule.** It credits nobody who did not sign: no
-line opens with `Co-authored-by:` or `Claude-Session:`, with an assistant's "Generated with …"
-footer, or with a link to its session. Turn the footer off in the tool that writes it, or delete
+line opens with a credit trailer, with an assistant's "Generated with …" footer under any name,
+or with a link to its session. Turn the footer off in the tool that writes it, or delete
 it before you open the pull request. Saying what the rule refuses is fine — a mention inside a
 sentence, or quoted in backticks, opens no line. The `pr-description` check runs when a pull
 request is opened or pushed to, and again each time its description is edited, which is how a
