@@ -1,7 +1,7 @@
 # 2026-09-18 — grill read one message two ways; now it reads it one way
 
-Three adversarial reviews were run against v0.1.1 on 2026-09-18 — Codex (GPT-5), Cursor with
-Grok 4.6, Cursor with Composer — and every claim was re-run here before it was believed. Two of the
+Three adversarial reviews were run against v0.1.1 on 2026-09-18, by three independent
+reviewers (reviewer 1, 2 and 3 below), and every claim was re-run here before it was believed. Two of the
 confirmed findings are the same defect seen from two sides: **`grill` did not read the user's
 message the way its records say it does.**
 
