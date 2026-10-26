@@ -5,7 +5,7 @@ images, from two reviewers, each re-run here before it was believed.
 
 ## A truncated PNG was embedded and the build said it was fine
 
-Codex (GPT-5) handed the builder twenty-four bytes: a PNG signature and an IHDR saying 1×1, and
+Reviewer 1 handed the builder twenty-four bytes: a PNG signature and an IHDR saying 1×1, and
 nothing else — no pixel data, no end. Both implementations embedded it and reported success:
 
 ```
@@ -35,7 +35,7 @@ truncation loses first.
 
 ## A photo too big was reported as a defect in the skill
 
-Cursor's Grok 4.6 built a document around a valid image large enough to push the package past the
+Reviewer 2 built a document around a valid image large enough to push the package past the
 size the checker allows. Both implementations answered:
 
 ```

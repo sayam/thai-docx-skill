@@ -1,6 +1,6 @@
 # 2026-09-18 — a comment is text the reader sees
 
-The third item of the triage from the adversarial reviews of 2026-09-18. Cursor's Grok 4.6 noticed
+The third item of the triage from the adversarial reviews of 2026-09-18. Reviewer 2 noticed
 that `check` walks a fixed list of parts and that `word/comments.xml` is not on it.
 
 ## What was wrong

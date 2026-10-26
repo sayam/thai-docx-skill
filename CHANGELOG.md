@@ -61,6 +61,12 @@ before two applications were read; the exception and what is owed are in
   `gates.yml` had left every check green, so the rule was words
   (`tests/test_workflows_are_hardened.py::test_every_workflow_runs_with_least_privilege_and_a_bound`).
 
+### Changed
+
+- The records of the three reviews of 2026-09-18 refer to each reviewer by number, not by
+  product, and the ledger ids of their findings carry that number (`REV2-`, `REV3-`). A record
+  says how many rounds and how many reviewers; it names none.
+
 ## [0.3.4] - 2026-10-09
 
 No golden moves: a build writes the bytes 0.3.0 wrote, so what was read on them holds

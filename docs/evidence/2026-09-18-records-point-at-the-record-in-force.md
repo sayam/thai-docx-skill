@@ -1,6 +1,6 @@
 # 2026-09-18 — the live pages point at the record in force
 
-The fourth item of the triage from the adversarial reviews of 2026-09-18. Cursor's Grok 4.6 read the
+The fourth item of the triage from the adversarial reviews of 2026-09-18. Reviewer 2 read the
 ADR index, saw that 0025 and 0003 were superseded on 2026-09-18 by 0030 and 0031, and then found
 both still cited across the project as if they held.
 
