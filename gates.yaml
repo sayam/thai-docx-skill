@@ -37,7 +37,7 @@ gates:
     severity: blocking
     enforced_by: {job: commits}
   - id: commit-author-checker-proven-two-way
-    title: The author checker names a commit written under an address that did not sign it in a branch the message check passes, passes the signer's own commits and a second signer's, leaves the committer and merge commits alone, and gives no verdict on a history it cannot read (ADR 0013)
+    title: The author checker names a commit written under an address that did not sign it in a branch the message check passes, passes the signer's own commits and a second signer's, reads a sign-off from the trailer block only, names a sign-off by somebody who neither wrote nor committed the change, leaves merge commits alone, and gives no verdict on a history it cannot read (ADR 0013)
     kind: test
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_commit_authors.py]}
@@ -52,7 +52,7 @@ gates:
     severity: blocking
     enforced_by: {job: tests, tests: [tests/test_pr_body.py]}
   - id: credit-lines-read-by-shape
-    title: Every commit a push or pull request adds carries no line that credits a tool for the change — a trailer whose key is a credit, a credit verb with "with" or "by" before a name, a link alone to a session — read by the line's shape and not by a list of names (ADR 0013)
+    title: Every commit a push or pull request adds carries no line that credits a tool for the change — a trailer whose key is a credit, a credit verb with "with", "by", "using" or "via" before a name, a link alone to a session — read by the line's shape and not by a list of names (ADR 0013)
     kind: job
     severity: blocking
     enforced_by: {job: commits}

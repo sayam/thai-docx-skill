@@ -138,13 +138,14 @@ def test_only_the_range_is_read(repo):
 
 
 def test_a_message_of_many_lines_is_one_commit():
-    out = (f"{'a' * 40}\x00{SIGNER[1]}\x00fix: one\n\nline\n\n{SIGNED}\n\x1e\n"
-           f"{'b' * 40}\x00{OTHER[1]}\x00fix: two\n\n{SIGNED}\n\x1e\n")
+    out = (f"{'a' * 40}\x00{SIGNER[1]}\x00{SIGNER[1]}\x00fix: one\n\nline\n\n{SIGNED}\n\x1e\n"
+           f"{'b' * 40}\x00{OTHER[1]}\x00{SIGNER[1]}\x00fix: two\n\n{SIGNED}\n\x1e\n")
     commits = lint_commit_authors.parse_log(out)
-    assert [(sha, address) for sha, address, _ in commits] == [("a" * 9, SIGNER[1]), ("b" * 9, OTHER[1])]
-    assert commits[0][2].count("\n") >= 4 and lint_commit_authors.signers(commits[1][2]) == [SIGNER[1]]
+    assert [(sha, address, committer) for sha, address, committer, _ in commits] == [
+        ("a" * 9, SIGNER[1], SIGNER[1]), ("b" * 9, OTHER[1], SIGNER[1])]
+    assert commits[0][3].count("\n") >= 4 and lint_commit_authors.signers(commits[1][3]) == [SIGNER[1]]
     # the format handed to git and the separators it is split on are one choice
-    assert lint_commit_authors.LOG_FORMAT == "%H%x00%ae%x00%B%x1e"
+    assert lint_commit_authors.LOG_FORMAT == "%H%x00%ae%x00%ce%x00%B%x1e"
     assert (lint_commit_authors.FIELD_SEP, lint_commit_authors.RECORD_SEP) == ("\x00", "\x1e")
 
 
@@ -181,3 +182,21 @@ def test_the_workflow_reads_the_authors_of_the_commits_it_lints():
     assert runs == ['python3 tools/lint_commits.py --range "$range"', 'python3 tools/lint_commit_authors.py --range "$range"',
                     'python3 tools/lint_credit_lines.py --range "$range"']
     assert "fetch-depth: 0" in commits and "continue-on-error" not in commits
+
+
+def test_a_sign_off_inside_the_body_signs_nothing():
+    """`git commit -s` writes the line in the last paragraph; the same line above it is text."""
+    message = f"fix: a thing\n\nThe shape is\n{SIGNED}\nfor example.\n\nFixes: #12"
+    assert lint_commit_authors.signers(message) == []
+    assert lint_commit_authors.check_author(SIGNER[1], message)
+
+
+def test_a_sign_off_by_somebody_who_never_handled_the_commit_is_named(repo):
+    """Every sign-off is by the author or the committer: a tool that signs under the owner's
+    certifies nothing it can stand behind."""
+    stranger = "Signed-off-by: Some Tool <bot@example.invalid>"
+    _commit(repo, "fix: a thing", SIGNED + "\n" + stranger)
+    red = _run(repo, "base..HEAD")
+    assert red.returncode == 1 and "<bot@example.invalid>, who neither wrote nor committed it" in red.stdout
+    _commit(repo, "fix: rebased", f"{SIGNED}\nSigned-off-by: {OTHER[0]} <{OTHER[1]}>", committer=OTHER)
+    assert _run(repo, "HEAD~1..HEAD").returncode == 0, "the committer who applied it may sign"

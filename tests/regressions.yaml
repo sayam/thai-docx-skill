@@ -1648,3 +1648,27 @@
   found_by: planted-input
   test:
     - tests/test_workflows_are_hardened.py::test_every_workflow_runs_with_least_privilege_and_a_bound
+
+- id: V35-09
+  what: the credit checks passed a footer that said "using" or "via", a Thai verb, a `:shortcode:` emoji, the name on the next line, a line ended by a bare CR, a session link written as `[text](link)` or after a `Key:`, and a trailer key such as `AI-Assistant:`
+  class: C1
+  found_by: review
+  test:
+    - tests/test_credit_lines.py::test_a_credit_is_refused_by_its_shape_whatever_the_tool_is_called
+    - tests/test_credit_lines.py::test_a_credit_split_over_two_lines_is_one_credit
+
+- id: V35-10
+  what: a `Signed-off-by:` line anywhere in a commit message counted as its sign-off, a line quoted in the body too, and a sign-off by an address that neither wrote nor committed the change passed
+  class: C1
+  found_by: review
+  test:
+    - tests/test_commit_authors.py::test_a_sign_off_inside_the_body_signs_nothing
+    - tests/test_commit_authors.py::test_a_sign_off_by_somebody_who_never_handled_the_commit_is_named
+
+- id: V35-11
+  what: a link alone on its line was read as a session by a path word alone, so `/code/README` and `/docs/session-handling` were refused as an assistant's session
+  class: C1
+  found_by: review
+  test:
+    - tests/test_credit_lines.py::test_a_mention_a_path_and_the_signer_s_own_line_pass
+

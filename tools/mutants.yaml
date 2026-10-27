@@ -564,9 +564,9 @@
 - id: author-passes-when-anyone-signed
   file: tools/lint_commit_authors.py
   find: |-
-    if address and address.lower() in {s.lower() for s in signed}:
+    if not (address and address.lower() in {s.lower() for s in signed}):
   replace: |-
-    if signed:
+    if not signed:
   test:
     - tests/test_commit_authors.py::test_a_commit_written_under_an_address_that_did_not_sign_is_named
   holds:
@@ -956,7 +956,8 @@
 - id: credit-keys-are-two-names-again
   file: tools/lint_credit_lines.py
   find: |-
-    return lower.endswith(("-by", "-with")) or any(word in lower for word in ("session", "generated", "assisted", "co-author", "coauthor"))
+    return (lower.endswith(("-by", "-with")) or any(word in lower for word in ("session", "generated", "assisted", "co-author", "coauthor"))
+                or bool(CREDIT_KEY_PARTS.intersection(re.split(r"[-_]", lower))))
   replace: |-
     return lower in ("co-authored-by", "claude-session")
   test:
