@@ -11,10 +11,15 @@ platform counts as a contributor; a commit written under one address and signed 
 passes the message check and still credits an address that certified nothing.
 
 So the address in a commit's author field must be the address of one of its sign-offs, compared
-without regard to case.
+without regard to case. A sign-off is read from the trailer block, the message's last paragraph,
+by `trailer_block` in `tools/lint_credit_lines.py`: the same line inside the body signs nothing.
 
-The committer is not held to this. Whoever rebases a branch or applies a patch commits what another
-person wrote and signed, and the platform's merge button commits under an address of its own.
+And every sign-off is by somebody who handled the commit: its author, or its committer (who applied
+or rebased what the author wrote and signed). A tool that adds its own `Signed-off-by:` under the
+owner's certifies nothing it can stand behind; a longer chain of hands is not this project's way.
+
+The committer is not otherwise held to this. Whoever rebases a branch or applies a patch commits what
+another person wrote and signed, and the platform's merge button commits under an address of its own.
 Merge commits are left out, as the commit linter leaves them out: the platform writes them.
 
 Role: decider — it answers pass or fail and returns an exit code that can block a pull request.
@@ -23,9 +28,14 @@ Role: decider — it answers pass or fail and returns an exit code that can bloc
 from __future__ import annotations
 
 import argparse
+import pathlib
 import re
 import subprocess
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from lint_credit_lines import trailer_block  # noqa: E402  one reading of the trailer block, held in one place
 
 __all__ = ["check_author", "commits_in_range", "main", "parse_log", "signers"]
 
@@ -39,38 +49,47 @@ SIGNER = re.compile(r"^Signed-off-by: [^<>]*<([^<>\s]+)>\s*$", re.MULTILINE)
 # same reason, as lint_commits.py makes.
 RECORD_SEP = "\x1e"
 FIELD_SEP = "\x00"
-LOG_FORMAT = "%H%x00%ae%x00%B%x1e"
+LOG_FORMAT = "%H%x00%ae%x00%ce%x00%B%x1e"
 
 
 def signers(message: str) -> list[str]:
-    """The address of every sign-off in a message, in the order written."""
-    return SIGNER.findall(message)
+    """The address of every sign-off in a message's trailer block, in the order written."""
+    return SIGNER.findall(trailer_block(message, subject=True))
 
 
-def check_author(address: str, message: str) -> list[str]:
-    """What is wrong with one commit's author, as a list — empty means pass."""
+def check_author(address: str, message: str, committer: str | None = None) -> list[str]:
+    """What is wrong with one commit's author and sign-offs, as a list — empty means pass.
+    Without a committer address only the author is read."""
     signed = signers(message)
-    if address and address.lower() in {s.lower() for s in signed}:
-        return []
-    said = f"is written under <{address}>" if address else "names no author address"
-    by = "and signed off by " + ", ".join(f"<{s}>" for s in signed) if signed else "and nobody signed it off"
-    return [
-        f"{said} {by} — the author of a commit is a person who signed it (ADR 0013); "
-        "as its author, `git commit --amend --reset-author -s` writes both"
-    ]
+    problems = []
+    if not (address and address.lower() in {s.lower() for s in signed}):
+        said = f"is written under <{address}>" if address else "names no author address"
+        by = "and signed off by " + ", ".join(f"<{s}>" for s in signed) if signed else "and nobody signed it off"
+        problems.append(
+            f"{said} {by} — the author of a commit is a person who signed it (ADR 0013); "
+            "as its author, `git commit --amend --reset-author -s` writes both"
+        )
+    if committer is not None:
+        hands = {a.lower() for a in (address, committer) if a}
+        for stranger in [s for s in signed if s.lower() not in hands]:
+            problems.append(
+                f"is signed off by <{stranger}>, who neither wrote nor committed it — a sign-off is the "
+                "statement of a person who handled the change; drop the line"
+            )
+    return problems
 
 
-def parse_log(out: str) -> list[tuple[str, str, str]]:
-    """Turn `git log --format=LOG_FORMAT` output into (short sha, author address, message)."""
+def parse_log(out: str) -> list[tuple[str, str, str, str]]:
+    """Turn `git log --format=LOG_FORMAT` output into (short sha, author address, committer address, message)."""
     return [
-        (sha[:9], address, message)
+        (sha[:9], address, committer, message)
         for chunk in out.split(RECORD_SEP)
         if chunk.strip()
-        for sha, address, message in [chunk.strip("\n").split(FIELD_SEP, 2)]
+        for sha, address, committer, message in [chunk.strip("\n").split(FIELD_SEP, 3)]
     ]
 
 
-def commits_in_range(rev_range: str) -> list[tuple[str, str, str]]:
+def commits_in_range(rev_range: str) -> list[tuple[str, str, str, str]]:
     """The commits in this range, merge commits excluded. A range git cannot read, or does not
     answer for in time, is a RuntimeError that says so: no verdict on anybody's commits."""
     try:
@@ -97,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
     except RuntimeError as unreadable:
         print(f"cannot read the history: {unreadable}", file=sys.stderr)
         return 2
-    failures = [(sha, problem) for sha, address, message in commits for problem in check_author(address, message)]
+    failures = [(sha, problem) for sha, address, committer, message in commits for problem in check_author(address, message, committer)]
     for sha, problem in failures:
         print(f"FAIL {sha}: {problem}".encode("utf-8", "backslashreplace").decode("utf-8"))
     if not failures:

@@ -11,9 +11,9 @@ request's description is published under the same name, so it is held to the sam
 
 What is refused is read by its shape in `tools/lint_credit_lines.py`, the checker the `commits` job
 runs on every commit message: a trailer whose key is a credit, a line that opens with a credit verb
-and `with` or `by` before a name, a link alone on its line to a session. The first version of this
-file knew nine tools by name, and a footer naming a tenth passed it (planted and measured,
-2026-10-14).
+and `with`, `by`, `using` or `via` before a name, a link alone on its line to a session. The first
+version of this file knew nine tools by name, and a footer naming a tenth passed it (planted and
+measured, 2026-10-14).
 
 A description may still say what the rule refuses: a mention in the middle of a sentence, or
 quoted in backticks, opens no line.

@@ -47,14 +47,14 @@ def test_an_assistant_s_default_footer_is_refused_line_by_line():
     "- Generated with [Cursor](https://cursor.com)",
     "> 🤖 generated with [claude code](https://claude.com/claude-code)",
     "https://claude.ai/code/session_0000000000000000",
-    "<https://claude.ai/share/abc>",
-    "https://chatgpt.com/share/abc-def",
+    "<https://claude.ai/share/0f3a9b2c-1d4e>",
+    "https://chatgpt.com/share/68f0a1b2-c3d4",
     # a tool the checker was never told of: the shape is what is read (V35-07)
     "Generated with Some Tool",
     "✨ Created by [Another Assistant](https://example.invalid)",
     "Assisted-by: Another Assistant <bot@example.invalid>",
     "Another-Session-URL: https://example.invalid/s/1",
-    "https://example.invalid/share/abc",
+    "https://example.invalid/share/abc123def456",
 ])
 def test_a_line_that_opens_with_an_assistant_s_credit_is_refused(line):
     assert [n for n, _ in lint_pr_body.check_body("body\n" + line + "\nmore")] == [2], line

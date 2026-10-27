@@ -14,6 +14,17 @@ before two applications were read; the exception and what is owed are in
 
 ### Fixed
 
+- The credit checks read more shapes of the same line: a credit verb with `using` or `via` as
+  well as `with` or `by`, a Thai verb (`สร้างด้วย …`), a `:shortcode:` emoji before it, the name
+  on the next line, a line ended by a bare CR, a session link written as `[text](link)` or after
+  a `Key:`, and a trailer key whose part is `AI`, `Assistant`, `Agent`, `Model`, `LLM`, `Bot` or
+  `Copilot`. A link is a session only with an id after the path word: `/code/README` and
+  `/docs/session-handling` pass (`tests/test_credit_lines.py::test_a_credit_is_refused_by_its_shape_whatever_the_tool_is_called`,
+  `tests/test_credit_lines.py::test_a_mention_a_path_and_the_signer_s_own_line_pass`).
+- The author check reads a commit's sign-off from its trailer block, the last paragraph, where
+  `git commit -s` writes it: the same line quoted in the body signs nothing. Every sign-off is by the commit's
+  author or its committer; a `Signed-off-by:` from an address that did neither is named
+  (`tests/test_commit_authors.py::test_a_sign_off_by_somebody_who_never_handled_the_commit_is_named`).
 - The `Normal` style repeats the paragraph defaults — the spacing after a paragraph, the line
   spacing and, with `--align thai`, Thai distributed — as it already repeated the font and size.
   An application that reads styles but not `w:docDefaults` gave a paragraph none of them. Every

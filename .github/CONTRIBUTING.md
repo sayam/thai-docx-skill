@@ -219,13 +219,16 @@ rebase, so each commit should stand on its own.
 
 **No line of a commit message credits a tool for the change.** What is refused is the line's
 shape, not a list of tools: a trailer whose key is a credit (`Co-authored-by:`, `Generated-by:`,
-`Assisted-by:`, any `*-Session:`), a line that opens with a credit verb and `with` or `by` before a
-name ("Generated with …", "Created by …"), or a link alone on its line to a session. Check a
-branch with `python3 tools/lint_credit_lines.py --range main..HEAD`.
+`Assisted-by:`, `AI-Assistant:`, any `*-Session:`), a line that opens with a credit verb and
+`with`, `by`, `using` or `via` before a name ("Generated with …", "Created by …", "สร้างด้วย …"),
+or a link alone on its line to a session, with an id after the path word. Check a branch with
+`python3 tools/lint_credit_lines.py --range main..HEAD`.
 
 **A commit is written under an address that signed it.** The address in its author field is the
-address of one of its `Signed-off-by:` lines: the author a history shows is a person who certified
-the change. The committer is not held to this, and neither is a merge commit. A commit made under
+address of one of its `Signed-off-by:` lines, read from the message's last paragraph: the author
+a history shows is a person who certified the change. Every sign-off is by the author or the
+committer; a line from anybody else is named. The committer is not otherwise held to this, and
+neither is a merge commit. A commit made under
 another address is put right, by the person who wrote it, with
 `git commit --amend --reset-author -s`. Check a branch with
 `python3 tools/lint_commit_authors.py --range main..HEAD`.

@@ -39,6 +39,12 @@ write a change is not an author under the DCO.
 > did not know had passed. `tools/lint_credit_lines.py` enforces it in the
 > `commits` job as the gate `credit-lines-read-by-shape`.
 
+> **Later (2026-10-27):** a sign-off is read from the message's trailer block,
+> where `git commit -s` writes it, and each one is by the commit's author or its
+> committer: a `Signed-off-by:` added under the maintainer's by somebody who
+> handled nothing certifies nothing. `tools/lint_commit_authors.py` enforces it
+> in the `commits` job.
+
 ## Why
 
 A sign-off certifies the right to submit the change, and only the person who
