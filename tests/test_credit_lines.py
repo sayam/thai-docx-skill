@@ -186,3 +186,10 @@ def test_the_commits_job_and_the_description_check_run_the_checker():
     assert runs.index("lint_commits.py") < runs.index("lint_credit_lines.py")
     # the description check is the same function, so a tool it was never told of is refused there too
     assert lint_pr_body.check_body("Generated with Some Tool") == lint_credit_lines.check_text("Generated with Some Tool") != []
+
+
+def test_a_line_of_shortcode_colons_is_read_in_linear_time():
+    """A colon opens a `:shortcode:` or stands alone, never both: read both ways, a line of `:+:`
+    repeated backtracked exponentially (CodeQL py/redos). Run apart, so a regression times out."""
+    code = f"import sys; sys.path.insert(0, {str(ROOT / 'tools')!r}); import lint_credit_lines as l; l.check_text(':+:' * 200 + chr(0))"
+    subprocess.run([sys.executable, "-c", code], check=True, timeout=10)
